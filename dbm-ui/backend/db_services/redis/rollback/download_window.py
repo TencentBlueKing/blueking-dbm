@@ -21,6 +21,7 @@ from backend.db_services.redis.rollback.models import TbTendisRollbackPlan
 #   TbTendisRollbackPlan.download_state
 #     inflight                     task ids reserved but not finished
 #     batches.<dest_ip>.<index>    {"bill_id": ..., "task_count": n, "state": ...}
+#                                  + "lost_bills"/"lost_resubmits" once a bill was lost
 #
 # Every mutation locks that one row in a transaction: the counter and the ledger change
 # atomically, and concurrent hosts of the same plan serialize on the row lock.
@@ -32,6 +33,8 @@ DOWNLOAD_STATE_FAILED = "failed"
 # reserve() results besides the new inflight count (>= 0).
 RESERVE_OCCUPIED = -1
 RESERVE_NO_WINDOW = -2
+
+LOST_HISTORY_KEYS = ("lost_bills", "lost_resubmits")
 
 MAX_PROGRESS_LINE = 80
 PROGRESS_BAR_WIDTH = 16
@@ -92,10 +95,13 @@ def reserve(plan_id: int, dest_ip: str, batch_index: int, task_count: int, limit
         inflight = int(state["inflight"])
         if inflight + count > int(limit):
             return RESERVE_NO_WINDOW
+        # Lost-bill history survives the resubmission, so the resubmit limit holds across retries.
+        history = {key: entry[key] for key in LOST_HISTORY_KEYS if entry and key in entry}
         _host_batches(state, dest_ip)[str(int(batch_index))] = {
             "bill_id": None,
             "task_count": count,
             "state": DOWNLOAD_STATE_SUBMITTING,
+            **history,
         }
         state["inflight"] = inflight + count
         _save_state(plan_id, state)
@@ -125,6 +131,26 @@ def release(plan_id: int, dest_ip: str, batch_index: int, new_state: str) -> int
         if not entry or entry.get("state") not in (DOWNLOAD_STATE_OPEN, DOWNLOAD_STATE_SUBMITTING):
             return int(state["inflight"])
         entry["state"] = new_state
+        left = max(int(state["inflight"]) - int(entry.get("task_count") or 0), 0)
+        state["inflight"] = left
+        _save_state(plan_id, state)
+        return left
+
+
+def release_lost(plan_id: int, dest_ip: str, batch_index: int) -> int:
+    """Fail an open batch whose bill the backup system lost, so reserve() can take it again.
+
+    The lost bill is appended to ``lost_bills`` and ``lost_resubmits`` counts it, in the same
+    transaction that releases the task count.
+    """
+    with transaction.atomic():
+        state = _load_state(plan_id, for_update=True)
+        entry = _batch(state, dest_ip, batch_index)
+        if not entry or entry.get("state") != DOWNLOAD_STATE_OPEN or entry.get("bill_id") is None:
+            return int(state["inflight"])
+        entry["state"] = DOWNLOAD_STATE_FAILED
+        entry["lost_bills"] = list(entry.get("lost_bills") or []) + [int(entry["bill_id"])]
+        entry["lost_resubmits"] = int(entry.get("lost_resubmits") or 0) + 1
         left = max(int(state["inflight"]) - int(entry.get("task_count") or 0), 0)
         state["inflight"] = left
         _save_state(plan_id, state)

@@ -2310,6 +2310,7 @@ class RedisActPayload(object):
                 "dest_dir": params.get("dest_dir") or "",
                 "recover_at": recover_at,
                 "max_concurrency": max_concurrency,
+                "write_buffer_mb": plan.write_buffer_mb,
                 "install": install_payload,
                 "instances": instances,
             },

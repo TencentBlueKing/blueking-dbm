@@ -15,13 +15,16 @@ from backend.db_services.redis.rollback.shards import ShardRef, round_key_from_f
 from backend.flow.engine.bamboo.scene.redis.redis_rollback import flow as rollback_flow
 from backend.flow.engine.bamboo.scene.redis.redis_rollback.plan import (
     BinlogRef,
+    DestHost,
     FullBackupRef,
     RollbackItem,
     RollbackPlan,
     host_disk_needs,
     load_memory,
+    plus_host_memory,
+    replay_slots,
     rollback_manifest,
-    stage_slots,
+    unpack_slots,
 )
 from backend.flow.engine.bamboo.scene.redis.redis_rollback.planner import RollbackPlanner, balance_hosts
 from backend.flow.plugins.components.collections.redis.redis_rollback import RedisRollbackDiskPrecheckService
@@ -326,13 +329,83 @@ def _ssd_host_items():
     return items + [placeholder]
 
 
-def test_stage_slots_follow_the_actuator_limits():
-    assert stage_slots(cpu=16, max_concurrency=0, ports=20) == 8
-    assert stage_slots(cpu=16, max_concurrency=3, ports=20) == 3
-    assert stage_slots(cpu=16, max_concurrency=0, ports=2) == 2
-    assert stage_slots(cpu=1, max_concurrency=0, ports=5) == 1
+def test_unpack_slots_follow_the_actuator_limits():
+    assert unpack_slots(cpu=16, max_concurrency=0, ports=20) == 8
+    assert unpack_slots(cpu=16, max_concurrency=3, ports=20) == 3
+    assert unpack_slots(cpu=16, max_concurrency=0, ports=2) == 2
+    assert unpack_slots(cpu=1, max_concurrency=0, ports=5) == 1
     # an unknown CPU count assumes every port at once
-    assert stage_slots(cpu=0, max_concurrency=0, ports=5) == 5
+    assert unpack_slots(cpu=0, max_concurrency=0, ports=5) == 5
+
+
+@pytest.mark.parametrize(
+    "cpu,max_concurrency,streams,expected",
+    [
+        (16, 0, 8, 8),
+        (16, 0, 10, 10),
+        (16, 0, 20, 16),
+        (32, 0, 70, 32),
+        (16, 3, 20, 3),
+        (16, 32, 20, 16),
+        (1, 0, 10, 1),
+        (0, 0, 10, 10),
+    ],
+)
+def test_replay_slots_take_one_stream_per_cpu(cpu, max_concurrency, streams, expected):
+    # Limits.KvstoreReplay is min(streams, CPU); max_concurrency only lowers it
+    assert replay_slots(cpu=cpu, max_concurrency=max_concurrency, streams=streams) == expected
+
+
+MB = 1024**2
+
+
+def test_plus_host_memory_mirrors_the_rendered_conf():
+    buffers = 10 * 2 * 128 * MB
+    # one instance takes 43% of the host as block cache, floored to MB like the rendered conf
+    assert plus_host_memory(64 * GB, 1, 10, 128) == (64 * GB * 43 // 100) // MB * MB + buffers
+    # three share it, each with its own buffers
+    assert plus_host_memory(64 * GB, 3, 10, 128) == 3 * ((64 * GB * 43 // 300) // MB * MB + buffers)
+    # small hosts give 30%, and never less than 128MB an instance
+    assert plus_host_memory(2 * GB, 8, 1, 128) == 8 * (128 * MB + 2 * 128 * MB)
+    # unknown host memory, or a plan saved before write_buffer_mb, is not judged
+    assert plus_host_memory(0, 3, 10, 128) == 0
+    assert plus_host_memory(64 * GB, 3, 10, 0) == 0
+
+
+def _plus_precheck(mem_total_gb, mem_available_gb, ports, write_buffer_mb=128):
+    svc = _precheck_service()
+    svc._check = MagicMock(return_value=True)
+    plan = _manifest_plan()
+    plan.cluster_type = ClusterType.TendisPredixyTendisplusCluster.value
+    plan.items = [_item("0-8191", "2.2.2.2", "a.tar")]
+    plan.write_buffer_mb, plan.kvstore_count = write_buffer_mb, 10
+    plan.dest_hosts = [DestHost(ip="2.2.2.2", ports=list(range(30000, 30000 + ports)))]
+    df = "/dev/vdb 1000 100 900 10% {}"
+    host = {
+        "redis_backup_dir_data": df.format("/data"),
+        "redis_data_dir_data": df.format("/data1"),
+        "redis_backup_dir_dev": "1",
+        "redis_data_dir_dev": "2",
+        "cpu_count": "16",
+        "mem_total_kb": str(mem_total_gb * 1024 * 1024),
+        "mem_available_kb": str(mem_available_gb * 1024 * 1024),
+    }
+    data = MagicMock()
+    data.get_one_of_inputs.side_effect = lambda key: {
+        "kwargs": {"exec_ip": "2.2.2.2", "plan_id": 7},
+        "trans_data": SimpleNamespace(disk_used={"2.2.2.2": host}),
+    }[key]
+    with patch.object(RollbackPlan, "load", return_value=plan):
+        return svc._execute(data, None)
+
+
+def test_plus_host_short_of_memory_for_its_buffers_is_rejected():
+    # 3 ports x 10 kvstores x 2 x 128MB = 7.5GB of buffers beside 43% of 64GB, within 90% of 60GB
+    assert _plus_precheck(mem_total_gb=64, mem_available_gb=60, ports=3) is True
+    # a busy host with 20GB free cannot take the same instances
+    assert _plus_precheck(mem_total_gb=64, mem_available_gb=20, ports=3) is False
+    # a plan saved before write_buffer_mb keeps the old behaviour: no Tendisplus memory check
+    assert _plus_precheck(mem_total_gb=64, mem_available_gb=20, ports=3, write_buffer_mb=0) is True
 
 
 def test_ssd_downloads_are_the_only_backup_disk_need():
@@ -381,6 +454,35 @@ def test_disk_precheck_sizes_from_the_plan_and_host_cpus():
     with patch.object(RollbackPlan, "load", return_value=plan):
         assert svc._execute(data, None) is True
     assert [c.args[3] for c in svc._check.call_args_list] == [30, 60]
+
+
+def test_disk_precheck_stops_before_download_when_the_host_is_full():
+    svc = _precheck_service()
+    errors = []
+    svc.log_error = errors.append
+    plan = _manifest_plan()
+    plan.cluster_type = ClusterType.TendisPredixyTendisplusCluster.value
+    plan.dest_hosts = [DestHost(ip="2.2.2.2", ports=[30000])]
+    plan.write_buffer_mb, plan.kvstore_count = 128, 10
+    # 80% used passes the ratio gate; zero available must fail on the required size.
+    df = "/dev/vdb 1000 800 0 80% {}"
+    host = {
+        "redis_backup_dir_data": df.format("/data"),
+        "redis_data_dir_data": df.format("/data1"),
+        "redis_backup_dir_dev": "1",
+        "redis_data_dir_dev": "2",
+        "cpu_count": "16",
+        "mem_total_kb": "0",
+        "mem_available_kb": "0",
+    }
+    data = MagicMock()
+    data.get_one_of_inputs.side_effect = lambda key: {
+        "kwargs": {"exec_ip": "2.2.2.2", "plan_id": 7},
+        "trans_data": SimpleNamespace(disk_used={"2.2.2.2": host}),
+    }[key]
+    with patch.object(RollbackPlan, "load", return_value=plan):
+        assert svc._execute(data, None) is False
+    assert any("2.2.2.2" in message and "需要" in message for message in errors)
 
 
 # --- 9.9 plan_id in the record ---------------------------------------------------------
@@ -508,6 +610,31 @@ def test_v2_instances_get_the_derived_password():
     assert payload["install"]["password"] == derived
     assert payload["install"]["redis_conf_configs"] == {"requirepass": derived, "port": "1"}
     assert payload["max_concurrency"] == 0
+    assert payload["write_buffer_mb"] == 0
+
+
+@pytest.mark.parametrize("saved,expected", [({}, 0), ({"write_buffer_mb": 0}, 0), ({"write_buffer_mb": 128}, 128)])
+def test_payload_sends_the_plans_write_buffer(saved, expected):
+    # a plan saved before write_buffer_mb loads as 0, which keeps the conf template's buffer
+    data = _manifest_plan().to_dict()
+    data.pop("write_buffer_mb")
+    plan = RollbackPlan.from_dict({**data, **saved})
+    builder = RedisActPayload.__new__(RedisActPayload)
+    builder.bk_biz_id = "3"
+    builder.get_redis_install_4_scene = MagicMock(
+        return_value={"payload": {"password": "r", "redis_conf_configs": {"requirepass": "r"}}}
+    )
+    with patch.object(RollbackPlan, "load", return_value=plan):
+        payload = builder.redis_rollback_payload(
+            params={
+                "plan_id": 7,
+                "dest_ip": "2.2.2.2",
+                "immute_domain": "plus.example.db",
+                "cluster_type": ClusterType.TendisPredixyTendisplusCluster.value,
+                "db_version": "Tendisplus-2.8",
+            },
+        )["payload"]
+    assert payload["write_buffer_mb"] == expected
 
 
 def test_with_temp_passwords_leaves_the_source_config_alone():

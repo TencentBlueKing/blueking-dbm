@@ -8,12 +8,14 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.utils import timezone as django_timezone
 
+from backend.components.exception import DataAPIException
 from backend.db_meta.enums import ClusterType
 from backend.db_services.redis.rollback import download_window
 from backend.db_services.redis.rollback.binlogs import binlog_fingerprint
 from backend.db_services.redis.rollback.exceptions import RollbackPlanError
 from backend.db_services.redis.rollback.models import TbTendisRollbackPlan
 from backend.db_services.redis.rollback.shards import ShardRef
+from backend.exceptions import ApiRequestError
 from backend.flow.engine.bamboo.scene.redis.redis_rollback import flow as rollback_flow
 from backend.flow.engine.bamboo.scene.redis.redis_rollback.plan import (
     ORPHAN_PLAN_TTL,
@@ -339,10 +341,12 @@ class _FakeWindow:
             return download_window.RESERVE_OCCUPIED
         if self.inflight + count > limit:
             return download_window.RESERVE_NO_WINDOW
+        history = {key: entry[key] for key in download_window.LOST_HISTORY_KEYS if entry and key in entry}
         self.entries[index] = {
             "bill_id": None,
             "task_count": count,
             "state": download_window.DOWNLOAD_STATE_SUBMITTING,
+            **history,
         }
         self.inflight += count
         return self.inflight
@@ -362,6 +366,14 @@ class _FakeWindow:
         self.inflight = max(self.inflight - current["task_count"], 0)
         return self.inflight
 
+    def release_lost(self, plan_id, dest_ip, index):
+        current = self.entries.get(index)
+        if not current or current["state"] != download_window.DOWNLOAD_STATE_OPEN:
+            return self.inflight
+        current["lost_bills"] = list(current.get("lost_bills") or []) + [current["bill_id"]]
+        current["lost_resubmits"] = int(current.get("lost_resubmits") or 0) + 1
+        return self.release(plan_id, dest_ip, index, download_window.DOWNLOAD_STATE_FAILED)
+
     def read_batches(self, plan_id, dest_ip):
         return {index: dict(entry) for index, entry in self.entries.items()}
 
@@ -370,6 +382,7 @@ class _FakeWindow:
             patch.object(download_window, "reserve", side_effect=self.reserve),
             patch.object(download_window, "mark_open", side_effect=self.mark_open),
             patch.object(download_window, "release", side_effect=self.release),
+            patch.object(download_window, "release_lost", side_effect=self.release_lost),
             patch.object(download_window, "read_batches", side_effect=self.read_batches),
         ]
 
@@ -399,7 +412,15 @@ def _window_outputs(data, plan, total):
     data.outputs.failed = False
 
 
-def test_window_submits_only_five_hundred_task_ids():
+WINDOW_BILLS = rollback_components.DOWNLOAD_INFLIGHT_TASK_LIMIT // rollback_components.DOWNLOAD_BATCH_SIZE
+
+
+def test_window_limit_is_one_hundred_task_ids():
+    assert rollback_components.DOWNLOAD_INFLIGHT_TASK_LIMIT == 100
+    assert WINDOW_BILLS == 2
+
+
+def test_window_submits_only_the_window_of_task_ids():
     plan = _plan(binlog_count=1999)  # 2000 task ids = 40 batches
     window = _FakeWindow()
     data = _window_data(_window_kwargs())
@@ -418,8 +439,8 @@ def test_window_submits_only_five_hundred_task_ids():
         assert _download_service()._execute(data, None) is True
 
     batches = [call.kwargs["params"]["taskid_list"] for call in download.call_args_list]
-    assert len(batches) == 10
-    assert [len(batch) for batch in batches] == [rollback_components.DOWNLOAD_BATCH_SIZE] * 10
+    assert len(batches) == WINDOW_BILLS
+    assert [len(batch) for batch in batches] == [rollback_components.DOWNLOAD_BATCH_SIZE] * WINDOW_BILLS
     assert sum(len(batch) for batch in batches) == rollback_components.DOWNLOAD_INFLIGHT_TASK_LIMIT
     assert window.inflight == rollback_components.DOWNLOAD_INFLIGHT_TASK_LIMIT
 
@@ -449,10 +470,10 @@ def test_window_releases_finished_batches_and_submits_more():
         )
         svc = _download_service()
         assert svc._execute(data, None) is True
-        assert download.call_count == 10
+        assert download.call_count == WINDOW_BILLS
         assert svc._schedule(data, None) is True
 
-    assert download.call_count == 20
+    assert download.call_count == 2 * WINDOW_BILLS
     assert window.inflight == rollback_components.DOWNLOAD_INFLIGHT_TASK_LIMIT
 
 
@@ -602,6 +623,139 @@ def test_query_bill_returns_none_on_api_error():
     assert errors
 
 
+def _backup_api_error(body, path="/backupapi/get_recover_result"):
+    """What RedisBackupApi raises for a non-200 answer: the body only survives in the message."""
+    return ApiRequestError(DataAPIException("[mysql_backup]API请求异常：([500]{}) path => {}".format(body, path)))
+
+
+# Body of the lost bill 8700500.
+LOST_BILL_BODY = '{"code": 13, "message": "fail,can not find this file"}'
+
+
+@pytest.mark.parametrize(
+    "outcome, expected",
+    [
+        (_backup_api_error(LOST_BILL_BODY), rollback_components.BILL_LOST),
+        (ApiRequestError(DataAPIException("Read timed out. path => /backupapi/get_recover_result")), None),
+        (_backup_api_error('{"code": 1, "message": "internal error"}'), None),
+        ({"total": {"todo": 0, "doing": 0, "fail": 0}}, {"todo": 0, "doing": 0, "fail": 0}),
+    ],
+    ids=["lost", "timeout", "other-5xx", "ok"],
+)
+def test_query_bill_only_treats_the_lost_bill_answer_as_lost(outcome, expected):
+    svc = _download_service()
+    kwargs = {"side_effect": outcome} if isinstance(outcome, Exception) else {"return_value": outcome}
+    with patch.object(rollback_components.RedisBackupApi, "download_result", **kwargs):
+        result = svc._query_bill(8700500)
+
+    if expected is rollback_components.BILL_LOST:
+        assert result is rollback_components.BILL_LOST
+    else:
+        assert result == expected
+
+
+def _open_batch(window, bill_id, task_count=50):
+    window.entries[0] = {"bill_id": bill_id, "task_count": task_count, "state": download_window.DOWNLOAD_STATE_OPEN}
+    window.inflight = task_count
+
+
+def test_retry_resubmits_a_lost_bill_with_a_new_one():
+    plan = _plan(binlog_count=49)  # 50 task ids, one batch
+    window = _FakeWindow()
+    _open_batch(window, 8700500)
+    data = _window_data(_window_kwargs())
+    logs = []
+    svc = _download_service()
+    svc.log_info = svc.log_error = logs.append
+    with ExitStack() as stack:
+        for patcher in window.patches():
+            stack.enter_context(patcher)
+        stack.enter_context(patch.object(RollbackPlan, "load", return_value=plan))
+        stack.enter_context(
+            patch.object(
+                rollback_components.RedisBackupApi,
+                "download_result",
+                side_effect=_backup_api_error(LOST_BILL_BODY),
+            )
+        )
+        download = stack.enter_context(
+            patch.object(rollback_components.RedisBackupApi, "download", return_value={"bill_id": 8700600})
+        )
+        assert svc._execute(data, None) is True
+
+    assert download.call_count == 1
+    assert window.entries[0]["state"] == download_window.DOWNLOAD_STATE_OPEN
+    assert window.entries[0]["bill_id"] == 8700600
+    assert window.entries[0]["lost_bills"] == [8700500]
+    assert window.inflight == 50
+    assert data.outputs.failed is False
+    assert any("2.2.2.2" in line and "1/1" in line and "8700500 -> 8700600" in line for line in logs)
+
+
+def test_retry_fails_execute_when_a_bill_cannot_be_queried():
+    plan = _plan(binlog_count=49)
+    window = _FakeWindow()
+    _open_batch(window, 11)
+    data = _window_data(_window_kwargs())
+    with ExitStack() as stack:
+        for patcher in window.patches():
+            stack.enter_context(patcher)
+        stack.enter_context(patch.object(RollbackPlan, "load", return_value=plan))
+        stack.enter_context(
+            patch.object(rollback_components.RedisBackupApi, "download_result", side_effect=RuntimeError("timeout"))
+        )
+        download = stack.enter_context(patch.object(rollback_components.RedisBackupApi, "download"))
+        # BaseService.execute only logs "运行成功" for a truthy result.
+        assert _download_service()._execute(data, None) is False
+
+    download.assert_not_called()
+    assert window.entries[0]["state"] == download_window.DOWNLOAD_STATE_OPEN
+    assert window.entries[0]["bill_id"] == 11
+    assert window.inflight == 50
+
+
+def test_schedule_resubmits_a_lost_bill_twice_then_fails():
+    plan = _plan(binlog_count=49)
+    window = _FakeWindow()
+    _open_batch(window, 11)
+    data = _window_data(_window_kwargs())
+    _window_outputs(data, plan, total=50)
+    logs, errors = [], []
+    svc = _download_service()
+    svc.log_info = logs.append
+    svc.log_error = errors.append
+    with ExitStack() as stack:
+        for patcher in window.patches():
+            stack.enter_context(patcher)
+        stack.enter_context(patch.object(RollbackPlan, "load", return_value=plan))
+        stack.enter_context(
+            patch.object(
+                rollback_components.RedisBackupApi,
+                "download_result",
+                side_effect=_backup_api_error(LOST_BILL_BODY),
+            )
+        )
+        stack.enter_context(
+            patch.object(
+                rollback_components.RedisBackupApi, "download", side_effect=[{"bill_id": 12}, {"bill_id": 13}]
+            )
+        )
+        stack.enter_context(patch.object(rollback_components.time, "time", return_value=1000.0 + 20))
+        assert svc._schedule(data, None) is True
+        assert window.entries[0]["bill_id"] == 12
+        assert svc._schedule(data, None) is True
+        assert window.entries[0]["bill_id"] == 13
+        assert svc._schedule(data, None) is False
+
+    assert window.entries[0]["state"] == download_window.DOWNLOAD_STATE_FAILED
+    assert window.entries[0]["lost_resubmits"] == 2
+    assert window.inflight == 0
+    assert svc.finish_schedule.called
+    assert any("11 -> 12" in line for line in logs)
+    assert any("12 -> 13" in line for line in logs)
+    assert any("[11, 12, 13]" in line for line in errors)
+
+
 def test_reconcile_stops_resubmitting_after_the_first_failure():
     plan = _plan(binlog_count=99)  # 100 task ids, two batches
     window = _FakeWindow()
@@ -624,7 +778,7 @@ def test_reconcile_stops_resubmitting_after_the_first_failure():
                 side_effect=[{"bill_id": -1}, {"bill_id": 12}],
             )
         )
-        assert _download_service()._execute(data, None) is True
+        assert _download_service()._execute(data, None) is False
 
     assert download.call_count == 1
     assert window.entries[0]["state"] == download_window.DOWNLOAD_STATE_FAILED
