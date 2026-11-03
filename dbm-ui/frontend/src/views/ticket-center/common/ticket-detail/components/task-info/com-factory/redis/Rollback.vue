@@ -26,18 +26,19 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="cluster_type_name"
-      :title="t('架构类型')">
+      :title="t('架构类型')"
+      width="180">
       <template #default="{ row }: { row: RowData }">
         {{ ticketDetails.details.clusters[row.cluster_id].cluster_type_name }}
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="backup_record"
-      :min-width="240"
+      :min-width="400"
       :title="t('备份记录')">
       <template #default="{ row }: { row: RowData }">
-        <p>{{ row.backup_identify }}</p>
-        <p>{{ getBackupTypeText(row.backup_identify) }}</p>
+        <p>{{ t('备份记录') }}：{{ row.backup_identify }}</p>
+        <p>{{ t('备份方式') }}：{{ getBackupTypeText(row.backup_identify) }}</p>
         <p>{{ t('构造范围') }}：{{ getScopeDisplay(row) }}</p>
         <p v-if="hasBinlog(ticketDetails.details.clusters[row.cluster_id].cluster_type)">
           {{ t('构造到') }}：{{ row.recovery_time_point ? utcDisplayTime(row.recovery_time_point) : t('仅用全备') }}
@@ -47,7 +48,8 @@
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
       col-key="count"
-      :title="t('构造主机数量')">
+      :title="t('构造主机数量')"
+      width="100">
       <template #default="{ row }: { row: RowData }">
         {{ row.resource_spec.redis.count }}
       </template>
