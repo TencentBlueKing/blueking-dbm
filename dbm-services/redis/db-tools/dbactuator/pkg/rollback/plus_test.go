@@ -99,24 +99,29 @@ func gzipBinlogs(t *testing.T, dir string, names ...string) []string {
 	return paths
 }
 
-// fakeBinlogTool emits the ids of each file at or after the start position, like binlog_tool.
+// fakeBinlogTool emits the ids of each file at or after the start position, like binlog_tool,
+// reading the download itself as the stream does: nothing is decompressed beside it.
 func fakeBinlogTool(t *testing.T, ids map[string][]uint64, ignoreStart bool) func() {
 	t.Helper()
-	binlogToolFn = func(logFile string, startPos uint64, _ int64, onLine func(string) error) (time.Duration, error) {
-		if _, err := os.Stat(logFile); err != nil {
-			t.Fatalf("binlog not decompressed: %v", err)
+	binlogToolFn = func(file, workDir string, startPos uint64, _ int64, onLine func(string) error) (streamCPU, error) {
+		cpu := streamCPU{parse: time.Second, decode: 2 * time.Second}
+		if _, err := os.Stat(file); err != nil {
+			t.Fatalf("binlog not downloaded: %v", err)
 		}
-		for _, id := range ids[filepath.Base(logFile)] {
+		if leftovers, _ := filepath.Glob(filepath.Join(workDir, "*.log")); len(leftovers) > 0 {
+			t.Fatalf("decompressed binlogs on disk: %v", leftovers)
+		}
+		for _, id := range ids[strings.TrimSuffix(filepath.Base(file), ".gz")] {
 			if id < startPos && !ignoreStart {
 				continue
 			}
 			if err := onLine(restoreLine(2, id)); err != nil {
-				return time.Second, err
+				return cpu, err
 			}
 		}
-		return time.Second, nil
+		return cpu, nil
 	}
-	return func() { binlogToolFn = runBinlogTool }
+	return func() { binlogToolFn = runBinlogToolStream }
 }
 
 func replayFixture(t *testing.T) ([]string, map[string][]uint64, *portReport) {
@@ -177,13 +182,13 @@ func TestReplayKvstoreBatchFailureLeavesBinlogposPastTheHole(t *testing.T) {
 
 func TestReplayKvstoreToolFailureBetweenBatchesCanResume(t *testing.T) {
 	files, _, p := replayFixture(t)
-	binlogToolFn = func(_ string, _ uint64, _ int64, onLine func(string) error) (time.Duration, error) {
+	binlogToolFn = func(_, _ string, _ uint64, _ int64, onLine func(string) error) (streamCPU, error) {
 		if err := onLine(restoreLine(2, 101)); err != nil {
-			return 0, err
+			return streamCPU{}, err
 		}
-		return 0, fmt.Errorf("binlog_tool failed")
+		return streamCPU{}, fmt.Errorf("binlog_tool failed")
 	}
-	defer func() { binlogToolFn = runBinlogTool }()
+	defer func() { binlogToolFn = runBinlogToolStream }()
 	cli := &fakeReplayer{pos: 100}
 	_, err := replayKvstore(portLog{}, p, cli, 2, files, 0, t.TempDir(), nil)
 	if err == nil || failedInFlight(err) || cli.batches != 0 {
@@ -191,15 +196,37 @@ func TestReplayKvstoreToolFailureBetweenBatchesCanResume(t *testing.T) {
 	}
 }
 
-func TestReplayKvstoreRecordsToolCPU(t *testing.T) {
+func TestReplayKvstoreBooksEachStageApart(t *testing.T) {
 	files, ids, p := replayFixture(t)
 	defer fakeBinlogTool(t, ids, false)()
-	if _, err := replayKvstore(portLog{}, p, &fakeReplayer{pos: 100}, 2, files, 0, t.TempDir(), nil); err != nil {
+	slow := slowReplayer{fakeReplayer: &fakeReplayer{pos: 100}, delay: 20 * time.Millisecond}
+	if _, err := replayKvstore(portLog{}, p, slow, 2, files, 0, t.TempDir(), nil); err != nil {
 		t.Fatal(err)
 	}
-	if p.cpu[stageApply] != 2*time.Second {
-		t.Fatalf("apply cpu=%v, want binlog_tool's 1s per file", p.cpu[stageApply])
+	// Two files: the decompressor's CPU is parse, binlog_tool's is decode, and apply has no CPU of
+	// its own: it is the time batches were out, which decode no longer counts.
+	if p.cpu[stageParse] != 2*time.Second || p.cpu[stageDecode] != 4*time.Second || p.cpu[stageApply] != 0 {
+		t.Fatalf("cpu %v", p.cpu)
 	}
+	if apply := p.durations[stageApply]; apply < 2*slow.delay || p.durations[stageDecode] >= apply {
+		t.Fatalf("apply=%v decode=%v: batch time must be apply's alone", apply, p.durations[stageDecode])
+	}
+	k := p.kvstores[2]
+	if k == nil || k.files != 2 || k.writes != 5 || k.posBefore != 100 || k.posAfter != 105 ||
+		k.cpu[stageDecode] != p.cpu[stageDecode] || k.durations[stageApply] != p.durations[stageApply] {
+		t.Fatalf("kvstore row %+v", k)
+	}
+}
+
+// slowReplayer takes delay per batch, like an instance busy writing.
+type slowReplayer struct {
+	*fakeReplayer
+	delay time.Duration
+}
+
+func (s slowReplayer) execBatch(cmds [][]string) ([]error, error) {
+	time.Sleep(s.delay)
+	return s.fakeReplayer.execBatch(cmds)
 }
 
 func TestReplayKvstoreRejectsIdsAtOrBelowTheStart(t *testing.T) {
@@ -217,10 +244,10 @@ func TestReplayKvstoreRejectsIdsAtOrBelowTheStart(t *testing.T) {
 
 func TestReplayKvstoreFailsOnUndecodableBinlog(t *testing.T) {
 	files, _, p := replayFixture(t)
-	binlogToolFn = func(_ string, _ uint64, _ int64, onLine func(string) error) (time.Duration, error) {
-		return 0, onLine("ERR: invalid binlog, skip the rest")
+	binlogToolFn = func(_, _ string, _ uint64, _ int64, onLine func(string) error) (streamCPU, error) {
+		return streamCPU{}, onLine("ERR: invalid binlog, skip the rest")
 	}
-	defer func() { binlogToolFn = runBinlogTool }()
+	defer func() { binlogToolFn = runBinlogToolStream }()
 	_, err := replayKvstore(portLog{}, p, &fakeReplayer{pos: 100}, 2, files, 0, t.TempDir(), nil)
 	if err == nil || !strings.Contains(err.Error(), "binlog-a.log.gz") ||
 		!strings.Contains(err.Error(), "cannot decode a binlog") {
@@ -361,6 +388,9 @@ func (h dirHost) InstanceDir(port int) string { return filepath.Join(h.root, fmt
 func (h dirHost) Start(int) error             { return nil }
 func (h dirHost) Stop(int) error              { return nil }
 func (h dirHost) MediaName() string           { return "tendisplus-2.8.2-rocksdb-v8.5.3" }
+func (h dirHost) ProcessID(int) (int, uint64, error) {
+	return 0, 0, fmt.Errorf("no instance process")
+}
 
 func TestPlusClusterStepsFollowTheClusterFlag(t *testing.T) {
 	var steps []string
@@ -446,15 +476,14 @@ func (f *portReplayer) execBatch(cmds [][]string) ([]error, error) {
 // scriptTool stands in for binlog_tool, telling the port and kvstore from the replay work dir.
 func scriptTool(t *testing.T, run func(port, kvstore int, startPos uint64, onLine func(string) error) error) func() {
 	t.Helper()
-	binlogToolFn = func(logFile string, startPos uint64, _ int64, onLine func(string) error) (time.Duration, error) {
+	binlogToolFn = func(file, workDir string, startPos uint64, _ int64, onLine func(string) error) (streamCPU, error) {
 		var port, kvstore int
-		if _, err := fmt.Sscanf(filepath.Base(filepath.Dir(logFile)), "binlog_replay_%d_%d", &port,
-			&kvstore); err != nil {
-			t.Errorf("work dir of %s: %v", logFile, err)
+		if _, err := fmt.Sscanf(filepath.Base(workDir), "binlog_replay_%d_%d", &port, &kvstore); err != nil {
+			t.Errorf("work dir %s of %s: %v", workDir, file, err)
 		}
-		return 0, run(port, kvstore, startPos, onLine)
+		return streamCPU{}, run(port, kvstore, startPos, onLine)
 	}
-	return func() { binlogToolFn = runBinlogTool }
+	return func() { binlogToolFn = runBinlogToolStream }
 }
 
 // plusPorts sets up a restorer whose ports are pending, each kvstore holding binlogpos 100 and

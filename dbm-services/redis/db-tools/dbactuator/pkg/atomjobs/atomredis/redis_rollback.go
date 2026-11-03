@@ -21,9 +21,12 @@ type RedisRollbackParams struct {
 	DestDir   string `json:"dest_dir"`
 	RecoverAt string `json:"recover_at"`
 	// MaxConcurrency only lowers the per-stage limits sized from the host; 0 leaves them.
-	MaxConcurrency int                        `json:"max_concurrency"`
-	Install        json.RawMessage            `json:"install"`
-	Instances      []rollback.InstanceRestore `json:"instances" validate:"required"`
+	MaxConcurrency int `json:"max_concurrency"`
+	// WriteBufferMB is the Tendisplus temp instances' write buffer for the replay; 0, as older
+	// payloads send it, keeps the conf template's.
+	WriteBufferMB int                        `json:"write_buffer_mb"`
+	Install       json.RawMessage            `json:"install"`
+	Instances     []rollback.InstanceRestore `json:"instances" validate:"required"`
 }
 
 // RedisRollback restores redis instances from backup files, dispatching on the storage engine.
@@ -87,6 +90,7 @@ func (job *RedisRollback) Run() error {
 		UnpackDir:      rollbackUnpackDir(install),
 		RecoverAt:      job.params.RecoverAt,
 		MaxConcurrency: job.params.MaxConcurrency,
+		WriteBufferMB:  job.params.WriteBufferMB,
 		Instances:      job.params.Instances,
 		Host:           &rollbackHost{install: install, ip: job.params.DestIP, runtime: job.runtime},
 	})
@@ -165,4 +169,9 @@ func (h *rollbackHost) Stop(port int) error {
 
 func (h *rollbackHost) MediaName() string {
 	return h.install.params.GePkgBaseName()
+}
+
+// ProcessID finds the instance by its redis.conf, which start-redis.sh passes on its command line.
+func (h *rollbackHost) ProcessID(port int) (int, uint64, error) {
+	return rollback.ProcessByArg(filepath.Join(h.InstanceDir(port), "redis.conf"))
 }

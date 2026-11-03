@@ -110,6 +110,10 @@ func (r *cacheRestorer) DoRollback() error {
 			wg.Wait()
 			return err
 		}
+		if err = r.applyTuning(portsOf(redo)); err != nil {
+			wg.Wait()
+			return err
+		}
 		if r.cluster {
 			// Enable cluster mode for the temp instance.
 			for _, inst := range redo {

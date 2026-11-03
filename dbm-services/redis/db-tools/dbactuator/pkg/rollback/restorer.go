@@ -86,6 +86,8 @@ type Host interface {
 	Stop(port int) error
 	// MediaName is the redis package base name, e.g. redis-2.8.17-rocksdb-v1.3.10.
 	MediaName() string
+	// ProcessID is the running instance's pid and start time, read for its CPU over the replay.
+	ProcessID(port int) (pid int, startTime uint64, err error)
 }
 
 // Job is one host's rollback request.
@@ -97,8 +99,12 @@ type Job struct {
 	UnpackDir      string
 	RecoverAt      string
 	MaxConcurrency int
-	Instances      []InstanceRestore
-	Host           Host
+	// WriteBufferMB is the Tendisplus write buffer for the replay; 0 keeps the template's.
+	WriteBufferMB int
+	Instances     []InstanceRestore
+	Host          Host
+	// tuning is the engine's, chosen by New.
+	tuning Tuning
 }
 
 // Restorer restores every instance of a Job for one storage engine.
@@ -117,10 +123,13 @@ func New(dbType string, job Job) (Restorer, error) {
 	cluster := consts.IsRedisClusterProtocal(dbType)
 	switch {
 	case consts.IsTendisplusInstanceDbType(dbType) && cluster:
+		job.tuning = plusTuning{}
 		return &plusRestorer{Job: job, cluster: cluster}, nil
 	case consts.IsRedisInstanceDbType(dbType):
+		job.tuning = cacheTuning{}
 		return &cacheRestorer{Job: job, cluster: cluster}, nil
 	case consts.IsTendisSSDInstanceDbType(dbType):
+		job.tuning = ssdTuning{}
 		return &ssdRestorer{Job: job}, nil
 	default:
 		return nil, fmt.Errorf("redis_rollback does not support %s yet", dbType)

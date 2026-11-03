@@ -117,11 +117,18 @@ func (r *plusRestorer) DoRollback() error {
 		if err = r.setClusterConf(redo); err != nil {
 			return err
 		}
+		if err = r.applyTuning(portsOf(redo)); err != nil {
+			return err
+		}
 	}
+	// A resumed port was tuned by the attempt that restored it; memory is read from its conf as is.
+	tuning := r.tuningSummary()
 	for _, inst := range all {
 		plan := plans[inst.DestPort]
 		plan.memory = PlusMemory(confFile(r.Host.InstanceDir(inst.DestPort)))
+		plan.tuning = tuning
 		plans[inst.DestPort] = plan
+		report.port(inst.DestPort).setTuning(tuning)
 	}
 	report.logPlan(limits, plans, r.UnpackDir)
 	replaying := limits.KvstoreReplay(streams)
@@ -257,7 +264,7 @@ func (r *plusRestorer) restore(inst InstanceRestore, p *portReport, window *memW
 		return MarkPending(instDir, r.fingerprint(inst))
 	}
 	err := p.timed(stageRestore, func() error {
-		return r.restoreBackup(log, inst, instDir, root, metas)
+		return r.restoreBackup(log, p, inst, instDir, root, metas)
 	})
 	if err != nil {
 		log.Error("%v", err)
@@ -269,7 +276,7 @@ func (r *plusRestorer) restore(inst InstanceRestore, p *portReport, window *memW
 	return MarkPending(instDir, r.fingerprint(inst))
 }
 
-func (r *plusRestorer) restoreBackup(log portLog, inst InstanceRestore, instDir, root string,
+func (r *plusRestorer) restoreBackup(log portLog, p *portReport, inst InstanceRestore, instDir, root string,
 	metas map[int]plusBackupMeta) error {
 	addr := fmt.Sprintf("%s:%d", r.DestIP, inst.DestPort)
 	password, err := myredis.GetRedisPasswdFromConfFile(inst.DestPort)
@@ -290,6 +297,8 @@ func (r *plusRestorer) restoreBackup(log portLog, inst InstanceRestore, instDir,
 		return err
 	}
 
+	// A backup taken as a checkpoint is renamed into place when asked; one taken as a copy, as dbmon
+	// takes them across top-level dirs, is always copied. The backup is never rewritten to change that.
 	dbDir := confDir(instDir, filepath.Join(instDir, "data", "db"))
 	same, derr := sameDeviceFn(root, dbDir)
 	switch {
@@ -301,13 +310,16 @@ func (r *plusRestorer) restoreBackup(log portLog, inst InstanceRestore, instDir,
 		if _, err = cli.ConfigSet("move-dir-when-restore-ckpt", "yes"); err != nil {
 			log.Warn("set move-dir-when-restore-ckpt failed (%v), restorebackup copies the backup", err)
 		} else {
-			log.Info("%s shares a filesystem with %s, restorebackup moves the backup into place", root, dbDir)
+			log.Info("%s shares a filesystem with %s, asked restorebackup to move a checkpoint backup", root, dbDir)
 		}
 	}
 	log.Info("restorebackup all %s force", root)
 	if err = cli.InstanceClient.Do(context.TODO(), "restorebackup", "all", root, "force").Err(); err != nil {
 		return fmt.Errorf("restorebackup all %s failed: %v", root, err)
 	}
+	how := restoredHow(root, len(metas))
+	p.setRestored(how)
+	log.Info("restorebackup %s the backup in %s", how, root)
 	// Each kvstore restarts at the binlogpos of its backup, and the replay goes on from there.
 	replayer := redisReplayer{cli: cli}
 	for kvstore := 0; kvstore < len(metas); kvstore++ {
@@ -322,6 +334,22 @@ func (r *plusRestorer) restoreBackup(log portLog, inst InstanceRestore, instDir,
 	}
 	log.Info("restorebackup done, %d kvstores at their backup's binlogpos", len(metas))
 	return nil
+}
+
+// Ways restorebackup placed a backup, as seen from the unpacked copy afterwards.
+const (
+	restoredMoved  = "moved"
+	restoredCopied = "copied"
+)
+
+// restoredHow tells a moved backup, whose kvstore dirs are gone from root, from a copied one.
+func restoredHow(root string, kvstores int) string {
+	for kvstore := 0; kvstore < kvstores; kvstore++ {
+		if util.FileExists(filepath.Join(root, strconv.Itoa(kvstore))) {
+			return restoredCopied
+		}
+	}
+	return restoredMoved
 }
 
 // checkPlusBackup is the gate before restorebackup: the temp instance must have as many kvstores as
@@ -421,7 +449,9 @@ func readPlusBackupMetas(root string) (map[int]plusBackupMeta, error) {
 func (r *plusRestorer) replayAndMark(inst InstanceRestore, p *portReport, chains map[int][]string,
 	recoverAt time.Time, slots chan struct{}) error {
 	log := newPortLog(r.DestIP, inst)
+	sample := r.sampleInstanceCPU(log, inst.DestPort, len(chains) > 0)
 	err := r.replay(log, p, inst, chains, recoverAt, slots)
+	sample(p)
 	if failedInFlight(err) {
 		// binlogpos may be past the failed binlog, so resuming from it would skip that write.
 		ClearDone(r.Host.InstanceDir(inst.DestPort))
@@ -452,6 +482,31 @@ func (r *plusRestorer) replayAndMark(inst InstanceRestore, p *portReport, chains
 	}
 	p.finish(nil)
 	return nil
+}
+
+// sampleInstanceCPU reads the instance's CPU now and returns what books its use since on p. The
+// summary leaves it out when the process cannot be read or was restarted in between.
+func (r *plusRestorer) sampleInstanceCPU(log portLog, port int, replaying bool) func(*portReport) {
+	if !replaying {
+		return func(*portReport) {}
+	}
+	pid, start, err := r.Host.ProcessID(port)
+	var before time.Duration
+	if err == nil {
+		before, err = processCPU(pid, start)
+	}
+	if err != nil {
+		log.Warn("instance cpu not sampled: %v", err)
+		return func(*portReport) {}
+	}
+	return func(p *portReport) {
+		after, err := processCPU(pid, start)
+		if err != nil {
+			log.Warn("instance cpu not sampled: %v", err)
+			return
+		}
+		p.setInstanceCPU(after - before)
+	}
 }
 
 // replay runs the kvstores of inst on the host's replay slots, each kvstore on its own connection.
@@ -522,6 +577,7 @@ func (r *plusRestorer) replayOnConn(log portLog, p *portReport, port, kvstore in
 		return 0, err
 	}
 	defer closeFn()
+	// Binlogs stream from their downloads; the work dir only keeps binlog_tool's stderr on failure.
 	workDir := filepath.Join(r.SaveDir, fmt.Sprintf("binlog_replay_%d_%d", port, kvstore))
 	defer os.RemoveAll(workDir)
 	return replayKvstore(log, p, cli, kvstore, files, endMs, workDir, stop)
@@ -625,7 +681,7 @@ func (c redisReplayer) execBatch(cmds [][]string) ([]error, error) {
 }
 
 // binlogToolFn is replaced in tests, which have no binlog_tool.
-var binlogToolFn = runBinlogTool
+var binlogToolFn = runBinlogToolStream
 
 // replayKvstore replays a kvstore's binlogs in index order, each starting right after the highest
 // binlog id already in the kvstore, so a retry carries on without replaying anything twice and
@@ -644,8 +700,11 @@ func replayKvstore(log portLog, p *portReport, cli plusReplayer, kvstore int, fi
 	if err != nil {
 		return 0, err
 	}
-	last, applied, first := start, 0, true
-	pipe := &commandPipe{exec: cli, onReply: func(args []string, reply error) error {
+	last, applied, first, replayed := start, 0, true, 0
+	defer func() { p.kvstoreReplayed(kvstore, replayed, applied, start, last) }()
+	var batches time.Duration
+	exec := timedExec{exec: cli, onBatch: func(d time.Duration) { batches += d }}
+	pipe := &commandPipe{exec: exec, onReply: func(args []string, reply error) error {
 		if reply != nil {
 			id, _ := binlogIDFromKey(args[2])
 			return fmt.Errorf("%s of binlog id %d failed: %v", restoreBinlogCmd, id, reply)
@@ -658,17 +717,8 @@ func replayKvstore(log portLog, p *portReport, cli plusReplayer, kvstore int, fi
 			return applied, errReplayStopped
 		}
 		base := filepath.Base(file)
-		decompressed := filepath.Join(workDir, base)
-		logFile := strings.TrimSuffix(decompressed, filepath.Ext(decompressed))
-		begin := time.Now()
-		cpu, err := decompressFile(file, decompressed)
-		p.addCPU(stageParse, cpu)
-		p.add(stageParse, time.Since(begin))
-		if err != nil {
-			return applied, corrupted(base, err)
-		}
-		begin = time.Now()
-		cpu, err = binlogToolFn(logFile, last+1, endMs, func(line string) error {
+		begin, batchesBefore := time.Now(), batches
+		cpu, err := binlogToolFn(file, workDir, last+1, endMs, func(line string) error {
 			args, id, err := parseRestoreLine(line, kvstore)
 			if err != nil || args == nil {
 				return err
@@ -693,12 +743,14 @@ func replayKvstore(log portLog, p *portReport, cli plusReplayer, kvstore int, fi
 		if err == nil {
 			err = pipe.flush()
 		}
-		p.addCPU(stageApply, cpu)
-		p.add(stageApply, time.Since(begin))
-		_ = os.Remove(logFile)
+		apply := batches - batchesBefore
+		p.addKvstore(kvstore, stageParse, 0, cpu.parse)
+		p.addKvstore(kvstore, stageDecode, time.Since(begin)-apply, cpu.decode)
+		p.addKvstore(kvstore, stageApply, apply, 0)
 		if err != nil {
 			return applied, fmt.Errorf("kvstore %d binlog %s: %w", kvstore, base, err)
 		}
+		replayed++
 	}
 	pos, err := cli.BinlogPos(kvstore)
 	if err != nil {
@@ -754,6 +806,9 @@ func binlogIDFromKey(key string) (uint64, error) {
 	return id, nil
 }
 
+// plusBinlogToolFn is replaced in tests, which run a script in its place.
+var plusBinlogToolFn = plusBinlogTool
+
 // plusBinlogTool prefers the binlog_tool of the instance's own media, then the dbtools copy.
 func plusBinlogTool() (string, error) {
 	media := filepath.Join(consts.UsrLocal, "redis", "bin", "binlog_tool")
@@ -765,28 +820,105 @@ func plusBinlogTool() (string, error) {
 	return "", fmt.Errorf("binlog_tool not found: %s or %s", media, consts.BinlogToolTendisplusBin)
 }
 
-// runBinlogTool streams the restorebinlogv2 commands of logFile from startPos on, up to endMs
-// exclusive, into onLine, and returns binlog_tool's CPU time. The first onLine error stops
-// binlog_tool and is returned.
-func runBinlogTool(logFile string, startPos uint64, endMs int64, onLine func(string) error) (time.Duration,
-	error) {
-	bin, err := plusBinlogTool()
+// streamCPU is the CPU a binlog's replay took outside the instance: the decompressor's (parse)
+// and binlog_tool's (decode).
+type streamCPU struct {
+	parse  time.Duration
+	decode time.Duration
+}
+
+// binlogDecompressor is the command writing file decompressed to its stdout, nil for a binlog
+// stored as is, which binlog_tool reads itself.
+func binlogDecompressor(ctx context.Context, file string) (*exec.Cmd, error) {
+	var bin string
+	switch {
+	case strings.HasSuffix(file, ".zst"):
+		bin = consts.ZstdBin
+	case strings.HasSuffix(file, ".lzo"):
+		bin = consts.LzopBin
+	case strings.HasSuffix(file, ".gz"):
+		return exec.CommandContext(ctx, "gzip", "-dc", file), nil
+	default:
+		return nil, nil
+	}
+	if _, err := os.Stat(bin); err != nil {
+		return nil, fmt.Errorf("%s not found: %s", strings.TrimPrefix(filepath.Ext(file), "."), bin)
+	}
+	return exec.CommandContext(ctx, bin, "-dc", file), nil
+}
+
+// streamWaitDelay bounds how long a killed decompressor or binlog_tool may keep its pipes open.
+const streamWaitDelay = 5 * time.Second
+
+// runBinlogToolStream streams the restorebinlogv2 commands of a downloaded binlog from startPos
+// on, up to endMs exclusive, into onLine. The binlog is decompressed into binlog_tool's stdin, so
+// nothing decompressed lands on disk. The first onLine error stops both and is returned. A
+// decompressor failing, as on a truncated file, fails the binlog as corrupted even when
+// binlog_tool took the short input and exited 0; workDir keeps binlog_tool's stderr on failure.
+func runBinlogToolStream(file, workDir string, startPos uint64, endMs int64,
+	onLine func(string) error) (streamCPU, error) {
+	var cpu streamCPU
+	bin, err := plusBinlogToolFn()
 	if err != nil {
-		return 0, err
+		return cpu, err
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), plusToolTimeout)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, bin, "--logfile="+logFile, "--mode=base64",
-		fmt.Sprintf("--start-position=%d", startPos), fmt.Sprintf("--end-datetime=%d", endMs))
-	stdout, err := cmd.StdoutPipe()
+	unpack, err := binlogDecompressor(ctx, file)
 	if err != nil {
-		return 0, err
+		return cpu, err
 	}
-	var stderr bytes.Buffer
-	cmd.Stderr = &stderr
-	if err = cmd.Start(); err != nil {
-		return 0, err
+	logFile := file
+	if unpack != nil {
+		logFile = "/dev/stdin"
 	}
+	tool := exec.CommandContext(ctx, bin, "--logfile="+logFile, "--mode=base64",
+		fmt.Sprintf("--start-position=%d", startPos), fmt.Sprintf("--end-datetime=%d", endMs))
+	stdout, err := tool.StdoutPipe()
+	if err != nil {
+		return cpu, err
+	}
+	// Cancelling kills the tool but not what it started: without WaitDelay, a child still holding
+	// its stderr would keep Wait from returning.
+	tool.WaitDelay = streamWaitDelay
+	var toolErr, unpackErr bytes.Buffer
+	tool.Stderr = &toolErr
+	var src io.ReadCloser
+	var dst io.WriteCloser
+	if unpack != nil {
+		unpack.WaitDelay = streamWaitDelay
+		unpack.Stderr = &unpackErr
+		if src, err = unpack.StdoutPipe(); err != nil {
+			return cpu, err
+		}
+		if dst, err = tool.StdinPipe(); err != nil {
+			return cpu, err
+		}
+	}
+	if err = tool.Start(); err != nil {
+		return cpu, err
+	}
+	copied := make(chan struct{})
+	if unpack == nil {
+		close(copied)
+	} else if err = unpack.Start(); err != nil {
+		_ = dst.Close()
+		cancel()
+		_ = tool.Wait()
+		return cpu, err
+	} else {
+		go func() {
+			defer close(copied)
+			_, err := io.Copy(dst, src)
+			_ = dst.Close()
+			if err != nil {
+				// binlog_tool stopped reading, at end-datetime or on failure: drain the rest so
+				// the decompressor's exit status still covers the whole file.
+				_, _ = io.Copy(io.Discard, src)
+			}
+		}()
+	}
+
 	reader := bufio.NewReaderSize(stdout, 1<<20)
 	var lineErr error
 	for {
@@ -806,15 +938,25 @@ func runBinlogTool(logFile string, startPos uint64, endMs int64, onLine func(str
 			break
 		}
 	}
-	waitErr := cmd.Wait()
-	if lineErr != nil {
-		return cpuTime(cmd), lineErr
+	waitErr := tool.Wait()
+	cpu.decode = cpuTime(tool)
+	<-copied
+	var unpackWait error
+	if unpack != nil {
+		unpackWait = unpack.Wait()
+		cpu.parse = cpuTime(unpack)
 	}
-	if waitErr != nil || strings.Contains(stderr.String(), "ERR") {
-		return cpuTime(cmd), fmt.Errorf("%s failed: %v %s", filepath.Base(bin), waitErr,
-			keepOutput(filepath.Dir(logFile), filepath.Base(logFile)+".tool.err", stderr.Bytes()))
+	base := filepath.Base(file)
+	switch {
+	case lineErr != nil:
+		return cpu, lineErr
+	case unpackWait != nil:
+		return cpu, corrupted(base, fmt.Errorf("%v %s", unpackWait, strings.TrimSpace(unpackErr.String())))
+	case waitErr != nil || strings.Contains(toolErr.String(), "ERR"):
+		return cpu, fmt.Errorf("%s failed: %v %s", filepath.Base(bin), waitErr,
+			keepOutput(workDir, base+".tool.err", toolErr.Bytes()))
 	}
-	return cpuTime(cmd), nil
+	return cpu, nil
 }
 
 // LocalKvstoreBinlogs returns every kvstore's downloaded binlogs in replay order, each chain checked

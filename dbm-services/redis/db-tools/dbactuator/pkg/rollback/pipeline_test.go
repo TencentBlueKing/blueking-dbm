@@ -19,13 +19,14 @@ func TestLimitsFollowTheHostAndOnlyGoDown(t *testing.T) {
 	auto := Limits{CPU: 16}
 	auto.Unpack = auto.capped(auto.CPU / 2)
 	if auto.Unpack != 8 || auto.Replay(4) != 4 || auto.Replay(20) != 16 ||
-		auto.Loading() != 16 || auto.KvstoreReplay(4) != 4 || auto.KvstoreReplay(70) != 8 {
-		t.Fatalf("auto limits: unpack=%d replay=%d/%d loading=%d kvstore replay=%d/%d",
+		auto.Loading() != 16 || auto.KvstoreReplay(4) != 4 || auto.KvstoreReplay(10) != 10 ||
+		auto.KvstoreReplay(70) != 16 {
+		t.Fatalf("auto limits: unpack=%d replay=%d/%d loading=%d kvstore replay=%d/%d/%d",
 			auto.Unpack, auto.Replay(4), auto.Replay(20), auto.Loading(),
-			auto.KvstoreReplay(4), auto.KvstoreReplay(70))
+			auto.KvstoreReplay(4), auto.KvstoreReplay(10), auto.KvstoreReplay(70))
 	}
-	// 10-21: 32 cores, 24 ports all replay instead of 16; kvstores stay at one per two cores
-	if prod := (Limits{CPU: 32}); prod.Replay(24) != 24 || prod.KvstoreReplay(70) != 16 {
+	// 10-21: 32 cores, 24 ports all replay instead of 16; kvstores up to one per core
+	if prod := (Limits{CPU: 32}); prod.Replay(24) != 24 || prod.KvstoreReplay(70) != 32 {
 		t.Fatalf("32 cores: replay=%d kvstore replay=%d", prod.Replay(24), prod.KvstoreReplay(70))
 	}
 	low := Limits{CPU: 16, Max: 2}
@@ -33,7 +34,7 @@ func TestLimitsFollowTheHostAndOnlyGoDown(t *testing.T) {
 		t.Fatal("max_concurrency should lower every stage")
 	}
 	high := Limits{CPU: 4, Max: 64}
-	if high.capped(high.CPU/2) != 2 || high.Replay(20) != 4 || high.KvstoreReplay(70) != 2 {
+	if high.capped(high.CPU/2) != 2 || high.Replay(20) != 4 || high.KvstoreReplay(70) != 4 {
 		t.Fatal("max_concurrency must not raise a stage above the host")
 	}
 	if (Limits{CPU: 1}).KvstoreReplay(3) != 1 {

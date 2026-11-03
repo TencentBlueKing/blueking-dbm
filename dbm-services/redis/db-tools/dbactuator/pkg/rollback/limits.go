@@ -61,10 +61,11 @@ func (l Limits) Replay(ports int) int {
 	return l.capped(min(ports, l.CPU))
 }
 
-// KvstoreReplay is the number of Tendisplus kvstores replaying at once. Each runs binlog_tool and
-// its writes into the instance together, so it stays at one per two cores.
+// KvstoreReplay is the number of Tendisplus kvstores replaying at once, up to one per core. A
+// kvstore's decompressor, binlog_tool and writes into the instance take turns on the CPU rather
+// than all running flat out: 10 kvstores on 16 cores kept the host at 62-69%.
 func (l Limits) KvstoreReplay(streams int) int {
-	return l.capped(min(streams, l.CPU/2))
+	return l.capped(min(streams, l.CPU))
 }
 
 // Loading bounds Cache instances loading at once, each taking one core.
