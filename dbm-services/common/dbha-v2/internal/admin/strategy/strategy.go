@@ -162,12 +162,18 @@ func (s *Strategy) DuplicatedName(ctx context.Context, strategyID int, bkBizID i
 	return true, nil
 }
 
-// QueryStrategies query strategies
-func (s *Strategy) QueryStrategies(ctx context.Context, params map[string]any) ([]*hamodel.DbSwitchingStrategy, error) {
+// QueryStrategiesByNames returns strategies of bkBizID whose name is in names.
+// An empty names returns no rows. It returns a MysqlFailure error when the query fails.
+func (s *Strategy) QueryStrategiesByNames(
+	ctx context.Context, bkBizID int, names []string,
+) ([]*hamodel.DbSwitchingStrategy, error) {
 	var strategies []*hamodel.DbSwitchingStrategy
 
+	bkBizIDCond := fmt.Sprintf("%s = ? ", hamodel.DbSwitchingStrategyFieldBkBizID)
+	namesCond := fmt.Sprintf("%s IN ? ", hamodel.DbSwitchingStrategyFieldName)
+
 	query := s.db(ctx).DB().WithContext(ctx).Model(&hamodel.DbSwitchingStrategy{})
-	if err := query.Where(params).Find(&strategies).Error; err != nil {
+	if err := query.Where(bkBizIDCond, bkBizID).Where(namesCond, names).Find(&strategies).Error; err != nil {
 		return nil, gerrors.NewE(gerrors.MysqlFailure, err)
 	}
 
