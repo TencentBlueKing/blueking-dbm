@@ -5,7 +5,7 @@
       :is-error="isError">
       <DbSubmenu
         id="SqlServerHaClusterManage"
-        icon="sqlserver"
+        icon="zhucong"
         :title="t('主从')">
         <template #append>
           <CountTag
@@ -33,7 +33,7 @@
       </DbSubmenu>
       <DbMenuItem
         v-db-console="'sqlserver.singleClusterList'"
-        icon="sqlserver"
+        icon="danjiedi-2"
         route-name="SqlServerSingle">
         {{ t('单节点') }}
         <template #append>

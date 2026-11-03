@@ -8,7 +8,7 @@
         module-id="mysql">
         <DbSubmenu
           id="MysqlManage"
-          icon="cluster"
+          icon="zhucong"
           :title="t('主从')">
           <template #append>
             <CountTag

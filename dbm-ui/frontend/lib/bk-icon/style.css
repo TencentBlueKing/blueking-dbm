@@ -1034,3 +1034,12 @@ url("fonts/iconcool.eot?#iefix") format("embedded-opentype");
 .db-icon-suoyouzhuji:before {
 	content: "\e292";
 }
+.db-icon-fenpianjiqun-2:before {
+	content: "\e297";
+}
+.db-icon-jiqun:before {
+	content: "\e296";
+}
+.db-icon-fubenjiqun:before {
+	content: "\e298";
+}
