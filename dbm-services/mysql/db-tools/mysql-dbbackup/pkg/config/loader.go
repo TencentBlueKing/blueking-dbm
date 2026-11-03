@@ -28,10 +28,12 @@ type LogicalLoad struct {
 	Threads int `ini:"Threads"`
 	// SchemaOnly import schema,trigger,func,proc (--no-data), for myloader
 	//  if you want only table schema, use ExtraOpt = --skip-triggers --skip-post
-	SchemaOnly bool   `ini:"SchemaOnly"`
-	DataOnly   bool   `ini:"DataOnly"`
-	ExtraOpt   string `ini:"ExtraOpt"` // other myloader options string to be appended
-	// DBListDropIfExists will run drop database if exists db_xxx before load data. comma separated
+	SchemaOnly bool `ini:"SchemaOnly"`
+	// DataOnly import data only, for myloader, add --no-schema
+	DataOnly bool   `ini:"DataOnly"`
+	ExtraOpt string `ini:"ExtraOpt"` // other myloader options string to be appended
+	// DBListDropIfExists will run drop database if exists db_xxx before load data.
+	// comma separated, allow % as wildcard
 	DBListDropIfExists string `ini:"DBListDropIfExists"`
 	// CreateTableIfNotExists true will add --append-if-not-exist for myloader
 	CreateTableIfNotExists bool `ini:"CreateTableIfNotExists"`

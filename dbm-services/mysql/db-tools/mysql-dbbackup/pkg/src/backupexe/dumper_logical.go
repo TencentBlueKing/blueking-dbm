@@ -11,12 +11,14 @@
 package backupexe
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"syscall"
@@ -252,7 +254,117 @@ func (l *LogicalDumper) Execute(ctx context.Context) error {
 		logger.Log.Error("Failed to check the integrity of backup, error: ", integrityErr)
 		return integrityErr
 	}
+	if err = l.RewriteInfodbaSchema(); err != nil {
+		logger.Log.Warn("rewrite infodba_schema backup files failed, ignore: ", err)
+	}
 	return nil
+}
+
+// infodbaRewriteMaxFileSize infodba_schema 单个 .zst 备份文件超过该大小，不做改写
+const infodbaRewriteMaxFileSize = 2 * 1024 * 1024
+
+var (
+	// infodba_schema.<table>-schema.sql.zst
+	reInfodbaTableSchemaFile = regexp.MustCompile(
+		`^` + regexp.QuoteMeta(cst.INFODBA_SCHEMA) + `\.[^.]+-schema\.sql` + regexp.QuoteMeta(cst.ZstdSuffix) + `$`)
+	// infodba_schema.<table>.00000.sql.zst
+	reInfodbaTableDataFile = regexp.MustCompile(
+		`^` + regexp.QuoteMeta(cst.INFODBA_SCHEMA) + `\.[^.]+\.\d+\.sql` + regexp.QuoteMeta(cst.ZstdSuffix) + `$`)
+
+	reCreateTable = regexp.MustCompile(`(?m)^CREATE TABLE (?:IF NOT EXISTS )?`)
+	reInsertInto  = regexp.MustCompile(`(?m)^INSERT INTO `)
+)
+
+// RewriteInfodbaSchema 改写备份中 infodba_schema 的表结构和数据文件
+// 建库语句 mydumper 已经是 CREATE DATABASE /*!32312 IF NOT EXISTS*/，无需改写
+// 表结构: CREATE TABLE -> CREATE TABLE IF NOT EXISTS
+// 数据: INSERT INTO -> REPLACE INTO
+// 只处理 .zst 文件，单个文件超过 infodbaRewriteMaxFileSize 忽略
+func (l *LogicalDumper) RewriteInfodbaSchema() error {
+	if CmdZstd == "" {
+		return errors.New("zstd command is empty")
+	}
+	backupDir := filepath.Join(l.cnf.Public.BackupDir, l.cnf.Public.TargetName())
+	files, err := filepath.Glob(filepath.Join(backupDir, cst.INFODBA_SCHEMA+".*"+cst.ZstdSuffix))
+	if err != nil {
+		return errors.WithMessage(err, "glob infodba_schema files")
+	}
+	var errList []string
+	for _, f := range files {
+		baseName := filepath.Base(f)
+		var re *regexp.Regexp
+		var repl []byte
+		if reInfodbaTableSchemaFile.MatchString(baseName) {
+			re, repl = reCreateTable, []byte("CREATE TABLE IF NOT EXISTS ")
+		} else if reInfodbaTableDataFile.MatchString(baseName) {
+			re, repl = reInsertInto, []byte("REPLACE INTO ")
+		} else {
+			continue
+		}
+		fi, err := os.Stat(f)
+		if err != nil {
+			errList = append(errList, err.Error())
+			continue
+		}
+		if !fi.Mode().IsRegular() {
+			continue
+		}
+		if fi.Size() > infodbaRewriteMaxFileSize {
+			logger.Log.Warnf("skip rewrite %s, file size %d > %d", f, fi.Size(), infodbaRewriteMaxFileSize)
+			continue
+		}
+		changed, err := rewriteZstdSqlFile(f, re, repl)
+		if err != nil {
+			logger.Log.Warnf("rewrite %s failed: %s", f, err.Error())
+			errList = append(errList, err.Error())
+			continue
+		}
+		if changed {
+			logger.Log.Infof("rewrite %s success", f)
+		}
+	}
+	if len(errList) > 0 {
+		return errors.New(strings.Join(errList, "; "))
+	}
+	return nil
+}
+
+// rewriteZstdSqlFile 解压 zstFile，按 re 替换为 repl，重新压缩后原子替换原文件
+// 内容无变化时不改写，返回 false
+func rewriteZstdSqlFile(zstFile string, re *regexp.Regexp, repl []byte) (bool, error) {
+	content, errBytes, err := cmutil.ExecCommandReturnBytes(false, "", CmdZstd, "-d", "-c", zstFile)
+	if err != nil {
+		return false, errors.WithMessagef(err, "decompress %s: %s", zstFile, string(errBytes))
+	}
+	newContent := re.ReplaceAllLiteral(content, repl)
+	if bytes.Equal(content, newContent) {
+		return false, nil
+	}
+
+	// gozstd 解压要求文件以 .zst 结尾；临时文件名不匹配 infodba_schema.* 表文件规则
+	tmpFile := strings.TrimSuffix(zstFile, cst.ZstdSuffix) + ".rewrite_tmp" + cst.ZstdSuffix
+	defer func() {
+		_ = os.Remove(tmpFile)
+	}()
+	var stderr bytes.Buffer
+	cmd := exec.Command(CmdZstd, "-q", "-f", "-o", tmpFile)
+	cmd.Stdin = bytes.NewReader(newContent)
+	cmd.Stderr = &stderr
+	if err = cmd.Run(); err != nil {
+		return false, errors.WithMessagef(err, "compress %s: %s", tmpFile, stderr.String())
+	}
+	// 校验重新压缩的文件
+	verifyContent, errBytes, err := cmutil.ExecCommandReturnBytes(false, "", CmdZstd, "-d", "-c", tmpFile)
+	if err != nil {
+		return false, errors.WithMessagef(err, "verify %s: %s", tmpFile, string(errBytes))
+	}
+	if !bytes.Equal(verifyContent, newContent) {
+		return false, errors.Errorf("verify %s: content mismatch", tmpFile)
+	}
+	if err = os.Rename(tmpFile, zstFile); err != nil {
+		return false, errors.WithMessagef(err, "rename %s to %s", tmpFile, zstFile)
+	}
+	return true, nil
 }
 
 // PrepareBackupMetaInfo prepare the backup result of Logical Backup
