@@ -13,7 +13,7 @@
         {{ t('单据') }}
       </DbMenuItem>
       <DbMenuItem
-        icon="history"
+        icon="renwu-2"
         route-name="platformTaskManage">
         {{ t('任务') }}
       </DbMenuItem>

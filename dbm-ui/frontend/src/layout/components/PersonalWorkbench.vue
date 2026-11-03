@@ -73,7 +73,7 @@
       :name="t('我的申请')">
       <DbMenuItem
         v-db-console="'personalWorkbench.myTickets'"
-        icon="wodeshenqing"
+        icon="wodeshenqing-2"
         route-name="SelfServiceMyTickets">
         {{ t('我的申请') }}
       </DbMenuItem>

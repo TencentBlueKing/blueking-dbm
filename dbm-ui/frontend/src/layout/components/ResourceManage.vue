@@ -27,7 +27,7 @@
       </DbMenuItem>
       <DbMenuItem
         v-db-console="'resourceManage.allHost'"
-        icon="list"
+        icon="suoyouzhuji"
         route-name="allHost">
         {{ t('所有主机') }}
       </DbMenuItem>
