@@ -8,7 +8,6 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, List, Optional, Set, Tuple
@@ -20,13 +19,14 @@ from pipeline.core.flow.activity import Service
 
 from backend.db_meta.enums import ClusterEntryType, InstanceInnerRole
 from backend.db_meta.models import Cluster, ClusterEntry
+from backend.db_periodic_task import clb_snapshot
+from backend.db_periodic_task.clb_snapshot import ClusterCLBSnapshot
 from backend.db_report.enums import MetaCheckSubType, ReportStateType
 from backend.db_report.portrait.redis_dimensions import RedisPortraitDimensionCode
 from backend.db_report.portrait.redis_ingest import ingest_daily_cluster_rows
 from backend.db_services.redis.util import is_have_proxy
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils import dns_manage
-from backend.flow.utils.clb_manage import CLBManage
 from backend.flow.utils.polaris_manage import GetPolarisManageByName
 from backend.flow.utils.redis.redis_report_utils import RedisReportWriter, safe_write_meta_reports
 from backend.utils.redis import RedisConn
@@ -35,25 +35,16 @@ from backend.utils.redis import RedisConn
 DEFAULT_BATCH_SIZE = 15
 DEFAULT_BATCH_INTERVAL = 2  # seconds between batches
 
-# Name service limits describe_target_health to 20 QPS; keep headroom.
-CLB_DESCRIBE_HEALTH_QPS = 15
+# CLB snapshot age: fresh below 24h, stale (warning) up to 48h, outdated (unusable) beyond.
+CLB_SNAPSHOT_FRESH_SECONDS = 24 * 3600
+CLB_SNAPSHOT_OUTDATED_SECONDS = 48 * 3600
+
+# error_detail keys that make a cluster abnormal; a detail with only "snapshot_stale" is a warning.
+_ABNORMAL_DETAIL_KEYS = ("error", "missing_ips", "extra_ips", "unhealthy_rs", "health_error")
 
 
-class CallIntervalGate:
-    """Process-wide gate that spaces consecutive calls at least 1/qps seconds apart."""
-
-    def __init__(self, qps: int):
-        self.min_interval = 1.0 / qps
-        self._lock = threading.Lock()
-        self._next_allowed = 0.0
-
-    def acquire(self) -> None:
-        with self._lock:
-            now = time.monotonic()
-            if self._next_allowed > now:
-                time.sleep(self._next_allowed - now)
-                now = self._next_allowed
-            self._next_allowed = now + self.min_interval
+def _is_abnormal_detail(detail: Dict) -> bool:
+    return any(detail.get(key) for key in _ABNORMAL_DETAIL_KEYS)
 
 
 class RedisEntryCheckService(BaseService):
@@ -65,9 +56,6 @@ class RedisEntryCheckService(BaseService):
     """
 
     __need_schedule__ = True
-
-    # Class-level so the limit holds across batches: the engine re-instantiates the service on every schedule tick.
-    clb_health_gate = CallIntervalGate(CLB_DESCRIBE_HEALTH_QPS)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -108,9 +96,16 @@ class RedisEntryCheckService(BaseService):
                 "proxyinstance_set__machine",
                 "storageinstance_set__machine",
                 "clusterentry_set",
-                "clusterentry_set__clbentrydetail_set",
             )
         }
+
+    def _load_batch_clb_snapshots(self, clusters: List[Cluster]) -> Dict[int, Optional[ClusterCLBSnapshot]]:
+        try:
+            return clb_snapshot.get_many([cluster.id for cluster in clusters])
+        except Exception as e:
+            # Without snapshots every CLB entry reports "snapshot missing"; never treated as healthy.
+            self.log_exception(_("Failed to read CLB snapshots: {}").format(e))
+            return {}
 
     def _get_dns_ips(self, cluster: Cluster, entry: ClusterEntry) -> Tuple[Set[str], Optional[str]]:
         """
@@ -141,85 +136,42 @@ class RedisEntryCheckService(BaseService):
             )
             return set(), error_msg
 
+    @staticmethod
     def _get_clb_ips(
-        self, cluster: Cluster, entry: ClusterEntry
-    ) -> Tuple[Set[str], Optional[str], List[str], Optional[str]]:
+        entry: ClusterEntry, snapshot: Optional[ClusterCLBSnapshot]
+    ) -> Tuple[Set[str], Optional[str], List[str], Optional[str], Optional[str]]:
         """
-        Get IPs registered in CLB for a given entry, plus unhealthy listener RS.
-
-        Args:
-            cluster: Cluster object
-            entry: ClusterEntry object with CLB type
+        Read a CLB entry's listener RS and unhealthy RS from the cluster's CLB snapshot.
 
         Returns:
-            Tuple of (Set of IP addresses in CLB (ports stripped), error message if any,
-            unhealthy listener RS as ip:port, health query error message if any)
+            Tuple of (Set of IP addresses in CLB (ports stripped), error message if the data is unusable,
+            unhealthy listener RS as ip:port, health query error message if any, stale-snapshot note if any)
         """
-        # Read the prefetched details; entry.detail would run ORM queries inside worker threads.
-        clb_detail = next(iter(entry.clbentrydetail_set.all()), None)
-        if clb_detail is None:
-            return set(), _("CLB entry detail not found"), [], None
+        if snapshot is None:
+            return set(), _("CLB snapshot missing"), [], None, None
 
-        clb_manager = CLBManage(clb_detail.clb_id, clb_detail.clb_ip, clb_detail.listener_id, clb_detail.clb_region)
+        age_seconds = max(0.0, time.time() - snapshot.checked_at)
+        age_hours = int(age_seconds // 3600)
+        if age_seconds > CLB_SNAPSHOT_OUTDATED_SECONDS:
+            return set(), _("CLB snapshot outdated ({}h old)").format(age_hours), [], None, None
 
-        raw_rs: List[str] = []
-        fetch_error = None
-        try:
-            raw_rs = clb_manager.get_clb_rs()
-        except Exception as e:
-            fetch_error = _("Failed to get CLB targets: {}").format(str(e))
-            self.log_exception(
-                _("Failed to get CLB targets for cluster {} entry {}: {}").format(
-                    cluster.immute_domain, entry.entry, str(e)
-                )
-            )
+        entry_snap = snapshot.entry_by_id(entry.id)
+        if entry_snap is None:
+            return set(), _("CLB snapshot has no record of this entry"), [], None, None
 
-        unhealthy_rs: List[str] = []
-        health_error = None
-        if clb_detail.clb_id and clb_detail.clb_region:
-            abnormal_rs, health_error = self._get_clb_abnormal_rs(cluster, entry, clb_manager)
-            # Health is reported per load balancer; only RS on this listener count for this entry.
-            unhealthy_rs = sorted(set(raw_rs) & abnormal_rs)
+        stale_note = None
+        if age_seconds >= CLB_SNAPSHOT_FRESH_SECONDS:
+            stale_note = _("CLB snapshot stale ({}h old)").format(age_hours)
+
+        if entry_snap.meta_error:
+            return set(), entry_snap.meta_error, [], None, stale_note
+        if entry_snap.listener_rs is None:
+            fetch_error = entry_snap.listener_rs_error or _("CLB listener RS unknown")
+            return set(), fetch_error, [], entry_snap.health_error, stale_note
 
         # CLB returns IPs with ports (e.g., "1.1.1.1:30000"), strip the port
-        return {ip.split(":")[0] for ip in raw_rs}, fetch_error, unhealthy_rs, health_error
-
-    def _get_clb_abnormal_rs(
-        self, cluster: Cluster, entry: ClusterEntry, clb_manager: CLBManage
-    ) -> Tuple[Set[str], Optional[str]]:
-        """
-        Query CLB target health under the process-wide QPS gate.
-
-        Returns:
-            Tuple of (abnormal ip:port set of the whole load balancer, error message if the query failed)
-        """
-        try:
-            self.clb_health_gate.acquire()
-            health = clb_manager.describe_target_health()
-        except Exception as e:
-            self.log_exception(
-                _("Failed to query CLB target health for cluster {} entry {}: {}").format(
-                    cluster.immute_domain, entry.entry, str(e)
-                )
-            )
-            return set(), _("CLB target health query failed: {}").format(str(e))
-
-        # describe_target_health returns {} when code != 0 or data is missing;
-        # Go nameservice serializes an empty slice as `"abnormalips": null` (None) when abnormalcount is 0.
-        abnormal_ips = health.get("abnormalips") if isinstance(health, dict) else None
-        if (
-            not isinstance(health, dict)
-            or "abnormalips" not in health
-            or not isinstance(abnormal_ips, (list, type(None)))
-        ):
-            self.log_warning(
-                _("Invalid CLB target health response for cluster {} entry {}: {}").format(
-                    cluster.immute_domain, entry.entry, health
-                )
-            )
-            return set(), _("CLB target health query failed: empty or invalid response")
-
-        return {str(rs) for rs in (abnormal_ips or []) if rs}, None
+        actual_ips = {ip.split(":")[0] for ip in entry_snap.listener_rs}
+        return actual_ips, None, list(entry_snap.unhealthy_rs or []), entry_snap.health_error, stale_note
 
     def _get_polaris_ips(self, cluster: Cluster, entry: ClusterEntry) -> Tuple[Set[str], Optional[str]]:
         """
@@ -255,6 +207,7 @@ class RedisEntryCheckService(BaseService):
         self,
         cluster: Cluster,
         entry: ClusterEntry,
+        clb_snap: Optional[ClusterCLBSnapshot] = None,
     ) -> Optional[Dict]:
         """
         Check if an entry has the exact same IPs as expected
@@ -262,6 +215,7 @@ class RedisEntryCheckService(BaseService):
         Args:
             cluster: Cluster object
             entry: ClusterEntry object
+            clb_snap: the cluster's CLB snapshot, the only source of CLB data
 
         Returns:
             Dict with error details if inconsistent, None if consistent
@@ -294,6 +248,7 @@ class RedisEntryCheckService(BaseService):
         fetch_error = None
         unhealthy_rs: List[str] = []
         health_error = None
+        snapshot_stale = None
 
         match entry_type:
             case ClusterEntryType.DNS.value:
@@ -302,7 +257,9 @@ class RedisEntryCheckService(BaseService):
                     return None
                 actual_ips, fetch_error = self._get_dns_ips(cluster, entry)
             case ClusterEntryType.CLB.value:
-                actual_ips, fetch_error, unhealthy_rs, health_error = self._get_clb_ips(cluster, entry)
+                actual_ips, fetch_error, unhealthy_rs, health_error, snapshot_stale = self._get_clb_ips(
+                    entry, clb_snap
+                )
             case ClusterEntryType.POLARIS.value:
                 actual_ips, fetch_error = self._get_polaris_ips(cluster, entry)
             case ClusterEntryType.CLBDNS.value:
@@ -347,6 +304,9 @@ class RedisEntryCheckService(BaseService):
         if health_error:
             error_detail["health_error"] = health_error
             has_finding = True
+        if snapshot_stale:
+            error_detail["snapshot_stale"] = snapshot_stale
+            has_finding = True
 
         return error_detail if has_finding else None
 
@@ -383,21 +343,24 @@ class RedisEntryCheckService(BaseService):
                 entry_desc_parts.append(_("unhealthy: {}").format(", ".join(unhealthy_rs)))
             if error_detail.get("health_error"):
                 entry_desc_parts.append(error_detail["health_error"])
+            if error_detail.get("snapshot_stale"):
+                entry_desc_parts.append(error_detail["snapshot_stale"])
 
             if entry_desc_parts:
                 description_parts.append(_("{}  ({}): {}").format(entry_type, entry_name, "; ".join(entry_desc_parts)))
 
+        abnormal = any(_is_abnormal_detail(detail) for detail in all_error_details)
         return {
             "cluster": cluster,
             "ip": None,
             "port": None,
             "subtype": MetaCheckSubType.EntryInconsistent,
             "msg": "; ".join(description_parts),
-            "state": ReportStateType.ABNORMAL,
+            "state": ReportStateType.ABNORMAL if abnormal else ReportStateType.WARNING,
             "creator": "system",
         }
 
-    def _check_single_cluster(self, cluster: Cluster) -> Dict:
+    def _check_single_cluster(self, cluster: Cluster, clb_snap: Optional[ClusterCLBSnapshot] = None) -> Dict:
         """
         Check entries for a single preloaded cluster (external I/O only; no ORM).
         """
@@ -408,15 +371,21 @@ class RedisEntryCheckService(BaseService):
 
             for entry in entries:
                 checked_count += 1
-                error_detail = self._check_entry_consistency(cluster, entry)
+                error_detail = self._check_entry_consistency(cluster, entry, clb_snap)
                 if error_detail:
                     all_error_details.append(error_detail)
 
             report_row = self._build_entry_report_row(cluster, all_error_details)
-            inconsistent_count = len(all_error_details)
+            inconsistent_count = sum(1 for detail in all_error_details if _is_abnormal_detail(detail))
             if inconsistent_count:
                 self.log_warning(
                     _("Entry inconsistencies detected for cluster {}: {}").format(
+                        cluster.immute_domain, report_row["msg"]
+                    )
+                )
+            elif all_error_details:
+                self.log_info(
+                    _("Entry check for cluster {} used a stale CLB snapshot: {}").format(
                         cluster.immute_domain, report_row["msg"]
                     )
                 )
@@ -585,13 +554,16 @@ class RedisEntryCheckService(BaseService):
                 continue
             clusters_to_check.append(cluster)
 
+        clb_snaps = self._load_batch_clb_snapshots(clusters_to_check)
+
         max_workers = min(15, len(clusters_to_check))
         if max_workers > 0:
             # Workers use preloaded cluster objects and external I/O only (no Django ORM / DB writes).
             # ORM prefetch and report writes stay on this thread to avoid connection leaks.
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
                 future_to_cluster = {
-                    executor.submit(self._check_single_cluster, cluster): cluster.id for cluster in clusters_to_check
+                    executor.submit(self._check_single_cluster, cluster, clb_snaps.get(cluster.id)): cluster.id
+                    for cluster in clusters_to_check
                 }
 
                 for future in as_completed(future_to_cluster):

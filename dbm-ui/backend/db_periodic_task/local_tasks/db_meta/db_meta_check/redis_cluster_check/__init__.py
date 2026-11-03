@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from .check_affinity import check_redis_affinity
-from .check_entry import check_redis_entry_consistency
+from .check_entry import check_redis_entry_consistency, submit_redis_clb_snapshot
 from .check_instance import check_redis_instance
 
 
@@ -20,4 +20,4 @@ def check_redis_clusters():
     check_redis_entry_consistency()
 
 
-__all__ = ["check_redis_clusters"]
+__all__ = ["check_redis_clusters", "submit_redis_clb_snapshot"]

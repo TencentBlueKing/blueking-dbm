@@ -18,6 +18,7 @@ from django.utils.translation import gettext_lazy as _
 from backend.configuration.constants import SystemSettingsEnum
 from backend.db_meta.enums import ClusterPhase, ClusterType
 from backend.db_meta.models import Cluster
+from backend.db_periodic_task import clb_snapshot
 from backend.db_report.enums import MetaCheckSubType
 from backend.flow.utils.redis.redis_report_utils import RedisReportWriter, delete_old_meta_check_reports
 from backend.ticket.constants import TICKET_RUNNING_STATUS_SET, TicketType
@@ -119,6 +120,18 @@ def _get_candidate_clusters(config: RedisEntryCheckConfig) -> List[int]:
     filtered_cluster_ids = [cid for cid in cluster_ids if cid not in clusters_with_active_tickets]
 
     return filtered_cluster_ids
+
+
+def submit_redis_clb_snapshot():
+    """Request CLB snapshots for the entry check's candidates ahead of the daily check."""
+    config = _get_config()
+    if not config.enabled:
+        logger.info(_("Redis entry check is disabled, skip CLB snapshot submission"))
+        return
+
+    cluster_ids = _get_candidate_clusters(config)
+    summary = clb_snapshot.submit(cluster_ids)
+    logger.info(_("Submitted Redis CLB snapshot for {} candidates: {}").format(len(cluster_ids), summary))
 
 
 def check_redis_entry_consistency():
