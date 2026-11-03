@@ -264,5 +264,6 @@ class JWTUserModelBackend(UserModelBackend):
 
         return user
 
-    def authenticate(self, request, api_name, bk_username, verified, **credentials):
-        super().authenticate(request, api_name, bk_username, verified, **credentials)
+    def authenticate(self, request, gateway_name, bk_username, verified, **credentials):
+        # 与当前网关 SDK 的参数一致，并将认证结果返回给 Django／Channels。
+        return super().authenticate(request, gateway_name, bk_username, verified, **credentials)

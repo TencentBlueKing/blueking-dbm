@@ -91,6 +91,7 @@ INSTALLED_APPS += (
     "django_celery_beat",
     "whitenoise.runserver_nostatic",
     "rest_framework",
+    "channels",
     "django_comment_migrate",
     "django_extensions",
     "drf_yasg",
@@ -237,6 +238,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "wsgi.application"
+ASGI_APPLICATION = "backend.asgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/3.2/ref/settings/#databases
@@ -470,6 +472,16 @@ BKAPP_BKVISION_APIGW_URL = env.BKAPP_BKVISION_APIGW_URL
 
 # 跨域信任请求源
 CSRF_TRUSTED_ORIGINS = env.get_csrf_trusted_origins()
+WS_ALLOWED_ORIGINS = CSRF_TRUSTED_ORIGINS
+
+# WebConsole COMMAND 限流：窗口单位为秒，次数按实际放行的命令统计。
+# 同一用户的连接共享用户额度；单连接串行执行，防止 DRS 响应错配。
+WS_WEBCONSOLE_RATE_WINDOW = env.get_type_env(key="WS_WEBCONSOLE_RATE_WINDOW", _type=int, default=60)
+WS_WEBCONSOLE_CONNECTION_RATE = env.get_type_env(key="WS_WEBCONSOLE_CONNECTION_RATE", _type=int, default=10)
+WS_WEBCONSOLE_USER_RATE = env.get_type_env(key="WS_WEBCONSOLE_USER_RATE", _type=int, default=30)
+WS_WEBCONSOLE_USER_CONCURRENCY = env.get_type_env(key="WS_WEBCONSOLE_USER_CONCURRENCY", _type=int, default=3)
+# 转发和脱敏的总等待上限（秒）；租约额外保留一分钟用于清理。
+WS_WEBCONSOLE_COMMAND_TIMEOUT = env.get_type_env(key="WS_WEBCONSOLE_COMMAND_TIMEOUT", _type=int, default=21600)
 
 # 需将 bkapi.example.com 替换为真实的云 API 域名，在 PaaS 3.0 部署的应用，可从环境变量中获取 BK_API_URL_TMPL
 

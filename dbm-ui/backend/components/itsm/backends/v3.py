@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 
+from django.utils.translation import gettext as _
+from rest_framework.exceptions import PermissionDenied
+
 from ..client import ItsmApi
 from .base import BaseItsmBackend
 
@@ -8,6 +11,19 @@ class ItsmV3Backend(BaseItsmBackend):
     """ITSM V3 后端，保持旧版接口协议。"""
 
     version = "v3"
+
+    def verify_callback(self, ticket_id, data):
+        """校验 V3 回调中的 token。"""
+        token = data.get("token")
+        if not isinstance(token, str) or not token:
+            raise PermissionDenied(_("ITSM 回调凭证缺失或格式错误"))
+        # 组件接口已解包外层响应，此处读取 data 中的校验结果。
+        result = self.verify_token({"token": token}, use_admin=True)
+        if not isinstance(result, dict) or result.get("is_passed") is not True:
+            raise PermissionDenied(_("无效的 ITSM 回调凭证"))
+
+    def verify_token(self, params, *args, **kwargs):
+        return ItsmApi.verify_token(params, *args, **kwargs)
 
     def create_ticket(self, params, *args, **kwargs):
         """创建 ITSM V3 单据。"""
