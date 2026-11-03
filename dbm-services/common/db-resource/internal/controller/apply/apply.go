@@ -32,9 +32,9 @@ import (
 )
 
 func init() {
-	middleware.RequestLoggerFilter.Add("/resource/apply")
-	middleware.RequestLoggerFilter.Add("/resource/pre-apply")
-	middleware.RequestLoggerFilter.Add("/resource/confirm/apply")
+	middleware.RequestBodyLoggerFilter.Add("/resource/apply")
+	middleware.RequestBodyLoggerFilter.Add("/resource/pre-apply")
+	middleware.RequestBodyLoggerFilter.Add("/resource/confirm/apply")
 }
 
 // ApplyHandler TODO
@@ -158,13 +158,14 @@ func (c *ApplyHandler) ApplyBase(r *gin.Context, mode string) {
 	if c.Prepare(r, &param) != nil {
 		return
 	}
+	requestID := r.GetString("request_id")
 	if err = param.ParamCheck(); err != nil {
 		c.SendResponse(r, errno.ErrApplyResourceParamCheck.AddErr(err), err.Error())
 		return
 	}
 	// get the resource lock if it is dry run you do not need to acquire it
 	if !param.DryRun {
-		lock := newLocker(param.LockKey(), c.RequestId)
+		lock := newLocker(param.LockKey(), requestID)
 		defer func() {
 			logger.Info("defer unlock in controller")
 			if err = lock.Unlock(); err != nil {
@@ -223,11 +224,11 @@ func (c *ApplyHandler) ApplyBase(r *gin.Context, mode string) {
 		c.SendResponse(r, errno.ErresourceLockReturn.AddErr(err), nil)
 		return
 	}
-	logger.Info(fmt.Sprintf("The %s, will return %d machines", c.RequestId, len(data)))
+	logger.Info(fmt.Sprintf("The %s, will return %d machines", requestID, len(data)))
 	task.ApplyResponseLogChan <- task.ApplyResponseLogItem{
-		RequestId: c.RequestId,
+		RequestId: requestID,
 		Data:      data,
 	}
-	task.RecordRsOperatorInfoChan <- param.GetOperationInfo(c.RequestId, mode, data)
+	task.RecordRsOperatorInfoChan <- param.GetOperationInfo(requestID, mode, data)
 	c.SendResponse(r, nil, data)
 }

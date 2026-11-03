@@ -25,7 +25,6 @@ import (
 
 // BaseHandler base handler
 type BaseHandler struct {
-	RequestId string
 }
 
 // Response http response
@@ -44,7 +43,6 @@ func (c *BaseHandler) Prepare(r *gin.Context, schema interface{}) error {
 		c.SendResponse(r, err, nil)
 		return err
 	}
-	c.RequestId = requestId
 	if err := r.ShouldBind(&schema); err != nil {
 		logger.Error("ShouldBind Failed %s", err.Error())
 		c.SendResponse(r, err, nil)
@@ -61,7 +59,7 @@ func (c *BaseHandler) SendResponse(r *gin.Context, err error, data interface{}) 
 		Code:      code,
 		Message:   message,
 		Data:      data,
-		RequestId: c.RequestId,
+		RequestId: r.GetString("request_id"),
 	})
 }
 

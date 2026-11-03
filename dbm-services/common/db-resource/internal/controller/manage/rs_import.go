@@ -90,24 +90,35 @@ func (p *ImportMachParam) existCheck() (err error) {
 // Import 导入主机资源
 func (c *MachineResourceHandler) Import(r *rf.Context) {
 	var input ImportMachParam
+	requestID := r.GetString("request_id")
 	if err := c.Prepare(r, &input); err != nil {
-		logger.Error(fmt.Sprintf("Prepare Error %s", err.Error()))
+		logger.Error("Import prepare failed, request_id=%s, err=%s", requestID, err.Error())
 		return
 	}
+	hosts := input.getIps()
+	logger.Info("Import start, request_id=%s, bk_biz_id=%d, for_biz=%d, rs_type=%s, bill_id=%s, operator=%s, hosts=%v",
+		requestID, input.BkBizId, input.ForBiz, input.RsType, input.BillId, input.Operator, hosts)
 	if err := input.existCheck(); err != nil {
+		logger.Error("Import exist check failed, request_id=%s, bk_biz_id=%d, hosts=%v, err=%s",
+			requestID, input.BkBizId, hosts, err.Error())
 		c.SendResponse(r, errno.RepeatedIpExistSystem.Add(err.Error()), err.Error())
 		return
 	}
-	resp, err := DoImport(input, c.RequestId)
+	resp, err := DoImport(input, requestID)
 	if err != nil {
-		logger.Error(fmt.Sprintf("ImportByIps failed %s", err.Error()))
+		logger.Error("Import failed, request_id=%s, bk_biz_id=%d, hosts=%v, err=%s",
+			requestID, input.BkBizId, hosts, err.Error())
 		c.SendResponse(r, err, err.Error())
 		return
 	}
 	if len(resp.NotFoundInCCHosts) == len(input.Hosts) {
+		logger.Error("Import cmdb miss all hosts, request_id=%s, bk_biz_id=%d, hosts=%v, not_found=%v",
+			requestID, input.BkBizId, hosts, resp.NotFoundInCCHosts)
 		c.SendResponse(r, fmt.Errorf("all machines failed to query cmdb information"), resp)
 		return
 	}
+	logger.Info("Import done, request_id=%s, bk_biz_id=%d, hosts=%v, not_found=%v, disk_failed=%v",
+		requestID, input.BkBizId, hosts, resp.NotFoundInCCHosts, lo.Keys(resp.SearchDiskErrInfo))
 	c.SendResponse(r, err, resp)
 }
 
