@@ -15,8 +15,10 @@ from backend.db_meta.models import Cluster
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
+from backend.ticket.builders.mysql.mysql_cluster_standardize import MySQLClusterStandardizeFlowParamBuilder
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
-from backend.ticket.constants import TicketType
+from backend.ticket.constants import FlowType, TicketType
+from backend.ticket.models import Flow
 
 
 class TendbRollbackSwitchDetailSerializer(TendbBaseOperateDetailSerializer):
@@ -41,6 +43,25 @@ class TendbRollbackSwitchFlowParamBuilder(builders.FlowParamBuilder):
             )
 
 
+class TendbRollbackSwitchStandardizeParamBuilder(MySQLClusterStandardizeFlowParamBuilder):
+    """切换执行成功后，对源集群和回档目标集群执行集群标准化（部署二进制/推送配置等）"""
+
+    def format_ticket_data(self):
+        # 标准化对象为源集群和切换后的新集群(回档目标)，参数与集群标准化单据的默认值保持一致
+        self.ticket_data.update(
+            bk_biz_id=self.ticket.bk_biz_id,
+            cluster_ids=[
+                cluster_id
+                for info in self.ticket_data["infos"]
+                for cluster_id in (info["source_cluster_id"], info["destination_cluster_id"])
+            ],
+            with_deploy_binary=True,
+            with_push_config=True,
+            with_cc_standardize=True,
+            with_instance_standardize=False,
+        )
+
+
 @builders.BuilderFactory.register(
     TicketType.TENDBCLUSTER_ROLLBACK_SWITCH, is_apply=True, iam=ActionEnum.TENDBCLUSTER_ROLLBACK
 )
@@ -48,3 +69,29 @@ class TendbRollbackSwitchFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbRollbackSwitchDetailSerializer
     inner_flow_builder = TendbRollbackSwitchFlowParamBuilder
     inner_flow_name = _("TenDBCluster 构造回档切换执行")
+
+    def custom_ticket_flows(self):
+        """单据审批(可选) → 构造回档切换执行 → 源集群与目标集群标准化"""
+        return [
+            Flow(
+                ticket=self.ticket,
+                flow_type=FlowType.INNER_FLOW.value,
+                details=self.inner_flow_builder(self.ticket).get_params(),
+                flow_alias=self.inner_flow_name,
+                retry_type=self.retry_type,
+            ),
+            # 切换成功后对源集群和回档目标集群做标准化，补齐二进制/配置/监控等周边
+            Flow(
+                ticket=self.ticket,
+                flow_type=FlowType.INNER_FLOW.value,
+                details=TendbRollbackSwitchStandardizeParamBuilder(self.ticket).get_params(),
+                flow_alias=_("MySQL集群标准化"),
+                retry_type=self.retry_type,
+            ),
+        ]
+
+    @classmethod
+    def describe_ticket_flows(cls, flow_config_map):
+        flow_desc = cls._add_itsm_pause_describe(flow_desc=[], flow_config_map=flow_config_map)
+        flow_desc.extend([cls.inner_flow_name, _("MySQL集群标准化")])
+        return flow_desc
