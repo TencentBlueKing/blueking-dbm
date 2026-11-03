@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 
 from django.apps import AppConfig
+from django.core import checks
 from django.db import IntegrityError
 from django.db.models.signals import m2m_changed, post_migrate, post_save, pre_delete
 
@@ -47,6 +48,13 @@ def init_db_meta(sender, **kwargs):
         logger.warning(f"Distribution init occur error: {err}")
 
 
+def check_cluster_state(app_configs, **kwargs):
+    # 状态声明分布在各组件模块中，需在所有 app 加载完成后再导入
+    from backend.db_meta.api.cluster_state.checks import check_cluster_state_schemas
+
+    return check_cluster_state_schemas(app_configs, **kwargs)
+
+
 class DBMeta(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     name = "backend.db_meta"
@@ -55,6 +63,8 @@ class DBMeta(AppConfig):
         from backend.db_meta.models import AppCache, ProxyInstance, StorageInstance
         from backend.db_meta.signals import update_cluster_status
         from backend.db_meta.utils import cache_appcache_data
+
+        checks.register(check_cluster_state)
 
         post_migrate.connect(cache_appcache_data, sender=self)
         post_save.connect(cache_appcache_data, sender=AppCache)

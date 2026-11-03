@@ -67,6 +67,7 @@ api_patterns = [
     path("quick_search/", include("backend.db_services.quick_search.urls")),
     path("tag/", include("backend.db_services.tag.urls")),
     path("plugin/", include("backend.db_services.plugin.urls")),
+    path("cluster_state/", include("backend.db_services.cluster_state.urls")),
     path("legacy/", include("backend.legacy.urls")),
 ]
 if env.ENABLE_DBM_AI:

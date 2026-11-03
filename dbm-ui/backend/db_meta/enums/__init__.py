@@ -12,6 +12,14 @@ from .access_layer import AccessLayer
 from .cluster_entry_role import ClusterEntryRole
 from .cluster_entry_type import ClusterEntryType
 from .cluster_phase import ClusterPhase
+from .cluster_state import (
+    DrillDownType,
+    StateDetailType,
+    StateFilterOperator,
+    StateSource,
+    StateStorageType,
+    StateValueType,
+)
 from .cluster_status import (
     ClusterDBHAStatusFlags,
     ClusterSqlserverStatusFlags,
