@@ -34,7 +34,7 @@
 </template>
 
 <script setup lang="ts">
-  import { Message } from 'bkui-vue';
+  // import { Message } from 'bkui-vue';
   import { useI18n } from 'vue-i18n';
 
   interface Props {
@@ -94,10 +94,10 @@
       } else if (modelValue.value > max) {
         // 手动修改过且超出新上限，下调并提示
         modelValue.value = max;
-        Message({
-          message: t('已按分片数下调'),
-          theme: 'warning',
-        });
+        // Message({
+        //   message: t('已按分片数下调'),
+        //   theme: 'warning',
+        // });
       }
     },
     { immediate: true },
