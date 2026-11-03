@@ -440,12 +440,13 @@ class TendbRollbackNewHostFlowBuilder(BaseTendbTicketFlowBuilder):
             )
         )
         # 回档执行完成后的人工确认节点，确认执行后由单据状态钩子发起构造回档切换单据
+        # 该节点是流程末位，前端标题渲染为「确认是否执行 {flow_alias}」，故别名需写成确认后的动作
         flows.append(
             Flow(
                 ticket=self.ticket,
                 flow_type=FlowType.PAUSE.value,
                 details=self.pause_node_builder(self.ticket).get_params(),
-                flow_alias=_("确认执行构造回档切换"),
+                flow_alias=_("切换到构造后的新集群"),
             ),
         )
 
@@ -454,5 +455,5 @@ class TendbRollbackNewHostFlowBuilder(BaseTendbTicketFlowBuilder):
     @classmethod
     def describe_ticket_flows(cls, flow_config_map):
         flow_desc = cls._add_itsm_pause_describe(flow_desc=[], flow_config_map=flow_config_map)
-        flow_desc.extend([_("回档临时集群部署"), _("回档临时集群只读接入层部署"), _("TenDBCluster 回档执行"), _("确认执行构造回档切换")])
+        flow_desc.extend([_("回档临时集群部署"), _("回档临时集群只读接入层部署"), _("TenDBCluster 回档执行"), _("切换到构造后的新集群")])
         return flow_desc
