@@ -128,7 +128,8 @@ func unpackBackup(files []string, workDir string) (time.Duration, error) {
 
 // decompressFile writes src decompressed to dst minus its compression suffix, keeping src, and
 // returns the CPU time it took. Uncompressed files are hard linked when on the same filesystem,
-// otherwise copied.
+// otherwise copied. Only full backups go through it; Tendisplus binlogs are decompressed straight
+// into binlog_tool (runBinlogToolStream) and SSD binlogs are read by the native decoder.
 func decompressFile(src, dst string) (time.Duration, error) {
 	switch {
 	case strings.HasSuffix(dst, ".zst"):

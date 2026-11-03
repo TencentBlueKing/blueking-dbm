@@ -88,6 +88,9 @@ func (r *ssdRestorer) DoRollback() error {
 	if err = r.Host.Prepare(portsOf(redo)); err != nil {
 		return err
 	}
+	if err = r.applyTuning(portsOf(redo)); err != nil {
+		return err
+	}
 	for _, inst := range redo {
 		plan := plans[inst.DestPort]
 		plan.memory = SSDMemory(confFile(r.Host.InstanceDir(inst.DestPort)))
