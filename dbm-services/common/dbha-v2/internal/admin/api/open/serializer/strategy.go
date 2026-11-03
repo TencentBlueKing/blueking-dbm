@@ -174,11 +174,7 @@ func CheckDuplicatedName(ctx context.Context, s *strategy.Strategy, id int, bkBi
 func BatchCreateCheckDuplicatedName(
 	ctx context.Context, s *strategy.Strategy, bkBizID int, names []string,
 ) (bool, error) {
-	queryMap := map[string]any{
-		"bk_biz_id": bkBizID,
-		"name":      names,
-	}
-	strategies, err := s.QueryStrategies(ctx, queryMap)
+	strategies, err := s.QueryStrategiesByNames(ctx, bkBizID, names)
 	if err != nil {
 		return false, err
 	}
@@ -193,11 +189,7 @@ func BatchCreateCheckDuplicatedName(
 // BatchUpdateCheckDuplicatedName batch update check duplicated name
 func BatchUpdateCheckDuplicatedName(ctx context.Context, s *strategy.Strategy, bkBizID int, names []string,
 	nameIDMap map[string]int) (bool, error) {
-	queryMap := map[string]any{
-		"bk_biz_id": bkBizID,
-		"name":      names,
-	}
-	strategies, err := s.QueryStrategies(ctx, queryMap)
+	strategies, err := s.QueryStrategiesByNames(ctx, bkBizID, names)
 	if err != nil {
 		return false, err
 	}
