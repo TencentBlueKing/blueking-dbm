@@ -7,7 +7,7 @@
         controller-id="replicaSetList"
         module-id="mongodb">
         <DbSubmenu
-          icon="mongo-db"
+          icon="fubenjiqun"
           :title="t('副本集群')">
           <template #append>
             <CountTag
@@ -38,7 +38,7 @@
         controller-id="sharedClusterList"
         module-id="mongodb">
         <DbSubmenu
-          icon="mongo-db"
+          icon="fenpianjiqun-2"
           :title="t('分片集群')">
           <template #append>
             <CountTag
