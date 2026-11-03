@@ -90,3 +90,15 @@ const (
 	// QdrantAPIKeyRandBytes Qdrant API Key 随机字节数（等价于 openssl rand -base64 32）
 	QdrantAPIKeyRandBytes int = 32
 )
+
+// SurrealDB env/密钥相关常量
+const (
+	// SurrealEnvPass SurrealDB 密码环境变量名
+	SurrealEnvPass string = "SURREAL_PASS"
+	// SurrealEnvUser SurrealDB 用户名环境变量名
+	SurrealEnvUser string = "SURREAL_USER"
+	// SurrealPassRandBytes SurrealDB 密码随机字节数（等价于 openssl rand -base64 32）
+	SurrealPassRandBytes int = 32
+	// SurrealDefaultUser SurrealDB 默认用户名
+	SurrealDefaultUser string = "root"
+)

@@ -35,8 +35,15 @@ func TestRegistry_GetInjector_Qdrant(t *testing.T) {
 	assert.True(t, ok)
 }
 
-func TestRegistry_GetInjector_Unregistered(t *testing.T) {
+func TestRegistry_GetInjector_Surreal(t *testing.T) {
 	injector := envinj.Registry.GetInjector(coreconst.Surreal)
+	assert.NotNil(t, injector)
+	_, ok := injector.(*envinj.SurrealEnvInjector)
+	assert.True(t, ok)
+}
+
+func TestRegistry_GetInjector_Unregistered(t *testing.T) {
+	injector := envinj.Registry.GetInjector(coreconst.Risingwave)
 	assert.NotNil(t, injector)
 	_, ok := injector.(*envinj.NoopEnvInjector)
 	assert.True(t, ok)
