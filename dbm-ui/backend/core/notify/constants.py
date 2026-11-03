@@ -22,3 +22,10 @@ class MsgType(StrStructuredEnum):
     WECOM_ROBOT = EnumField("wecom_robot", _("企微群聊"))
     # 未知发送类型，配置此type一般用于跳过消息发送
     UNKNOWN = EnumField("unknown", _("未知"))
+
+
+class ReceiverRole(StrStructuredEnum):
+    """AI单据值守消息的接收人角色"""
+
+    CREATOR = EnumField("creator", _("提单者"))
+    FIRST_DBA = EnumField("first_dba", _("第一位DBA"))

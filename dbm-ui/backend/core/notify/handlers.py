@@ -21,8 +21,8 @@ from backend import env
 from backend.components import CmsiApi
 from backend.components.bkchat.client import BkChatApi
 from backend.configuration.constants import BIZ_DEFAULT_CONFIGS, BizSettingsEnum
-from backend.configuration.models import BizSettings
-from backend.core.notify.constants import MsgType
+from backend.configuration.models import BizSettings, DBAdministrator
+from backend.core.notify.constants import MsgType, ReceiverRole
 from backend.core.notify.exceptions import NotifyBaseException
 from backend.core.notify.template import (
     AI_MYSQL_ALARM_ANALYSIS_TEMPLATE,
@@ -616,11 +616,23 @@ class NotifyAdapter:
             except (ApiResultError, Exception) as e:
                 logger.error(_("[{}]消息发送失败，错误信息: {}").format(MsgType.get_choice_label(msg_type), e))
 
-    def send_msg_of_ai_task_guardian(self, ai_result: str):
+    def send_msg_of_ai_task_guardian(self, ai_result: str, receiver_role: str = ReceiverRole.CREATOR):
         """
         定义AI单据值守推送消息的逻辑
         @param ai_result： 调用智能体之后的结果信息
+        @param receiver_role: 接收人角色，默认提单者；可选择第一位DBA（主DBA）
         """
+        # 按角色覆盖接收人：仅作用于AI值守消息通道，不影响普通单据状态通知的接收人策略
+        if receiver_role == ReceiverRole.FIRST_DBA:
+            # 获取该业务、该单据DB类型下的主DBA（DBA列表第一位）
+            # 注意：不能使用 first_dba, _, _ = ... 解包，会把本函数内的翻译函数 _ 覆盖为 list
+            first_dba = DBAdministrator.get_dba_for_db_type(self.ticket.bk_biz_id, self.ticket.group)[0]
+            if first_dba:
+                self.receivers = first_dba
+            else:
+                # 主DBA未配置时回退到默认接收人（提单者等），避免消息静默丢失
+                logger.warning(_("单据{}所在业务{}未配置主DBA，AI值守消息回退发送给默认接收人").format(self.ticket.id, self.bk_biz_id))
+
         biz_notify_config = BizSettings.get_setting_value(self.bk_biz_id, key=BizSettingsEnum.NOTIFY_CONFIG)
         # 业务已配置的通知配置可能不含 AI_TASK_GUARDIAN 键（与单据状态通知配置共用同一 key），
         # 此时 fallback 到默认 AI 值守通知配置
@@ -723,7 +735,9 @@ def send_msg(ticket_id: int, deadline: int = None):
 
 
 @shared_task
-def send_msg_for_ai_task_guardian(ticket_id: int, ai_result: str, deadline: int = None):
+def send_msg_for_ai_task_guardian(
+    ticket_id: int, ai_result: str, deadline: int = None, receiver_role: str = ReceiverRole.CREATOR
+):
     # 可异步发送消息，非阻塞路径默认不抛出异常
     # AI单据值守消息通道专属
-    NotifyAdapter(ticket_id, deadline).send_msg_of_ai_task_guardian(ai_result=ai_result)
+    NotifyAdapter(ticket_id, deadline).send_msg_of_ai_task_guardian(ai_result=ai_result, receiver_role=receiver_role)
