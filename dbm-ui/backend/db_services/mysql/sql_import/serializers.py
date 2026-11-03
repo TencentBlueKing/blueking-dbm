@@ -21,7 +21,6 @@ from backend.db_services.mysql.sql_import.constants import (
     SQLExecuteTicketMode,
     SQLImportMode,
 )
-from backend.db_services.mysql.sql_import.validators import validate_sql_file_name
 from backend.exceptions import ValidationError
 from backend.flow.models import StateType
 from backend.ticket.builders.common.field import DBTimezoneField
@@ -49,7 +48,7 @@ class SQLGrammarCheckSerializer(serializers.Serializer):
     sql_content = serializers.CharField(help_text=_("sql语句"), required=False)
     sql_filenames = serializers.ListField(
         help_text=_("sql文件名列表"),
-        child=serializers.CharField(trim_whitespace=False, validators=[validate_sql_file_name]),
+        child=serializers.CharField(trim_whitespace=False),
         required=False,
         allow_empty=False,
     )
@@ -90,7 +89,6 @@ class SQLGrammarCheckSerializer(serializers.Serializer):
         for file in attrs.get("sql_files", []):
             if file.size > MAX_UPLOAD_SQL_FILE_SIZE:
                 raise ValidationError(_("请保证单个文件{}不超过1G").format(file.name))
-            validate_sql_file_name(file.name)
 
         return attrs
 
@@ -113,7 +111,7 @@ class SQLSemanticCheckSerializer(serializers.Serializer):
 
         sql_files = serializers.ListField(
             help_text=_("sql执行文件"),
-            child=serializers.CharField(trim_whitespace=False, validators=[validate_sql_file_name]),
+            child=serializers.CharField(trim_whitespace=False),
             allow_empty=False,
         )
 
@@ -169,7 +167,7 @@ class ImportSQLForceSerializer(SQLSemanticCheckSerializer):
         sql_content = serializers.CharField(help_text=_("sql执行内容"), required=False, default=None)
         sql_files = serializers.ListField(
             help_text=_("sql执行文件"),
-            child=serializers.CharField(trim_whitespace=False, validators=[validate_sql_file_name]),
+            child=serializers.CharField(trim_whitespace=False),
             required=False,
             default=None,
             allow_empty=False,
