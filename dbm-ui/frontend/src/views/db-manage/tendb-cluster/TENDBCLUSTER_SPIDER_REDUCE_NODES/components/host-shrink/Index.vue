@@ -18,6 +18,7 @@
       @change="handleBatchInput" />
   </div>
   <EditableTable
+    :key="tableKey"
     ref="table"
     class="mb-20"
     :model="tableData"
@@ -191,17 +192,17 @@
     'spider_reduced_host.role': [
       {
         message: t('同集群不允许同时操作 Spider Master 和 Spider Slave'),
-        trigger: 'blur',
-        validator: (
-          value: string,
-          row: {
-            rowData: RowData;
-            rowIndex: number;
-          },
-        ) =>
-          sameClusterIdsRowsMap[row.rowData.spider_reduced_host.cluster_id].every(
-            (item) => item.spider_reduced_host.role === value,
-          ),
+        trigger: 'change',
+        validator: (value: string, { rowData }: { rowData: RowData }) => {
+          const { cluster_id: clusterId } = rowData.spider_reduced_host;
+          if (!value || !clusterId) {
+            return true;
+          }
+          // 主机信息逐条回填，校验不依赖全部请求完成后才生成的合并分组
+          return tableData.value.every(
+            (item) => item.spider_reduced_host.cluster_id !== clusterId || item.spider_reduced_host.role === value,
+          );
+        },
       },
     ],
   };
