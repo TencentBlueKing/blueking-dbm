@@ -3,9 +3,6 @@ package atomredis
 import (
 	"dbm-services/redis/db-tools/dbactuator/pkg/jobruntime"
 	"fmt"
-	"sync"
-
-	"github.com/panjf2000/ants/v2"
 )
 
 // RedisDtsDataRepair dts数据修复
@@ -48,31 +45,13 @@ func (job *RedisDtsDataRepair) Run() (err error) {
 	if err != nil {
 		return
 	}
-	// 3. 并发提取与校验,并发度默认5,可通过参数concurrency传入
-	var wg sync.WaitGroup
-	taskList := make([]*RedisInsDtsDataCheckAndRepairTask, 0, len(job.params.SrcRedisPortSegmentList))
-	pool, err := ants.NewPoolWithFunc(job.params.GetConcurrency(), func(i interface{}) {
-		defer wg.Done()
-		task := i.(*RedisInsDtsDataCheckAndRepairTask)
+	// 3. 并发修复,并发度默认2,可通过参数concurrency传入,运行中可通过并发度控制文件动态调整
+	taskList, err := job.runTasksWithDynamicConcurrency(func(task *RedisInsDtsDataCheckAndRepairTask) {
 		task.RunDataRepair()
 	})
 	if err != nil {
-		job.runtime.Logger.Error("RedisDtsDataRepair Run NewPoolWithFunc failed,err:%v", err)
 		return err
 	}
-	defer pool.Release()
-
-	for _, portItem := range job.params.SrcRedisPortSegmentList {
-		wg.Add(1)
-		task, err := NewRedisInsDtsDataCheckAndRepairTask(job.params.SrcRedisIP, portItem, job.RedisDtsDataCheck)
-		if err != nil {
-			continue
-		}
-		taskList = append(taskList, task)
-		_ = pool.Invoke(task)
-	}
-	// 等待所有task执行完毕
-	wg.Wait()
 
 	var totalHotKeysCnt uint64 = 0
 	for _, tmp := range taskList {
