@@ -25,6 +25,7 @@ const path = '/apis/packages';
  */
 export function getPackages(
   params: {
+    bk_biz_id?: number;
     db_type: DBTypes;
     db_version?: string;
     keyword?: string;

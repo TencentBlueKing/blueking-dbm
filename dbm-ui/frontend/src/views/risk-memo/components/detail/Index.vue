@@ -162,7 +162,9 @@
       <div
         v-else
         class="operate-records-main">
-        <OperationRecord :risk-id="riskMemoDetail.id" />
+        <OperationRecord
+          :biz-id="riskMemoDetail.bk_biz_id"
+          :risk-id="riskMemoDetail.id" />
       </div>
     </div>
   </BkLoading>
