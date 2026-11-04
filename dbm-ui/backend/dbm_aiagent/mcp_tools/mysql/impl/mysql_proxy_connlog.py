@@ -13,6 +13,7 @@ from collections import defaultdict
 from datetime import timedelta
 from typing import Dict, List, Optional
 
+from django.db.models import F
 from django.utils import timezone
 
 from backend.db_report.models import MysqlProxyConnlog
@@ -55,6 +56,8 @@ def query_proxy_connlog(
         )
 
         # 可选条件拼接
+        if cluster_domain:
+            qs = qs.filter(cluster_domain=cluster_domain)
         if conn_user:
             qs = qs.filter(conn_user=conn_user)
         if session_ids:
@@ -64,7 +67,8 @@ def query_proxy_connlog(
         qs = qs.order_by("-conn_time")
 
         logger.info("query_proxy_connlog sql: %s", qs.query)
-        all_rows = list(qs.values("instance_host", "conn_time", "client_ip", "conn_user", "session_id"))
+        # 表中实例 IP 字段为 proxy_ip，这里映射为 instance_host 便于上层按实例分组
+        all_rows = list(qs.values("conn_time", "client_ip", "conn_user", "session_id", instance_host=F("proxy_ip")))
     except Exception as e:
         raise DBMMcpBaseException(msg=f"query proxy connlog failed: {e}")
 
