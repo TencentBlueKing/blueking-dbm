@@ -30,7 +30,7 @@
         <DbForm
           ref="form"
           class="notice-form"
-          :label-width="100"
+          :label-width="140"
           :model="formData">
           <DbFormItem
             :label="t('启用提醒')"
@@ -62,57 +62,109 @@
             </div>
           </DbFormItem>
           <DbFormItem
-            :label="t('通知渠道')"
+            :description="t('面向所有有待办的用户，按人发送个性化汇总；与是否启用群聊无关')"
+            :label="t('个人通知渠道')"
             property="notice"
-            required
             :rules="noticeRules">
-            <div class="channel-config">
-              <!-- 个人通知（全员） -->
-              <div class="channel-group">
-                <div class="channel-group-head">
-                  <span class="channel-group-title-text">{{ t('个人通知（全员）') }}</span>
-                  <span class="channel-group-inline-desc">
-                    {{ t('面向所有有待办的用户，按人发送个性化汇总；与是否启用群聊无关。') }}
-                  </span>
-                </div>
-                <div class="personal-channels">
-                  <BkCheckbox
-                    v-for="item in personalChannelList"
-                    :key="item.type"
-                    v-model="formData.notice.checkbox[item.type]"
-                    class="channel-check-label"
-                    :disabled="!formData.isEnable"
-                    @change="handleCheckboxChange">
-                    <img
-                      class="channel-icon"
-                      :src="`data:image/png;base64,${item.icon}`" />
-                    {{ item.label }}
-                  </BkCheckbox>
-                </div>
-              </div>
-              <!-- 企微群聊（仅 DBA） -->
-              <div class="channel-group">
-                <div class="channel-group-head">
-                  <span class="channel-group-title-text">{{ t('企微群聊（仅 DBA）') }}</span>
-                  <span class="channel-group-inline-desc">{{
-                    t('仅汇总 DBA 待办并发送到所填群聊，不包含普通用户。')
-                  }}</span>
-                </div>
-                <div class="group-channel-row mb-12">
-                  <span class="group-field-label">{{ t('企微群聊 ID') }}</span>
-                  <BkInput
-                    v-model="formData.notice.input[MessageTypes.WECOM_ROBOT]"
-                    class="group-input-wrap"
-                    clearable
-                    :disabled="!formData.isEnable"
-                    :placeholder="t('请输入群聊 ID，多个用英文逗号分隔')" />
-                  <DbIcon
-                    v-bk-tooltips="{ content: t('填写企微群聊 ID，多个群 ID 用英文逗号分隔') }"
-                    class="group-help-icon"
-                    type="attention" />
-                </div>
-              </div>
+            <div class="personal-channels">
+              <BkCheckbox
+                v-for="item in personalChannelList"
+                :key="item.type"
+                v-model="formData.notice.checkbox[item.type]"
+                class="channel-check-label"
+                :disabled="!formData.isEnable"
+                @change="handleCheckboxChange">
+                <img
+                  class="channel-icon"
+                  :src="`data:image/png;base64,${item.icon}`" />
+                {{ item.label }}
+              </BkCheckbox>
             </div>
+          </DbFormItem>
+          <DbFormItem
+            :description="t('仅汇总 DBA 待办并发送到所填群聊，不包含普通用户')"
+            :label="t('企微群通知')">
+            <div class="rule-toolbar mb-12">
+              <BkButton
+                class="w-88"
+                :disabled="!formData.isEnable"
+                @click="handleAddRule">
+                <DbIcon
+                  class="mr-4"
+                  type="add" />
+                {{ t('添加') }}
+              </BkButton>
+              <span
+                v-if="formData.rules.length > 0"
+                class="rule-summary">
+                {{ t('共 {n} 条规则', { n: formData.rules.length }) }}
+              </span>
+            </div>
+            <PrimaryTable
+              v-if="formData.rules.length > 0"
+              class="rule-table"
+              :data="formData.rules"
+              row-key="uid">
+              <TableColumn
+                col-key="chat_id"
+                :min-width="220">
+                <template #title>
+                  <span class="rule-required">*</span>
+                  {{ t('企微群 ID') }}
+                </template>
+                <template #default="{ row, rowIndex }: { row: IRuleRow; rowIndex: number }">
+                  <DbFormItem
+                    error-display-type="tooltips"
+                    :property="`rules.${rowIndex}.chat_id`"
+                    :rules="chatIdRules">
+                    <BkInput
+                      v-model="row.chat_id"
+                      clearable
+                      :disabled="!formData.isEnable"
+                      :placeholder="t('请输入企微群 ID')" />
+                  </DbFormItem>
+                </template>
+              </TableColumn>
+              <TableColumn
+                col-key="components"
+                :min-width="280">
+                <template #title>
+                  <span class="rule-required">*</span>
+                  {{ t('待办人员范围') }}
+                </template>
+                <template #default="{ row, rowIndex }: { row: IRuleRow; rowIndex: number }">
+                  <DbFormItem
+                    error-display-type="tooltips"
+                    :property="`rules.${rowIndex}.components`"
+                    :rules="componentRules">
+                    <DbSelect
+                      v-model="row.components"
+                      class="rule-component-select"
+                      clearable
+                      collapse-tags
+                      :disabled="!formData.isEnable"
+                      :list="ruleComponentOptions"
+                      multiple
+                      multiple-mode="tag"
+                      :placeholder="t('请选择组件')" />
+                  </DbFormItem>
+                </template>
+              </TableColumn>
+              <TableColumn
+                col-key="row-operation"
+                :title="t('操作')"
+                :width="80">
+                <template #default="{ rowIndex }: { rowIndex: number }">
+                  <BkButton
+                    :disabled="!formData.isEnable"
+                    text
+                    theme="danger"
+                    @click="() => handleDeleteRule(rowIndex)">
+                    {{ t('删除') }}
+                  </BkButton>
+                </template>
+              </TableColumn>
+            </PrimaryTable>
           </DbFormItem>
         </DbForm>
       </BkCard>
@@ -147,7 +199,7 @@
   import { getAlarmGroupNotifyList } from '@services/source/monitorNoticeGroup';
   import { getTodoRemind, updateTodoRemind } from '@services/source/todoRemind';
 
-  import { InputMessageTypes, MessageTypes } from '@common/const';
+  import { DBTypeInfos, DBTypes, MessageTypes } from '@common/const';
 
   import { messageSuccess } from '@utils';
 
@@ -155,17 +207,37 @@
 
   const formRef = useTemplateRef('form');
 
+  // 群通知规则行（uid 仅用于 PrimaryTable row-key，提交时剔除）
+  interface IRuleRow {
+    chat_id: string;
+    components: DBTypes[];
+    uid: string;
+  }
+
+  let uidSeed = 0;
+  const createRuleRow = () => ({
+    chat_id: '',
+    components: [] as DBTypes[],
+    uid: `rule_${++uidSeed}`,
+  });
+
   const formData = reactive({
     dayOfWeek: false,
     isEnable: false,
     notice: {
       checkbox: {} as Record<string, boolean>,
-      input: {} as Record<string, string>,
     },
     remindTime: '10:00',
+    rules: [] as IRuleRow[],
   });
 
   const DefaultMessageTypeList = [MessageTypes.RTX];
+
+  // 待办人员范围可选组件（全部 DBTypes）
+  const ruleComponentOptions = Object.values(DBTypes).map((id) => ({
+    label: DBTypeInfos[id].name,
+    value: id,
+  }));
 
   // 个人通知渠道列表（checkbox类型）
   const personalChannelList = computed(() => {
@@ -174,6 +246,33 @@
     );
   });
 
+  const chatIdRules = [
+    {
+      message: t('不能为空'),
+      required: true,
+      trigger: 'change',
+    },
+    {
+      message: t('企微群 ID 已存在'),
+      trigger: 'change',
+      validator: (value: string) => {
+        if (!value.trim()) {
+          return true;
+        }
+        // 跨规则查重，重复时命中行全部标错
+        return formData.rules.filter((item) => item.chat_id.trim() === value.trim()).length <= 1;
+      },
+    },
+  ];
+  const componentRules = [
+    {
+      message: t('请选择待办人员范围'),
+      required: true,
+      trigger: 'change',
+      validator: (value: DBTypes[]) => value.length > 0,
+    },
+  ];
+
   const noticeRules = [
     {
       message: t('请至少启用一种通知渠道'),
@@ -181,8 +280,7 @@
       trigger: 'change',
       validator: () => {
         if (formData.isEnable) {
-          const { checkbox, input } = formData.notice;
-          return Object.values(checkbox).some((item) => item) || Object.values(input).some((item) => item);
+          return Object.values(formData.notice.checkbox).some((item) => item);
         }
         return true;
       },
@@ -225,49 +323,34 @@
 
   watch([todoRemindData, alarmGroupNotifyList], () => {
     if (todoRemindData.value && alarmGroupNotifyList.value) {
-      const activeTypeMap = alarmGroupNotifyList.value.reduce<{
-        checkbox: Record<string, boolean>;
-        input: Record<string, string>;
-      }>(
-        (prevMap, item) => {
-          if (item.is_active) {
-            if (InputMessageTypes.includes(item.type)) {
-              Object.assign(prevMap.input, {
-                [item.type]: '',
-              });
-            } else {
-              Object.assign(prevMap.checkbox, {
-                [item.type]: false,
-              });
-            }
-          }
-          return prevMap;
-        },
-        {
-          checkbox: {},
-          input: {},
-        },
+      // 个人渠道仅 mail / rtx，历史遗留的 wecom_robot 项忽略
+      const initSetting = _.cloneDeep(
+        Object.fromEntries(
+          alarmGroupNotifyList.value
+            .filter(
+              (item) => item.is_active && [MessageTypes.MAIL, MessageTypes.RTX].includes(item.type as MessageTypes),
+            )
+            .map((item) => [item.type, false]),
+        ) as Record<string, boolean>,
       );
 
-      const initSetting = _.cloneDeep(activeTypeMap);
-      const { is_enable: isEnable, notice, remind_time: remindTime } = todoRemindData.value;
-      if (todoRemindData.value.notice.length === 0) {
+      const {
+        is_enable: isEnable,
+        notice,
+        remind_time: remindTime,
+        wecom_group_rules: wecomGroupRules,
+      } = todoRemindData.value;
+      if (notice.length === 0) {
         DefaultMessageTypeList.forEach((type) => {
-          if (initSetting.checkbox[type] !== undefined) {
-            initSetting.checkbox[type] = true;
+          if (initSetting[type] !== undefined) {
+            initSetting[type] = true;
           }
         });
       } else {
-        const noticeSetting =
-          notice.length > 0
-            ? Object.fromEntries(notice.map((item) => [item.type, item.value]))
-            : Object.fromEntries(DefaultMessageTypeList.map((defaultItem) => [defaultItem, '']));
+        const noticeSetting = Object.fromEntries(notice.map((item) => [item.type, item.value]));
 
-        Object.keys(initSetting.checkbox).forEach((initSettingKey) => {
-          initSetting.checkbox[initSettingKey] = noticeSetting[initSettingKey] === '' ? true : false;
-        });
-        Object.keys(initSetting.input).forEach((initSettingKey) => {
-          initSetting.input[initSettingKey] = noticeSetting[initSettingKey] || '';
+        Object.keys(initSetting).forEach((initSettingKey) => {
+          initSetting[initSettingKey] = noticeSetting[initSettingKey] === '' ? true : false;
         });
       }
 
@@ -275,10 +358,14 @@
         dayOfWeek: remindTime.day_of_week ? true : false,
         isEnable: isEnable,
         notice: {
-          checkbox: initSetting.checkbox,
-          input: initSetting.input,
+          checkbox: initSetting,
         },
         remindTime: `${remindTime.hour}:${remindTime.minute}`,
+        rules: (wecomGroupRules || []).map((item) => ({
+          chat_id: item.chat_id,
+          components: [...item.components] as DBTypes[],
+          uid: `rule_${++uidSeed}`,
+        })),
       });
     }
   });
@@ -298,33 +385,55 @@
     formRef.value!.validate('notice');
   };
 
+  // 群 ID 变化后延迟刷新跨行查重的错误态（空行跳过，避免误标必填错），防抖避免逐键触发全表校验
+  const refreshChatIdValidate = _.debounce(() => {
+    formData.rules.forEach((row, index) => {
+      if (row.chat_id.trim()) {
+        formRef.value?.validate(`rules.${index}.chat_id`);
+      }
+    });
+  }, 300);
+
+  watch(
+    () => formData.rules.map((row) => row.chat_id),
+    () => {
+      refreshChatIdValidate();
+    },
+  );
+
+  const handleAddRule = () => {
+    formData.rules.push(createRuleRow());
+  };
+
+  const handleDeleteRule = (rowIndex: number) => {
+    formData.rules.splice(rowIndex, 1);
+  };
+
   const handleSave = async () => {
     await formRef.value!.validate();
 
-    const { dayOfWeek, isEnable, notice, remindTime } = formData;
+    const { dayOfWeek, isEnable, notice, remindTime, rules } = formData;
     const [hour, minute] = remindTime.split(':');
-    const { checkbox, input } = notice;
-    const checkboxNotice = Object.entries(checkbox)
+    const checkboxNotice = Object.entries(notice.checkbox)
       .filter(([, value]) => value)
       .map(([type]) => ({
         type,
         value: '',
       }));
-    const inputNotice = Object.entries(input)
-      .filter(([, value]) => value)
-      .map(([type, value]) => ({
-        type,
-        value,
-      }));
 
     runUpdateTodoRemind({
       is_enable: isEnable,
-      notice: [...checkboxNotice, ...inputNotice],
+      notice: checkboxNotice,
       remind_time: {
         day_of_week: dayOfWeek ? '1-5' : undefined,
         hour,
         minute,
       },
+      // 空数组即不发群消息
+      wecom_group_rules: rules.map(({ chat_id: chatId, components }) => ({
+        chat_id: chatId.trim(),
+        components,
+      })),
     });
   };
 
@@ -344,6 +453,7 @@
             hour: '10',
             minute: '00',
           },
+          wecom_group_rules: [],
         });
       },
       title: t('确认恢复默认值？'),
@@ -395,37 +505,9 @@
       }
 
       // 通知渠道配置样式
-      .channel-config {
-        width: 100%;
-        max-width: 700px;
-      }
-
-      .channel-group {
-        margin-top: 6px;
-
-        &:not(:first-child) {
-          padding-top: 20px;
-          margin-top: 20px;
-          border-top: 1px solid #f0f1f5;
-        }
-      }
-
-      .channel-group-head {
-        margin-bottom: 12px;
-        font-size: 13px;
-        line-height: 1.65;
-        color: #313238;
-      }
-
-      .channel-group-title-text {
-        font-weight: 600;
-        color: #313238;
-      }
-
-      .channel-group-inline-desc {
-        margin-left: 8px;
+      .channel-desc {
         font-size: 12px;
-        font-weight: normal;
+        line-height: 20px;
         color: #979ba5;
       }
 
@@ -458,29 +540,26 @@
         }
       }
 
-      .group-channel-row {
+      .rule-toolbar {
         display: flex;
         align-items: center;
-        gap: 10px;
-        flex-wrap: wrap;
+        gap: 12px;
       }
 
-      .group-field-label {
+      .rule-summary {
         font-size: 12px;
-        color: #63656e;
-        flex-shrink: 0;
-      }
-
-      .group-input-wrap {
-        flex: 1;
-        max-width: 480px;
-        min-width: 200px;
-      }
-
-      .group-help-icon {
-        font-size: 14px;
         color: #979ba5;
-        flex-shrink: 0;
+      }
+
+      .rule-required {
+        margin-right: 4px;
+        color: #ea3636;
+      }
+
+      .rule-table {
+        .rule-component-select {
+          width: 100%;
+        }
       }
 
       .bk-form-item.is-error .bk-input {
