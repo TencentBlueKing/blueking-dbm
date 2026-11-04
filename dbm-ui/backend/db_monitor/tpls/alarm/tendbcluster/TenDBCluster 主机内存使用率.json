@@ -59,6 +59,19 @@
         "algorithms": [
           {
             "type": "Threshold",
+            "level": 1,
+            "config": [
+              [
+                {
+                  "method": "gte",
+                  "threshold": 94.0
+                }
+              ]
+            ],
+            "unit_prefix": "%"
+          },
+          {
+            "type": "Threshold",
             "level": 2,
             "config": [
               [
@@ -76,6 +89,28 @@
       }
     ],
     "detects": [
+      {
+        "level": 1,
+        "expression": "",
+        "trigger_config": {
+          "count": 5,
+          "uptime": {
+            "calendars": [],
+            "time_ranges": [
+              {
+                "end": "22:59",
+                "start": "08:00"
+              }
+            ]
+          },
+          "check_window": 5
+        },
+        "recovery_config": {
+          "check_window": 5,
+          "status_setter": "recovery"
+        },
+        "connector": "and"
+      },
       {
         "level": 2,
         "expression": "",
@@ -261,7 +296,7 @@
   },
   "is_enabled": true,
   "monitor_indicator": "AVG(应用程序内存使用占比)",
-  "version": 28,
+  "version": 29,
   "alert_source": "time_series",
   "custom_conditions": [],
   "export_at": "2025-09-17T20:01:14+08:00"

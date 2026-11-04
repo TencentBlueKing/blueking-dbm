@@ -77,14 +77,16 @@ func (r *BackupRunner) BeforeDump(ctx context.Context, cnf *config.BackupConfig)
 		}
 	*/
 	cnfPublic := &cnf.Public
-	// 例行删除旧备份
-	logger.Log.Infof("remove old backup files OldFileLeftDay=%d normally", cnfPublic.OldFileLeftDay)
-	_, err = DeleteOldBackup(cnfPublic, cnfPublic.OldFileLeftDay)
-	if err != nil {
-		logger.Log.Warn("failed to delete old backup, err:", err)
+	// 例行删除旧备份, 当只备份权限的时候，保存快速备份完成就行
+	if !cnfPublic.IfBackupGrantOnly() {
+		logger.Log.Infof("remove old backup files OldFileLeftDay=%d normally", cnfPublic.OldFileLeftDay)
+		_, err = DeleteOldBackup(cnfPublic, cnfPublic.OldFileLeftDay)
+		if err != nil {
+			logger.Log.Warn("failed to delete old backup, err:", err)
+		}
 	}
 
-	if cnf.Public.IfBackupData() || cnf.Public.BackupType == cst.BackupPhysical {
+	if cnfPublic.IfBackupData() || cnfPublic.BackupType == cst.BackupPhysical {
 		if err := r.CheckAndCleanDiskSpace(cnf, dbh); err != nil {
 			logger.Log.Errorf("disk space is not enough for %d, err:%s", cnfPublic.MysqlPort, err.Error())
 			return err
