@@ -48,7 +48,7 @@
         :ticket-detail="ticketDetail" />
       <Abstract
         :data="data"
-        :ticket-type="ticketDetail?.ticket_type" />
+        :ticket-detail="ticketDetail" />
       <div
         v-if="isCanOperation && isNeedOperation"
         class="mt-12">

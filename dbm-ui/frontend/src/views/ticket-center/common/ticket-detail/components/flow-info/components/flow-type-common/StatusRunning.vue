@@ -50,7 +50,7 @@
         :ticket-detail="ticketDetail" />
       <Abstract
         :data="data"
-        :ticket-type="ticketDetail?.ticket_type" />
+        :ticket-detail="ticketDetail" />
     </template>
   </DbTimeLineItem>
 </template>
