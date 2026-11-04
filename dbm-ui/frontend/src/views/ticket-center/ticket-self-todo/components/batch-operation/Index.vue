@@ -7,6 +7,7 @@
       {{ title }}
     </BkButton>
     <DbDialog
+      ref="dialog"
       v-model:is-show="isShow"
       class="ticket-self-todo-batch-operation"
       :title="title">
@@ -75,6 +76,8 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  const dialogRef = useTemplateRef('dialog');
   const eventBus = useEventBus();
 
   const titleMap = {
@@ -137,8 +140,11 @@
       });
   };
 
-  const handleCancle = () => {
-    isShow.value = false;
+  // 点取消按钮：内容编辑过先弹离开确认，确认离开后再关闭
+  const handleCancle = async () => {
+    if (await dialogRef.value!.beforeClose()) {
+      isShow.value = false;
+    }
   };
 </script>
 <style lang="less">
