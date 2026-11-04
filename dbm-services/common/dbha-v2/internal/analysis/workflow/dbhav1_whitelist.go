@@ -41,13 +41,20 @@ import (
 )
 
 type whitelistCluster struct {
-	BkBizID   int
-	BkCloudID int
-	ClusterID int
+	BkBizID     int
+	BkCloudID   int
+	ClusterID   int
+	ClusterName string
 }
 
 func (c whitelistCluster) String() string {
-	return fmt.Sprintf("%d:%d:%d", c.BkBizID, c.BkCloudID, c.ClusterID)
+	return fmt.Sprintf("%d:%d:%d:%s", c.BkBizID, c.BkCloudID, c.ClusterID, c.ClusterName)
+}
+
+// MatchKey is the v1-compatible lookup key: cloud + cluster_name (domain).
+// cluster_id is omitted so a rebuilt cluster with the same name still matches.
+func (c whitelistCluster) MatchKey() string {
+	return fmt.Sprintf("%d:%s", c.BkCloudID, c.ClusterName)
 }
 
 // queryBlackWhiteListFromDbhaV1 queries black white list from dbha-v1.
@@ -111,8 +118,8 @@ func (w *Workflow) queryWhitelistClusters(
 
 		for _, item := range items {
 			key := whitelistCluster{
-				BkBizID: bizID, BkCloudID: cloudID, ClusterID: item.ClusterID,
-			}.String()
+				BkBizID: bizID, BkCloudID: cloudID, ClusterID: item.ClusterID, ClusterName: item.ClusterName,
+			}.MatchKey()
 			whitelistSet[key] = struct{}{}
 		}
 	}
@@ -151,8 +158,8 @@ func (w *Workflow) filterByWhitelistForScan(ctx context.Context, bizID int, bizM
 
 	for key, meta := range bizMeta.MetaInsts {
 		clusterKey := whitelistCluster{
-			BkBizID: meta.BkBizID, BkCloudID: meta.BkCloudID, ClusterID: meta.ClusterID,
-		}.String()
+			BkBizID: meta.BkBizID, BkCloudID: meta.BkCloudID, ClusterID: meta.ClusterID, ClusterName: meta.Cluster,
+		}.MatchKey()
 		if _, whitelisted := whitelistSet[clusterKey]; !whitelisted {
 			skippedCount++
 			skippedClusters[meta.Cluster] = struct{}{}
@@ -230,8 +237,8 @@ func (w *Workflow) filterByWhitelistForSwitch(
 	whitelistSet := make(map[string]struct{}, len(whiteList))
 	for _, item := range whiteList {
 		key := whitelistCluster{
-			BkBizID: bkBizID, BkCloudID: group.BkCloudID, ClusterID: item.ClusterID,
-		}.String()
+			BkBizID: bkBizID, BkCloudID: group.BkCloudID, ClusterID: item.ClusterID, ClusterName: item.ClusterName,
+		}.MatchKey()
 		whitelistSet[key] = struct{}{}
 	}
 
@@ -240,8 +247,8 @@ func (w *Workflow) filterByWhitelistForSwitch(
 
 	for _, meta := range req.InstData {
 		clusterKey := whitelistCluster{
-			BkBizID: meta.BkBizID, BkCloudID: meta.BkCloudID, ClusterID: meta.ClusterID,
-		}.String()
+			BkBizID: meta.BkBizID, BkCloudID: meta.BkCloudID, ClusterID: meta.ClusterID, ClusterName: meta.Cluster,
+		}.MatchKey()
 		if _, exists := whitelistSet[clusterKey]; exists {
 			whitelistedMetas = append(whitelistedMetas, meta)
 			continue
