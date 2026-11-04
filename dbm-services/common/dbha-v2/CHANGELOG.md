@@ -1,5 +1,23 @@
 # DBHA-v2 Change Log
 
+## v2.1.0-beta.1
+
+- 【新增】数据探测采集补充 6 种集群类型：RedisInstance、TwemproxyRedisInstance、TwemproxyTendisSSDInstance、PredixyTendisplusCluster、PredixyRedisCluster、PredixyTendisplusInstance。
+- 【新增】Analysis 支持 Redis 集群的实例级切换，覆盖原有的 5 种集群，并新增 PredixyTendisplusInstance。
+- 【新增】Redis 切换所需密码改为通过 DBM 查询实例密码，并实现进程内缓存包避免重复查询。
+- 【新增】AM 解析 Redis 探测数据时验证 SELECT、SET 命令的执行结果，据此判断是否触发二次探测。
+- 【新增】Redis 探针从配置获取密码，endpoints 按集群 ID 合并使用同一密码的不同 port。
+- 【新增】探针 health 命令返回 uptime 字段，AM 将其与配置值比较，小于阈值即触发 uptime 异常事件。
+- 【新增】监控指标 dbha_data_status_updated_ip_count 统计已更新的 IP 数量（harvest_type + ip），dbha_data_status_active_ip_count 统计存活探针数量（仅 ip）。
+- 【新增】admin 提供自愈接口的切换日志 API。
+- 【新增】快照日志表 DbSwitchingSnapshotLog 的 Instances 字段记录 status，依据切换结果 response.failureInsts 中的失败实例列表判定每个实例的切换结果。
+- 【优化】RedisStatus 结构按采集项重新组织。
+- 【优化】switchflow 配置按 DB 类型拆分为 common、mysql、redis，公共配置归入 common，各 DB 特有配置归入对应类别。
+- 【优化】AM 启动时先执行一次 t_dbm_metadata、t_dbha_status 的表数据统计（reportDbTableUpdatedStats）。
+- 【优化】dbha_data_status_updated_count 增加 harvest_type 维度，按 harvest_type + ip + port 统计实例数量。
+- 【优化】Admin 日志列表接口按需 Select 字段，不再返回用不到的大型 JSON 字段。
+- 【优化】Admin migrate 增加数据修复和 schema 修复的 flag 参数，实现方式深度解耦 schema 和 data 的维护逻辑。
+
 ## v2.0.1-beta.6
 
 - 【修复】SSH 探测超时失效问题，TCP 连接建立、SSH 身份认证与命令执行各阶段共用同一超时上限。
