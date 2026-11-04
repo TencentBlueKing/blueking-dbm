@@ -457,7 +457,11 @@ class PartitionFieldTypeV2Serializer(serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
     dblikes = serializers.ListField(help_text=_("匹配库列表(支持通配)"), child=DBTableField(db_field=True))
     tblikes = serializers.ListField(help_text=_("匹配表列表(不支持通配)"), child=DBTableField())
-    partition_column = serializers.CharField(help_text=_("分区字段"))
+    partition_column = serializers.RegexField(
+        r"^[A-Za-z_][A-Za-z0-9_]{0,63}$",
+        help_text=_("分区字段"),
+        error_messages={"invalid": _("分区字段只能由字母、数字和下划线组成，且不能以数字开头")},
+    )
 
 
 class PartitionFieldTypeV2ResponseSerializer(serializers.Serializer):
