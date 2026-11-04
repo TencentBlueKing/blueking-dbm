@@ -1,5 +1,5 @@
 apiVersion: v2
-appVersion: 1.5.0-alpha.6301
+appVersion: 1.5.0-alpha.6325
 description: A Helm chart for dbm
 name: dbm
 type: application
