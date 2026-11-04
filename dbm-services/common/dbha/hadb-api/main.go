@@ -29,7 +29,6 @@ func main() {
 	if err := viper.Unmarshal(initc.GlobalConfig); err != nil {
 		log.Logger.Errorf("unmarshal configure failed:%s", err.Error())
 	}
-	fmt.Printf("%+v", initc.GlobalConfig)
 
 	util.InitTimezone(initc.GlobalConfig.TimezoneInfo.Local)
 

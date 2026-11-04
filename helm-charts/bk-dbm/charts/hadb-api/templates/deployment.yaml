@@ -42,7 +42,8 @@ spec:
         - name: kms-credentials
           secret:
             secretName: {{ $kms.secretName | default "bk-dbm-kms" | quote }}
-            defaultMode: 0400
+            # 镜像以非 root 的 mysql 用户运行，信封为加密内容，放开只读权限
+            defaultMode: 0444
             items:
               - key: envelope
                 path: envelope
