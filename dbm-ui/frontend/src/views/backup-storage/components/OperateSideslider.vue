@@ -13,6 +13,7 @@
 
 <template>
   <DbSideslider
+    ref="sideslider"
     v-model:is-show="isShow"
     :title="isEditMode ? t('编辑配置') : t('新增配置')"
     :width="640">
@@ -186,6 +187,8 @@
   });
   const { t } = useI18n();
 
+  const sidesliderRef = useTemplateRef('sideslider');
+
   const isEditMode = computed(() => !!props.data);
   const editingData = computed(() => props.data);
 
@@ -327,8 +330,11 @@
   );
 
   // 取消 — 关闭侧滑
-  const handleCancel = () => {
-    isShow.value = false;
+  // 点取消按钮：内容编辑过先弹离开确认，确认离开后再关闭
+  const handleCancel = async () => {
+    if (await sidesliderRef.value!.beforeClose()) {
+      isShow.value = false;
+    }
   };
 
   // 提交表单

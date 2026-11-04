@@ -1,5 +1,6 @@
 <template>
   <DbDialog
+    ref="dialog"
     v-model:is-show="moduleValue"
     class="batch-edit-notice-group-dialog"
     quick-close
@@ -156,6 +157,8 @@
 
   const { t } = useI18n();
 
+  const dialogRef = useTemplateRef('dialog');
+
   const formRef = useTemplateRef('form');
 
   const initFormData = () => ({
@@ -304,8 +307,11 @@
     });
   };
 
-  const handleCancel = () => {
-    moduleValue.value = false;
+  // 点取消按钮：内容编辑过先弹离开确认，确认离开后再关闭
+  const handleCancel = async () => {
+    if (await dialogRef.value!.beforeClose()) {
+      moduleValue.value = false;
+    }
   };
 </script>
 

@@ -37,6 +37,8 @@
 - [单据详情里的改单数据（内容版本、改单记录）走 props，不用 provide / inject](doc/ticket-modify-data-props.md) —— 改
   `views/ticket-center/common/action-confirm/**` 或 `views/ticket-center/common/ticket-detail/**` 里提交
   `version`、使用改单记录的代码，或新增流程类型入口 / 流程状态组件 / 待办类型
+- [自写 footer 的取消按钮必须走离开确认，先考虑删 footer 用自带的](doc/popover-footer-cancel.md)
+  —— 新增或修改 `DbSideslider` / `DbDialog` 的 `#footer`，里面有「取消」「关闭」按钮
 
 ## B 类：只报告，改法未定
 
