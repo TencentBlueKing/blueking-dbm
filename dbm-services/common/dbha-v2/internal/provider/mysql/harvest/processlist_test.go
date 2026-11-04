@@ -26,8 +26,37 @@ package harvest
 
 import (
 	"database/sql"
+	"fmt"
+	"strings"
 	"testing"
 )
+
+func TestProcesslistSQLLimits(t *testing.T) {
+	infoExpr := fmt.Sprintf("LEFT(INFO, %d)", processlistInfoMaxLen)
+	limitExpr := fmt.Sprintf("LIMIT %d", processlistMaxFetchRows)
+	if !strings.Contains(processlistSQL, infoExpr) {
+		t.Fatalf("processlistSQL should truncate INFO with %s, got %s", infoExpr, processlistSQL)
+	}
+	if !strings.Contains(processlistSQL, limitExpr) {
+		t.Fatalf("processlistSQL should limit the result set with %s, got %s", limitExpr, processlistSQL)
+	}
+}
+
+func TestTruncateProcesslistInfo(t *testing.T) {
+	short := "SELECT 1"
+	if got := truncateProcesslistInfo(short); got != short {
+		t.Fatalf("truncateProcesslistInfo(%q) = %q, want unchanged", short, got)
+	}
+
+	long := strings.Repeat("a", processlistInfoMaxLen+8)
+	got := truncateProcesslistInfo(long)
+	if !strings.HasSuffix(got, "...") {
+		t.Fatalf("truncated info should end with ..., got len=%d", len(got))
+	}
+	if len(got) != processlistInfoMaxLen+3 {
+		t.Fatalf("truncated info len = %d, want %d", len(got), processlistInfoMaxLen+3)
+	}
+}
 
 func TestIsSuspiciousProcesslistRow(t *testing.T) {
 	tests := []struct {

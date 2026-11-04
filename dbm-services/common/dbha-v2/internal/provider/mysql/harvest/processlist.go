@@ -28,19 +28,32 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"dbm-services/common/dbha-v2/pkg/logger"
 )
 
 const (
-	processlistSQL = "SELECT ID AS id, USER AS `user`, HOST AS host, DB AS db, " +
-		"COMMAND AS command, TIME AS time, STATE AS state, INFO AS info " +
-		"FROM information_schema.PROCESSLIST"
-
 	processlistSuspiciousTimeSec = int64(10)
+	processlistMaxFetchRows      = 50
 	processlistMaxLogRows        = 50
 	processlistInfoMaxLen        = 256
+)
+
+// processlistSQL caps INFO and the result set on the server so a large PROCESSLIST
+// is not pulled into the probe. Keep LEFT/LIMIT in sync with the constants above.
+var processlistSQL = fmt.Sprintf(
+	"SELECT ID AS id, USER AS `user`, HOST AS host, DB AS db, "+
+		"COMMAND AS command, TIME AS time, STATE AS state, LEFT(INFO, %d) AS info "+
+		"FROM information_schema.PROCESSLIST "+
+		"WHERE COMMAND NOT LIKE '%%Binlog Dump%%' "+
+		"AND ((TIME > %d AND COMMAND <> 'Sleep') "+
+		"OR STATE LIKE '%%waiting for%%' "+
+		"OR INFO LIKE '%%lock table%%' "+
+		"OR INFO LIKE '%%flush table%%') "+
+		"ORDER BY TIME DESC LIMIT %d",
+	processlistInfoMaxLen, processlistSuspiciousTimeSec, processlistMaxFetchRows,
 )
 
 // processlistRow is the diagnostic subset of information_schema.PROCESSLIST.
@@ -163,6 +176,6 @@ func (c *collector) logSuspiciousProcesslist(parent context.Context) {
 	}
 
 	logger.Warn("processlist after heartbeat replace failure, "+
-		"host: %s, port: %d, total: %d, suspicious: %d, omitted: %d, rows: %s",
-		host, port, len(rows), len(suspicious), omitted, raw)
+		"host: %s, port: %d, fetched: %d, capped: %t, suspicious: %d, omitted: %d, rows: %s",
+		host, port, len(rows), len(rows) >= processlistMaxFetchRows, len(suspicious), omitted, raw)
 }

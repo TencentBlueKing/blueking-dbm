@@ -429,6 +429,7 @@ func (c *collector) processDbhaHeartbeatFailure(parent context.Context, err erro
 	if createErr := c.heartbeatExec(parent, hamodel.CreateDbhaHeartbeatTableSQL); createErr != nil {
 		logger.Warn("failed to create dbha_heartbeat as repair, db: %s, table: %s, errmsg: %s",
 			hamodel.ProbeMysqlDbName, hamodel.DbhaHeartbeatTableName, createErr)
+		return
 	}
 
 	logger.Info("create dbha_heartbeat table successfully, db: %s, table: %s",
@@ -456,6 +457,7 @@ func (c *collector) processDbhaReplHeartbeatFailure(parent context.Context, err 
 	if createErr := c.heartbeatExec(parent, hamodel.CreateDbhaReplHeartbeatTableSQL); createErr != nil {
 		logger.Warn("failed to create dbha_repl_heartbeat as repair, db: %s, table: %s, errmsg: %s",
 			hamodel.ProbeMysqlDbName, hamodel.DbhaReplHeartbeatTableName, createErr)
+		return
 	}
 
 	logger.Info("create dbha_repl_heartbeat table successfully, db: %s, table: %s",
