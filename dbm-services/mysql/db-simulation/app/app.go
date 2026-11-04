@@ -6,6 +6,8 @@ const (
 	MySQL = "mysql"
 	// Spider TODO
 	Spider = "spider"
+	// Common 未选定集群时，只跑 MySQL 与 Spider 共有的语法检查
+	Common = "common"
 	// TdbCtl TODO
 	TdbCtl = "tdbctl"
 

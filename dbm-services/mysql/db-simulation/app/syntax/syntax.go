@@ -257,8 +257,55 @@ func (tf *TmysqlParseFile) Do(dbtype string, versions []string) (result map[stri
 			errs = append(errs, err)
 		}
 	}
-	// check input db conflict with use db
+	// 系统库扫描留在 Do。空版本会让 GetGcsSystemDatabases 丢掉 information_schema，公共检查不能走这里。
+	if err = tf.CheckSystemDBOperation(versions[0]); err != nil {
+		logger.Error("check system db operation failed %s", err.Error())
+		errs = append(errs, err)
+		return tf.result, errors.Join(errs...)
+	}
 	if err = tf.CheckConflictUsedb(versions[0]); err != nil {
+		logger.Error("check conflict usedb failed %s", err.Error())
+		errs = append(errs, err)
+	}
+	return tf.result, errors.Join(errs...)
+}
+
+// RunCommonCheck 只跑 MySQL 与 Spider 共有的规则。版本固定为空串，解析器因此不带 --mysql-version。
+// 不调用 CheckSystemDBOperation。空版本会让 GetGcsSystemDatabases 把 information_schema 排除出系统库名单。
+func (tf *TmysqlParseFile) RunCommonCheck() (result map[string]*CheckInfo, err error) {
+	tf.mu = sync.Mutex{}
+	tf.mu.Lock()
+	tf.result = make(map[string]*CheckInfo)
+	tf.tmpWorkdir = tf.BaseWorkdir
+	tf.mu.Unlock()
+	if !tf.IsLocalFile {
+		if err = tf.Init(); err != nil {
+			logger.Error("Do init failed %s", err.Error())
+			return nil, err
+		}
+	}
+	defer tf.DelTempDir()
+	if err = tf.validateFileNames(); err != nil {
+		return nil, err
+	}
+	if !tf.IsLocalFile {
+		if err = tf.rejectEmptySQLFilesFromRepo(); err != nil {
+			logger.Error("reject empty sql file: %s", err.Error())
+			return nil, err
+		}
+		if err = tf.Downloadfile(); err != nil {
+			logger.Error("failed to download sql file from the product library %s", err.Error())
+			return nil, err
+		}
+	}
+
+	var errs []error
+	tf.Clusters = clustersForVersion(tf.Param.ClusterInfo, "")
+	if err = tf.doSingleVersion(app.Common, ""); err != nil {
+		logger.Error("when do common syntax check,failed:%s", err.Error())
+		errs = append(errs, err)
+	}
+	if err = tf.CheckConflictUsedb(""); err != nil {
 		logger.Error("check conflict usedb failed %s", err.Error())
 		errs = append(errs, err)
 	}
@@ -380,12 +427,6 @@ func (tf *TmysqlParseFile) checkSysDbOpInOneFile(sqlFile, version string,
 
 // CheckConflictUsedb check input db conflict with use db
 func (tf *TmysqlParseFile) CheckConflictUsedb(version string) error {
-	// 先检查系统库操作
-	if err := tf.CheckSystemDBOperation(version); err != nil {
-		logger.Error("check system db operation failed %s", err.Error())
-		return err
-	}
-
 	for _, executeObject := range tf.Param.ExecuteObjects {
 		if len(executeObject.DbNames) == 0 {
 			continue
@@ -1027,6 +1068,11 @@ func (t *TmysqlParse) AnalyzeOne(inputfileName, mysqlVersion, dbtype string) (er
 			checkResult.parseResult(SR.CommandRule.HighRiskCommandRule, res, mysqlVersion, t.Clusters)
 			checkResult.parseResult(SR.CommandRule.BanCommandRule, res, mysqlVersion, t.Clusters)
 			err = checkResult.runSpidercheck(ddlTbls, res, bs, mysqlVersion, t.Clusters)
+			if err != nil {
+				goto END
+			}
+		case app.Common:
+			err = checkResult.ApplyCommon(res, bs)
 			if err != nil {
 				goto END
 			}
