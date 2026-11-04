@@ -13,6 +13,7 @@
 
 <template>
   <DbSideslider
+    ref="sideslider"
     v-model:is-show="isShow"
     background-color="#F5F7FA"
     class="es-cluster-machine-expansion-box"
@@ -149,6 +150,8 @@
 
   const { t } = useI18n();
 
+  const sidesliderRef = useTemplateRef('sideslider');
+
   const generateExtInfo = () =>
     Object.entries(modelValue.value).reduce(
       (results, [key, item]) => {
@@ -273,8 +276,11 @@
     });
   };
 
-  const handleCancel = () => {
-    isShow.value = false;
+  // 点取消按钮：内容编辑过先弹离开确认，确认离开后再关闭
+  const handleCancel = async () => {
+    if (await sidesliderRef.value!.beforeClose()) {
+      isShow.value = false;
+    }
   };
 </script>
 <style lang="less">

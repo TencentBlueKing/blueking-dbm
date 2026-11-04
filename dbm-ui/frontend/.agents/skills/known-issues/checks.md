@@ -32,6 +32,8 @@
   里带 class 的 `v-if="$slots.xxx"` 容器，或给自研基础组件新增插槽出口
 - [BkComposeFormItem 里放本地 Db* 组件，第二个控件会掉到下一行](doc/compose-form-item-db-component.md)
   —— 往 `<BkComposeFormItem>` 里放 `DbSelect` / `DbInput` / `DbTagInput`，或用它做「输入 + 单位」这类并排布局
+- [自写 footer 的取消按钮必须走离开确认，先考虑删 footer 用自带的](doc/popover-footer-cancel.md)
+  —— 新增或修改 `DbSideslider` / `DbDialog` 的 `#footer`，里面有「取消」「关闭」按钮
 
 ## B 类：只报告，改法未定
 
