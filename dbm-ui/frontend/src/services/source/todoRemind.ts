@@ -26,6 +26,11 @@ interface TodoRemindParams {
     hour: string;
     minute: string;
   };
+  // 群通知规则，空数组即不发群消息
+  wecom_group_rules: {
+    chat_id: string;
+    components: string[];
+  }[];
 }
 
 /**
