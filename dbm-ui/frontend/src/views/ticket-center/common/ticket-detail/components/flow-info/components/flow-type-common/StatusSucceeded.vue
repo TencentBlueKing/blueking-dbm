@@ -40,7 +40,7 @@
       <slot name="contentPreppend" />
       <Abstract
         :data="data"
-        :ticket-type="ticketDetail?.ticket_type" />
+        :ticket-detail="ticketDetail" />
     </template>
     <template
       v-if="renderTodoList.length < 1"
