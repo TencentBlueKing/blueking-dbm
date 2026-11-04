@@ -1,5 +1,6 @@
 <template>
   <DbSideslider
+    ref="sideslider"
     v-model:is-show="isShow"
     :before-close="handleBeforeClose"
     class="edit-single-subscription-main"
@@ -92,6 +93,8 @@
   const isShow = defineModel<boolean>('isShow', { default: false });
 
   const { t } = useI18n();
+
+  const sidesliderRef = useTemplateRef('sideslider');
   const { initSubscribedDomainInfo, metricsMap } = useAlarmSubscribe();
   const checkBeforeClose = useBeforeClose();
 
@@ -141,8 +144,11 @@
     runSaveSubscribe(params);
   };
 
-  const handleCancel = () => {
-    isShow.value = false;
+  // 点取消按钮：内容编辑过先弹离开确认，确认离开后再关闭
+  const handleCancel = async () => {
+    if (await sidesliderRef.value!.beforeClose()) {
+      isShow.value = false;
+    }
   };
 
   const handleBeforeClose = () => {

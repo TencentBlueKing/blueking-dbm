@@ -194,6 +194,7 @@
   </ApplyPermissionCatch>
   <!-- 新增版本 -->
   <DbDialog
+    ref="dialog"
     v-model:is-show="createFileState.isShow"
     :mask-close="false"
     render-directive="if"
@@ -275,7 +276,7 @@
       </BkButton>
       <BkButton
         :disabled="createFileState.isLoading"
-        @click="handleClose">
+        @click="handleCancelClick">
         {{ t('取消') }}
       </BkButton>
     </template>
@@ -324,6 +325,8 @@
   });
 
   const { t } = useI18n();
+
+  const dialogRef = useTemplateRef('dialog');
   const tableMaxHeight = useTableMaxHeight(340);
 
   const uplodRef = ref();
@@ -589,6 +592,13 @@
   const handleClose = () => {
     createFileState.isShow = false;
     Object.assign(createFileState.formdata, initCreateFormdata());
+  };
+
+  // 点取消按钮：内容编辑过先弹离开确认，确认离开后再关闭
+  const handleCancelClick = async () => {
+    if (await dialogRef.value!.beforeClose()) {
+      handleClose();
+    }
   };
 
   /**

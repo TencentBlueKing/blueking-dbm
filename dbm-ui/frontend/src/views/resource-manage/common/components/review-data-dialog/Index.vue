@@ -13,6 +13,7 @@
 
 <template>
   <DbDialog
+    ref="dialog"
     class="review-data-dialog"
     :is-show="isShow"
     :title="title"
@@ -72,7 +73,7 @@
           class="ml-9 operation-btn"
           :disabled="isLoading"
           style="width: 88px"
-          @click="handleClose">
+          @click="handleCancelClick">
           {{ t('取消') }}
         </BkButton>
       </div>
@@ -121,6 +122,8 @@
 
   const { t } = useI18n();
 
+  const dialogRef = useTemplateRef('dialog');
+
   const formRef = useTemplateRef('formRef');
 
   const isLoading = ref(false);
@@ -151,6 +154,13 @@
       .then(() => {
         isShow.value = false;
       });
+  };
+
+  // 点取消按钮：内容编辑过先弹离开确认，确认离开后再关闭
+  const handleCancelClick = async () => {
+    if (await dialogRef.value!.beforeClose()) {
+      handleClose();
+    }
   };
 </script>
 

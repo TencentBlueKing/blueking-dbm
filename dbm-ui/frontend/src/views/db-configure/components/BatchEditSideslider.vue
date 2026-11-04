@@ -13,6 +13,7 @@
 
 <template>
   <DbSideslider
+    ref="sideslider"
     :before-close="handleBeforeClose"
     class="config-edit-diff-sideslider"
     :is-show="isShow"
@@ -193,7 +194,7 @@
           @click="handleNextStep">
           {{ t('下一步：差异对比') }}
         </BkButton>
-        <BkButton @click="handleClose">
+        <BkButton @click="handleCancelClick">
           {{ t('取消') }}
         </BkButton>
       </template>
@@ -210,7 +211,7 @@
           @click="handleSave">
           {{ t('保存') }}
         </BkButton>
-        <BkButton @click="handleClose">
+        <BkButton @click="handleCancelClick">
           {{ t('取消') }}
         </BkButton>
       </template>
@@ -252,6 +253,8 @@
   });
 
   const { t } = useI18n();
+
+  const sidesliderRef = useTemplateRef('sideslider');
   const handleBeforeClose = useBeforeClose();
 
   const currentStep = ref(1);
@@ -394,6 +397,13 @@
   const handleClose = () => {
     isShow.value = false;
     emit('close');
+  };
+
+  // 点取消按钮：内容编辑过先弹离开确认，确认离开后再关闭
+  const handleCancelClick = async () => {
+    if (await sidesliderRef.value!.beforeClose()) {
+      handleClose();
+    }
   };
 </script>
 

@@ -10,7 +10,8 @@
 
 ## A 类：命中即修
 
-- [单据详情与提单入口对齐并复用同族展示](doc/ticket-detail-entry-alignment.md) —— 新增或修改 `ticket-center/common/ticket-detail/components/task-info/com-factory/**`，涉及 `backupinfo` 或目标规格展示
+- [单据详情与提单入口对齐并复用同族展示](doc/ticket-detail-entry-alignment.md) —— 新增或修改
+  `ticket-center/common/ticket-detail/components/task-info/com-factory/**`，涉及 `backupinfo` 或目标规格展示
 - [validate 失败走 reject，不 resolve `false`](doc/validate-failure-contract.md) —— 用到 `DbForm` / `EditableTable` 的
   `.validate()`，且返回值被当布尔判断
 - [分页组件不认 `current`，必须显式绑 `:model-value`](doc/pagination-model-value.md) —— `<BkPagination>` /
@@ -36,6 +37,8 @@
 - [单据详情里的改单数据（内容版本、改单记录）走 props，不用 provide / inject](doc/ticket-modify-data-props.md) —— 改
   `views/ticket-center/common/action-confirm/**` 或 `views/ticket-center/common/ticket-detail/**` 里提交
   `version`、使用改单记录的代码，或新增流程类型入口 / 流程状态组件 / 待办类型
+- [自写 footer 的取消按钮必须走离开确认，先考虑删 footer 用自带的](doc/popover-footer-cancel.md) —— 新增或修改
+  `DbSideslider` / `DbDialog` 的 `#footer`，里面有「取消」「关闭」按钮
 
 ## B 类：只报告，改法未定
 

@@ -11,6 +11,7 @@
 <template>
   <DbSideslider
     v-if="isShowAddParam"
+    ref="sideslider"
     :is-show="isShowAddParam"
     quick-close
     render-directive="show"
@@ -223,7 +224,7 @@
         @click="handleAddParamConfirm">
         {{ t('确定') }}
       </BkButton>
-      <BkButton @click="isShowAddParam = false">
+      <BkButton @click="handleCancel">
         {{ t('取消') }}
       </BkButton>
     </template>
@@ -260,6 +261,8 @@
   const emit = defineEmits<Emits>();
 
   const { t } = useI18n();
+
+  const sidesliderRef = useTemplateRef('sideslider');
 
   // 无约束标识常量
   const NO_CONSTRAINT = t('无约束');
@@ -508,6 +511,13 @@
   const handleCloseSideslider = () => {
     isShowAddParam.value = false;
     isEditMode.value = false;
+  };
+
+  // 点取消按钮：内容编辑过先弹离开确认，确认离开后再关闭
+  const handleCancel = async () => {
+    if (await sidesliderRef.value!.beforeClose()) {
+      isShowAddParam.value = false;
+    }
   };
 
   // 提交新建/编辑参数

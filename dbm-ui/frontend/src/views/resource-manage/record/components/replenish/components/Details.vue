@@ -277,6 +277,7 @@
 
     <!-- 批量终止弹窗 -->
     <DbDialog
+      ref="terminateDialog"
       v-model:is-show="isShowTerminateDialog"
       class="replenish-batch-terminate-dialog"
       :title="t('批量终止')"
@@ -314,7 +315,7 @@
         <BkButton
           class="ml-8"
           :disabled="isTerminating"
-          @click="isShowTerminateDialog = false">
+          @click="handleCancelTerminate">
           {{ t('取消') }}
         </BkButton>
       </template>
@@ -386,6 +387,8 @@
   });
 
   const { t } = useI18n();
+
+  const terminateDialogRef = useTemplateRef('terminateDialog');
   const router = useRouter();
   const systemEnvironStore = useSystemEnviron();
 
@@ -611,6 +614,13 @@
       fetchData();
     } finally {
       isTerminating.value = false;
+    }
+  };
+
+  // 点取消按钮：内容编辑过先弹离开确认，确认离开后再关闭
+  const handleCancelTerminate = async () => {
+    if (await terminateDialogRef.value!.beforeClose()) {
+      isShowTerminateDialog.value = false;
     }
   };
 

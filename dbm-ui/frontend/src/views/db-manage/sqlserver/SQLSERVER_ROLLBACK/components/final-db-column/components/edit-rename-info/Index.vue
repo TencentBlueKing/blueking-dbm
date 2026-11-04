@@ -13,6 +13,7 @@
 
 <template>
   <DbSideslider
+    ref="sideslider"
     v-model:is-show="isShow"
     :width="960">
     <template #header>
@@ -105,6 +106,8 @@
 
   const { t } = useI18n();
 
+  const sidesliderRef = useTemplateRef('sideslider');
+
   const renameListRef = useTemplateRef<InstanceType<typeof RenameList>>('renameListRef');
   const localValue = ref<{
     dbIgnoreName: string[];
@@ -126,8 +129,11 @@
     }
   };
 
-  const handleClose = () => {
-    isShow.value = false;
+  // 点取消按钮：内容编辑过先弹离开确认，确认离开后再关闭
+  const handleClose = async () => {
+    if (await sidesliderRef.value!.beforeClose()) {
+      isShow.value = false;
+    }
   };
 
   watch(isShow, () => {

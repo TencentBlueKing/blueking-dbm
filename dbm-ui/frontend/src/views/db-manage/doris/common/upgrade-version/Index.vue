@@ -13,6 +13,7 @@
 
 <template>
   <DbDialog
+    ref="dialog"
     v-model:is-show="isShow"
     :esc-close="false"
     :quick-close="false"
@@ -65,7 +66,7 @@
       <BkButton
         class="ml-8 w-88"
         :disabled="isSubmitting"
-        @click="isShow = false">
+        @click="handleCancel">
         {{ t('取消') }}
       </BkButton>
     </template>
@@ -96,6 +97,8 @@
   });
 
   const { t } = useI18n();
+
+  const dialogRef = useTemplateRef('dialog');
 
   const formData = reactive({
     currentVersion: props.clusterData.major_version || '',
@@ -155,6 +158,13 @@
         new_version: formData.newVersion,
       },
     });
+  };
+
+  // 点取消按钮：内容编辑过先弹离开确认，确认离开后再关闭
+  const handleCancel = async () => {
+    if (await dialogRef.value!.beforeClose()) {
+      isShow.value = false;
+    }
   };
 </script>
 

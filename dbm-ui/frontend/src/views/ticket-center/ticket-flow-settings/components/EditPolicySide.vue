@@ -1,5 +1,6 @@
 <template>
   <DbSideslider
+    ref="sideslider"
     v-model:is-show="isShow"
     :before-close="handleBeforeClose"
     class="edit-policy-side"
@@ -166,6 +167,8 @@
   });
 
   const { t } = useI18n();
+
+  const sidesliderRef = useTemplateRef('sideslider');
   const beforeClose = useBeforeClose();
   const handleBeforeClose = () => beforeClose(dirty.value);
 
@@ -284,8 +287,11 @@
     }
   };
 
+  // 点取消按钮：内容编辑过先弹离开确认，确认离开后再关闭
   const handleCancel = async () => {
-    isShow.value = false;
+    if (await sidesliderRef.value!.beforeClose()) {
+      isShow.value = false;
+    }
   };
 </script>
 

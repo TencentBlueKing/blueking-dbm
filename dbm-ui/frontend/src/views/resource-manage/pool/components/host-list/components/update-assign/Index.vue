@@ -1,5 +1,6 @@
 <template>
   <DbDialog
+    ref="dialog"
     class="update-assign-dialog"
     :is-show="isShow"
     render-directive="if"
@@ -69,7 +70,7 @@
       </BkButton>
       <BkButton
         class="ml-8"
-        @click="handleCancel">
+        @click="handleCancelClick">
         {{ t('取消') }}
       </BkButton>
     </template>
@@ -118,6 +119,8 @@
 
   const route = useRoute();
   const { t } = useI18n();
+
+  const dialogRef = useTemplateRef('dialog');
   const globalBizsStore = useGlobalBizs();
   const systemEnvironStore = useSystemEnviron();
 
@@ -221,6 +224,13 @@
 
   const handleCancel = () => {
     isShow.value = false;
+  };
+
+  // 点取消按钮：内容编辑过先弹离开确认，确认离开后再关闭
+  const handleCancelClick = async () => {
+    if (await dialogRef.value!.beforeClose()) {
+      handleCancel();
+    }
   };
 </script>
 <style lang="less">

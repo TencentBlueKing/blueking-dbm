@@ -1,5 +1,6 @@
 <template>
   <DbDialog
+    ref="dialog"
     class="batch-import-dialog"
     :esc-close="false"
     :is-show="isShow"
@@ -37,7 +38,7 @@
         </BkButton>
         <BkButton
           class="ml-8"
-          @click="handleCancel">
+          @click="handleCancelClick">
           {{ t('取消') }}
         </BkButton>
       </div>
@@ -79,6 +80,8 @@
   type Emits = (e: 'refresh') => void;
 
   const { t } = useI18n();
+
+  const dialogRef = useTemplateRef('dialog');
   const systemEnvironStore = useSystemEnviron();
 
   const formPanelRef = useTemplateRef('formPanelRef');
@@ -157,6 +160,13 @@
 
     emits('refresh');
     isShow.value = false;
+  };
+
+  // 点取消按钮：内容编辑过先弹离开确认，确认离开后再关闭
+  const handleCancelClick = async () => {
+    if (await dialogRef.value!.beforeClose()) {
+      handleCancel();
+    }
   };
 </script>
 
