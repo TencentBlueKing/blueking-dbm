@@ -13,6 +13,7 @@
 
 <template>
   <DbDialog
+    ref="dialog"
     class="account-dialog"
     :draggable="false"
     :esc-close="false"
@@ -87,7 +88,7 @@
       </BkButton>
       <BkButton
         :disabled="state.isLoading"
-        @click="handleClose">
+        @click="handleCancelClick">
         {{ t('取消') }}
       </BkButton>
     </template>
@@ -127,6 +128,8 @@
   });
 
   const { t } = useI18n();
+
+  const dialogRef = useTemplateRef('dialog');
 
   const dbTypeMap = {
     [AccountTypes.MONGODB]: DBTypes.MONGODB,
@@ -255,6 +258,13 @@
     isShow.value = false;
     state.formdata.password = '';
     state.formdata.user = '';
+  };
+
+  // 点取消按钮：内容编辑过先弹离开确认，确认离开后再关闭
+  const handleCancelClick = async () => {
+    if (await dialogRef.value!.beforeClose()) {
+      handleClose();
+    }
   };
 </script>
 

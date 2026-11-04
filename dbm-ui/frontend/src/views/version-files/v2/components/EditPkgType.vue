@@ -13,6 +13,7 @@
 
 <template>
   <DbDialog
+    ref="dialog"
     v-model:is-show="isShow"
     class="edit-pkg-type-dialog"
     quick-close
@@ -132,6 +133,8 @@
 
   const { t } = useI18n();
 
+  const dialogRef = useTemplateRef('dialog');
+
   const formRef = ref();
   const formModel = ref({
     name: '',
@@ -245,8 +248,11 @@
     });
   };
 
-  const handleCancel = () => {
-    isShow.value = false;
+  // 点取消按钮：内容编辑过先弹离开确认，确认离开后再关闭
+  const handleCancel = async () => {
+    if (await dialogRef.value!.beforeClose()) {
+      isShow.value = false;
+    }
   };
 
   const handleFormValidate = (property: string, result: boolean) => {

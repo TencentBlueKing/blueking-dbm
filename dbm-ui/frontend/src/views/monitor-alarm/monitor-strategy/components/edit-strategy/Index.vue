@@ -13,6 +13,7 @@
 
 <template>
   <DbSideslider
+    ref="sideslider"
     :is-show="isShow"
     :width="1110"
     @closed="handleClose">
@@ -139,7 +140,7 @@
               <template #tag="{ selected }">
                 <DbTag
                   v-for="item in selected"
-                  :key="item"
+                  :key="item.value"
                   v-bk-tooltips="{
                     content: t('默认组件 DBA，不可删除'),
                     disabled: item.value !== bizDefaultGroupId,
@@ -217,7 +218,7 @@
       <BkButton
         class="ml-8"
         :disabled="isConfirmLoading || isdeleteLoading"
-        @click="handleClose">
+        @click="handleCancel">
         {{ t('取消') }}
       </BkButton>
     </template>
@@ -298,6 +299,7 @@
   const { t } = useI18n();
   const { currentBizId, currentBizInfo } = useGlobalBizs();
 
+  const sidesliderRef = useTemplateRef('sideslider');
   const aggInfoRef = useTemplateRef('aggInfo');
   const promqlRef = useTemplateRef('promqlRef');
   const testRuleRef = useTemplateRef('testRule');
@@ -663,6 +665,8 @@
   };
 
   const handleDataChange = () => {
+    // 监控数据、检测规则、通知间隔、监控目标等由子组件自己维护状态，不经过 formModel，DbForm 感知不到，这里标记侧栏已编辑
+    window.changeConfirm = true;
     setChangedInfoDebounce();
   };
 
@@ -813,6 +817,13 @@
   const handleClose = () => {
     emits('cancel');
     isShow.value = false;
+  };
+
+  // 点取消按钮：内容编辑过先弹离开确认，确认离开后再关闭
+  const handleCancel = async () => {
+    if (await sidesliderRef.value!.beforeClose()) {
+      handleClose();
+    }
   };
 </script>
 
