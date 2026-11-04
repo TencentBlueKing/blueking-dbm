@@ -51,6 +51,14 @@ Discovery、APM 指标服务、Storage、gRPC 和 Web 服务。单个资源更�
 脚本会抓取 Admin APM `/metrics` 并核对 reload 相关 gauge 的数值（成功/失败、槽计数、last_success），
 以及 Admin gRPC 拦截器指标（`grpc_requests_total`、错误计数、耗时/体积 histogram、`grpc_probe_config_result_total`）。
 
+## 5. 观测
+
+| 文档 | 说明 |
+| --- | --- |
+| [analysis 指标](observability/analysis-metrics.md) | 扫描、滑窗、切换、外部依赖与采集覆盖指标，含 Grafana 配置 |
+| [admin 指标](observability/admin-metrics.md) | HTTP、gRPC、元数据回退与配置热重载指标，含 Grafana 配置 |
+| [receiver 指标](observability/receiver-metrics.md) | Probe / Kafka 接收、MySQL 写入与 Sink 延迟丢弃指标，含 Grafana 配置 |
+
 ---
 
 返回：[项目 README](../README.md)

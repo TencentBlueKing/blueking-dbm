@@ -123,7 +123,7 @@ flowchart LR
 | **DBHA v1 API**      | 扫描前拉取黑白名单（`dbhav1ApiBlackWhitelistGet`）                                            | [workflow/dbhav1_whitelist.go](../../internal/analysis/workflow/dbhav1_whitelist.go)            |
 | **GSE**              | probe 可选上报通道                                                                       | [internal/probe/client/gse.go](../../internal/probe/client/gse.go)                              |
 | **Kafka**            | receiver 可选 source（与 probe gRPC 并存，常承接 GSE 链路）                                     | [internal/receiver/source](../../internal/receiver/source)                                      |
-| **Prometheus / APM** | admin / analysis / receiver 暴露 `/metrics`，供 Prometheus 或 BKMonitor 抓取              | [pkg/haapm](../../pkg/haapm)                                                                    |
+| **Prometheus / APM** | admin / analysis / receiver 暴露 `/metrics`，供 Prometheus 或 BKMonitor 抓取              | [pkg/haapm](../../pkg/haapm)；指标清单见 [analysis](../observability/analysis-metrics.md)、[admin](../observability/admin-metrics.md)、[receiver](../observability/receiver-metrics.md) |
 | **SSH**              | analysis 二次存活探测（远端 `dbha-probe health -j`）                                         | [internal/analysis/detector](../../internal/analysis/detector)、workflow                         |
 
 
