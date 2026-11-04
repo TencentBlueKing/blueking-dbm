@@ -63,6 +63,7 @@ func (s *SyntaxHandler) RegisterRouter(engine *gin.Engine) {
 	{
 		// syntax
 		r.POST("/check/file", s.SyntaxCheckFile)
+		r.POST("/check/common", s.SyntaxCheckCommon)
 		r.POST("/check/sql", s.SyntaxCheckSQL)
 		r.POST("/check/inject", s.CheckSQLInject)
 		r.POST("/upload/ddl/tbls", s.CreateAndUploadDDLTblListFile)
@@ -90,19 +91,31 @@ type CheckFileParam struct {
 	ExecuteObjects []syntax.ExecuteSQLFileObj `json:"execute_objects"`
 }
 
-// fillBkBizIDFromPath 当 bk_biz_id 为 0 时，尝试从 path 最后一段解析业务 ID
-// 例如 path="mysql/sqlfile/123" 时解析得到 bk_biz_id=123
-func (p *CheckFileParam) fillBkBizIDFromPath() {
-	if p.BkBizID != 0 {
-		return
+// CommonCheckFileParam 未选定集群时的语法检查请求。不接收集群类型、版本和 cluster_info。
+type CommonCheckFileParam struct {
+	BkBizID        int                        `json:"bk_biz_id"`
+	Path           string                     `json:"path" binding:"required"`
+	Files          []string                   `json:"files" binding:"gt=0,dive,required"`
+	ExecuteObjects []syntax.ExecuteSQLFileObj `json:"execute_objects"`
+}
+
+// fillBkBizIDFromPath 当 bk_biz_id 为 0 时，尝试从 path 最后一段解析业务 ID。
+// 例如 path="mysql/sqlfile/123" 时解析得到 bk_biz_id=123。无法解析时保持原值。
+func fillBkBizIDFromPath(bkBizID int, repoPath string) int {
+	if bkBizID != 0 {
+		return bkBizID
 	}
-	lastSeg := path.Base(strings.TrimRight(p.Path, "/"))
+	lastSeg := path.Base(strings.TrimRight(repoPath, "/"))
 	bizID, err := strconv.Atoi(lastSeg)
 	if err != nil || bizID <= 0 {
-		return
+		return bkBizID
 	}
-	p.BkBizID = bizID
-	logger.Info("bk_biz_id is 0, parsed from path %s as %d", p.Path, bizID)
+	logger.Info("bk_biz_id is 0, parsed from path %s as %d", repoPath, bizID)
+	return bizID
+}
+
+func (p *CheckFileParam) fillBkBizIDFromPath() {
+	p.BkBizID = fillBkBizIDFromPath(p.BkBizID, p.Path)
 }
 
 // InjectCheckParam SQL 注入检测请求参数
@@ -297,6 +310,35 @@ func (s *SyntaxHandler) SyntaxCheckFile(r *gin.Context) {
 		},
 	}
 	data, err := check.RunSyntaxCheck(versions)
+	if err != nil {
+		s.SendResponse(r, err, data)
+		return
+	}
+	s.SendResponse(r, nil, data)
+}
+
+// SyntaxCheckCommon 未选定集群时的语法检查。只返回 MySQL 与 Spider 共有的规则命中。
+func (s *SyntaxHandler) SyntaxCheckCommon(r *gin.Context) {
+	var param CommonCheckFileParam
+	if err := s.Prepare(r, &param); err != nil {
+		logger.Error("ShouldBind failed %s", err)
+		return
+	}
+	param.BkBizID = fillBkBizIDFromPath(param.BkBizID, param.Path)
+
+	check := &syntax.TmysqlParseFile{
+		TmysqlParse: syntax.TmysqlParse{
+			TmysqlParseBinPath: tmysqlParserBin,
+			BaseWorkdir:        workdir,
+		},
+		Param: syntax.CheckSQLFileParam{
+			BkBizID:        param.BkBizID,
+			BkRepoBasePath: param.Path,
+			FileNames:      param.Files,
+			ExecuteObjects: param.ExecuteObjects,
+		},
+	}
+	data, err := check.RunCommonCheck()
 	if err != nil {
 		s.SendResponse(r, err, data)
 		return
