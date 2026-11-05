@@ -28,6 +28,12 @@ func Init() error {
 
 // InitDnsDB 初始化DB
 func InitDnsDB() error {
+	for _, key := range []string{"db.host", "db.port", "db.name", "db.username", "db.password"} {
+		if viper.GetString(key) == "" {
+			return errors.Errorf("config %s must not be empty", key)
+		}
+	}
+
 	username := viper.GetString("db.username")
 	password := viper.GetString("db.password")
 	credentials, err := loadRuntimeCredentials()
@@ -43,7 +49,7 @@ func InitDnsDB() error {
 	config.User = username
 	config.Passwd = password
 	config.Net = "tcp"
-	config.Addr = net.JoinHostPort(viper.GetString("db.addr"), viper.GetString("db.port"))
+	config.Addr = net.JoinHostPort(viper.GetString("db.host"), viper.GetString("db.port"))
 	config.DBName = viper.GetString("db.name")
 	config.Params = map[string]string{"charset": "utf8"}
 	config.ParseTime = true
