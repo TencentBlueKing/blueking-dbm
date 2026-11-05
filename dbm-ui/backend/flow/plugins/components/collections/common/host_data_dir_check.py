@@ -10,13 +10,11 @@ specific language governing permissions and limitations under the License.
 """
 import copy
 import ipaddress
-import shlex
 from collections import defaultdict
 from dataclasses import asdict, dataclass
 from typing import List, Optional, Tuple
 
 from django.utils.translation import gettext as _
-from jinja2.sandbox import SandboxedEnvironment as Environment
 from pipeline.component_framework.component import Component
 
 from backend import env
@@ -44,92 +42,124 @@ HOST_DATA_DIR_CHECK_RULES = (
     HostDataDirCheckRule(pattern="dbbak", allow_empty=True, exempt_dir_patterns=("force.shutdown.*",)),
 )
 
+# for/glob stays in this shell on bash 3.2 and later. A find|while pipeline
+# runs the loop in a subshell unless lastpipe is on, and bash 4.1 has no lastpipe.
 HOST_DATA_DIR_CHECK_SCRIPT_TEMPLATE = r"""#!/bin/bash
-set -euo pipefail
-# bash < 4.4 cannot `wait` a process substitution PID ("not a child of this
-# shell"), so feed `find` through pipelines instead; `lastpipe` (bash >= 4.2)
-# keeps the loops in the current shell so failed/reported stay visible.
-shopt -s lastpipe
 export LC_ALL=C
 SCAN_ROOT=/
 failed=0
 reported=0
 report_limit=50
 
-report_error() {
+report() {
     failed=1
-    if (( reported < report_limit )); then
-        printf 'ERROR: %s: %q\n' "$1" "$2"
-    elif (( reported == report_limit )); then
-        printf 'ERROR: further findings omitted (limit %s)\n' "$report_limit"
+    if [ "$reported" -lt "$report_limit" ]; then
+        printf '%s: %s: %s\n' __Q_ERROR__ "$1" "$2"
+    elif [ "$reported" -eq "$report_limit" ]; then
+        printf '%s %s\n' __Q_OMITTED__ "$report_limit"
     fi
     reported=$((reported + 1))
 }
 
-check_candidate() {
-    local candidate="$1" pattern="$2" allow_empty="$3" entry
-    shift 3
-    [[ "${candidate##*/}" == $pattern ]] || return 0
-    if [[ "$allow_empty" == 0 ]]; then
-        report_error 'residual path remains' "$candidate"
+check_allow_empty() {
+    local dir="$1" entry base pat exempt
+    shift
+    if [ ! -d "$dir" ] || [ ! -r "$dir" ] || [ ! -x "$dir" ]; then
+        report __Q_NOT_DIR__ "$dir"
         return
     fi
-    if [[ ! -d "$candidate" || ! -r "$candidate" || ! -x "$candidate" ]]; then
-        report_error 'path is not an accessible directory' "$candidate"
-        return
-    fi
-    local -a exempt_names=(-false)
-    for pattern in "$@"; do
-        exempt_names+=(-o -name "$pattern")
-    done
-    if entry=$(find -H "$candidate" -mindepth 1 -maxdepth 1 \
-        ! \( -type d \( "${exempt_names[@]}" \) \) -printf '%p/' -quit); then
-        if [[ -n "$entry" ]]; then
-            report_error 'non-exempt directory entry remains' "${entry%/}"
+    for entry in "$dir"/* "$dir"/.[!.]* "$dir"/..?*; do
+        [ -e "$entry" ] || [ -L "$entry" ] || continue
+        base=${entry##*/}
+        exempt=0
+        if [ -d "$entry" ] && [ ! -L "$entry" ]; then
+            for pat in "$@"; do
+                case "$base" in
+                    $pat) exempt=1 ;;
+                esac
+            done
         fi
-    else
-        report_error 'cannot inspect directory' "$candidate"
-    fi
+        if [ "$exempt" -eq 0 ]; then
+            report __Q_ENTRY__ "$entry"
+            return
+        fi
+    done
 }
 
-if [[ ! -d "$SCAN_ROOT" || ! -r "$SCAN_ROOT" || ! -x "$SCAN_ROOT" ]]; then
-    report_error 'cannot access filesystem root' "$SCAN_ROOT"
+if [ ! -d "$SCAN_ROOT" ] || [ ! -r "$SCAN_ROOT" ] || [ ! -x "$SCAN_ROOT" ]; then
+    report __Q_ROOT__ "$SCAN_ROOT"
     exit 1
 fi
 
-if ! find -H "$SCAN_ROOT" -mindepth 1 -maxdepth 1 -name 'data*' -print0 |
-    while IFS= read -r -d '' data_dir; do
-        [[ "${data_dir##*/}" =~ ^data[0-9]*$ ]] || continue
-        if [[ ! -d "$data_dir" || ! -r "$data_dir" || ! -x "$data_dir" ]]; then
-            report_error 'data path is not an accessible directory' "$data_dir"
-            continue
-        fi
-        if ! find -H "$data_dir" -mindepth 1 -maxdepth 1 \
-            \( -false{% for rule in rules %} -o -name {{ rule.pattern | shellquote }}{% endfor %} \) -print0 |
-            while IFS= read -r -d '' candidate; do
-{% for rule in rules %}
-                check_candidate "$candidate" {{ rule.pattern | shellquote }} {{ 1 if rule.allow_empty else 0 }} \
-                    {{ rule.exempt_dir_patterns | map('shellquote') | join(' ') }}
-{% endfor %}
-            done; then
-            report_error 'cannot scan data directory' "$data_dir"
-        fi
-    done; then
-    report_error 'cannot enumerate data directories' "$SCAN_ROOT"
-fi
+for data_dir in "$SCAN_ROOT"/*; do
+    [ -e "$data_dir" ] || [ -L "$data_dir" ] || continue
+    name=${data_dir##*/}
+    case "$name" in
+        data*) ;;
+        *) continue ;;
+    esac
+    suffix=${name#data}
+    case "$suffix" in
+        *[!0-9]*) continue ;;
+    esac
+    if [ ! -d "$data_dir" ] || [ ! -r "$data_dir" ] || [ ! -x "$data_dir" ]; then
+        report __Q_DATA__ "$data_dir"
+        continue
+    fi
+    for candidate in "$data_dir"/* "$data_dir"/.[!.]* "$data_dir"/..?*; do
+        [ -e "$candidate" ] || [ -L "$candidate" ] || continue
+        base=${candidate##*/}
+        case "$base" in
+__CASE_ARMS__
+        esac
+    done
+done
 
-if (( failed )); then
-    printf 'ERROR: residual directory check failed; resolve non-exempt paths before retrying\n'
+if [ "$failed" -ne 0 ]; then
+    printf '%s\n' __Q_FAIL__
     exit 1
 fi
-printf 'OK: no non-exempt residual paths; configured directory exemptions applied\n'
+printf '%s\n' __Q_OK__
 """
+
+_CASE_PATTERN_CHARS = set("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_.*-")
+
+
+def _shell_case_pattern(pattern: str) -> str:
+    if not pattern or any(char not in _CASE_PATTERN_CHARS for char in pattern):
+        raise ValueError(_("残留数据目录检查的匹配模式无效: {}").format(pattern))
+    return pattern
+
+
+def _sh_quote(text: str) -> str:
+    return "'" + text.replace("'", "'\\''") + "'"
 
 
 def render_host_data_dir_check_script() -> str:
-    jinja_env = Environment()
-    jinja_env.filters["shellquote"] = shlex.quote
-    return jinja_env.from_string(HOST_DATA_DIR_CHECK_SCRIPT_TEMPLATE).render(rules=HOST_DATA_DIR_CHECK_RULES)
+    arms = []
+    residual = _sh_quote(_("残留路径仍在"))
+    for rule in HOST_DATA_DIR_CHECK_RULES:
+        pattern = _shell_case_pattern(rule.pattern)
+        if rule.allow_empty:
+            quoted_exempt = " ".join("'{}'".format(_shell_case_pattern(item)) for item in rule.exempt_dir_patterns)
+            body = '            check_allow_empty "$candidate" {}'.format(quoted_exempt).rstrip()
+        else:
+            body = '            report {} "$candidate"'.format(residual)
+        arms.append("        {pattern})\n{body}\n            ;;".format(pattern=pattern, body=body))
+    script = HOST_DATA_DIR_CHECK_SCRIPT_TEMPLATE.replace("__CASE_ARMS__", "\n".join(arms))
+    messages = {
+        "__Q_ERROR__": _sh_quote(_("错误")),
+        "__Q_OMITTED__": _sh_quote(_("错误: 其余结果已省略，上限")),
+        "__Q_NOT_DIR__": _sh_quote(_("路径不是可访问的目录")),
+        "__Q_ROOT__": _sh_quote(_("无法访问文件系统根目录")),
+        "__Q_DATA__": _sh_quote(_("数据路径不是可访问的目录")),
+        "__Q_ENTRY__": _sh_quote(_("存在未豁免的目录项")),
+        "__Q_FAIL__": _sh_quote(_("错误: 残留目录检查未通过，请先处理未豁免路径再重试")),
+        "__Q_OK__": _sh_quote(_("通过: 没有未豁免的残留路径")),
+    }
+    for placeholder, quoted in messages.items():
+        script = script.replace(placeholder, quoted)
+    return script
 
 
 def _normalize_targets(hosts: List[dict]) -> List[dict]:
