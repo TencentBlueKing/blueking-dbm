@@ -26,15 +26,14 @@ from backend.flow.models import StateType
 from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.constants import TicketType
 
+from .validators import get_sql_file_suffix, validate_sql_file_name, validate_sql_file_name_field
+
 
 class ExecuteSQLObjectsSerializer(serializers.Serializer):
     dbnames = serializers.ListField(help_text=_("目标变更DB"), child=serializers.CharField())
     ignore_dbnames = serializers.ListField(help_text=_("忽略DB"), child=serializers.CharField(), required=False)
-    # 语法检查会用实际上传的文件名覆盖这里，页面占位符是 "/"
     sql_files = serializers.ListField(
-        help_text=_("sql执行文件"),
-        child=serializers.CharField(trim_whitespace=False),
-        allow_empty=True,
+        help_text=_("sql执行文件"), child=serializers.CharField(validators=[validate_sql_file_name_field])
     )
 
 
@@ -86,9 +85,17 @@ class SQLGrammarCheckSerializer(serializers.Serializer):
         if not (attrs.get("sql_content") or attrs.get("sql_files") or attrs.get("sql_filenames")):
             raise ValidationError(_("不允许语法检查的sql的内容为空！"))
 
+        suffix = get_sql_file_suffix(attrs.get("cluster_type"))
+
         for file in attrs.get("sql_files", []):
             if file.size > MAX_UPLOAD_SQL_FILE_SIZE:
-                raise ValidationError(_("请保证单个文件{}不超过1G").format(file.name))
+                raise serializers.ValidationError(_("请保证单个文件[{}]不超过1G").format(file.name))
+            # 浏览器上传的文件名可能带目录，只校验最终落库的 basename
+            validate_sql_file_name(file.name.split("/")[-1], suffix)
+
+        # 已在制品库中的文件名同样需要校验，否则可以拼出逃逸业务目录的访问路径
+        for file_name in attrs.get("sql_filenames") or []:
+            validate_sql_file_name(file_name, suffix)
 
         return attrs
 
@@ -98,6 +105,9 @@ class SQLGrammarCheckResponseSerializer(serializers.Serializer):
         syntax_fails = serializers.ListField(help_text=_("语法错误"), allow_empty=True, allow_null=True)
         highrisk_warnings = serializers.ListField(help_text=_("高危警告"), allow_empty=True, allow_null=True)
         bancommand_warnings = serializers.ListField(help_text=_("禁止命令"), allow_empty=True, allow_null=True)
+        file_md5 = serializers.CharField(
+            help_text=_("文件MD5指纹，用于执行前校验文件是否被篡改"), required=False, allow_null=True, allow_blank=True
+        )
 
     sql_file_name = serializers.DictField(help_text=_("语法检查结果"), child=SQLGrammarCheckResultSerializer())
 
@@ -185,6 +195,12 @@ class SQLSemanticCheckSerializer(serializers.Serializer):
         swagger_schema_fields = {"example": mock_data.SQL_SEMANTIC_CHECK_REQUEST_DATA}
 
     def validate(self, attrs):
+        # sql_files 会被拼进制品库路径并下发到目标机，这里按集群类型再做一次完整校验
+        suffix = get_sql_file_suffix(attrs.get("cluster_type"))
+        for execute_object in attrs.get("execute_objects") or []:
+            for sql_file in execute_object.get("sql_files") or []:
+                validate_sql_file_name(sql_file, suffix)
+
         return attrs
 
 

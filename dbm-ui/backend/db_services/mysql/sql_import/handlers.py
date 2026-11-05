@@ -23,7 +23,7 @@ from backend import env
 from backend.components.sql_import.client import SQLSimulationApi
 from backend.configuration.constants import PLAT_BIZ_ID, BizSettingsEnum, DBType
 from backend.configuration.models import BizSettings
-from backend.core.storages.storage import get_storage
+from backend.core.storages.storage import get_storage, get_storage_file_md5
 from backend.db_services.mysql.sql_import.constants import (
     BKREPO_SQLFILE_PATH,
     CACHE_SEMANTIC_DATA_FIELD,
@@ -39,6 +39,7 @@ from backend.db_services.mysql.sql_import.constants import (
     SemanticExecStatus,
 )
 from backend.db_services.mysql.sql_import.exceptions import SQLFileNameTooLongException, SQLImportBaseException
+from backend.db_services.mysql.sql_import.validators import validate_sql_file_name, validate_sql_file_path
 from backend.db_services.taskflow.handlers import TaskFlowHandler
 from backend.flow.consts import StateType
 from backend.flow.engine.bamboo.engine import BambooEngine
@@ -52,6 +53,20 @@ from backend.utils.cache import cache, data_cache
 from backend.utils.redis import RedisConn
 
 logger = logging.getLogger("root")
+
+
+def safe_get_file_md5(storage, name: str) -> Optional[str]:
+    """
+    获取存储文件的 MD5，异常时返回 None
+
+    指纹只是辅助校验信息，取不到时不应阻断上传、语法检查等主流程，
+    由后续建单/执行环节按「无指纹」降级处理。
+    """
+    try:
+        return get_storage_file_md5(storage, name) or None
+    except Exception as e:  # pylint: disable=broad-except
+        logger.warning("get md5 of storage file [%s] failed: %s", name, e)
+        return None
 
 
 class SQLHandler(object):
@@ -84,6 +99,8 @@ class SQLHandler(object):
         @param sql_content: sql 语句内容
         @param sql_file_list: sql 语句文件
         """
+        # 服务层兜底：MongoDB 等入口直接调用本方法，不经过 serializer 校验
+        bkrepo_path = validate_sql_file_path(bkrepo_path)
         storage = get_storage(file_overwrite=False)
 
         # 如果上传的是sql内容, 则创建一个sql文件
@@ -98,9 +115,10 @@ class SQLHandler(object):
         sql_file_info_list: List[Dict[str, Any]] = []
         for sql_file in sql_file_list:
             sql_file_info: Dict[str, Any] = {}
+            # 文件名会拼进制品库对象路径，并下发到目标机，必须先按白名单收敛
+            file_name = validate_sql_file_name(os.path.basename(sql_file.name), suffix)
             with sql_file as file:
-                # TODO: 是否需要考虑windows机器的路径分隔
-                sql_path = storage.save(name=os.path.join(bkrepo_path, file.name.split("/")[-1]), content=file)
+                sql_path = storage.save(name=os.path.join(bkrepo_path, file_name), content=file)
                 # 上传制品库文件名过长抛错
                 sql_file_name = sql_path.split("/")[-1]
                 if len(sql_file_name) > MAX_UPLOAD_SQL_FILE_NAME_LENGTH:
@@ -118,7 +136,12 @@ class SQLHandler(object):
                     # encoding = chardet.detect(content_bytes[:100])["encoding"]
                     sql_content = content_bytes.decode("utf-8", errors="replace")
 
-                sql_file_info.update(sql_path=sql_path, sql_content=sql_content, raw_file_name=file.name)
+                sql_file_info.update(
+                    sql_path=sql_path,
+                    sql_content=sql_content,
+                    raw_file_name=file_name,
+                    file_md5=safe_get_file_md5(storage, sql_path),
+                )
 
             sql_file_info_list.append(sql_file_info)
 
@@ -142,10 +165,13 @@ class SQLHandler(object):
         @param execute_objects sql执行体信息
         """
         if sql_filenames:
-            sql_file_info_list = [
-                {"sql_path": BKREPO_SQLFILE_PATH.format(biz=self.bk_biz_id) + "/" + filename}
-                for filename in sql_filenames
-            ]
+            # 文件已在制品库中，直接按文件名回查指纹
+            storage = get_storage()
+            sql_file_info_list = []
+            for filename in sql_filenames:
+                filename = validate_sql_file_name(filename)
+                sql_path = BKREPO_SQLFILE_PATH.format(biz=self.bk_biz_id) + "/" + filename
+                sql_file_info_list.append({"sql_path": sql_path, "file_md5": safe_get_file_md5(storage, sql_path)})
         else:
             upload_sql_path = BKREPO_SQLFILE_PATH.format(biz=self.bk_biz_id)
             sql_file_info_list = self.upload_sql_file(upload_sql_path, sql_content, sql_files)
@@ -188,6 +214,7 @@ class SQLHandler(object):
                 sql_path=sql_path,
                 raw_file_name=sql_file_info.get("raw_file_name"),
                 skip_check=skip_check,
+                file_md5=sql_file_info.get("file_md5"),
             )
 
         return check_info
