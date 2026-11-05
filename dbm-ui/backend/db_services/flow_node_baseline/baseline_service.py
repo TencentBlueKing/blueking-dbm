@@ -34,6 +34,8 @@ FlowBaselineService：flow 节点耗时基线服务的顶层编排类。
       * 完全跳过 bk_biz_id=0 的清理与写入，避免用局部样本污染全局基线
 """
 import logging
+import sys
+import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Dict, Iterator, List, Optional, Set, Tuple
@@ -52,6 +54,21 @@ from backend.db_services.flow_node_baseline.name_normalizer import NameNormalize
 from backend.db_services.flow_node_baseline.sample_collector import FlowSampleCollector, NodeDurationSample
 
 logger = logging.getLogger("root")
+
+
+def _peak_rss_mb() -> float:
+    """当前进程的内存峰值（MB），用于进度日志；不支持的平台返回 -1。
+
+    ru_maxrss 单位：Linux 为 KB，macOS 为字节。
+    """
+    try:
+        import resource
+
+        peak: int = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    except Exception:
+        return -1.0
+    divisor: int = 1024 * 1024 if sys.platform == "darwin" else 1024
+    return peak / divisor
 
 
 @dataclass
@@ -115,8 +132,9 @@ class FlowBaselineService:
       - 分片失败仅记录到 summary.failures，不中断整体流程
     """
 
-    #: 单次 flush 前累计的最大样本数；超过则强制 flush，避免内存膨胀
-    #: 依据：单条样本内存 ~200B，10 万样本约 20MB，是安全上限
+    #: incremental 模式下单次 flush 前累计的最大样本数（按 pending_count 判断）；超过则分批 flush
+    #: 仅 incremental 生效：其 flush 为"合并写"，分批不影响正确性。
+    #: rebuild 的 flush 为"覆盖写"，绝不能中途分批，改由 _do_rebuild 在分片 / ticket_type 边界 flush。
     _FLUSH_THRESHOLD_SAMPLES: int = 100_000
 
     def __init__(self) -> None:
@@ -390,8 +408,22 @@ class FlowBaselineService:
         if global_aggregator is not None:
             global_aggregator.set_version_snapshot(global_version_snapshot)
 
-        # 分片并逐片处理，控制内存
-        for shard in self._iter_shards(bk_biz_ids, ticket_types, since, until):
+        # 分片并逐片处理。flush 时机（rebuild 的 flush 是覆盖写，每个 key 只能在样本到齐后 flush 一次）：
+        #   - 业务级 key 含 bk_biz_id，只会出现在本分片 → 每个分片结束即 flush
+        #   - 全局 key 含 ticket_type、跨所有业务；_iter_shards 保证同一 ticket_type 的分片连续
+        #     → ticket_type 切换时 flush 上一个 ticket_type，循环结束后 flush 最后一个
+        shards: List["_Shard"] = list(self._iter_shards(bk_biz_ids, ticket_types, since, until))
+        total_shards: int = len(shards)
+        run_start: float = time.time()
+        current_tt: Optional[str] = None
+
+        for idx, shard in enumerate(shards, start=1):
+            if global_aggregator is not None and current_tt is not None and shard.ticket_type != current_tt:
+                summary.buckets_written += self._flush_or_discard(global_aggregator, dry_run)
+            current_tt = shard.ticket_type
+
+            shard_start: float = time.time()
+            collected_before: int = summary.samples_collected
             self._process_shard(
                 shard=shard,
                 since=since,
@@ -401,12 +433,27 @@ class FlowBaselineService:
                 summary=summary,
                 dry_run=dry_run,
             )
+            written: int = self._flush_or_discard(aggregator, dry_run)
+            summary.buckets_written += written
 
-        # 4. flush 剩余（若走的是"多分片单 aggregator"路径，前面已 flush 过；此处兜底）
-        if not dry_run:
-            summary.buckets_written += aggregator.flush_to_db()
-            if global_aggregator is not None:
-                summary.buckets_written += global_aggregator.flush_to_db()
+            logger.info(
+                "[FlowBaselineService] shard done %d/%d tt=%s biz=%s samples=%d biz_buckets_written=%d "
+                "global_buckets_pending=%d shard_elapsed=%.1fs total_elapsed=%.1fs peak_rss=%.1fMB",
+                idx,
+                total_shards,
+                shard.ticket_type,
+                shard.bk_biz_id,
+                summary.samples_collected - collected_before,
+                written,
+                global_aggregator.bucket_count if global_aggregator is not None else 0,
+                time.time() - shard_start,
+                time.time() - run_start,
+                _peak_rss_mb(),
+            )
+
+        # 4. flush 最后一个 ticket_type 的全局基线（业务级已在各分片结束时 flush）
+        if global_aggregator is not None:
+            summary.buckets_written += self._flush_or_discard(global_aggregator, dry_run)
 
         # 5. 更新水位（仅 rebuild 场景；repair 绝对不推进水位，以免 incremental 漏采）
         if not dry_run and advance_watermarks:
@@ -470,8 +517,15 @@ class FlowBaselineService:
 
                 summary.samples_accumulated += 1
 
-                # 内存超阈值触发 flush（仅 rebuild 场景需要防膨胀）
-                if not dry_run and aggregator.observed_count >= self._FLUSH_THRESHOLD_SAMPLES:
+                # 仅 incremental（合并写）允许分片内分批 flush 控制内存；
+                # rebuild（覆盖写）中途 flush 会用部分样本覆盖已写结果，由 _do_rebuild 在边界统一 flush。
+                # 用 pending_count（flush 后清零）而非 observed_count（累计不清零）判断，
+                # 否则越过阈值后每条样本都会触发一次 flush。
+                if (
+                    not dry_run
+                    and aggregator.mode == BaselineAggregator.MODE_INCREMENTAL
+                    and aggregator.pending_count >= self._FLUSH_THRESHOLD_SAMPLES
+                ):
                     summary.buckets_written += aggregator.flush_to_db()
                     if global_aggregator is not None:
                         summary.buckets_written += global_aggregator.flush_to_db()
@@ -486,8 +540,21 @@ class FlowBaselineService:
             )
             summary.failures.append((shard.ticket_type, shard.bk_biz_id, str(err)))
         finally:
+            # 批量落库本分片累计的 alias 命中次数（dry-run 只清空不写库）
+            self._normalizer.flush_hits(persist=not dry_run)
             # 每个分片处理完，清一次 Normalizer 内存缓存，控制内存膨胀
             self._normalizer.clear_cache()
+
+    @staticmethod
+    def _flush_or_discard(aggregator: BaselineAggregator, dry_run: bool) -> int:
+        """非 dry-run 时 flush 落库；dry-run 时直接丢弃内存数据（避免试跑时内存持续累积）。
+
+        :return: 写入的 key 数（dry-run 恒为 0）
+        """
+        if dry_run:
+            aggregator.discard()
+            return 0
+        return aggregator.flush_to_db()
 
     @staticmethod
     def _as_global_sample(sample: NodeDurationSample) -> NodeDurationSample:

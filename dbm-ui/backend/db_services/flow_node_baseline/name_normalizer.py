@@ -37,6 +37,7 @@ import logging
 import re
 import threading
 import time
+from collections import Counter
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
@@ -284,7 +285,12 @@ class NameNormalizer:
         #: 用于 LLM 匹配时快速拿到候选集合，避免每条样本都查 DB
         self._local_categories_cache: Dict[Tuple[str, str], List[str]] = {}
 
-        #: 保护上述两个缓存的读写锁
+        #: 待落库的 alias 命中次数：{(ticket_type, code, cleaned_name): 次数}
+        #: 命中 alias 时只在内存累加，由调用方在分片边界调用 flush_hits() 批量写库，
+        #: 避免每条样本一次 UPDATE（19 万样本即 19 万次自动提交事务）
+        self._pending_hits: Counter = Counter()
+
+        #: 保护上述缓存 / 计数器的读写锁
         self._cache_lock: threading.Lock = threading.Lock()
 
     # =========================================================================
@@ -316,7 +322,8 @@ class NameNormalizer:
         # 第 2 级：alias 缓存精准匹配
         cached: Optional[str] = self._get_alias_from_cache_or_db(ticket_type, component_code, cleaned_name)
         if cached is not None:
-            self._touch_alias_hit(ticket_type, component_code, cleaned_name)
+            with self._cache_lock:
+                self._pending_hits[(ticket_type, component_code, cleaned_name)] += 1
             return NormalizeResult(
                 normalized_name=cached,
                 cleaned_name=cleaned_name,
@@ -352,10 +359,57 @@ class NameNormalizer:
         )
 
     def clear_cache(self) -> None:
-        """清空内存缓存；长时间运行场景（如全量回填）分批处理时可主动释放内存。"""
+        """清空内存缓存；长时间运行场景（如全量回填）分批处理时可主动释放内存。
+
+        注意：不会清空待落库的命中计数；需要落库请先调用 flush_hits()。
+        """
         with self._cache_lock:
             self._local_alias_cache.clear()
             self._local_categories_cache.clear()
+
+    def flush_hits(self, persist: bool = True) -> int:
+        """把内存累计的 alias 命中次数批量写入 hit_count / last_hit_at，并清空计数。
+
+        :param persist: False 时只清空计数不写库（dry-run 场景，保持 alias 表命中统计不被试跑污染）
+        :return: 实际执行 UPDATE 的 key 数
+        边界：
+          - 每个 key 一条 UPDATE（hit_count = hit_count + n），次数等于不重复 cleaned_name 数
+          - 单个 key 失败仅告警，不影响其它 key；hit_count 仅供观测，不参与业务判定
+          - 进程中途崩溃时，尚未 flush 的计数会丢失（可接受）
+        """
+        with self._cache_lock:
+            pending: Counter = self._pending_hits
+            self._pending_hits = Counter()
+
+        if not persist or not pending:
+            return 0
+
+        now = timezone.now()
+        updated: int = 0
+        for (ticket_type, component_code, cleaned_name), hits in pending.items():
+            try:
+                FlowNodeNameAlias.objects.filter(
+                    ticket_type=ticket_type,
+                    component_code=component_code,
+                    cleaned_name=cleaned_name,
+                ).update(hit_count=models_f_incr(hits), last_hit_at=now)
+                updated += 1
+            except Exception as err:
+                logger.warning(
+                    "[NameNormalizer] flush alias hits failed, tt=%s code=%s name=%s hits=%d err=%s",
+                    ticket_type,
+                    component_code,
+                    cleaned_name,
+                    hits,
+                    err,
+                )
+        return updated
+
+    @property
+    def pending_hit_keys(self) -> int:
+        """待落库命中计数的 key 数（观测用）。"""
+        with self._cache_lock:
+            return len(self._pending_hits)
 
     # =========================================================================
     # alias 表读写
@@ -520,24 +574,6 @@ class NameNormalizer:
             if categories is not None and normalized_name not in categories:
                 categories.append(normalized_name)
 
-    @staticmethod
-    def _touch_alias_hit(ticket_type: str, component_code: str, cleaned_name: str) -> None:
-        """alias 命中时刷新 hit_count / last_hit_at；非关键路径，出错仅告警不中断主流程。"""
-        try:
-            FlowNodeNameAlias.objects.filter(
-                ticket_type=ticket_type,
-                component_code=component_code,
-                cleaned_name=cleaned_name,
-            ).update(hit_count=models_f_incr(), last_hit_at=timezone.now())
-        except Exception as err:
-            logger.warning(
-                "[NameNormalizer] touch alias hit failed, tt=%s code=%s name=%s err=%s",
-                ticket_type,
-                component_code,
-                cleaned_name,
-                err,
-            )
-
     # =========================================================================
     # LLM 结果落地
     # =========================================================================
@@ -646,7 +682,7 @@ class NameNormalizer:
         )
 
 
-def models_f_incr():
-    """返回 hit_count + 1 的 F 表达式；独立函数便于测试 mock。"""
+def models_f_incr(n: int = 1):
+    """返回 hit_count + n 的 F 表达式；独立函数便于测试 mock。"""
 
-    return F("hit_count") + 1
+    return F("hit_count") + n
