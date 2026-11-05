@@ -33,7 +33,7 @@ func ReportChecksumConfig(dbPort int, db *pkg.MySQLMonitorDBH) error {
 		Host:      config.MonitorConfig.Ip,
 		Port:      dbPort,
 		ConfType:  "checksum",
-		ConfFile:  confFile,
+		ConfFile:  "checksum.yaml",
 		ConfigKey: "",
 	}
 
@@ -84,6 +84,5 @@ func ReportChecksumConfig(dbPort int, db *pkg.MySQLMonitorDBH) error {
 
 	cfg.ConfigValue = body
 	cfg.ClusterDomain = config.MonitorConfig.ImmuteDomain
-	cfg.ConfFile = filepath.Base(cfg.ConfFile) // 不用绝对路径
 	return ReplaceLocalConfig(db, cfg)
 }

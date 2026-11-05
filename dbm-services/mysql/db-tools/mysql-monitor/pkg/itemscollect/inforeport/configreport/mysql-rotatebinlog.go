@@ -14,6 +14,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/pkg/errors"
+
 	actorCst "dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
@@ -29,8 +31,8 @@ func ReportRotatebinlogConfig(dbPort int, db *pkg.MySQLMonitorDBH) error {
 	cfg := &ModelLocalConfig{
 		Host:      config.MonitorConfig.Ip,
 		Port:      0, // 主机级配置，port 固定为 0
-		ConfType:  "rotatebinlog",
-		ConfFile:  confFile,
+		ConfType:  "backup",
+		ConfFile:  "binlog_rotate.yaml",
 		ConfigKey: "",
 	}
 
@@ -52,15 +54,10 @@ func ReportRotatebinlogConfig(dbPort int, db *pkg.MySQLMonitorDBH) error {
 		return nil
 	}
 
-	cnf, err := rotate.ReadMainConfig(confFile)
+	payload, err := buildRotatebinlogPayload(confFile)
 	if err != nil {
 		return err
 	}
-	masked, _, err := MaskedJSONPayload(cnf)
-	if err != nil {
-		return err
-	}
-	payload := FlattenOneLevel(masked)
 	bodyBytes, err := json.Marshal(payload)
 	if err != nil {
 		return err
@@ -76,6 +73,23 @@ func ReportRotatebinlogConfig(dbPort int, db *pkg.MySQLMonitorDBH) error {
 
 	cfg.ConfigValue = body
 	cfg.ClusterDomain = config.MonitorConfig.ImmuteDomain
-	cfg.ConfFile = filepath.Base(cfg.ConfFile) // 不用绝对路径
 	return ReplaceLocalConfig(db, cfg)
+}
+
+// buildRotatebinlogPayload 解析 rotatebinlog main.yaml，脱敏、收一级，并补充 EnableBackupClient
+func buildRotatebinlogPayload(confFile string) (map[string]interface{}, error) {
+	cnf, err := rotate.ReadMainConfig(confFile)
+	if err != nil {
+		return nil, err
+	}
+	masked, _, err := MaskedJSONPayload(cnf)
+	if err != nil {
+		return nil, err
+	}
+	m, ok := FlattenOneLevel(masked).(map[string]interface{})
+	if !ok {
+		return nil, errors.Errorf("unexpected rotatebinlog config format: %s", confFile)
+	}
+	copyKey(m, "public.backup_enable", "EnableBackupClient")
+	return m, nil
 }

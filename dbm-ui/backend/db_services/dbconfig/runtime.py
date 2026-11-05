@@ -14,7 +14,7 @@ from collections import defaultdict
 from typing import Any, Dict, List, Optional, Tuple
 
 from backend.components import DRSApi
-from backend.components.dbconfig.constants import ConfFile
+from backend.components.dbconfig.constants import ConfFile, ConfType
 from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus
 from backend.db_meta.models import Cluster
 from backend.utils.batch_request import request_multi_thread
@@ -36,13 +36,15 @@ FLAG_DIFF_DIFFERENT = 1  # 运行时与配置不一致
 # local_config 中脱敏后的值，无法比对
 MASKED_VALUE = "******"
 
-# dbconfig conf_file(version) -> local_config.conf_type
-# dbbackup.options 没有具体的 local_config 实体，暂不处理
-CONF_FILE_LOCAL_CONF_TYPE = {
-    ConfFile.DBBACKUP_INI.value: "dbbackup",
-    ConfFile.BINLOG_ROTATE.value: "rotatebinlog",
-    ConfFile.CHECKSUM.value: "checksum",
-    ConfFile.ITEMS_CONFIG.value: "mysql-monitor",
+# local_config 中实际存在的 (conf_type, conf_file)，也是拼接 SQL 前的白名单
+# local_config 中的 conf_type/conf_file 与 dbconfig 的 ConfType/ConfFile 取值保持一致
+LOCAL_CONFIG_CONF_FILES = {
+    (ConfType.BACKUP.value, ConfFile.DBBACKUP_INI.value),
+    (ConfType.BACKUP.value, ConfFile.BINLOG_ROTATE.value),
+    (ConfType.CHECKSUM.value, ConfFile.CHECKSUM.value),
+    (ConfType.MYSQL_MONITOR.value, ConfFile.ITEMS_CONFIG.value),
+    # dbbackup.options 由采集端按端口从 dbbackup.{port}.ini 与 rotatebinlog main.yaml 合并后上报
+    (ConfType.BACKUP.value, ConfFile.DBBACKUP_OPTIONS.value),
 }
 
 # 支持运行时配置的集群类型 -> 需要查询的实例角色
@@ -56,10 +58,11 @@ CLUSTER_RUNTIME_WITH_PROXY = [ClusterType.TenDBCluster]
 
 # 查询实例本机的 local_config
 # 主机级配置（如 rotatebinlog）port=0，实例级配置 port=实例端口，所以 port 匹配 (0, 实例端口)
-# 这里不会出现注入，所以参数都是从元数据查出的
+# 防注入: host/port 从元数据查出；conf_type/conf_file 来自前端，拼接前必须经 LOCAL_CONFIG_CONF_FILES 白名单校验
 QUERY_LOCAL_CONFIG_SQL = (
-    "SELECT host, port, conf_type, conf_file, config_value FROM infodba_schema.local_config "
-    "WHERE host = '{host}' AND port IN (0, {port}) AND conf_type = '{conf_type}'"
+    "SELECT host, port, conf_type, conf_file, config_value, updated_at FROM infodba_schema.local_config "
+    "WHERE host = '{host}' AND port IN (0, {port}) AND conf_type = '{conf_type}' AND conf_file = '{conf_file}' "
+    "AND updated_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)"
 )
 
 # DRS 查询超时时间（秒），页面接口要求快速返回，超时即视为未取得运行时配置（flag_difference=-1）
@@ -70,8 +73,28 @@ class ClusterRuntimeConfigError(Exception):
     pass
 
 
-def support_cluster_runtime(meta_cluster_type: str, conf_file: str) -> bool:
-    return meta_cluster_type in CLUSTER_RUNTIME_STORAGE_ROLES and conf_file in CONF_FILE_LOCAL_CONF_TYPE
+def support_cluster_runtime(meta_cluster_type: str, conf_type: str, conf_file: str) -> bool:
+    return (
+        meta_cluster_type in CLUSTER_RUNTIME_STORAGE_ROLES
+        and (str(conf_type), str(conf_file)) in LOCAL_CONFIG_CONF_FILES
+    )
+
+
+def _check_runtime_conf(conf_type: str, conf_file: str) -> Tuple[str, str]:
+    """白名单校验 conf_type/conf_file，只有枚举中定义的值才允许拼接进 SQL"""
+    conf_type, conf_file = str(conf_type), str(conf_file)
+    if (conf_type, conf_file) not in LOCAL_CONFIG_CONF_FILES:
+        raise ClusterRuntimeConfigError(f"unsupported runtime config: {conf_type}/{conf_file}")
+    return conf_type, conf_file
+
+
+def _construct_local_config_sql(ip: str, port: int, conf_type: str, conf_file: str) -> str:
+    """
+    构造查询实例本机 local_config 的 SQL
+    conf_type/conf_file 来自前端，拼接前先做白名单校验，防止 SQL 注入
+    """
+    conf_type, conf_file = _check_runtime_conf(conf_type, conf_file)
+    return QUERY_LOCAL_CONFIG_SQL.format(host=ip, port=int(port), conf_type=conf_type, conf_file=conf_file)
 
 
 def _flatten(prefix: str, value: Any, result: Dict[str, Any], max_depth: int = 1):
@@ -101,53 +124,75 @@ def _parse_config_value(config_value: str) -> Dict[str, Any]:
     return result
 
 
-def _cluster_instance_addresses(cluster: Cluster) -> List[Tuple[str, int]]:
-    """获取集群需要查询运行时配置的实例 (ip, port) 列表，仅取 running 状态的实例"""
+def _cluster_instances(cluster: Cluster) -> List[Dict[str, Any]]:
+    """
+    获取集群需要查询运行时配置的实例列表，仅取 running 状态的实例
+    返回: [{"ip", "port", "instance_role"}, ...]，按 (ip, port) 排序去重
+    instance_role: 存储实例取元数据 instance_role（如 backend_master/remote_slave/orphan），spider 取 spider_role
+    """
     roles = CLUSTER_RUNTIME_STORAGE_ROLES.get(cluster.cluster_type, [])
-    instances = [
-        (inst.machine.ip, inst.port)
-        for inst in cluster.storageinstance_set.select_related("machine").filter(
-            instance_role__in=roles, status=InstanceStatus.RUNNING
-        )
-    ]
+    instances: Dict[Tuple[str, int], Dict[str, Any]] = {}
+    for inst in cluster.storageinstance_set.select_related("machine").filter(
+        instance_role__in=roles, status=InstanceStatus.RUNNING
+    ):
+        instances[(inst.machine.ip, inst.port)] = {
+            "ip": inst.machine.ip,
+            "port": inst.port,
+            "instance_role": inst.instance_role,
+        }
     if cluster.cluster_type in CLUSTER_RUNTIME_WITH_PROXY:
-        instances.extend(
-            [
-                (inst.machine.ip, inst.port)
-                for inst in cluster.proxyinstance_set.select_related("machine").filter(status=InstanceStatus.RUNNING)
-            ]
-        )
-    return sorted(set(instances))
-
-
-def query_cluster_runtime_config(cluster: Cluster, conf_file: str) -> List[Dict[str, Any]]:
-    """
-    查询集群所有实例的运行时配置，SQL 按 host/port/conf_type 过滤，逐实例并发查询
-    返回: [{"address": "ip:port", "config": {conf_name: raw_value}}, ...]
-    任何实例查询失败都抛异常；实例上没有对应 conf_type 的记录则跳过
-    """
-    conf_type = CONF_FILE_LOCAL_CONF_TYPE[conf_file]
-    instances = _cluster_instance_addresses(cluster)
+        for inst in cluster.proxyinstance_set.select_related("machine", "tendbclusterspiderext").filter(
+            status=InstanceStatus.RUNNING
+        ):
+            spider_ext = getattr(inst, "tendbclusterspiderext", None)
+            instances[(inst.machine.ip, inst.port)] = {
+                "ip": inst.machine.ip,
+                "port": inst.port,
+                "instance_role": spider_ext.spider_role if spider_ext else "",
+            }
     if not instances:
         raise ClusterRuntimeConfigError(f"cluster {cluster.immute_domain} has no instance to query")
+    return [instances[key] for key in sorted(instances)]
+
+
+def query_cluster_runtime_config(cluster: Cluster, conf_type: str, conf_file: str) -> List[Dict[str, Any]]:
+    """
+    查询集群所有实例的运行时配置，SQL 按 host/port/conf_type/conf_file 过滤，逐实例并发查询
+    返回: [{"address": "ip:port", "instance_role": "", "updated_at": "", "config": {conf_name: raw_value}}, ...]
+    任何实例查询失败都抛异常；实例上没有对应 conf_type/conf_file 的记录则跳过
+    """
+    conf_type, conf_file = _check_runtime_conf(conf_type, conf_file)
+    instances = _cluster_instances(cluster)
 
     params_list = [
-        {"bk_cloud_id": cluster.bk_cloud_id, "ip": ip, "port": port, "conf_type": conf_type} for ip, port in instances
+        {
+            "bk_cloud_id": cluster.bk_cloud_id,
+            "ip": inst["ip"],
+            "port": inst["port"],
+            "conf_type": conf_type,
+            "conf_file": conf_file,
+            "instance_role": inst["instance_role"],
+        }
+        for inst in instances
     ]
     # 并发查询所有实例，每个实例的请求各自带 host/port（local_config 只存本机数据）
     results = request_multi_thread(func=_query_instance_runtime_config, params_list=params_list, get_data=lambda x: x)
     runtime_configs = [r for r in results if r]
     if not runtime_configs:
-        raise ClusterRuntimeConfigError(f"no local_config found for conf_type: {conf_type}")
+        raise ClusterRuntimeConfigError(f"no local_config found for conf_type: {conf_type}, conf_file: {conf_file}")
     return runtime_configs
 
 
-def _query_instance_runtime_config(bk_cloud_id: int, ip: str, port: int, conf_type: str) -> Optional[Dict[str, Any]]:
+def _query_instance_runtime_config(
+    bk_cloud_id: int, ip: str, port: int, conf_type: str, conf_file: str, instance_role: str = ""
+) -> Optional[Dict[str, Any]]:
     """
     查询单个实例的 local_config，实例上没有对应记录时返回 None
+    conf_type/conf_file 取值与 ConfType/ConfFile 枚举对齐（如 backup/dbbackup.ini、checksum/checksum.yaml）
+    返回: {"address", "instance_role"(元数据), "updated_at"(local_config.updated_at), "config"}
     """
     address = f"{ip}:{port}"
-    sql = QUERY_LOCAL_CONFIG_SQL.format(host=ip, port=port, conf_type=conf_type)
+    sql = _construct_local_config_sql(ip, port, conf_type, conf_file)
 
     rpc_results = DRSApi.v2_short_rpc(
         {"bk_cloud_id": bk_cloud_id, "addresses": [address], "cmds": [sql], "force": False},
@@ -169,7 +214,13 @@ def _query_instance_runtime_config(bk_cloud_id: int, ip: str, port: int, conf_ty
         return None
     # 优先取实例级配置（port != 0），主机级配置（如 rotatebinlog，port=0）兜底
     rows.sort(key=lambda r: int(r.get("port") or 0) == 0)
-    return {"address": address, "config": _parse_config_value(rows[0]["config_value"])}
+    row = rows[0]
+    return {
+        "address": address,
+        "instance_role": instance_role,
+        "updated_at": row.get("updated_at"),
+        "config": _parse_config_value(row["config_value"]),
+    }
 
 
 def _scalar_to_str(value: Any) -> str:
@@ -251,6 +302,8 @@ def patch_conf_items_runtime(
     为配置项补充运行时配置
     - conf_value_runtime: 运行时值，多实例不一致时去重后以 , 分隔
     - flag_difference: -1 未取得有效运行时配置；0 一致；1 不一致
+    - difference_detail: 仅 flag_difference=1 时返回，各实例的比对明细
+      [{"instance": "ip:port", "instance_role": "", "flag_difference": 0/1, "updated_at": ""}, ...]
     """
     for item in conf_items:
         item["conf_value_runtime"] = None
@@ -258,19 +311,20 @@ def patch_conf_items_runtime(
     if not runtime_configs:
         return conf_items
 
-    name__runtime_values: Dict[str, List[Any]] = defaultdict(list)
+    # conf_name -> [(runtime_config, value), ...]
+    name__runtime_values: Dict[str, List[Tuple[Dict[str, Any], Any]]] = defaultdict(list)
     for runtime in runtime_configs:
         for conf_name, value in runtime["config"].items():
-            name__runtime_values[conf_name].append(value)
+            name__runtime_values[conf_name].append((runtime, value))
 
     for item in conf_items:
         conf_name = item.get("conf_name")
         # 配置名取交集，只有两边都存在的配置才补充运行时值
         if conf_name not in name__runtime_values:
             continue
-        values = name__runtime_values[conf_name]
+        runtime_values = name__runtime_values[conf_name]
         display_values: List[str] = []
-        for value in values:
+        for _, value in runtime_values:
             value_str = runtime_value_to_str(value)
             if value_str not in display_values:
                 display_values.append(value_str)
@@ -281,7 +335,18 @@ def patch_conf_items_runtime(
         if isinstance(conf_value, str) and "{{" in conf_value:
             item["flag_difference"] = FLAG_DIFF_SAME
             continue
-        is_diff = any(not conf_value_equal(conf_value, value) for value in values)
+        difference_detail = [
+            {
+                "instance": runtime.get("address"),
+                "instance_role": runtime.get("instance_role", ""),
+                "flag_difference": FLAG_DIFF_SAME if conf_value_equal(conf_value, value) else FLAG_DIFF_DIFFERENT,
+                "updated_at": runtime.get("updated_at"),
+            }
+            for runtime, value in runtime_values
+        ]
+        is_diff = any(d["flag_difference"] == FLAG_DIFF_DIFFERENT for d in difference_detail)
         item["flag_difference"] = FLAG_DIFF_DIFFERENT if is_diff else FLAG_DIFF_SAME
+        if is_diff:
+            item["difference_detail"] = difference_detail
 
     return conf_items

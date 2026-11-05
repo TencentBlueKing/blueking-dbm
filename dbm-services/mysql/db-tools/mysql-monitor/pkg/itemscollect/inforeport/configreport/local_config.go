@@ -131,6 +131,17 @@ func FlattenOneLevel(v interface{}) interface{} {
 	return result
 }
 
+// copyKey 在扁平化后的配置中把 src 的值复制一份到 dst；payload 不是 map 或 src 不存在时不处理
+func copyKey(payload interface{}, src, dst string) {
+	m, ok := payload.(map[string]interface{})
+	if !ok {
+		return
+	}
+	if v, ok := m[src]; ok {
+		m[dst] = v
+	}
+}
+
 // ModelLocalConfig infodba_schema.local_config
 type ModelLocalConfig struct {
 	Host          string `db:"host"`

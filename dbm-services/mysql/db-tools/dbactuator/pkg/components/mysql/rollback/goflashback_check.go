@@ -133,7 +133,8 @@ func (f *GoFlashback) checkTableColumnExists(columnNames []string) ([]string, na
 						colName, colDef.ColPos, tableInfo.DbTableFullname, firstTableName))
 				}
 			} else {
-				err2 = errs.Join(err2, errors.Errorf("column not found %s from table %s", colName, tableInfo.DbTableFullname))
+				err2 = errs.Join(err2, errors.Errorf("column not found %s from table %s",
+					colName, tableInfo.DbTableFullname))
 			}
 		}
 	}
@@ -141,44 +142,10 @@ func (f *GoFlashback) checkTableColumnExists(columnNames []string) ([]string, na
 		return nil, nil, err2
 	}
 	if len(columnNames) != len(columnPositions) {
-		return nil, nil, errors.Errorf("columnNames %v count dosnot match columnPositions %v", columnNames, columnPositions)
+		return nil, nil, errors.Errorf("columnNames %v count does not match columnPositions %v",
+			columnNames, columnPositions)
 	}
 	return columnPositions, columnInfo, nil
-	/*
-		// dbName tbName 必须是完整的表名
-		for _, col := range columnNames {
-			realColName := strings.Split(col, ":")
-			isHex := false
-			isSigned := false
-			if len(realColName) == 2 {
-				if realColName[1] == "hex" {
-					isHex = true
-				} else if realColName[1] == "signed" {
-					isSigned = true
-				} else if realColName[1] == "unsigned" {
-					isSigned = false
-				} else {
-					return nil, errors.Errorf("column name error format %s", col)
-				}
-			}
-			if val, ok := columnInfo[realColName[0]]; ok {
-				//newCol := "@" + val.ColPos
-				position := cast.ToInt(val.ColPos)
-				newCol := fmt.Sprintf("col[%d]", position-1)
-				if isHex {
-					newCol += ":hex"
-				}
-				if isSigned {
-					newCol += ":signed"
-				}
-				colPosStr = append(colPosStr, newCol)
-			} else {
-				return nil, errors.Errorf("column not found %s", realColName[0])
-			}
-		}
-		// return col[1]:hex,col[0]
-		return colPosStr, nil
-	*/
 }
 
 func (f *GoFlashback) checkInstanceSkipped() error {

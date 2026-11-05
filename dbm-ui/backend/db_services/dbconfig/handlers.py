@@ -308,11 +308,12 @@ class DBConfigHandler:
             runtime_error = "only cluster level support runtime config"
         else:
             cluster = Cluster.objects.get(immute_domain=dbconfig_level_data.level_value)
-            if not support_cluster_runtime(cluster.cluster_type, dbconfig_level_data.version):
-                runtime_error = f"{cluster.cluster_type}/{dbconfig_level_data.version} not support runtime config"
+            conf_file = dbconfig_level_data.version
+            if not support_cluster_runtime(cluster.cluster_type, self.conf_type, conf_file):
+                runtime_error = f"{cluster.cluster_type}/{self.conf_type}/{conf_file} not support runtime config"
             else:
                 try:
-                    runtime_configs = query_cluster_runtime_config(cluster, dbconfig_level_data.version)
+                    runtime_configs = query_cluster_runtime_config(cluster, self.conf_type, conf_file)
                 except Exception as e:  # pylint: disable=broad-except
                     logger.warning(f"query cluster runtime config failed, {cluster.immute_domain}: {e}")
                     runtime_error = str(e)
