@@ -31,9 +31,10 @@ BaselineAggregator：flow 节点耗时基线聚合器。
     传入的 bk_biz_id 分组
 """
 import logging
+from array import array
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional, Sequence, Tuple
 
 from django.db import transaction
 from django.utils import timezone
@@ -47,6 +48,17 @@ from backend.db_services.flow_node_baseline.constants import (
 from backend.db_services.flow_node_baseline.sample_collector import NodeDurationSample
 
 logger = logging.getLogger("root")
+
+#: 耗时数组的类型码：C unsigned int（Linux x86_64 下 4 字节，上限 4294967295）
+#: 耗时已被 collector 限制在 [SAMPLE_MIN, SAMPLE_MAX=86400] 秒，远低于上限；
+#: 相比 list[int]（8 字节指针 + >256 时额外 28 字节 int 对象），内存降至 1/2 ~ 1/9。
+#: 注意不能用 'H'（2 字节，上限 65535 < 86400）。
+DURATION_ARRAY_TYPECODE: str = "I"
+
+
+def _new_duration_array() -> array:
+    """构造空的耗时数组（dataclass default_factory 用）。"""
+    return array(DURATION_ARRAY_TYPECODE)
 
 
 # =============================================================================
@@ -129,14 +141,14 @@ class _BaselineBucket:
     """单个四维 key 的聚合中间态；仅存活于一次 flush 前的内存中。
 
     :ivar welford: Welford 累计器（增量算 mean/stddev）
-    :ivar durations: 本轮 flush 前收集的所有耗时样本；flush 时用来算分位数
+    :ivar durations: 本轮 flush 前收集的所有耗时样本（array('I')，每条 4 字节）；flush 时用来算分位数
     :ivar min_seconds: 最小值；随样本更新
     :ivar max_seconds: 最大值；随样本更新
     :ivar last_sample_finished_at: 本轮见到的最新样本时间
     """
 
     welford: WelfordAccumulator = field(default_factory=WelfordAccumulator)
-    durations: List[int] = field(default_factory=list)
+    durations: array = field(default_factory=_new_duration_array)
     min_seconds: float = 0.0
     max_seconds: float = 0.0
     last_sample_finished_at: Optional[datetime] = None
@@ -181,7 +193,10 @@ class BaselineAggregator:
     副作用：写 FlowNodeDurationBaseline 表
     边界：
       - 未调用 flush_to_db 前，数据只在内存
-      - 大批量场景应分片调用 flush_to_db，避免内存膨胀
+      - rebuild 模式的 flush 是"覆盖写"：同一个 key 必须在样本全部到齐后只 flush 一次，
+        中途 flush 会用部分样本覆盖已写入的结果（分位数需要全量原始耗时，无法分批合并）。
+        调用方应在"该 key 的样本不再出现"的边界 flush（见 FlowBaselineService._do_rebuild）
+      - incremental 模式的 flush 是"合并写"，允许按 pending_count 分批 flush 控制内存
     """
 
     #: 模式常量
@@ -197,12 +212,11 @@ class BaselineAggregator:
         #: 四维 key → bucket 的内存字典
         self._buckets: Dict[Tuple[str, int, str, str], _BaselineBucket] = {}
 
-        #: 本轮已 accumulate 的样本数（观测用）
+        #: 本实例生命周期内累计 accumulate 的样本数（仅观测用，flush 不清零）
         self._observed_count: int = 0
 
-        #: rebuild/repair 场景下，purge 前由 service 快照的 (4 元组 -> 老 baseline_version)。
-        #  create 分支会用 old + 1；找不到则回退为 1。默认空 dict 即可（新库场景）。
-        self._version_snapshot: Dict[Tuple[str, int, str, str], int] = {}
+        #: 自上次 flush 以来 accumulate 的样本数（flush 后清零）；用于判断是否需要分批 flush
+        self._pending_count: int = 0
 
         #: rebuild/repair 场景下，purge 前由 service 快照的 (4 元组 -> 老 baseline_version)。
         #  create 分支会用 old + 1；找不到则回退为 1。默认空 dict 即可（新库场景）。
@@ -244,15 +258,17 @@ class BaselineAggregator:
         bucket: _BaselineBucket = self._buckets.setdefault(key, _BaselineBucket())
         bucket.observe(sample.duration_seconds, sample.finished_at)
         self._observed_count += 1
+        self._pending_count += 1
 
     def flush_to_db(self) -> int:
         """把内存中的聚合结果写入 FlowNodeDurationBaseline 表。
 
         :return: 本次 flush 写入/更新的行数
         边界：
-          - rebuild 模式：写入前不做删除（清空由 FlowBaselineService 显式控制，避免误删）
+          - rebuild 模式：写入前不做删除（清空由 FlowBaselineService 显式控制，避免误删）；
+            覆盖写，调用方须保证每个 key 只在样本到齐后 flush 一次
           - incremental 模式：与已有基线做 Welford 合并
-          - flush 后清空内部 buckets，可继续 accumulate 下一批
+          - flush 后清空内部 buckets 与 pending_count；observed_count 保持累计
         """
         written: int = 0
 
@@ -266,7 +282,13 @@ class BaselineAggregator:
 
         # 清空内存，便于 GC
         self._buckets.clear()
+        self._pending_count = 0
         return written
+
+    def discard(self) -> None:
+        """丢弃内存中尚未 flush 的聚合数据（dry-run 用，不写库）；observed_count 保持累计。"""
+        self._buckets.clear()
+        self._pending_count = 0
 
     # =========================================================================
     # 内部：单 key 落库
@@ -441,9 +463,10 @@ class BaselineAggregator:
     # =========================================================================
 
     @staticmethod
-    def _compute_percentiles(durations: List[int]) -> Tuple[float, float, float, float]:
+    def _compute_percentiles(durations: Sequence[int]) -> Tuple[float, float, float, float]:
         """计算 P50/P90/P95/P99 分位数。
 
+        :param durations: 耗时序列（array('I') 或 list[int]）
         :return: (p50, p90, p95, p99)
         边界：durations 为空返回 (0, 0, 0, 0)
         """
@@ -453,7 +476,8 @@ class BaselineAggregator:
         # 使用 statistics.quantiles 计算分位数（method="inclusive" 对齐通用统计习惯）
         # 注意：对于极小样本量（n<4），quantiles 可能返回不稳定值，此时退化为 min/max
         n: int = len(durations)
-        ordered: List[int] = sorted(durations)
+        # sorted() 会为当前 key 临时生成一份 list，函数返回后即释放
+        ordered: Sequence[int] = sorted(durations)
         if n == 1:
             v: float = float(ordered[0])
             return v, v, v, v
@@ -507,8 +531,18 @@ class BaselineAggregator:
 
     @property
     def observed_count(self) -> int:
-        """本轮 accumulate 收到的样本数。"""
+        """本实例累计 accumulate 收到的样本数（flush 不清零）。"""
         return self._observed_count
+
+    @property
+    def pending_count(self) -> int:
+        """自上次 flush 以来 accumulate 的样本数（flush 后清零）。"""
+        return self._pending_count
+
+    @property
+    def mode(self) -> str:
+        """运行模式：rebuild / incremental。"""
+        return self._mode
 
     @property
     def bucket_count(self) -> int:
