@@ -13,6 +13,7 @@ from backend.dbm_aiagent.mcp_tools.common.impl.promql_query import PromQLMultiQu
 
 MYSQL_MCP_DB_READ = "mysql-mcp-readonly"
 MYSQL_MCP_DB_WRITE = "mysql-mcp"
+DBMETA_READONLY = "dbmeta-readonly"
 
 DISK_USED = {
     "default": PromQLQueryBuilder(

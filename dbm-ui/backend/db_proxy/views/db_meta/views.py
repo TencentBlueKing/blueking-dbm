@@ -8,9 +8,13 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
+
+from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from backend.bk_web.swagger import common_swagger_auto_schema
@@ -18,8 +22,9 @@ from backend.db_meta import api
 from backend.db_meta.api import dbha as DBHA
 from backend.db_meta.api.cluster import nosqlcomm as NOSQLMETA
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import BKCity
-from backend.db_proxy.constants import SWAGGER_TAG
+from backend.db_meta.models import BKCity, Machine
+from backend.db_proxy.constants import SWAGGER_TAG, ExtensionType
+from backend.db_proxy.models import DBExtension
 from backend.db_proxy.views.db_meta.serializers import (
     BizClusterSerializer,
     BKCityNameSerializer,
@@ -38,6 +43,9 @@ from backend.db_proxy.views.db_meta.serializers import (
     UpdateStatusSerializer,
 )
 from backend.db_proxy.views.views import BaseProxyPassViewSet
+from backend.dbm_aiagent.mcp_tools.mysql.constants import DBMETA_READONLY
+
+logger = logging.getLogger("root")
 
 
 class DBMetaApiProxyPassViewSet(BaseProxyPassViewSet):
@@ -371,3 +379,22 @@ class DBMetaApiProxyPassViewSet(BaseProxyPassViewSet):
             cluster_type=ClusterType.SqlserverSingle.value,
         )
         return Response(data)
+
+    @common_swagger_auto_schema(operation_summary=_("云区域 nginx 拉取本区域 IP 列表"))
+    @action(methods=["GET"], detail=False, url_path="dbmeta/iplist_by_cloud")
+    def iplist_by_cloud(self, request):
+        nginx_ip = request.META.get("REMOTE_ADDR")
+        logger.info("nginx_ip = {}".format(nginx_ip))
+        if not nginx_ip:
+            raise PermissionDenied(_("非法 nginx 来源"))
+
+        extension = (
+            DBExtension.objects.using(DBMETA_READONLY)
+            .filter(Q(extension=ExtensionType.NGINX) & (Q(details__ip=nginx_ip) | Q(details__bk_outer_ip=nginx_ip)))
+            .first()
+        )
+        if not extension:
+            raise PermissionDenied(_("非法 nginx 来源"))
+
+        data = Machine.objects.filter(bk_cloud_id=extension.bk_cloud_id).values_list("ip", flat=True)
+        return Response(list(data))
