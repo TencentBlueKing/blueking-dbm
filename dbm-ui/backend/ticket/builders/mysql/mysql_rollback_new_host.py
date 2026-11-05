@@ -20,6 +20,7 @@ from backend.db_meta.enums.comm import SystemTagEnum, TagType
 from backend.db_meta.models import AppCache, Cluster, DBModule, Machine, Tag
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.consts import RollbackType
+from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_cluster_config_for_rollback
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
 from backend.iam_app.dataclass.actions import ActionEnum
@@ -229,6 +230,10 @@ class MySQLRollbackNewHostResourceParamBuilder(BaseOperateResourceParamBuilder):
         cluster_name = apply_details["cluster_name"]
         domain = apply_details["domains"][0]
         resource_spec = ticket_data["resource_spec"]
+        # 源集群的主库实例配置，部署目标集群时用于继承（端口 -> 配置项），主从和单节点都需要
+        old_instance_configs = get_cluster_config_for_rollback(self.ticket.details["infos"][0]["cluster_id"])[
+            "backend_config"
+        ]
 
         if apply_details["cluster_type"] == ClusterType.TenDBHA.value:
             backend_groups = nodes.get("backend_group") or []
@@ -247,6 +252,7 @@ class MySQLRollbackNewHostResourceParamBuilder(BaseOperateResourceParamBuilder):
                     "clusters": [{"name": cluster_name, "master": domain["master"], "slave": domain["slave"]}],
                     "mysql_ip_list": [backend_group["master"], backend_group["slave"]],
                     "proxy_ip_list": proxy_nodes,
+                    "old_instance_configs": old_instance_configs,
                 }
             ]
             # 元数据落库只按 backend/proxy 记录机器规格
@@ -260,6 +266,8 @@ class MySQLRollbackNewHostResourceParamBuilder(BaseOperateResourceParamBuilder):
                 {
                     "new_ip": backend_nodes[0],
                     "clusters": [{"name": cluster_name, "master": domain["master"]}],
+                    # 单节点与主从一致，同样继承源集群实例配置
+                    "old_instance_configs": old_instance_configs,
                 }
             ]
             resource_spec["single"] = resource_spec.pop("backend")
