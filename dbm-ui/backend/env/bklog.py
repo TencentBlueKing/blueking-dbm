@@ -21,9 +21,6 @@ BKLOG_CLUSTER_SUPPORT_HOT_COLD = get_type_env(key="BKLOG_CLUSTER_SUPPORT_HOT_COL
 # 日志默认存储天数
 BKLOG_DEFAULT_RETENTION = get_type_env(key="BKLOG_DEFAULT_RETENTION", _type=int, default=30)
 
-# 节点日志分页查询的大小阈值(单位MB)，累计超过该阈值则停止继续翻页
-MAX_LOG_SIZE_MB = get_type_env(key="MAX_LOG_SIZE_MB", _type=float, default=1)
-
 # 自定义日志保留天数
 BKLOG_MYSQL_DBBACKUP_RESULT_RETENTION = get_type_env(key="BKLOG_MYSQL_DBBACKUP_RESULT_RETENTION", _type=int)
 BKLOG_MYSQL_BINLOG_RESULT_RETENTION = get_type_env(key="BKLOG_MYSQL_BINLOG_RESULT_RETENTION", _type=int)
