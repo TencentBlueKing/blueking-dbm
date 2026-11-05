@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging.config
 
 from backend.components import DRSApi
-from backend.db_meta.enums import InstanceInnerRole
+from backend.db_meta.enums import ClusterType, InstanceInnerRole, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, StorageInstance
 
 logger = logging.getLogger("root")
@@ -85,3 +85,37 @@ def get_instance_config(bk_cloud_id: int, ip: str, ports: list = None, query_cmd
         all_storage_config[str(storage.port)] = storage_config
     logger.debug("get instance config", all_storage_config)
     return all_storage_config
+
+
+def get_cluster_config_for_rollback(cluster_id: int) -> dict:
+    """
+    新机回档的获取配置参数：
+    1. 针对数据节点，只获取主节点配置参数为代表
+    2. tendbCluster 获取随意一个主节点的参数作为继承
+    3. spider 层获取其中一个节点的参数
+    """
+    cluster = Cluster.objects.get(id=cluster_id)
+    if cluster.cluster_type == ClusterType.TenDBHA.value:
+        master = cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.MASTER.value)
+        return {"backend_config": {str(master.port): get_cluster_config(cluster)}}
+    elif cluster.cluster_type == ClusterType.TenDBSingle.value:
+        master = cluster.storageinstance_set.get(instance_inner_role=InstanceInnerRole.ORPHAN.value)
+        return {"backend_config": {str(master.port): get_cluster_config(cluster)}}
+    elif cluster.cluster_type == ClusterType.TenDBCluster.value:
+        masters = cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.MASTER.value)
+        spiders = cluster.proxyinstance_set.filter(
+            tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER.value
+        )
+        backend_config = get_cluster_config(cluster)
+        spider_config = get_instance_config(cluster.bk_cloud_id, spiders[0].machine.ip, [spiders[0].port])
+        backend_ports = list(set([master.port for master in masters]))
+        spider_ports = list(set([spider.port for spider in spiders]))
+
+        all_config = {"backend_config": {}, "spider_config": {}}
+        for port in backend_ports:
+            all_config["backend_config"][str(port)] = backend_config
+        for port in spider_ports:
+            all_config["spider_config"][str(port)] = spider_config
+        return all_config
+    else:
+        raise Exception("cluster type {} not supported".format(cluster.cluster_type))

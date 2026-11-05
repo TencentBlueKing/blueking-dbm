@@ -201,6 +201,7 @@ FAILED_LIST = [FAILED, ABNORMAL_STATE, FAILED_FORCIBLY_TERMINATED]
 DBA_SYSTEM_USER = "mysql"
 DBA_ROOT_USER = "root"
 DBA_ORACLE_USER = "oracle"
+DBHA_PROBE_PATH = "/home/mysql/dbha-v2/bin/dbha-probe"
 
 # ip port 分隔符，对应授权远程接口传入参数时使用的分隔符
 AUTH_ADDRESS_DIVIDER = ":"

@@ -22,6 +22,8 @@ from backend.db_meta.models import Cluster
 from backend.db_report.mysql_backup.handers import MySQLBackupHandler
 from backend.flow.consts import (
     DBA_ROOT_USER,
+    DBA_SYSTEM_USER,
+    DBHA_PROBE_PATH,
     MySQLBackupTypeEnum,
     MysqlChangeMasterType,
     RollbackType,
@@ -40,6 +42,7 @@ from backend.flow.engine.bamboo.scene.spider.common.exceptions import (
 )
 from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
 from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
+from backend.flow.plugins.components.collections.common.exec_shell_script import ExecuteShellScriptComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_check_slave_delay import MySQLCheckSlaveDelayComponent
 from backend.flow.plugins.components.collections.mysql.mysql_crond_control import MysqlCrondMonitorControlComponent
@@ -173,6 +176,19 @@ def mysql_restore_data_sub_flow(
         )
     )
 
+    first_act_kwargs = ExecActuatorKwargs(
+        bk_cloud_id=cluster_model.bk_cloud_id, run_as_system_user=DBA_SYSTEM_USER, cluster={}
+    )
+    first_act_kwargs.exec_ip = cluster["new_slave_ip"]
+    first_act_kwargs.cluster["shell_command"] = "{} collect-pause {} --duration 1440m".format(
+        DBHA_PROBE_PATH, cluster["new_slave_port"]
+    )
+    sub_pipeline.add_act(
+        act_name=_("probe 暂停采集24小时 {}").format(first_act_kwargs.exec_ip),
+        act_component_code=ExecuteShellScriptComponent.code,
+        kwargs=asdict(first_act_kwargs),
+    )
+
     # 初始化执行器参数
     exec_act_kwargs = ExecActuatorKwargs(
         bk_cloud_id=cluster_model.bk_cloud_id,
@@ -211,6 +227,15 @@ def mysql_restore_data_sub_flow(
         act_name=_("数据恢复完成善后 {}:{} ".format(exec_act_kwargs.exec_ip, cluster["restore_port"])),
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(exec_act_kwargs),
+    )
+
+    first_act_kwargs.cluster["shell_command"] = "{} collect-resume {}".format(
+        DBHA_PROBE_PATH, cluster["new_slave_port"]
+    )
+    sub_pipeline.add_act(
+        act_name=_("probe 恢复采集 {}").format(first_act_kwargs.exec_ip),
+        act_component_code=ExecuteShellScriptComponent.code,
+        kwargs=asdict(first_act_kwargs),
     )
 
     # 阶段4: 建立主从关系 - 新从库指向旧主库（可选）
@@ -465,9 +490,31 @@ def mysql_restore_master_slave_sub_flow(
         }
     )
 
+    first_act_kwargs = ExecActuatorKwargs(
+        bk_cloud_id=cluster_model.bk_cloud_id, run_as_system_user=DBA_SYSTEM_USER, cluster={}
+    )
+    first_act_kwargs.exec_ip = [cluster["new_slave_ip"], cluster["new_master_ip"]]
+    first_act_kwargs.cluster["shell_command"] = "{} collect-pause {} --duration 1440m".format(
+        DBHA_PROBE_PATH, cluster["new_master_port"]
+    )
+    sub_pipeline.add_act(
+        act_name=_("probe 暂停采集24小时 {}").format(first_act_kwargs.exec_ip),
+        act_component_code=ExecuteShellScriptComponent.code,
+        kwargs=asdict(first_act_kwargs),
+    )
+
     # 并行执行新主节点和新从节点的数据恢复
     sub_pipeline.add_parallel_acts(acts_list=restore_list)
     sub_pipeline.add_parallel_acts(acts_list=after_restore_list)
+
+    first_act_kwargs.cluster["shell_command"] = "{} collect-resume {}".format(
+        DBHA_PROBE_PATH, cluster["new_master_port"]
+    )
+    sub_pipeline.add_act(
+        act_name=_("probe 恢复采集 {}").format(first_act_kwargs.exec_ip),
+        act_component_code=ExecuteShellScriptComponent.code,
+        kwargs=asdict(first_act_kwargs),
+    )
 
     # 阶段5: 建立主从关系 - 新从库指向新主库
     change_master_cluster = {
@@ -1107,6 +1154,20 @@ def mysql_backup_restore_sub_flow(
     exec_act_kwargs.exec_ip = cluster["new_slave_ip"]
     exec_act_kwargs.job_timeout = MYSQL_DATA_RESTORE_TIME
     exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.tendb_restore_from_context_payload.__name__
+
+    first_act_kwargs = ExecActuatorKwargs(
+        bk_cloud_id=cluster_model.bk_cloud_id, run_as_system_user=DBA_SYSTEM_USER, cluster={}
+    )
+    first_act_kwargs.exec_ip = [cluster["new_slave_ip"]]
+    first_act_kwargs.cluster["shell_command"] = "{} collect-pause {} --duration 1440m".format(
+        DBHA_PROBE_PATH, cluster["new_slave_port"]
+    )
+    sub_pipeline.add_act(
+        act_name=_("probe 暂停采集24小时 {}").format(first_act_kwargs.exec_ip),
+        act_component_code=ExecuteShellScriptComponent.code,
+        kwargs=asdict(first_act_kwargs),
+    )
+
     # 添加数据恢复任务
     sub_pipeline.add_act(
         act_name=_(
@@ -1117,6 +1178,14 @@ def mysql_backup_restore_sub_flow(
         act_component_code=ExecuteDBActuatorScriptComponent.code,
         kwargs=asdict(exec_act_kwargs),
         write_payload_var="change_master_info",
+    )
+    first_act_kwargs.cluster["shell_command"] = "{} collect-resume {}".format(
+        DBHA_PROBE_PATH, cluster["new_slave_port"]
+    )
+    sub_pipeline.add_act(
+        act_name=_("probe 恢复采集 {}").format(first_act_kwargs.exec_ip),
+        act_component_code=ExecuteShellScriptComponent.code,
+        kwargs=asdict(first_act_kwargs),
     )
     # 根据binlog_sync配置决定是否建立主从关系
     if binlog_sync:
