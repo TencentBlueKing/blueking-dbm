@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import shlex
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.test import SimpleTestCase, TestCase
@@ -98,6 +98,9 @@ class ReinstallScriptTemplateTest(SimpleTestCase):
         self.assertIn('rm -f "${BIN_DIR}"', script)
         self.assertIn('rm -rf "${BIN_DIR}"', script)
         self.assertIn("dm-master", script)
+        self.assertIn("chown mysql:mysql /data/dts", script)
+        self.assertIn('chown -R mysql:mysql "${DEPLOY_PATH}"', script)
+        self.assertIn("su - mysql -c", script)
         self.assertIn("DEPLOY_PATH=" + shlex.quote("/data/dts/test"), script)
         self.assertIn('PKG_ROOT="${DEPLOY_PATH}/packages/${PKG_BASENAME}"', script)
 
@@ -121,6 +124,8 @@ class ReinstallScriptTemplateTest(SimpleTestCase):
         self.assertIn('ln -sfn "${PKG_BIN}" "${BIN_DIR}"', script)
         self.assertIn('if [[ -L "${BIN_DIR}" ]]; then', script)
         self.assertIn("dm-worker", script)
+        self.assertIn("chown mysql:mysql /data/dts", script)
+        self.assertIn("su - mysql -c", script)
         self.assertIn("DEPLOY_PATH=" + shlex.quote("/data/dts/test"), script)
 
     def test_script_extracts_to_isolation_dir(self):
@@ -142,6 +147,32 @@ class ReinstallScriptTemplateTest(SimpleTestCase):
         )
         self.assertIn('if [[ ! -f "${CONF_DIR}/${CONFIG_FILE}" ]]', script)
         self.assertIn("CONFIG_FILE=" + shlex.quote("dm-master-1.toml"), script)
+
+
+class ReinstallSkipsOsInitTest(SimpleTestCase):
+    @patch("backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_reinstall_subflow.build_dts_trans_file_kwargs")
+    @patch("backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_reinstall_subflow.SubBuilder")
+    def test_reinstall_does_not_run_sys_init(self, mock_builder, mock_trans):
+        from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_reinstall_subflow import mysql_dts_reinstall_subflow
+        from backend.flow.plugins.components.collections.mysql.mysql_os_init import SysInitComponent
+
+        sub = MagicMock()
+        mock_builder.return_value = sub
+        mock_trans.return_value = ({"file_list": ["test"]}, "mysql-dts-v2.0.1.tar.gz")
+        mysql_dts_reinstall_subflow(
+            MysqlDtsReinstallSubflowInput(
+                root_id="test-root",
+                dts_cluster_id=1,
+                bk_biz_id=1,
+                bk_cloud_id=0,
+                master_addr="127.0.0.2:18301",
+                master_nodes=[{"ip": "127.0.0.2", "bk_cloud_id": 0, "name": "dm-master-1"}],
+                worker_nodes=[{"ip": "127.0.0.3", "bk_cloud_id": 0, "name": "dm-worker-1"}],
+                deploy_path="/data/dts/test",
+            )
+        )
+        codes = [call.kwargs.get("act_component_code") for call in sub.add_act.call_args_list]
+        self.assertNotIn(SysInitComponent.code, codes)
 
 
 @pytest.mark.django_db
