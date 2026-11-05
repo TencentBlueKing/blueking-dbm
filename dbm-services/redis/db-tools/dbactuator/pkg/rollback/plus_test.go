@@ -63,6 +63,8 @@ type fakeReplayer struct {
 
 func (f *fakeReplayer) BinlogPos(int) (uint64, error) { return f.pos, nil }
 
+func (f *fakeReplayer) Heartbeat(string) (map[int]time.Time, error) { return nil, nil }
+
 func (f *fakeReplayer) execBatch(cmds [][]string) ([]error, error) {
 	f.batches++
 	replies := make([]error, len(cmds))
@@ -281,7 +283,7 @@ func TestLocalKvstoreBinlogsChecksEveryKvstore(t *testing.T) {
 	touch(t, dir, "binlog-1.1.1.1-30001-0-0000010-20260101000000.log.zst",
 		"binlog-1.1.1.1-30000-0000010-20260101000000.log.zst",
 		"binlog-1.1.1.1-30000-1-0000012-20260101020000.log.zst")
-	chains, err := LocalKvstoreBinlogs(dir, plusInstance(plusChains))
+	chains, _, err := LocalKvstoreBinlogs(dir, plusInstance(plusChains), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -298,7 +300,7 @@ func TestLocalKvstoreBinlogsChecksEveryKvstore(t *testing.T) {
 	dir = t.TempDir()
 	touch(t, dir, plusChains[0]...)
 	touch(t, dir, plusChains[1][0])
-	_, err = LocalKvstoreBinlogs(dir, plusInstance(plusChains))
+	_, _, err = LocalKvstoreBinlogs(dir, plusInstance(plusChains), nil)
 	if err == nil || !strings.Contains(err.Error(), "1.1.1.1:30000 kvstore 1") ||
 		!strings.Contains(err.Error(), "missing [11]") {
 		t.Fatalf("err=%v", err)
@@ -443,16 +445,26 @@ func TestPlusClusterStepsFollowTheClusterFlag(t *testing.T) {
 
 // portReplayer is one port's instance, shared by the connections of its kvstores.
 type portReplayer struct {
-	mu   sync.Mutex
-	pos  map[int]uint64
-	fail uint64
-	drop uint64
+	mu    sync.Mutex
+	pos   map[int]uint64
+	fail  uint64
+	drop  uint64
+	beats map[int]time.Time
+	// beatKey is the key Heartbeat was last asked for.
+	beatKey string
 }
 
 func (f *portReplayer) BinlogPos(kvstore int) (uint64, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	return f.pos[kvstore], nil
+}
+
+func (f *portReplayer) Heartbeat(key string) (map[int]time.Time, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.beatKey = key
+	return f.beats, nil
 }
 
 func (f *portReplayer) execBatch(cmds [][]string) ([]error, error) {
@@ -631,6 +643,111 @@ func TestPlusReplayRedoesThePortOnABinlogposMismatch(t *testing.T) {
 		if !failedInFlight(err) || IsPending(instDir, r.fingerprint(InstanceRestore{DestPort: 30000})) {
 			t.Fatalf("%s: err=%v, the port must restore the full backup again", name, err)
 		}
+	}
+}
+
+func TestLocalKvstoreBinlogsChecksGapsPerKvstore(t *testing.T) {
+	gapped := []string{"binlog-1.1.1.1-30000-1-0000010-20260101000000.log.zst",
+		"binlog-1.1.1.1-30000-1-0000012-20260101020000.log.zst"}
+	inst := plusInstance(map[int][]string{0: plusChains[0], 1: gapped})
+	inst.KvstoreBinlogs[1].BinlogRange.LastIndex = 12
+	dir := t.TempDir()
+	touch(t, dir, plusChains[0]...)
+	touch(t, dir, gapped...)
+	yes, no := true, false
+
+	if _, gaps, err := LocalKvstoreBinlogs(dir, inst, nil); err != nil || gaps != nil {
+		t.Fatalf("nil: gaps=%v err=%v", gaps, err)
+	}
+	// kvstore 0 is whole, which must not cover for kvstore 1
+	_, _, err := LocalKvstoreBinlogs(dir, inst, &no)
+	if err == nil || !strings.Contains(err.Error(), "1.1.1.1:30000 kvstore 1 skip #11") {
+		t.Fatalf("false: err=%v", err)
+	}
+	chains, gaps, err := LocalKvstoreBinlogs(dir, inst, &yes)
+	if err != nil || len(chains[1]) != 2 || fmt.Sprint(gaps) != "map[1:[11]]" {
+		t.Fatalf("true: chains=%v gaps=%v err=%v", chains, gaps, err)
+	}
+}
+
+func TestParseHeartbeatReadsAdmingetPairs(t *testing.T) {
+	reply := []interface{}{
+		[]interface{}{"0", "1702415993"},
+		[]interface{}{"1", "1702415994"},
+		[]interface{}{"2", nil},
+		[]interface{}{"3", "not a time"},
+	}
+	beats, err := parseHeartbeat("k", reply)
+	if err != nil || len(beats) != 2 || beats[0].Unix() != 1702415993 || beats[1].Unix() != 1702415994 {
+		t.Fatalf("beats=%v err=%v", beats, err)
+	}
+	for _, empty := range []interface{}{nil, []interface{}{}} {
+		if beats, err := parseHeartbeat("k", empty); err != nil || len(beats) != 0 {
+			t.Fatalf("%v: beats=%v err=%v", empty, beats, err)
+		}
+	}
+	for _, bad := range []interface{}{"OK", []interface{}{"0"}, []interface{}{[]interface{}{"x", "1"}}} {
+		if _, err := parseHeartbeat("k", bad); err == nil {
+			t.Fatalf("%v: want error", bad)
+		}
+	}
+}
+
+func TestPlusHeartbeatCheckFollowsV1(t *testing.T) {
+	recoverAt := time.Date(2026, 10, 30, 16, 5, 0, 0, time.Local)
+	cases := map[string]struct {
+		beats map[int]time.Time
+		want  string
+	}{
+		"within":  {map[int]time.Time{0: recoverAt.Add(-4 * time.Second), 1: recoverAt.Add(9 * time.Minute)}, ""},
+		"outside": {map[int]time.Time{0: recoverAt, 1: recoverAt.Add(-11 * time.Minute)}, "kvstore 1 at"},
+		"none":    {nil, ""},
+		// a kvstore without one is not checked; the others still are
+		"partial": {map[int]time.Time{1: recoverAt.Add(-time.Minute)}, ""},
+	}
+	for name, tc := range cases {
+		fake := map[int]*portReplayer{30000: {beats: tc.beats}}
+		r, chains, restore := plusPorts(t, map[int]int{30000: 2}, fake)
+		resetTool := scriptTool(t, func(_, kvstore int, start uint64, onLine func(string) error) error {
+			return onLine(restoreLine(kvstore, start))
+		})
+		inst := InstanceRestore{SourceIP: "1.1.1.1", SourcePort: 30000, DestPort: 30000}
+		report := newHostReport(r.DestIP, "tendisplus", []InstanceRestore{inst})
+		err := r.replayAndMark(inst, report.port(30000), chains[30000], recoverAt, make(chan struct{}, 2))
+		resetTool()
+		restore()
+
+		if fake[30000].beatKey != "1.1.1.1_30000:heartbeat" {
+			t.Fatalf("%s: asked for %q", name, fake[30000].beatKey)
+		}
+		if tc.want == "" {
+			if err != nil {
+				t.Fatalf("%s: %v", name, err)
+			}
+		} else if err == nil || !strings.Contains(err.Error(), tc.want) || failedInFlight(err) {
+			t.Fatalf("%s: err=%v, want %q", name, err, tc.want)
+		}
+		done := IsDone(r.Host.InstanceDir(30000), r.fingerprint(inst))
+		if done != (tc.want == "") {
+			t.Fatalf("%s: marked done=%v", name, done)
+		}
+		text := report.resultText()
+		for kvstore, beat := range tc.beats {
+			line := fmt.Sprintf("kvstore %d binlogs=1 writes=1 binlogpos 100 -> 101 heartbeat %s", kvstore,
+				beat.Format("01-02 15:04:05"))
+			if !strings.Contains(text, line) {
+				t.Fatalf("%s: summary lacks %q:\n%s", name, line, text)
+			}
+		}
+	}
+}
+
+func TestResultListsAllowedGaps(t *testing.T) {
+	report := newHostReport("2.2.2.2", "tendisplus", []InstanceRestore{{DestPort: 30000}})
+	report.port(30000).allowedGaps("kv3 ", []int64{31, 32, 33})
+	report.port(30000).allowedGaps("kv5 ", []int64{40})
+	if text := report.resultText(); !strings.Contains(text, "binlog gaps allowed: kv3 #31-33, kv5 #40") {
+		t.Fatalf("summary:\n%s", text)
 	}
 }
 

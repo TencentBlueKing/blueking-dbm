@@ -69,9 +69,15 @@ func (r *ssdRestorer) DoRollback() error {
 	binlogs := make(map[int][]string, len(redo))
 	plans := make(map[int]portPlan, len(redo))
 	for _, inst := range redo {
-		if binlogs[inst.DestPort], err = LocalBinlogs(r.SaveDir, inst); err != nil {
+		var gaps []int64
+		if binlogs[inst.DestPort], gaps, err = LocalBinlogs(r.SaveDir, inst, r.AllowBinlogNonconsecutive); err != nil {
 			report.port(inst.DestPort).finish(err)
 			return err
+		}
+		if len(gaps) > 0 {
+			report.port(inst.DestPort).allowedGaps("", gaps)
+			newPortLog(r.DestIP, inst).Warn("binlogs skip %s, allowed by the plan: the temp instance misses "+
+				"their writes", indexRanges(gaps))
 		}
 		var full []string
 		for _, name := range inst.FullFiles {
@@ -395,14 +401,17 @@ func previewLine(s string) string {
 }
 
 // LocalBinlogs returns inst's downloaded binlogs in replay order, after checking that they are
-// exactly the chain the plan was built on: same count and same fingerprint.
-func LocalBinlogs(saveDir string, inst InstanceRestore) ([]string, error) {
+// exactly the chain the plan was built on: same count and same fingerprint. allowGaps is the
+// plan's allow_binlog_nonconsecutive (see checkChain); the indexes a chain it allows skips come
+// back as gaps.
+func LocalBinlogs(saveDir string, inst InstanceRestore, allowGaps *bool) (files []string, gaps []int64,
+	err error) {
 	if inst.BinlogCount == 0 {
-		return nil, nil
+		return nil, nil, nil
 	}
 	paths, err := filepath.Glob(filepath.Join(saveDir, "binlog-*"))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	var found []localBinlog
 	for _, p := range paths {
@@ -419,6 +428,7 @@ func LocalBinlogs(saveDir string, inst InstanceRestore) ([]string, error) {
 		count:       inst.BinlogCount,
 		fingerprint: inst.BinlogFingerprint,
 		segments:    inst.BinlogSegments,
+		allowGaps:   allowGaps,
 	})
 }
 
@@ -434,11 +444,16 @@ type chainDigest struct {
 	count       int
 	fingerprint string
 	segments    string
+	// allowGaps is the plan's allow_binlog_nonconsecutive, nil when the payload predates it.
+	allowGaps *bool
 }
 
 // checkChain keeps the binlogs of found within the planned range, in index order, and requires
-// them to be the planned chain.
-func checkChain(saveDir string, found []localBinlog, d chainDigest) ([]string, error) {
+// them to be the planned chain. Unless allowGaps is nil, the chain must also run index by index
+// from the planned first to the planned last, before anything is written: a skipped index fails
+// it unless allowGaps is true, which returns the skipped indexes instead; a repeated one always
+// fails it.
+func checkChain(saveDir string, found []localBinlog, d chainDigest) ([]string, []int64, error) {
 	var chain []localBinlog
 	for _, b := range found {
 		if b.index >= d.rng.FirstIndex && b.index <= d.rng.LastIndex {
@@ -459,9 +474,6 @@ func checkChain(saveDir string, found []localBinlog, d chainDigest) ([]string, e
 		files[i], names[i] = b.path, filepath.Base(b.path)
 		seen[b.index]++
 	}
-	if len(chain) == d.count && BinlogFingerprint(names) == d.fingerprint {
-		return files, nil
-	}
 	var missing, duplicate []int64
 	for idx := d.rng.FirstIndex; idx <= d.rng.LastIndex; idx++ {
 		switch n := seen[idx]; {
@@ -471,9 +483,74 @@ func checkChain(saveDir string, found []localBinlog, d chainDigest) ([]string, e
 			duplicate = append(duplicate, idx)
 		}
 	}
-	return nil, fmt.Errorf("binlogs of %s in %s differ from the plan: want %d as %s, got %d, "+
-		"missing %v (planned gaps included), duplicate %v",
-		d.label, saveDir, d.count, d.segments, len(chain), missing, duplicate)
+	if len(chain) != d.count || BinlogFingerprint(names) != d.fingerprint {
+		return nil, nil, fmt.Errorf("binlogs of %s in %s differ from the plan: want %d as %s, got %d, "+
+			"missing %v (planned gaps included), duplicate %v",
+			d.label, saveDir, d.count, d.segments, len(chain), missing, duplicate)
+	}
+	switch {
+	case d.allowGaps == nil || len(missing) == 0 && len(duplicate) == 0:
+		return files, nil, nil
+	case len(duplicate) > 0:
+		return nil, nil, fmt.Errorf("binlogs of %s repeat index %s", d.label, indexRanges(duplicate))
+	case !*d.allowGaps:
+		return nil, nil, fmt.Errorf("binlogs of %s skip %s, not allowed by the plan: %s", d.label,
+			indexRanges(missing), strings.Join(chainHoles(chain, d.rng), ", "))
+	}
+	return files, missing, nil
+}
+
+// chainHolesShown caps the holes named in an error; the indexes themselves are all listed.
+const chainHolesShown = 3
+
+// chainHoles names each run of skipped indexes by the file right after it.
+func chainHoles(chain []localBinlog, rng BinlogRange) []string {
+	var holes []string
+	next := rng.FirstIndex
+	for _, b := range chain {
+		if b.index > next {
+			holes = append(holes, fmt.Sprintf("%s before %s", indexRun(next, b.index-1), filepath.Base(b.path)))
+		}
+		if b.index >= next {
+			next = b.index + 1
+		}
+	}
+	if next <= rng.LastIndex {
+		holes = append(holes, fmt.Sprintf("%s after the last file", indexRun(next, rng.LastIndex)))
+	}
+	if len(holes) > chainHolesShown {
+		holes = append(holes[:chainHolesShown], fmt.Sprintf("...(+%d)", len(holes)-chainHolesShown))
+	}
+	return holes
+}
+
+// indexRunsShown caps the runs indexRanges writes out.
+const indexRunsShown = 5
+
+// indexRanges writes ascending indexes as runs, e.g. #31-33,#40, the ones past indexRunsShown
+// runs as a count.
+func indexRanges(indexes []int64) string {
+	var runs []string
+	for i := 0; i < len(indexes); {
+		j := i
+		for j+1 < len(indexes) && indexes[j+1] == indexes[j]+1 {
+			j++
+		}
+		if len(runs) == indexRunsShown {
+			runs = append(runs, fmt.Sprintf("...(+%d)", len(indexes)-i))
+			break
+		}
+		runs = append(runs, indexRun(indexes[i], indexes[j]))
+		i = j + 1
+	}
+	return strings.Join(runs, ",")
+}
+
+func indexRun(first, last int64) string {
+	if first == last {
+		return fmt.Sprintf("#%d", first)
+	}
+	return fmt.Sprintf("#%d-%d", first, last)
 }
 
 // BinlogFingerprint is sha256 over binlog basenames in index order, joined by newlines.

@@ -2311,6 +2311,8 @@ class RedisActPayload(object):
                 "recover_at": recover_at,
                 "max_concurrency": max_concurrency,
                 "write_buffer_mb": plan.write_buffer_mb,
+                # Always sent: without it the actuator takes the payload as an older one and skips its gap check.
+                "allow_binlog_nonconsecutive": plan.allow_binlog_nonconsecutive,
                 "install": install_payload,
                 "instances": instances,
             },

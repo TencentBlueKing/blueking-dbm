@@ -214,7 +214,8 @@ class RollbackItem:
 
     def actuator_instance(self, plus: bool = False, cluster_protocol: bool = False) -> Dict[str, Any]:
         """One port of the actuator payload. Binlogs go as a digest the actuator checks its local files against;
-        Tendisplus gets one per kvstore, and cluster protocol ports the slots they own."""
+        Tendisplus gets one per kvstore, and cluster protocol ports the slots they own. Gaps the plan let through
+        ride along for the record; the actuator finds them itself from the chain."""
         instance = {
             "shard_value": self.shard.shard_value,
             "source_ip": self.source_ip,
@@ -229,6 +230,8 @@ class RollbackItem:
             instance["kvstore_binlogs"] = [
                 {"kvstore": kvstore, **_binlog_payload(chain)} for kvstore, chain in self.kvstore_binlogs.items()
             ]
+        if self.binlog_gaps:
+            instance["binlog_gaps"] = dict(self.binlog_gaps)
         return instance
 
     @classmethod

@@ -32,6 +32,8 @@ import (
 	"dbm-services/redis/db-tools/dbactuator/mylog"
 	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 	"dbm-services/redis/db-tools/dbactuator/pkg/util"
+
+	"github.com/go-redis/redis/v8"
 )
 
 const (
@@ -39,7 +41,9 @@ const (
 	plusRestoreTimeout = 6 * time.Hour
 	plusCommandTimeout = 10 * time.Minute
 	plusToolTimeout    = 2 * time.Hour
-	restoreBinlogCmd   = "restorebinlogv2"
+	// plusHeartbeatTolerance is v1's: how far a kvstore's source heartbeat may be from recover_at.
+	plusHeartbeatTolerance = 10 * time.Minute
+	restoreBinlogCmd       = "restorebinlogv2"
 	// A ReplLogKeyV2 is a RecordKey whose primary key is the binlog id as 8 big-endian bytes, after
 	// a 4-byte chunk id, a type byte and a 4-byte db id.
 	binlogIDOffset = 4 + 1 + 4
@@ -91,9 +95,21 @@ func (r *plusRestorer) DoRollback() error {
 	plans := make(map[int]portPlan, len(all))
 	streams := 0
 	for _, inst := range all {
-		if chains[inst.DestPort], err = LocalKvstoreBinlogs(r.SaveDir, inst); err != nil {
+		var gaps map[int][]int64
+		chains[inst.DestPort], gaps, err = LocalKvstoreBinlogs(r.SaveDir, inst, r.AllowBinlogNonconsecutive)
+		if err != nil {
 			report.port(inst.DestPort).finish(err)
 			return err
+		}
+		gapped := make([]int, 0, len(gaps))
+		for kvstore := range gaps {
+			gapped = append(gapped, kvstore)
+		}
+		sort.Ints(gapped)
+		for _, kvstore := range gapped {
+			report.port(inst.DestPort).allowedGaps(fmt.Sprintf("kv%d ", kvstore), gaps[kvstore])
+			newPortLog(r.DestIP, inst).Warn("kvstore %d binlogs skip %s, allowed by the plan: the temp instance "+
+				"misses their writes", kvstore, indexRanges(gaps[kvstore]))
 		}
 		var binlogs, full []string
 		for _, chain := range chains[inst.DestPort] {
@@ -464,6 +480,9 @@ func (r *plusRestorer) replayAndMark(inst InstanceRestore, p *portReport, chains
 			err = restoreEndFn(log, r.DestIP, inst)
 		}
 	}
+	if err == nil && len(chains) > 0 {
+		err = r.checkHeartbeat(log, p, inst, chains, recoverAt)
+	}
 	if err == nil {
 		err = MarkDone(r.Host.InstanceDir(inst.DestPort), r.fingerprint(inst))
 	}
@@ -481,6 +500,59 @@ func (r *plusRestorer) replayAndMark(inst InstanceRestore, p *portReport, chains
 		}
 	}
 	p.finish(nil)
+	return nil
+}
+
+// checkHeartbeat compares the source heartbeat each replayed kvstore holds with recoverAt, as v1
+// does. dbmon writes it to every kvstore of the source, so once the replay reaches recoverAt it
+// must be within the tolerance of it. A source that wrote none, or a kvstore without one, is
+// logged and not checked; a heartbeat out of the tolerance fails the port.
+func (r *plusRestorer) checkHeartbeat(log portLog, p *portReport, inst InstanceRestore, chains map[int][]string,
+	recoverAt time.Time) error {
+	cli, closeFn, err := dialPlusFn(r.DestIP, inst.DestPort)
+	if err != nil {
+		return err
+	}
+	defer closeFn()
+	key := fmt.Sprintf("%s_%d:heartbeat", inst.SourceIP, inst.SourcePort)
+	beats, err := cli.Heartbeat(key)
+	if err != nil {
+		return err
+	}
+	if len(beats) == 0 {
+		log.Info("no heartbeat under %s, heartbeat check skipped", key)
+		return nil
+	}
+	tolerance := r.HeartbeatTolerance
+	if tolerance <= 0 {
+		tolerance = plusHeartbeatTolerance
+	}
+	kvstores := make([]int, 0, len(chains))
+	for kvstore := range chains {
+		kvstores = append(kvstores, kvstore)
+	}
+	sort.Ints(kvstores)
+	var off []string
+	var missing []int
+	for _, kvstore := range kvstores {
+		beat, ok := beats[kvstore]
+		if !ok {
+			missing = append(missing, kvstore)
+			continue
+		}
+		p.kvstoreHeartbeat(kvstore, beat)
+		if d := beat.Sub(recoverAt); d > tolerance || d < -tolerance {
+			off = append(off, fmt.Sprintf("kvstore %d at %s", kvstore, beat.Local().Format(time.RFC3339)))
+		}
+	}
+	if len(missing) > 0 {
+		log.Warn("kvstores %v hold no heartbeat under %s, not checked", missing, key)
+	}
+	if len(off) > 0 {
+		return fmt.Errorf("heartbeat %s is more than %s from recover_at %s: %s", key, tolerance,
+			recoverAt.Local().Format(time.RFC3339), strings.Join(off, ", "))
+	}
+	log.Info("heartbeat of %d kvstores within %s of recover_at", len(kvstores)-len(missing), tolerance)
 	return nil
 }
 
@@ -649,11 +721,54 @@ func stopped(stop <-chan struct{}) bool {
 // plusReplayer is the part of a Tendisplus connection the replay uses.
 type plusReplayer interface {
 	BinlogPos(kvstore int) (uint64, error)
+	// Heartbeat is the time each kvstore holds under the admin key, empty without one.
+	Heartbeat(key string) (map[int]time.Time, error)
 	pipeExecer
 }
 
 type redisReplayer struct {
 	cli *myredis.RedisClient
+}
+
+// Heartbeat reads key with adminget, which answers one (kvstore, unix seconds) pair per kvstore.
+func (c redisReplayer) Heartbeat(key string) (map[int]time.Time, error) {
+	ret, err := c.cli.InstanceClient.Do(context.TODO(), "adminget", key).Result()
+	if errors.Is(err, redis.Nil) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("adminget %s on %s failed: %v", key, c.cli.Addr, err)
+	}
+	return parseHeartbeat(key, ret)
+}
+
+// parseHeartbeat reads an adminget reply; a kvstore whose value is missing or not a number has none.
+func parseHeartbeat(key string, ret interface{}) (map[int]time.Time, error) {
+	if ret == nil {
+		return nil, nil
+	}
+	pairs, ok := ret.([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("adminget %s returned %v, want (kvstore, timestamp) pairs", key, ret)
+	}
+	beats := map[int]time.Time{}
+	for _, item := range pairs {
+		pair, ok := item.([]interface{})
+		if !ok || len(pair) != 2 {
+			return nil, fmt.Errorf("adminget %s returned %v, want (kvstore, timestamp) pairs", key, ret)
+		}
+		kvstore, err := strconv.Atoi(fmt.Sprint(pair[0]))
+		if err != nil {
+			return nil, fmt.Errorf("adminget %s returned kvstore %v", key, pair[0])
+		}
+		if pair[1] == nil {
+			continue
+		}
+		if sec, err := strconv.ParseInt(strings.TrimSpace(fmt.Sprint(pair[1])), 10, 64); err == nil {
+			beats[kvstore] = time.Unix(sec, 0)
+		}
+	}
+	return beats, nil
 }
 
 // BinlogPos is the highest binlog id kvstore holds.
@@ -960,14 +1075,16 @@ func runBinlogToolStream(file, workDir string, startPos uint64, endMs int64,
 }
 
 // LocalKvstoreBinlogs returns every kvstore's downloaded binlogs in replay order, each chain checked
-// against its planned digest.
-func LocalKvstoreBinlogs(saveDir string, inst InstanceRestore) (map[int][]string, error) {
+// against its planned digest on its own, and the indexes the chains allowGaps lets through skip,
+// by kvstore (see checkChain).
+func LocalKvstoreBinlogs(saveDir string, inst InstanceRestore, allowGaps *bool) (chains map[int][]string,
+	gaps map[int][]int64, err error) {
 	if len(inst.KvstoreBinlogs) == 0 {
-		return nil, nil
+		return nil, nil, nil
 	}
 	paths, err := filepath.Glob(filepath.Join(saveDir, "binlog-*"))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	found := map[int][]localBinlog{}
 	for _, p := range paths {
@@ -979,19 +1096,26 @@ func LocalKvstoreBinlogs(saveDir string, inst InstanceRestore) (map[int][]string
 		idx, _ := strconv.ParseInt(m[4], 10, 64)
 		found[kvstore] = append(found[kvstore], localBinlog{p, idx})
 	}
-	chains := make(map[int][]string, len(inst.KvstoreBinlogs))
+	chains = make(map[int][]string, len(inst.KvstoreBinlogs))
 	for _, d := range inst.KvstoreBinlogs {
-		files, err := checkChain(saveDir, found[d.Kvstore], chainDigest{
+		files, missing, err := checkChain(saveDir, found[d.Kvstore], chainDigest{
 			label:       fmt.Sprintf("%s:%d kvstore %d", inst.SourceIP, inst.SourcePort, d.Kvstore),
 			rng:         d.BinlogRange,
 			count:       d.BinlogCount,
 			fingerprint: d.BinlogFingerprint,
 			segments:    d.BinlogSegments,
+			allowGaps:   allowGaps,
 		})
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		chains[d.Kvstore] = files
+		if len(missing) > 0 {
+			if gaps == nil {
+				gaps = map[int][]int64{}
+			}
+			gaps[d.Kvstore] = missing
+		}
 	}
-	return chains, nil
+	return chains, gaps, nil
 }

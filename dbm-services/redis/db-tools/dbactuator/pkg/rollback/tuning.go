@@ -28,7 +28,9 @@ type Tuning interface {
 // plusTuning only raises the write buffer: fewer, larger flushes cut the replay's write
 // amplification. Compaction and the WAL stay on, so a failed replay can still resume from
 // binlogpos and the instance needs no settling afterwards. The buffer is only read when the
-// kvstores open, so it cannot be set at runtime.
+// kvstores open, so it cannot be set at runtime. New plans send 128MB; each kvstore holds up to
+// two buffers in memory, which PlusMemory reads back from the tuned conf for the memory window,
+// as the flow's precheck counts them (plus_host_memory) before anything is downloaded.
 type plusTuning struct{}
 
 func (plusTuning) Name() string { return "tendisplus" }

@@ -24,9 +24,15 @@ type RedisRollbackParams struct {
 	MaxConcurrency int `json:"max_concurrency"`
 	// WriteBufferMB is the Tendisplus temp instances' write buffer for the replay; 0, as older
 	// payloads send it, keeps the conf template's.
-	WriteBufferMB int                        `json:"write_buffer_mb"`
-	Install       json.RawMessage            `json:"install"`
-	Instances     []rollback.InstanceRestore `json:"instances" validate:"required"`
+	WriteBufferMB int `json:"write_buffer_mb"`
+	// AllowBinlogNonconsecutive is the plan's: binlog chains may skip indexes. Older payloads leave
+	// it out, and their chains are only checked against the plan's digest.
+	AllowBinlogNonconsecutive *bool `json:"allow_binlog_nonconsecutive"`
+	// HeartbeatToleranceSec bounds a Tendisplus source heartbeat's distance from recover_at; 0 is
+	// the default, 10 minutes as in v1.
+	HeartbeatToleranceSec int                        `json:"heartbeat_tolerance_sec"`
+	Install               json.RawMessage            `json:"install"`
+	Instances             []rollback.InstanceRestore `json:"instances" validate:"required"`
 }
 
 // RedisRollback restores redis instances from backup files, dispatching on the storage engine.
@@ -85,14 +91,16 @@ func (job *RedisRollback) Run() error {
 		return err
 	}
 	restorer, err := rollback.New(install.params.DbType, rollback.Job{
-		DestIP:         job.params.DestIP,
-		SaveDir:        job.params.DestDir,
-		UnpackDir:      rollbackUnpackDir(install),
-		RecoverAt:      job.params.RecoverAt,
-		MaxConcurrency: job.params.MaxConcurrency,
-		WriteBufferMB:  job.params.WriteBufferMB,
-		Instances:      job.params.Instances,
-		Host:           &rollbackHost{install: install, ip: job.params.DestIP, runtime: job.runtime},
+		DestIP:                    job.params.DestIP,
+		SaveDir:                   job.params.DestDir,
+		UnpackDir:                 rollbackUnpackDir(install),
+		RecoverAt:                 job.params.RecoverAt,
+		MaxConcurrency:            job.params.MaxConcurrency,
+		WriteBufferMB:             job.params.WriteBufferMB,
+		AllowBinlogNonconsecutive: job.params.AllowBinlogNonconsecutive,
+		HeartbeatTolerance:        time.Duration(job.params.HeartbeatToleranceSec) * time.Second,
+		Instances:                 job.params.Instances,
+		Host:                      &rollbackHost{install: install, ip: job.params.DestIP, runtime: job.runtime},
 	})
 	if err != nil {
 		job.runtime.Logger.Error("RedisRollback: %v", err)
