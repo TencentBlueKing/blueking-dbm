@@ -143,6 +143,7 @@ def send_drill_alert_to_qywx(
     drill_ip: str,
     failure_reason: str,
     task_status: str,
+    version: str = "v1",
 ):
     """
     发送容灾告警信息到群聊（同自愈配置）
@@ -169,6 +170,7 @@ def send_drill_alert_to_qywx(
         content = _("=>>   Redis容灾演练异常\n")
         content += _("业务信息 : {}(#{}, {})\n".format(app_info.bk_biz_name, app_info.bk_biz_id, app_info.db_app_abbr))
         content += _("业务DBA : @{}\n".format(redis_dba[0]))
+        content += _("DBHA版本 : {}\n".format(version))
         content += _("演练城市 : {}\n".format(city))
         content += _("集群域名 : {}\n".format(cluster_domain))
         content += _("演练类型 : {} - {}\n".format(instance_type, drill_ip))

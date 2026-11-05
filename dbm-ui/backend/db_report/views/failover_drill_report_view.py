@@ -41,6 +41,7 @@ class FailoverDrillSerializer(serializers.ModelSerializer, ReportCommonFieldSeri
             "switch_finished_time",
             "dbha_status",
             "dbha_info",
+            "version",
         )
 
 
@@ -57,6 +58,7 @@ class FailoverDrillReportViewSet(BaseDrillReportViewSet):
         "instance_type": ["exact", "in"],
         "state": ["exact", "in"],
         "dbha_status": ["exact", "in"],
+        "version": ["exact", "in"],
         "create_at": ["gte", "lte"],
     }
     ordering_fields = ["create_at", "trigger_dbha_time", "switch_start_time", "switch_finished_time"]

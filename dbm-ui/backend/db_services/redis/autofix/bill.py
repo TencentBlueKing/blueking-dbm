@@ -23,6 +23,8 @@ from backend.configuration.models.dba import DBAdministrator
 from backend.db_meta.api.cluster.apis import query_cluster_by_hosts
 from backend.db_meta.enums import ClusterType, InstanceRole, MachineType, MachineTypeInstanceRoleMap
 from backend.db_meta.models import Cluster, Machine
+from backend.db_periodic_task.constants import FailoverDrillVersion
+from backend.db_periodic_task.models import FailoverDrillConfig
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.mongodb.autofix.mongodb_autofix_ticket import mongo_create_ticket
 from backend.db_services.redis.util import is_support_redis_auotfix
@@ -44,6 +46,15 @@ _MONGO_FAULT_TYPES = {MachineType.MONGOS.value, MachineType.MONGODB.value, Machi
 _MONGO_MONGOD_ROLES = {role.value for role in MachineTypeInstanceRoleMap[MachineType.MONGODB]} | {
     role.value for role in MachineTypeInstanceRoleMap[MachineType.MONOG_CONFIG]
 }
+
+
+def is_failover_drill_cluster(immute_domain: str) -> bool:
+    """v1 演练集群按域名前缀识别；v2 演练集群只认已启用的 v2 演练配置中指定的域名"""
+    if immute_domain.startswith(FAILOVER_DRILL_DOMAIN_PREFIX):
+        return True
+    return FailoverDrillConfig.objects.filter(
+        version=FailoverDrillVersion.V2.value, switch_flag=True, cluster_domain=immute_domain
+    ).exists()
 
 
 def mongodb_autofix_enabled() -> bool:
@@ -305,7 +316,7 @@ def create_ticket(
     cluster: RedisAutofixCore, cluster_ids: list, redis_proxies: list, redis_slaves: list, fix_role: str
 ):
     """redis自愈创建单据"""
-    is_failover_drill_cluster = cluster.immute_domain.startswith(FAILOVER_DRILL_DOMAIN_PREFIX)
+    is_drill_cluster = is_failover_drill_cluster(cluster.immute_domain)
     details = {
         "ip_source": IpSource.RESOURCE_POOL.value,
         "infos": [],
@@ -319,7 +330,7 @@ def create_ticket(
         "redis_slave": redis_slaves,
         "switch_role": fix_role,  # 兼容整机替换
         "resource_spec": {},
-        "need_manual_confirm": not is_failover_drill_cluster,
+        "need_manual_confirm": not is_drill_cluster,
     }
     if fix_role == InstanceRole.REDIS_PROXY.value:
         info["resource_spec"] = {

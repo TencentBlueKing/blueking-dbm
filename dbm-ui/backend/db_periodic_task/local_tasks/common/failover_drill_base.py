@@ -7,15 +7,17 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List
 
 from django.db.models import F, Value
 from django.db.models.functions import Concat
 
-from backend.components.hadb.client import HADBApi
+from backend.db_periodic_task.constants import FailoverDrillVersion
 from backend.db_report.enums import ReportStateType
 from backend.db_report.models.failover_drill_report import FailoverDrillReport
+from backend.flow.utils.failover_drill_dbha import query_switch_queue
 from backend.utils.basic import generate_root_id
 
 
@@ -26,6 +28,16 @@ class FailoverDrillTargetType:
     @classmethod
     def valid_types(cls):
         return [cls.PROXY, cls.BACKEND]
+
+
+@dataclass
+class DrillTarget:
+    """
+    一次演练单元的目标；city 为空表示由演练主机解析城市
+    """
+
+    city: str
+    immute_domain: str
 
 
 class BaseFailoverDrill:
@@ -67,17 +79,17 @@ class BaseFailoverDrill:
         """
         return "failover-drill-{}".format(self.get_city_abbr())
 
-    def get_dbha_switch_data(self):
+    def get_dbha_switch_data(self) -> dict:
         finished_time = datetime.now().astimezone(timezone.utc)
         start_time = finished_time - timedelta(hours=8)
-        kwargs = {
-            "cloud_id": self.bk_cloud_id,
-            "app": str(self.bk_biz_id),
-            "switch_start_time": start_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "switch_finished_time": finished_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
-        }
-        resp = HADBApi.switch_queue(params={"name": "query_switch_queue", "query_args": kwargs}, raw=True)
-        return resp
+        code, msg, data = query_switch_queue(
+            dbha_version=getattr(self, "version", FailoverDrillVersion.V1.value),
+            app=str(self.bk_biz_id),
+            start_time=start_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            finished_time=finished_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            extra_v1_args={"cloud_id": self.bk_cloud_id},
+        )
+        return {"code": code, "msg": msg, "data": data}
 
     def update_drill_task_report(self, info: str, state=ReportStateType.ABNORMAL, task_status: str = "failed"):
         """

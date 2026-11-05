@@ -24,7 +24,7 @@ from django_celery_beat.schedulers import ModelEntry
 from backend.bk_web import constants
 from backend.bk_web.models import AuditedModel
 from backend.db_meta.enums import ClusterType
-from backend.db_periodic_task.constants import PeriodicTaskType
+from backend.db_periodic_task.constants import FailoverDrillVersion, PeriodicTaskType
 from backend.db_report.report_basemodel import BaseReportABS
 
 logger = logging.getLogger("root")
@@ -445,6 +445,13 @@ class FailoverDrillConfig(AuditedModel):
     switch_flag = models.BooleanField(help_text=_("是否启用任务"), default=False)
     max_retry = models.IntegerField(default=6, help_text=_("最大重试次数"))
     interval = models.IntegerField(default=10, help_text=_("重试间隔 分钟"))
+    version = models.CharField(
+        max_length=16,
+        choices=FailoverDrillVersion.get_choices(),
+        default=FailoverDrillVersion.V1.value,
+        help_text=_("DBHA版本"),
+    )
+    cluster_domain = models.CharField(max_length=255, default="", blank=True, help_text=_("指定演练集群域名，仅 v2 生效"))
 
 
 class ExerciseIgnoreType:
