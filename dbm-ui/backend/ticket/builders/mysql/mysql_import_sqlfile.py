@@ -18,9 +18,11 @@ from backend import env
 from backend.components.sql_import.client import SQLSimulationApi
 from backend.configuration.constants import BizSettingsEnum, DBType
 from backend.configuration.models import BizSettings
+from backend.core.storages.storage import get_storage, get_storage_file_md5
 from backend.db_meta.models import Cluster
 from backend.db_services.mysql.sql_import.constants import SQLExecuteTicketMode
-from backend.db_services.mysql.sql_import.handlers import SQLHandler
+from backend.db_services.mysql.sql_import.handlers import SQLHandler, safe_get_file_md5
+from backend.db_services.mysql.sql_import.validators import validate_sql_file_name, validate_sql_file_path
 from backend.flow.engine.bamboo.engine import BambooEngine
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.flow.models import FlowNode, FlowTree
@@ -82,6 +84,12 @@ class MysqlSqlImportItsmParamBuilder(builders.ItsmParamBuilder):
         if highrisk_sql_contents:
             params["dynamic_fields"].append({"name": _("SQL高危语句"), "type": "STRING", "value": highrisk_sql_contents})
 
+        # SQL 文件指纹，让审批人能看到「即将执行的内容」的唯一标识
+        sql_files_md5 = self.ticket.details.get("sql_files_md5") or {}
+        if sql_files_md5:
+            md5_summary = " | ".join(f"{name}({md5[:8]})" for name, md5 in sql_files_md5.items())
+            params["dynamic_fields"].append({"name": _("SQL文件指纹"), "type": "STRING", "value": md5_summary[:200]})
+
         return params
 
 
@@ -103,6 +111,61 @@ class MysqlSqlImportFlowParamBuilder(builders.FlowParamBuilder):
 
     def format_ticket_data(self):
         pass
+
+    def pre_callback(self):
+        """
+        变更SQL执行前校验 SQL 文件指纹
+
+        单据只记录了制品库下的文件名，执行时按名去取「最新」对象。如果对象在「提单 → 执行」
+        期间被带外覆盖，单据本身无法感知。这里以建单时落库的基线做一次比对，不一致则抛错，
+        由 InnerFlow 捕获后置为流程失败，执行不会启动。
+        """
+        sql_files_md5 = self.ticket.details.get("sql_files_md5") or {}
+        if not sql_files_md5:
+            # 历史单据、强制导入单据，或建单时未能取到指纹，降级为放行
+            logger.warning("ticket [%s] has no sql files md5 baseline, skip verify", self.ticket.id)
+            return
+
+        # 基线没覆盖到的文件不会被校验，显式提示，避免「部分校验」造成虚假安全感
+        all_files = set(
+            itertools.chain(*[(obj.get("sql_files") or []) for obj in self.ticket.details["execute_objects"]])
+        )
+        uncovered_files = sorted(all_files - set(sql_files_md5))
+        if uncovered_files:
+            logger.warning(
+                "ticket [%s] sql files without md5 baseline: %s", self.ticket.id, ", ".join(uncovered_files)
+            )
+
+        storage = get_storage()
+        path = validate_sql_file_path(self.ticket.details["path"])
+        mismatched = []
+        unavailable = []
+
+        for sql_file, expected_md5 in sql_files_md5.items():
+            # 文件名会拼进制品库路径，校验一次防止单据数据被篡改后逃逸目录
+            validate_sql_file_name(sql_file)
+            try:
+                actual_md5 = get_storage_file_md5(storage, f"{path}/{sql_file}")
+            except Exception as e:  # pylint: disable=broad-except
+                # 读不到指纹同样无法确认内容完整，按不一致处理
+                logger.error("ticket [%s] read md5 of [%s] failed: %s", self.ticket.id, sql_file, e)
+                unavailable.append(sql_file)
+                continue
+
+            if actual_md5 != expected_md5:
+                logger.error(
+                    "ticket [%s] sql file [%s] md5 mismatched, expected=%s actual=%s",
+                    self.ticket.id,
+                    sql_file,
+                    expected_md5,
+                    actual_md5 or "<empty>",
+                )
+                mismatched.append(sql_file)
+
+        if mismatched or unavailable:
+            raise TicketBaseException(_("SQL 文件内容与提单时不一致，已阻断执行。涉及文件：{}").format(", ".join(mismatched + unavailable)))
+
+        logger.info("ticket [%s] sql files md5 verify passed, %s files", self.ticket.id, len(sql_files_md5))
 
 
 @builders.BuilderFactory.register(TicketType.MYSQL_IMPORT_SQLFILE)
@@ -169,9 +232,42 @@ class MysqlSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
         )
         ticket.details.update(grammar_check_info=check_info)
 
+    @classmethod
+    def patch_sql_files_md5(cls, ticket):
+        """
+        记录 SQL 文件的 MD5 基线，供执行前校验文件是否被篡改
+
+        基线由服务端从制品库实时读取后落库，不采信前端传值：前端字段在多处序列化环节会被
+        丢弃，且可被伪造，不具备校验价值。
+        """
+        # 路径非法说明单据数据异常，直接暴露，不做降级
+        path = validate_sql_file_path(ticket.details["path"])
+
+        sql_files_md5 = {}
+        try:
+            storage = get_storage()
+            sql_files = set(
+                itertools.chain(*[(obj.get("sql_files") or []) for obj in ticket.details["execute_objects"]])
+            )
+
+            for sql_file in sorted(sql_files):
+                md5 = safe_get_file_md5(storage, f"{path}/{sql_file}")
+                if md5:
+                    sql_files_md5[sql_file] = md5
+                else:
+                    # 取不到指纹不影响建单，执行前校验会按「无基线」降级为仅告警
+                    logger.warning("ticket [%s] sql file [%s] md5 is unavailable, skip verify", ticket.id, sql_file)
+        except Exception as e:  # pylint: disable=broad-except
+            # 指纹是附加的校验信息，任何异常都不应阻断建单
+            logger.warning("ticket [%s] patch sql files md5 failed: %s", ticket.id, e)
+            sql_files_md5 = {}
+
+        ticket.details["sql_files_md5"] = sql_files_md5
+
     def patch_ticket_detail(self):
         self.patch_sqlimport_ticket_detail(ticket=self.ticket, cluster_type=DBType.MySQL)
         self.patch_sqlfile_grammar_check_info(ticket=self.ticket, cluster_type=DBType.MySQL)
+        self.patch_sql_files_md5(ticket=self.ticket)
         super().patch_ticket_detail()
 
     def init_ticket_flows(self):

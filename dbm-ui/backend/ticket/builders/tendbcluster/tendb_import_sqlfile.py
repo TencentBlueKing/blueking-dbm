@@ -66,6 +66,7 @@ class TenDBClusterSqlImportFlowBuilder(BaseTendbTicketFlowBuilder, MysqlSqlImpor
     def patch_ticket_detail(self):
         super().patch_sqlimport_ticket_detail(ticket=self.ticket, cluster_type=DBType.TenDBCluster)
         super().patch_sqlfile_grammar_check_info(ticket=self.ticket, cluster_type=DBType.TenDBCluster)
+        super().patch_sql_files_md5(ticket=self.ticket)
         BaseTendbTicketFlowBuilder.patch_ticket_detail(self)
 
     def init_ticket_flows(self):
