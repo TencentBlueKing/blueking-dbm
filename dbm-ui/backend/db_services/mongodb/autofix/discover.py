@@ -29,6 +29,7 @@ from backend.db_services.mongodb.autofix.gates import (
     build_restart_shield_sets,
     count_mongo_hosts_by_zone,
     is_restart_shielded,
+    member_ips,
     same_rs_limit,
     zone_city_circuit_breaker,
 )
@@ -321,8 +322,6 @@ def _active_core_names_by_rs() -> Dict[str, Set[str]]:
     """进行中 Core 按创建时写入的 rs_keys 登记异常 name；无 rs_keys 时分片用 host 隔离，避免跨 shard 误伤。"""
     result: Dict[str, Set[str]] = defaultdict(set)
     for core in MongoAutofixCore.objects.filter(deal_status__in=MONGO_AUTOFIX_ACTIVE_STATUSES).iterator():
-        ports = core.ports or []
-        names = {f"{core.ip}:{port}" for port in ports} if ports else {f"{core.ip}:0"}
         rs_keys: List[str] = []
         names_by_rs: Dict[str, Set[str]] = defaultdict(set)
         for fm in core.fault_machines or []:
@@ -334,7 +333,7 @@ def _active_core_names_by_rs() -> Dict[str, Set[str]]:
         if names_by_rs:
             for rs_key, member_names in names_by_rs.items():
                 if is_usable_rs_key(rs_key):
-                    result[rs_key].update(member_names)
+                    result[rs_key].update(member_ips(member_names))
             continue
         if not rs_keys:
             if core.cluster_type == ClusterType.MongoReplicaSet.value:
@@ -345,12 +344,9 @@ def _active_core_names_by_rs() -> Dict[str, Set[str]]:
             else:
                 rs_keys = [make_rs_key(core.immute_domain, f"host:{core.ip}")]
         usable_keys = [rs_key for rs_key in rs_keys if is_usable_rs_key(rs_key)]
-        if len(usable_keys) == 1:
-            result[usable_keys[0]].update(names)
-        else:
-            # 旧数据没有成员映射。一台机器组上的多个端口分属不同副本集，每组只计这一台机器一次。
-            for rs_key in usable_keys:
-                result[rs_key].add(core.ip)
+        # 没有成员映射时按主机计一次。旧数据的裸 ip 和新数据的 ip:port 不会被算成两个成员。
+        for rs_key in usable_keys:
+            result[rs_key].add(core.ip)
     return result
 
 

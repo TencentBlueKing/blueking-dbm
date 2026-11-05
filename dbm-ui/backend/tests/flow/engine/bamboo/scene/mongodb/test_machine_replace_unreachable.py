@@ -8,7 +8,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from backend.flow.plugins.components.collections.mongodb.mongo_replace_probe_down import replace_down_flag
+from backend.flow.plugins.components.collections.mongodb.mongo_replace_probe_down import (
+    replace_down_flag,
+    source_down_decision,
+)
 
 
 def _probe(dead_ips):
@@ -31,6 +34,15 @@ def test_replace_down_flag_matches_probe_node_output():
     assert replace_down_flag([{"ip": "127.0.0.3", "bk_cloud_id": 0}], _probe({"127.0.0.3"})) == 1
     assert replace_down_flag([{"ip": "127.0.0.9", "bk_cloud_id": 0}], _probe(set())) == 0
     assert replace_down_flag([{"ip": "127.0.0.5", "bk_cloud_id": 0}], _probe(set())) == 0
+
+
+def test_source_down_needs_gse_and_data_plane():
+    assert source_down_decision([False, False, False], False) is True
+    assert source_down_decision([False], True) is False
+    assert source_down_decision([False], None) is False
+    assert source_down_decision([False, None], False) is False
+    assert source_down_decision([True], False) is False
+    assert source_down_decision([], False) is False
 
 
 def test_mongos_change_meta_respects_host_down_flag():

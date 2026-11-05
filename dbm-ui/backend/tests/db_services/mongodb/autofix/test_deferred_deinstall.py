@@ -49,17 +49,30 @@ def test_check_meta_sets_machine_exists():
     with patch(
         "backend.flow.plugins.components.collections.mongodb.mongo_deferred_deinstall_check_meta.Machine"
     ) as machine_cls:
-        machine_cls.objects.filter.return_value.exists.return_value = True
+        machine = MagicMock()
+        machine.bk_host_id = 9
+        machine_cls.objects.filter.return_value.first.return_value = machine
         assert svc._execute(data, None) is True
         assert data.outputs.machine_exists == 1
 
-        machine_cls.objects.filter.return_value.exists.return_value = False
+        machine_cls.objects.filter.return_value.first.return_value = None
         assert svc._execute(data, None) is True
         assert data.outputs.machine_exists == 0
 
         data.get_one_of_inputs.return_value = {"ip": "127.0.0.1", "bk_cloud_id": 0, "force_physical": True}
         assert svc._execute(data, None) is True
         assert data.outputs.machine_exists == 1
+
+        svc.log_error = MagicMock()
+        machine_cls.objects.filter.return_value.first.return_value = machine
+        data.get_one_of_inputs.return_value = {
+            "ip": "127.0.0.1",
+            "bk_cloud_id": 0,
+            "force_physical": True,
+            "recycle_host": {"bk_host_id": 9},
+        }
+        assert svc._execute(data, None) is False
+        svc.log_error.assert_called_once()
 
 
 def test_poll_gse_finishes_when_already_alive():
@@ -132,7 +145,7 @@ def test_deferred_deinstall_remark_includes_predecessor_ids():
         patch("backend.flow.utils.mongodb.deferred_deinstall_ticket.Ticket.create_ticket", return_value=created) as ct,
         patch(
             "backend.flow.utils.mongodb.deferred_deinstall_ticket._prepare_deferred_infos",
-            side_effect=lambda items: (items, []),
+            side_effect=lambda items, already_snapshotted=False: (items, []),
         ),
         patch("backend.ticket.flow_manager.manager.TicketFlowManager") as flow_mgr,
     ):
@@ -286,7 +299,7 @@ def test_resolve_deferred_deinstall_password_skips_empty_and_falls_back():
         assert ak._resolve_deferred_deinstall_password("127.0.0.1", 27001, 0, cluster_id=1) == "secret"
 
 
-def test_prepare_deferred_infos_detaches_and_strips_cluster_lock():
+def test_prepare_deferred_infos_detaches_and_keeps_cluster_id():
     from backend.flow.utils.mongodb.deferred_deinstall_ticket import _prepare_deferred_infos
 
     infos = [
@@ -314,9 +327,12 @@ def test_prepare_deferred_infos_detaches_and_strips_cluster_lock():
         ) as detach,
     ):
         prepared, old_nodes = _prepare_deferred_infos(infos)
-    detach.assert_called_once_with("127.0.0.1", 0)
-    assert "cluster_id" not in prepared[0]
-    assert "cluster_ids" not in prepared[0]
+    detach.assert_called_once()
+    assert detach.call_args.args[0] == "127.0.0.1"
+    assert detach.call_args.args[1] == 0
+    assert detach.call_args.args[2][0]["port"] == 27001
+    assert prepared[0]["cluster_id"] == 128
+    assert prepared[0]["cluster_ids"] == [128]
     assert prepared[0]["origin_cluster_id"] == 128
     assert prepared[0]["force_physical"] is True
     assert prepared[0]["recycle_host"]["bk_host_id"] == 9
@@ -457,8 +473,9 @@ def test_resolve_deferred_deinstall_password_fallback_by_set_id_and_biz():
     dtl_qs.filter.assert_called_once_with(bk_biz_id=3)
 
 
-def test_deferred_ticket_on_commit_catches_run_next_flow_exception():
+def test_deferred_ticket_start_failure_marks_ticket_failed():
     from backend.flow.utils.mongodb.deferred_deinstall_ticket import deferred_deinstall_ticket
+    from backend.ticket.constants import TicketStatus
 
     created = SimpleNamespace(id=701)
     with (
@@ -466,14 +483,147 @@ def test_deferred_ticket_on_commit_catches_run_next_flow_exception():
         patch("backend.flow.utils.mongodb.deferred_deinstall_ticket._detach_deferred_machine", return_value=None),
         patch("backend.flow.utils.mongodb.deferred_deinstall_ticket._resolve_autofix_core_id", return_value=0),
         patch("backend.flow.utils.mongodb.deferred_deinstall_ticket.Ticket.create_ticket", return_value=created),
+        patch("backend.flow.utils.mongodb.deferred_deinstall_ticket.Ticket.objects.filter") as ticket_filter,
         patch("backend.ticket.flow_manager.manager.TicketFlowManager") as flow_mgr,
     ):
         flow_mgr.return_value.run_next_flow.side_effect = RuntimeError("celery down")
-        ticket = deferred_deinstall_ticket(
-            infos=[{"ip": "127.0.0.10", "port": 27001, "bk_cloud_id": 0}],
+        raised = False
+        try:
+            deferred_deinstall_ticket(
+                infos=[{"ip": "127.0.0.10", "port": 27001, "bk_cloud_id": 0}],
+                creator="admin",
+                bk_biz_id=3,
+                parent_ticket=None,
+            )
+        except RuntimeError as exc:
+            raised = str(exc) == "celery down"
+    assert raised
+    flow_mgr.return_value.run_next_flow.assert_called_once()
+    ticket_filter.assert_called_once_with(id=701)
+    ticket_filter.return_value.update.assert_called_once_with(status=TicketStatus.FAILED.value)
+
+
+def test_detach_refuses_instances_outside_infos():
+    from backend.flow.utils.mongodb.deferred_deinstall_ticket import _detach_deferred_machine
+
+    machine = MagicMock()
+    machine.ip = "127.0.0.1"
+    machine.bk_host_id = 9
+    with (
+        patch("backend.db_meta.models.Machine") as machine_cls,
+        patch("backend.db_meta.models.StorageInstance") as storage_cls,
+        patch("backend.db_meta.models.ProxyInstance") as proxy_cls,
+    ):
+        machine_cls.objects.select_for_update.return_value.filter.return_value.first.return_value = machine
+        storage_cls.objects.filter.return_value.values_list.return_value = [27001, 27002]
+        proxy_cls.objects.filter.return_value.values_list.return_value = []
+        try:
+            _detach_deferred_machine("127.0.0.1", 0, [{"ip": "127.0.0.1", "port": 27001}])
+            raised = False
+        except ValueError as exc:
+            raised = "27002" in str(exc)
+    assert raised
+    machine.delete.assert_not_called()
+
+
+def test_cleanup_meta_refuses_reregistered_machine_when_force_physical():
+    from backend.flow.plugins.components.collections.mongodb.mongo_deferred_deinstall_cleanup_meta import (
+        MongoDeferredDeinstallCleanupMeta,
+    )
+
+    svc = MongoDeferredDeinstallCleanupMeta()
+    svc.log_info = MagicMock()
+    svc.log_error = MagicMock()
+    data = MagicMock()
+    data.get_one_of_inputs.return_value = {
+        "ip": "127.0.0.1",
+        "bk_cloud_id": 0,
+        "force_physical": True,
+        "recycle_host": {"bk_host_id": 9, "bk_biz_id": 3, "cluster_type": "MongoReplicaSet"},
+    }
+    machine = MagicMock()
+    machine.bk_host_id = 100
+    with (
+        patch(
+            "backend.flow.plugins.components.collections.mongodb.mongo_deferred_deinstall_cleanup_meta.Machine"
+        ) as machine_cls,
+        patch(
+            "backend.flow.plugins.components.collections.mongodb.mongo_deferred_deinstall_cleanup_meta.CcManage"
+        ) as cc_cls,
+    ):
+        machine_cls.objects.filter.return_value.first.return_value = machine
+        assert svc._execute(data, None) is False
+    machine.delete.assert_not_called()
+    cc_cls.assert_not_called()
+
+
+def test_deferred_deinstall_mutex_with_destroy_disable_and_migrate():
+    import openpyxl
+
+    from backend.ticket.constants import EXCLUSIVE_TICKET_EXCEL_PATH
+
+    workbook = openpyxl.load_workbook(EXCLUSIVE_TICKET_EXCEL_PATH, read_only=True, data_only=True)
+    sheet = workbook["cluster_mongodb_exclusive"]
+    rows = list(sheet.iter_rows(values_only=True))
+    header = list(rows[0])
+    index = {label: pos for pos, label in enumerate(header)}
+    by_row = {row[0]: row for row in rows[1:] if row and row[0]}
+    deferred = "MongoDB 延迟下架"
+    exclusive = [
+        "MongoDB 集群删除",
+        "MongoDB 集群禁用",
+        "MongoDB 临时集群销毁",
+        "MongoDB 副本集集群迁移",
+        "MongoDB 分片集群迁移",
+    ]
+    parallel = ["MongoDB 实例重启", "MongoDB 故障自愈", "MongoDB 副本集整机替换"]
+    for label in exclusive:
+        assert by_row[deferred][index[label]] == "N"
+        assert by_row[label][index[deferred]] == "N"
+    for label in parallel:
+        assert by_row[deferred][index[label]] == "Y"
+        assert by_row[label][index[deferred]] == "Y"
+
+
+def test_snapshot_runs_before_parent_ticket_lock():
+    from backend.flow.utils.mongodb.deferred_deinstall_ticket import deferred_deinstall_ticket
+
+    events = []
+    running = MagicMock()
+    running.id = 600
+    running.bk_biz_id = 3
+    running.details = {}
+
+    def snapshot(infos):
+        events.append("snapshot")
+
+    def lock_get(id):
+        events.append("lock")
+        return running
+
+    with (
+        patch(
+            "backend.flow.utils.mongodb.deferred_deinstall_ticket._snapshot_deferred_runtime",
+            side_effect=snapshot,
+        ),
+        patch(
+            "backend.flow.utils.mongodb.deferred_deinstall_ticket.Ticket.objects.select_for_update"
+        ) as select_for_update,
+        patch("backend.flow.utils.mongodb.deferred_deinstall_ticket._unlock_running_for_deferred"),
+        patch("backend.flow.utils.mongodb.deferred_deinstall_ticket._detach_deferred_machine", return_value=None),
+        patch("backend.flow.utils.mongodb.deferred_deinstall_ticket._resolve_relate_ticket", return_value=running),
+        patch("backend.flow.utils.mongodb.deferred_deinstall_ticket._resolve_autofix_core_id", return_value=0),
+        patch(
+            "backend.flow.utils.mongodb.deferred_deinstall_ticket.Ticket.create_ticket",
+            return_value=SimpleNamespace(id=601),
+        ),
+        patch("backend.ticket.flow_manager.manager.TicketFlowManager"),
+    ):
+        select_for_update.return_value.get.side_effect = lock_get
+        deferred_deinstall_ticket(
+            infos=[{"ip": "127.0.0.10", "port": 27021, "bk_cloud_id": 0}],
             creator="admin",
             bk_biz_id=3,
-            parent_ticket=None,
+            parent_ticket=600,
         )
-    assert ticket is created
-    flow_mgr.return_value.run_next_flow.assert_called_once()
+    assert events == ["snapshot", "lock"]

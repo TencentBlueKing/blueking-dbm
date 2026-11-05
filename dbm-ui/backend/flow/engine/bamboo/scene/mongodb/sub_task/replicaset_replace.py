@@ -28,6 +28,7 @@ from backend.flow.plugins.components.collections.mongodb.exec_actuator_job impor
 from backend.flow.plugins.components.collections.mongodb.mongo_replace_probe_down import (
     MongoReplaceLiveUnavailableComponent,
     MongoReplaceProbeDownComponent,
+    collect_probe_instances,
 )
 from backend.flow.plugins.components.collections.mongodb.mongodb_cmr_4_meta import CMRMongoDBMetaComponent
 from backend.flow.plugins.components.collections.mongodb.send_media import ExecSendMediaOperationComponent
@@ -149,7 +150,11 @@ def replicaset_replace(
         probe_act = probe_pipeline.add_act(
             act_name=_("MongoDB-探测故障机-{}".format(host["ip"])),
             act_component_code=MongoReplaceProbeDownComponent.code,
-            kwargs={"ip": host["ip"], "bk_cloud_id": host.get("bk_cloud_id") or 0},
+            kwargs={
+                "ip": host["ip"],
+                "bk_cloud_id": host.get("bk_cloud_id") or 0,
+                "instances": collect_probe_instances(host),
+            },
             extend=False,
         )
         down_info = deepcopy(info)

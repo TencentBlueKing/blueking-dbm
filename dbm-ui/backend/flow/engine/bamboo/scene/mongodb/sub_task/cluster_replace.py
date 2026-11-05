@@ -24,7 +24,10 @@ from backend.flow.plugins.components.collections.mongodb.deferred_deinstall_tick
     ExecDeferredDeInstallTicketOperationComponent,
 )
 from backend.flow.plugins.components.collections.mongodb.exec_actuator_job import ExecuteDBActuatorJobComponent
-from backend.flow.plugins.components.collections.mongodb.mongo_replace_probe_down import MongoReplaceProbeDownComponent
+from backend.flow.plugins.components.collections.mongodb.mongo_replace_probe_down import (
+    MongoReplaceProbeDownComponent,
+    collect_probe_instances,
+)
 from backend.flow.plugins.components.collections.mongodb.mongodb_cmr_4_meta import CMRMongoDBMetaComponent
 from backend.flow.plugins.components.collections.mongodb.send_media import ExecSendMediaOperationComponent
 from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
@@ -133,7 +136,11 @@ def _append_mongos_cmr_and_deinstall(root_id, ticket_data, sub_pipeline, sub_get
         probe_act = sub_pipeline.add_act(
             act_name=_("MongoDB-探测故障机下架方式-{}".format(mongos_info_by_ip["ip"])),
             act_component_code=MongoReplaceProbeDownComponent.code,
-            kwargs={"ip": mongos_info_by_ip["ip"], "bk_cloud_id": mongos_info_by_ip.get("bk_cloud_id") or 0},
+            kwargs={
+                "ip": mongos_info_by_ip["ip"],
+                "bk_cloud_id": mongos_info_by_ip.get("bk_cloud_id") or 0,
+                "instances": collect_probe_instances(mongos_info_by_ip),
+            },
             extend=False,
         )
         down_branch = _build_mongos_finish_sub(

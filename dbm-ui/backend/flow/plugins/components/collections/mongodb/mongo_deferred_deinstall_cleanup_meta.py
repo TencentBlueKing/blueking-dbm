@@ -35,6 +35,14 @@ class MongoDeferredDeinstallCleanupMeta(BaseService):
         bk_cloud_id = kwargs["bk_cloud_id"]
         machine = Machine.objects.filter(ip=ip, bk_cloud_id=bk_cloud_id).first()
         recycle = kwargs.get("recycle_host") or {}
+        force_physical = bool(kwargs.get("force_physical"))
+        if machine is not None and force_physical:
+            self.log_error(
+                "refuse cleanup: machine re-registered after detach ip={} bk_host_id={} snapshot={}".format(
+                    ip, machine.bk_host_id, recycle.get("bk_host_id")
+                )
+            )
+            return False
         if not machine:
             if recycle.get("bk_host_id"):
                 cc_manage = CcManage(recycle.get("bk_biz_id"), recycle.get("cluster_type") or "")

@@ -97,6 +97,7 @@ def _build_reachable_deinstall_sub(root_id: str, ticket_data: dict, get_kwargs: 
         kwargs={
             "ip": info["ip"],
             "bk_cloud_id": info["bk_cloud_id"],
+            "force_physical": bool(info.get("force_physical")),
             "recycle_host": info.get("recycle_host") or {},
         },
     )
@@ -129,6 +130,7 @@ class MongoDeferredDeInstallFlow(object):
                     "ip": info["ip"],
                     "bk_cloud_id": info["bk_cloud_id"],
                     "force_physical": bool(info.get("force_physical")),
+                    "recycle_host": info.get("recycle_host") or {},
                 },
                 extend=False,
             )

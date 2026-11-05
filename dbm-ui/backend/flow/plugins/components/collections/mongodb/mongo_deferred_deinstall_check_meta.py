@@ -28,10 +28,21 @@ class MongoDeferredDeinstallCheckMeta(BaseService):
         ip = kwargs["ip"]
         bk_cloud_id = kwargs["bk_cloud_id"]
         force_physical = bool(kwargs.get("force_physical"))
-        exists = Machine.objects.filter(ip=ip, bk_cloud_id=bk_cloud_id).exists()
-        # 建延迟下架单前已删 Machine。force_physical 仍要走物理卸载，不能因为 meta 没了就跳过。
-        data.outputs.machine_exists = 1 if exists or force_physical else 0
-        if exists:
+        recycle = kwargs.get("recycle_host") or {}
+        machine = Machine.objects.filter(ip=ip, bk_cloud_id=bk_cloud_id).first()
+        # 建单时已经删过 Machine。force_physical 且 meta 里又出现 Machine，说明这台 IP 被重新导入了，拒绝卸载。
+        if machine is not None and force_physical:
+            self.log_error(
+                "machine re-registered after detach ip={} bk_host_id={} snapshot={}".format(
+                    ip, machine.bk_host_id, recycle.get("bk_host_id")
+                )
+            )
+            return False
+        if machine is None:
+            data.outputs.machine_exists = 1 if force_physical else 0
+        else:
+            data.outputs.machine_exists = 1
+        if machine is not None:
             self.log_info("machine still in meta ip={} bk_cloud_id={}".format(ip, bk_cloud_id))
         elif force_physical:
             self.log_info(
