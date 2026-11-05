@@ -302,6 +302,7 @@ def test_allowed_gap_is_carried_by_the_plan_and_the_task_record(backup_files_sti
     assert binlog["gaps"] == {"missing_count": 1, "missing": [4]}
     assert binlog["segments"] == "[2-3],[5]"
     assert plan.items[0].actuator_instance()["binlog_segments"] == "[2-3],[5]"
+    assert plan.items[0].actuator_instance()["binlog_gaps"] == {"missing_count": 1, "missing": [4]}
 
     restored = RollbackPlan.from_dict(plan.to_dict())
     assert restored.allow_binlog_nonconsecutive is True
@@ -312,6 +313,7 @@ def test_allowed_gap_is_carried_by_the_plan_and_the_task_record(backup_files_sti
 def test_contiguous_chain_records_no_gaps_key(backup_files_still_present):
     plan = _ssd_planner(_chain(*FULL_CHAIN), allow_binlog_nonconsecutive=True, **REPLAY).build(pack=False)
     assert "gaps" not in plan.to_rollback_detail()["shards"][0]["binlog"]
+    assert "binlog_gaps" not in plan.items[0].actuator_instance()
 
 
 def test_cache_cluster_skips_binlog_lookup(backup_files_still_present):

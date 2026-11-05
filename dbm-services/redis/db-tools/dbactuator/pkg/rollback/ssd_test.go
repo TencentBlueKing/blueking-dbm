@@ -45,7 +45,7 @@ func TestLocalBinlogsMatchesPlanInIndexOrder(t *testing.T) {
 		"binlog-1.1.1.1-30000-0000013-20260101030000.log.zst",
 		"binlog-1.1.1.1-30000-7-0000011-20260101010000.log.zst",
 	)
-	files, err := LocalBinlogs(dir, ssdInstance(chain...))
+	files, _, err := LocalBinlogs(dir, ssdInstance(chain...), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -62,7 +62,7 @@ func TestLocalBinlogsAcceptsLegacyNamesWithoutIP(t *testing.T) {
 	touch(t, dir, names...)
 	inst := ssdInstance(names...)
 	inst.BinlogRange.LastIndex = 11
-	if _, err := LocalBinlogs(dir, inst); err != nil {
+	if _, _, err := LocalBinlogs(dir, inst, nil); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -79,7 +79,7 @@ func TestLocalBinlogsReportsMissingAndDuplicate(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			dir := t.TempDir()
 			touch(t, dir, tc.files...)
-			_, err := LocalBinlogs(dir, ssdInstance(chain...))
+			_, _, err := LocalBinlogs(dir, ssdInstance(chain...), nil)
 			if err == nil || !strings.Contains(err.Error(), tc.want) {
 				t.Fatalf("err=%v, want %q", err, tc.want)
 			}
@@ -94,28 +94,92 @@ func TestLocalBinlogsAcceptsPlannedGapAndShowsSegmentsOnMismatch(t *testing.T) {
 
 	dir := t.TempDir()
 	touch(t, dir, gapped...)
-	if _, err := LocalBinlogs(dir, inst); err != nil {
+	if _, _, err := LocalBinlogs(dir, inst, nil); err != nil {
 		t.Fatal(err)
 	}
 
 	dir = t.TempDir()
 	touch(t, dir, chain[0])
-	_, err := LocalBinlogs(dir, inst)
+	_, _, err := LocalBinlogs(dir, inst, nil)
 	if err == nil || !strings.Contains(err.Error(), "want 2 as [10],[12]") {
 		t.Fatalf("err=%v", err)
+	}
+}
+
+func TestLocalBinlogsGapsFollowThePlansAllowance(t *testing.T) {
+	gapped := []string{chain[0], chain[2]}
+	inst := ssdInstance(gapped...)
+	dir := t.TempDir()
+	touch(t, dir, gapped...)
+	yes, no := true, false
+
+	// an older payload: the plan's digest alone decides, as before
+	if files, gaps, err := LocalBinlogs(dir, inst, nil); err != nil || len(files) != 2 || gaps != nil {
+		t.Fatalf("nil: files=%v gaps=%v err=%v", files, gaps, err)
+	}
+	_, _, err := LocalBinlogs(dir, inst, &no)
+	if err == nil || !strings.Contains(err.Error(), "1.1.1.1:30000 skip #11") ||
+		!strings.Contains(err.Error(), "#11 before "+chain[2]) {
+		t.Fatalf("false: err=%v", err)
+	}
+	files, gaps, err := LocalBinlogs(dir, inst, &yes)
+	if err != nil || len(files) != 2 || fmt.Sprint(gaps) != "[11]" {
+		t.Fatalf("true: files=%v gaps=%v err=%v", files, gaps, err)
+	}
+	// a contiguous chain passes either way
+	dir = t.TempDir()
+	touch(t, dir, chain...)
+	if _, gaps, err := LocalBinlogs(dir, ssdInstance(chain...), &no); err != nil || gaps != nil {
+		t.Fatalf("contiguous: gaps=%v err=%v", gaps, err)
+	}
+}
+
+func TestLocalBinlogsRejectsHeadGapAndRepeatsWhenChecked(t *testing.T) {
+	yes := true
+	dir := t.TempDir()
+	touch(t, dir, chain...)
+	inst := ssdInstance(chain...)
+	inst.BinlogRange.FirstIndex = 9
+	no := false
+	_, _, err := LocalBinlogs(dir, inst, &no)
+	if err == nil || !strings.Contains(err.Error(), "#9 before "+chain[0]) {
+		t.Fatalf("head: err=%v", err)
+	}
+
+	repeated := append([]string{chain[0], chain[1], "binlog-1.1.1.1-30000-0000011-20260101013000.log.zst"}, chain[2])
+	dir = t.TempDir()
+	touch(t, dir, repeated...)
+	_, _, err = LocalBinlogs(dir, ssdInstance(repeated...), &yes)
+	if err == nil || !strings.Contains(err.Error(), "repeat index #11") {
+		t.Fatalf("repeat: err=%v", err)
+	}
+}
+
+func TestIndexRanges(t *testing.T) {
+	cases := map[string][]int64{
+		"#11":                          {11},
+		"#11,#15":                      {11, 15},
+		"#31-33,#40":                   {31, 32, 33, 40},
+		"#1,#3,#5,#7,#9,...(+2)":       {1, 3, 5, 7, 9, 11, 12},
+		"#1-2,#4,#6,#8,#10-11,...(+1)": {1, 2, 4, 6, 8, 10, 11, 13},
+	}
+	for want, indexes := range cases {
+		if got := indexRanges(indexes); got != want {
+			t.Fatalf("%v: got %s, want %s", indexes, got, want)
+		}
 	}
 }
 
 func TestLocalBinlogsRejectsSameCountDifferentFiles(t *testing.T) {
 	dir := t.TempDir()
 	touch(t, dir, chain[0], chain[1], "binlog-1.1.1.1-30000-0000012-20260101029999.log.zst")
-	if _, err := LocalBinlogs(dir, ssdInstance(chain...)); err == nil {
+	if _, _, err := LocalBinlogs(dir, ssdInstance(chain...), nil); err == nil {
 		t.Fatal("want fingerprint mismatch")
 	}
 }
 
 func TestLocalBinlogsNoneExpected(t *testing.T) {
-	files, err := LocalBinlogs(t.TempDir(), InstanceRestore{DestPort: 30000})
+	files, _, err := LocalBinlogs(t.TempDir(), InstanceRestore{DestPort: 30000}, nil)
 	if err != nil || files != nil {
 		t.Fatalf("files=%v err=%v", files, err)
 	}

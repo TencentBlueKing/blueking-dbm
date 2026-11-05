@@ -17,6 +17,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 )
@@ -101,8 +102,14 @@ type Job struct {
 	MaxConcurrency int
 	// WriteBufferMB is the Tendisplus write buffer for the replay; 0 keeps the template's.
 	WriteBufferMB int
-	Instances     []InstanceRestore
-	Host          Host
+	// AllowBinlogNonconsecutive lets a binlog chain skip indexes, as the plan allowed. Nil, as older
+	// payloads send it, checks the chain against the plan's digest only, gaps the plan holds included.
+	AllowBinlogNonconsecutive *bool
+	// HeartbeatTolerance is how far a Tendisplus kvstore's source heartbeat may be from RecoverAt
+	// after the replay; 0 is plusHeartbeatTolerance.
+	HeartbeatTolerance time.Duration
+	Instances          []InstanceRestore
+	Host               Host
 	// tuning is the engine's, chosen by New.
 	tuning Tuning
 }

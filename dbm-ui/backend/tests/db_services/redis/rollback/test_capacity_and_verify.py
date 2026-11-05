@@ -637,6 +637,30 @@ def test_payload_sends_the_plans_write_buffer(saved, expected):
     assert payload["write_buffer_mb"] == expected
 
 
+@pytest.mark.parametrize("saved,expected", [({}, False), ({"allow_binlog_nonconsecutive": True}, True)])
+def test_payload_always_sends_the_plans_gap_allowance(saved, expected):
+    # the actuator only checks chain gaps itself when the field is there, so a plan saved without it sends False
+    data = _manifest_plan().to_dict()
+    data.pop("allow_binlog_nonconsecutive", None)
+    plan = RollbackPlan.from_dict({**data, **saved})
+    builder = RedisActPayload.__new__(RedisActPayload)
+    builder.bk_biz_id = "3"
+    builder.get_redis_install_4_scene = MagicMock(
+        return_value={"payload": {"password": "r", "redis_conf_configs": {"requirepass": "r"}}}
+    )
+    with patch.object(RollbackPlan, "load", return_value=plan):
+        payload = builder.redis_rollback_payload(
+            params={
+                "plan_id": 7,
+                "dest_ip": "2.2.2.2",
+                "immute_domain": "plus.example.db",
+                "cluster_type": ClusterType.TendisPredixyTendisplusCluster.value,
+                "db_version": "Tendisplus-2.8",
+            },
+        )["payload"]
+    assert payload["allow_binlog_nonconsecutive"] is expected
+
+
 def test_with_temp_passwords_leaves_the_source_config_alone():
     config = {"password": "p", "port": 1}
     assert with_temp_passwords(config, 7) == {"password": rollback_temp_password("p", 7), "port": 1}

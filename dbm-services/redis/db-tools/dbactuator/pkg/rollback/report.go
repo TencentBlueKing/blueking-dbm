@@ -87,6 +87,8 @@ type portReport struct {
 	tuning string
 	// restored tells how restorebackup placed the unpacked backup: moved or copied.
 	restored string
+	// gaps lists the binlog indexes the plan let the replay skip, e.g. "kv3 #31-33".
+	gaps []string
 }
 
 // kvstoreReport is one kvstore's binlog replay.
@@ -95,6 +97,8 @@ type kvstoreReport struct {
 	writes    int
 	posBefore uint64
 	posAfter  uint64
+	// heartbeat is the source heartbeat the kvstore held after the replay, zero when none was read.
+	heartbeat time.Time
 	durations map[string]time.Duration
 	cpu       map[string]time.Duration
 }
@@ -120,6 +124,19 @@ func (p *portReport) kvstoreReplayed(kvstore, files, writes int, posBefore, posA
 	defer p.mu.Unlock()
 	k := p.kvstoreLocked(kvstore)
 	k.files, k.writes, k.posBefore, k.posAfter = files, writes, posBefore, posAfter
+}
+
+func (p *portReport) kvstoreHeartbeat(kvstore int, beat time.Time) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.kvstoreLocked(kvstore).heartbeat = beat
+}
+
+// allowedGaps records binlog indexes skipped as the plan allowed; label tells the chain apart.
+func (p *portReport) allowedGaps(label string, missing []int64) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.gaps = append(p.gaps, label+indexRanges(missing))
 }
 
 func (p *portReport) kvstoreLocked(kvstore int) *kvstoreReport {
@@ -270,11 +287,14 @@ func (h *hostReport) logResult() {
 //
 //	port 30000 shard= src=1.1.1.1:30000 done restore=40s parse(cpu 3s) decode=4s(cpu 5s) apply=6s
 //	  full backup copied tuning: rocks.write_buffer_size=134217728 instance cpu=1m30s
-//	  kvstore 0 binlogs=36 writes=1000 binlogpos 391911 -> 392911 parse(cpu 3s) decode=4s(cpu 5s) apply=6s
+//	  binlog gaps allowed: kv3 #31-33
+//	  kvstore 0 binlogs=36 writes=1000 binlogpos 391911 -> 392911 heartbeat 10-30 16:04:56 parse(cpu 3s) ...
 //
 // "full backup" is whether restorebackup moved or copied the unpacked checkpoint, tuning is what
 // the temp instance ran with, and instance cpu is what it used during the replay, left out when
-// its process could not be read. The header's actuator cpu is this process's own.
+// its process could not be read. "binlog gaps allowed" are indexes the plan let the replay skip,
+// whose writes the temp instance lacks. A kvstore's heartbeat is the source's it held after the
+// replay, left out when there was none. The header's actuator cpu is this process's own.
 func (h *hostReport) resultText() string {
 	var lines []string
 	var failed []int
@@ -305,6 +325,9 @@ func (h *hostReport) resultText() string {
 			failed = append(failed, p.inst.DestPort)
 		}
 		lines = append(lines, line)
+		if len(p.gaps) > 0 {
+			lines = append(lines, "    binlog gaps allowed: "+strings.Join(p.gaps, ", "))
+		}
 		kvstores := make([]int, 0, len(p.kvstores))
 		for kvstore := range p.kvstores {
 			kvstores = append(kvstores, kvstore)
@@ -312,8 +335,12 @@ func (h *hostReport) resultText() string {
 		sort.Ints(kvstores)
 		for _, kvstore := range kvstores {
 			k := p.kvstores[kvstore]
-			lines = append(lines, fmt.Sprintf("    kvstore %d binlogs=%d writes=%d binlogpos %d -> %d %s",
-				kvstore, k.files, k.writes, k.posBefore, k.posAfter, stageText(k.durations, k.cpu)))
+			beat := ""
+			if !k.heartbeat.IsZero() {
+				beat = " heartbeat " + k.heartbeat.Local().Format("01-02 15:04:05")
+			}
+			lines = append(lines, fmt.Sprintf("    kvstore %d binlogs=%d writes=%d binlogpos %d -> %d%s %s",
+				kvstore, k.files, k.writes, k.posBefore, k.posAfter, beat, stageText(k.durations, k.cpu)))
 		}
 		p.mu.Unlock()
 	}
