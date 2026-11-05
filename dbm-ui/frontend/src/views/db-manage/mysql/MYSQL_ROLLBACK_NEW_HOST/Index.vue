@@ -88,6 +88,7 @@
           :key="index">
           <ClusterColumn
             v-model="item.cluster"
+            :disable-rule="clusterDisableRule"
             :label="t('源集群')"
             only-one-type
             :selected="selected"
@@ -157,6 +158,7 @@
   import TendbhaModel from '@services/model/mysql/tendbha';
   import { type Mysql } from '@services/model/ticket/ticket';
   import { filterClusters } from '@services/source/dbbase';
+  import { getTendbhaList } from '@services/source/tendbha';
   import { BackupSourceType } from '@services/types';
 
   import { useCreateTicket, useTicketDetail, useTimeZoneFormat } from '@hooks';
@@ -230,8 +232,26 @@
     }[]
   >;
 
+  const clusterDisableRule = {
+    handler: (cluster: TendbhaModel) =>
+      cluster.cluster_type === ClusterTypes.TENDBHA &&
+      [...(cluster.masters || []), ...(cluster.slaves || [])].some((item) => !item.is_stand_by),
+    tip: t('仅支持存储节点均为 is_stand_by 的集群回档'),
+  };
+
   const clusterSelectorConfig = {
     [ClusterTypes.TENDBHA]: {
+      getResourceList: async (params: ServiceParameters<typeof getTendbhaList>) => {
+        // 先过滤再分页，避免仅过滤当前页导致空页与总数不一致。
+        const data = await getTendbhaList({ ...params, limit: -1, offset: 0 });
+        const results = data.results.filter((cluster) => !clusterDisableRule.handler(cluster));
+        const { limit = 10, offset = 0 } = params;
+        return {
+          ...data,
+          count: results.length,
+          results: limit === -1 ? results.slice(offset) : results.slice(offset, offset + limit),
+        };
+      },
       id: ClusterTypes.TENDBHA,
       multiple: false,
       name: 'TenDBHA',
