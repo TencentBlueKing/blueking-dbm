@@ -15,7 +15,11 @@ from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_cc_standardize_subflow
     mysql_dts_cc_standardize_subflow,
 )
 from backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_deploy_worker_subflow import mysql_dts_deploy_worker_subflow
-from backend.flow.engine.bamboo.scene.mysql.dts.subflow_common import add_dts_idle_check_subflow, build_worker_nodes
+from backend.flow.engine.bamboo.scene.mysql.dts.subflow_common import (
+    add_dts_idle_check_subflow,
+    add_dts_os_init_act,
+    build_worker_nodes,
+)
 from backend.flow.plugins.components.collections.mysql.dts.deploy.register_meta import (
     MysqlDtsRegisterClusterMetaComponent,
 )
@@ -53,6 +57,7 @@ def mysql_dts_append_worker_subflow(inp: MysqlDtsAppendWorkerSubflowInput) -> Su
         bk_cloud_id=inp.bk_cloud_id,
         hosts=inp.new_worker_hosts,
     )
+    add_dts_os_init_act(sub, bk_cloud_id=inp.bk_cloud_id, hosts=inp.new_worker_hosts)
     sub.add_sub_pipeline(mysql_dts_deploy_worker_subflow(worker_inp).build_sub_process(sub_name=_("部署新增 Worker")))
     sub.add_act(
         act_name=_("追加 Worker 元数据"),

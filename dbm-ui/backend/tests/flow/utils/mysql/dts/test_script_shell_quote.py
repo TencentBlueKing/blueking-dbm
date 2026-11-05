@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """DTS Job shell：deploy_path / 节点名须 quote，且路径限制在 /data/dts 下。"""
 import shlex
+import subprocess
 
 from django.test import SimpleTestCase
 
@@ -10,6 +11,7 @@ from backend.flow.utils.mysql.dts.constants import (
     validate_dts_deploy_path,
 )
 from backend.flow.utils.mysql.dts.script_template import (
+    _START_DAEMON_HELPER,
     render_clean_data_dir_script,
     render_start_master_script,
     render_stop_process_script,
@@ -65,6 +67,48 @@ class DtsJobShellQuoteTest(SimpleTestCase):
         self.assertIn("DEPLOY_PATH=" + shlex.quote("/data/dts/demo"), script)
         self.assertIn("DTS_NODE_NAME=" + shlex.quote("dm-master-1"), script)
         self.assertIn('start_daemon "${BIN_DIR}/dm-master" "${CONF_DIR}/${CONFIG_FILE}"', script)
+        self.assertIn("mkdir -p /data/dts", script)
+        self.assertIn("chown mysql:mysql /data/dts", script)
+        self.assertIn('chown -R mysql:mysql "${DEPLOY_PATH}"', script)
+        self.assertIn("su - mysql -c", script)
+        self.assertIn("${qbin}", script)
+        self.assertNotIn("%q", script)
+        self.assertNotIn('setsid -f "${bin}"', script)
+        self.assertIn(
+            'su - mysql -c "setsid ${qbin} -config ${qconf} > ${qout} 2>&1 < /dev/null &"',
+            script,
+        )
+
+    def test_shell_quote_uses_single_quotes(self):
+        """单引号转义交给 bash 再拆词，空格和引号留在参数里，不执行注入。"""
+        probe = r"""
+mkdir() { return 0; }
+chown() { return 0; }
+setsid() {
+  if [ "$1" = "-f" ] && [ "$2" = "true" ]; then
+    return 0
+  fi
+  return 0
+}
+su() { printf '%s\n' "$4"; }
+DEPLOY_PATH=/data/dts/demo
+"""
+        probe += _START_DAEMON_HELPER
+        probe += r"""
+cmd=$(start_daemon "/data/dts/demo/bin/dm-master" "/data/dts/a b/conf/x.toml" "/data/dts/demo/log/n\"; id.output")
+printf '%s\n' "$cmd"
+prefix=${cmd%% > *}
+eval "set -- $prefix"
+printf 'bin=%s\n' "$3"
+printf 'conf=%s\n' "$5"
+"""
+        result = subprocess.run(["bash", "-c", probe], check=True, capture_output=True, text=True)
+        lines = result.stdout.splitlines()
+        self.assertIn("'/data/dts/a b/conf/x.toml'", lines[0])
+        self.assertIn("""'/data/dts/demo/log/n"; id.output'""", lines[0])
+        self.assertNotIn("setsid -f \"", lines[0])
+        self.assertEqual(lines[1], "bin=/data/dts/demo/bin/dm-master")
+        self.assertEqual(lines[2], "conf=/data/dts/a b/conf/x.toml")
 
     def test_start_script_quotes_injectable_node_name(self):
         evil_name = 'dm-master-1"; id; echo "'
