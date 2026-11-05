@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 import os
+import re
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import curlify
@@ -225,9 +226,63 @@ class CustomBKRepoStorage(BaseStorage, bkrepo.BKRepoStorage):
     def get_file_md5(self, file_name: str) -> str:
         if not self.exists(name=file_name):
             raise FileExistsError(f"{self.project_id}/{self.bucket}/{file_name} not exist.")
-        file_metadata = self.get_file_metadata(key=file_name)
-        file_md5 = file_metadata["X-Checksum-Md5"]
+
+        file_md5 = self._get_md5_by_listing(file_name)
+        if not file_md5:
+            # 取不到时显式报错：上层若降级为「无指纹」，校验会静默跳过，必须留下明确线索
+            raise ValueError(f"{self.project_id}/{self.bucket}/{file_name} metadata has no valid md5")
+
         return file_md5
+
+    def _get_md5_by_listing(self, file_name: str) -> Optional[str]:
+        """
+        按目录列举文件节点，取同名文件的 MD5
+
+        制品库 SDK 未提供查询单个文件摘要的接口，这里复用目录列举的结果，
+        与介质同步逻辑（dbm_init/medium/handlers.py）取 md5 的口径保持一致。
+        """
+        dir_name, base_name = os.path.split(file_name)
+        parent_dir = f"/{dir_name.strip('/')}/" if dir_name else "/"
+
+        try:
+            _, file_nodes = self.listdir(parent_dir)
+        except Exception as e:  # pylint: disable=broad-except
+            logger.warning("list dir [%s] for md5 failed: %s", parent_dir, e)
+            return None
+
+        for file_node in file_nodes:
+            if file_node.get("name") == base_name:
+                return self._extract_md5(file_node)
+
+        return None
+
+    @staticmethod
+    def _extract_md5(metadata) -> Optional[str]:
+        """
+        从制品库返回的文件元数据中提取标准 MD5
+
+        制品库不同接口的口径不一致：文件详情接口把摘要放在 md5 字段里，部分响应头则是
+        X-Checksum-Md5；分片上传时 ETag 会带 "-N" 后缀，不是标准 MD5，必须排除。
+        """
+        if metadata is None:
+            return None
+
+        if hasattr(metadata, "headers"):
+            metadata = metadata.headers
+
+        if not isinstance(metadata, dict):
+            try:
+                metadata = dict(metadata)
+            except (TypeError, ValueError):
+                return None
+
+        normalized = {str(key).lower(): value for key, value in metadata.items()}
+        for key in ("md5", "x-checksum-md5", "content-md5"):
+            value = normalized.get(key)
+            if value and re.fullmatch(r"[0-9a-fA-F]{32}", str(value)):
+                return str(value).lower()
+
+        return None
 
     def _handle_file_source_list(
         self, file_source_list: List[Dict[str, Any]], extra_transfer_file_params: Dict[str, Any]
@@ -388,3 +443,22 @@ def get_storage(storage_type: Optional[str] = None, safe: bool = False, **constr
             raise ValueError(f"please add safe_class to {storage_class.__name__}")
         return storage_class.safe_class(**construct_params)
     return storage_class(**construct_params)
+
+
+def get_storage_file_md5(storage: BaseStorage, name: str) -> str:
+    """
+    获取存储内文件的 MD5 摘要，用于校验文件内容是否被篡改
+
+    两种存储实现的入参口径不一致：
+      - 制品库：读对象元数据（X-Checksum-Md5），入参为存储内相对路径
+      - 本地文件系统：读取磁盘文件即时计算，入参为磁盘绝对路径
+    这里统一按「存储内相对路径」透出，调用方无需感知差异。
+
+    :param storage: storage 实例
+    :param name: 存储内的相对路径，如 mysql/sqlfile/1/xxx.sql
+    :return: 小写 MD5 字符串，取不到时返回空串
+    """
+    if storage.storage_type == constants.StorageType.BLUEKING_ARTIFACTORY.value:
+        return (storage.get_file_md5(name) or "").lower()
+
+    return (storage.get_file_md5(storage.path(name)) or "").lower()
