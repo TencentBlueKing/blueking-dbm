@@ -180,7 +180,7 @@ def mysql_restore_data_sub_flow(
         bk_cloud_id=cluster_model.bk_cloud_id, run_as_system_user=DBA_SYSTEM_USER, cluster={}
     )
     first_act_kwargs.exec_ip = cluster["new_slave_ip"]
-    first_act_kwargs.cluster["shell_command"] = "{} collect-pause {} --duration 1440m".format(
+    first_act_kwargs.cluster["shell_command"] = "{} collect-pause {} --duration 1440m;exit 0".format(
         DBHA_PROBE_PATH, cluster["new_slave_port"]
     )
     sub_pipeline.add_act(
@@ -229,7 +229,7 @@ def mysql_restore_data_sub_flow(
         kwargs=asdict(exec_act_kwargs),
     )
 
-    first_act_kwargs.cluster["shell_command"] = "{} collect-resume {}".format(
+    first_act_kwargs.cluster["shell_command"] = "{} collect-resume {};exit 0".format(
         DBHA_PROBE_PATH, cluster["new_slave_port"]
     )
     sub_pipeline.add_act(
@@ -494,7 +494,7 @@ def mysql_restore_master_slave_sub_flow(
         bk_cloud_id=cluster_model.bk_cloud_id, run_as_system_user=DBA_SYSTEM_USER, cluster={}
     )
     first_act_kwargs.exec_ip = [cluster["new_slave_ip"], cluster["new_master_ip"]]
-    first_act_kwargs.cluster["shell_command"] = "{} collect-pause {} --duration 1440m".format(
+    first_act_kwargs.cluster["shell_command"] = "{} collect-pause {} --duration 1440m;exit 0".format(
         DBHA_PROBE_PATH, cluster["new_master_port"]
     )
     sub_pipeline.add_act(
@@ -507,7 +507,7 @@ def mysql_restore_master_slave_sub_flow(
     sub_pipeline.add_parallel_acts(acts_list=restore_list)
     sub_pipeline.add_parallel_acts(acts_list=after_restore_list)
 
-    first_act_kwargs.cluster["shell_command"] = "{} collect-resume {}".format(
+    first_act_kwargs.cluster["shell_command"] = "{} collect-resume {};exit 0".format(
         DBHA_PROBE_PATH, cluster["new_master_port"]
     )
     sub_pipeline.add_act(
@@ -1159,7 +1159,7 @@ def mysql_backup_restore_sub_flow(
         bk_cloud_id=cluster_model.bk_cloud_id, run_as_system_user=DBA_SYSTEM_USER, cluster={}
     )
     first_act_kwargs.exec_ip = [cluster["new_slave_ip"]]
-    first_act_kwargs.cluster["shell_command"] = "{} collect-pause {} --duration 1440m".format(
+    first_act_kwargs.cluster["shell_command"] = "{} collect-pause {} --duration 1440m;exit 0".format(
         DBHA_PROBE_PATH, cluster["new_slave_port"]
     )
     sub_pipeline.add_act(
@@ -1179,7 +1179,7 @@ def mysql_backup_restore_sub_flow(
         kwargs=asdict(exec_act_kwargs),
         write_payload_var="change_master_info",
     )
-    first_act_kwargs.cluster["shell_command"] = "{} collect-resume {}".format(
+    first_act_kwargs.cluster["shell_command"] = "{} collect-resume {};exit 0".format(
         DBHA_PROBE_PATH, cluster["new_slave_port"]
     )
     sub_pipeline.add_act(
