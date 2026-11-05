@@ -22,6 +22,7 @@ from backend.db_meta.enums import ClusterType, InstanceRole, TenDBClusterSpiderR
 from backend.db_meta.enums.comm import SystemTagEnum, TagType
 from backend.db_meta.models import AppCache, Cluster, Machine, Tag
 from backend.db_services.dbbase.constants import IpSource
+from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_cluster_config_for_rollback
 from backend.flow.engine.controller.spider import SpiderController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
@@ -285,12 +286,14 @@ class TendbRollbackNewHostResourceParamBuilder(BaseOperateResourceParamBuilder):
             raise TicketParamsVerifyException(
                 errors=_("集群分片数{}无法按申请到的机器组数{}均分，无法部署回档目标集群").format(cluster_shard_num, remote_machine_count)
             )
-
+        cluster_config = get_cluster_config_for_rollback(self.ticket.details["infos"][0]["cluster_id"])
         ticket_data.update(
             # 中控节点复用spider机器，随集群部署流程自动安装
             spider_ip_list=spider_ip_list,
             remote_group=remote_group,
             remote_shard_num=cluster_shard_num // remote_machine_count,
+            old_instance_configs=cluster_config["backend_config"],
+            spider_copy_config=cluster_config["spider_config"],
         )
 
         # 元数据落库时只按 spider/remote 两种机器类型记录规格，这里补充对应规格信息
