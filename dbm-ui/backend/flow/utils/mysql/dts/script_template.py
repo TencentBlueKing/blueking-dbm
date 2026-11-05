@@ -12,7 +12,12 @@ import shlex
 
 from jinja2.sandbox import SandboxedEnvironment as Environment
 
-from backend.flow.utils.mysql.dts.constants import MYSQL_DTS_MASTER_PORT, MYSQL_DTS_WORKER_PORT
+from backend.core.consts import BK_PKG_INSTALL_PATH
+from backend.flow.utils.mysql.dts.constants import (
+    MYSQL_DTS_DEPLOY_BASE_PATH,
+    MYSQL_DTS_MASTER_PORT,
+    MYSQL_DTS_WORKER_PORT,
+)
 from backend.flow.utils.mysql.dts.monitor_config import MYSQL_MONITOR_INSTALL_PATH
 
 # 介质包布局固定为 dts/{bin,conf,scripts,...}，解到 deploy_path 去掉顶层 dts/ 即可。
@@ -20,22 +25,40 @@ from backend.flow.utils.mysql.dts.monitor_config import MYSQL_MONITOR_INSTALL_PA
 # 注意：日志文件必须用 dts_node_name（如 dm-master-1），不能用 pipeline 的 node_name。
 # SubBuilder.add_act 会把 kwargs["node_name"] 覆盖成中文 act_name（如「启动 Worker」）。
 
-# 后台启动：优先 setsid -f（util-linux 较新）；旧系统不支持 -f 时回退 setsid ... &
-_START_DAEMON_HELPER = """
+# 后台启动：目录交给 mysql 后，以 mysql 的登录 shell 拉起。
+# 单引号转义，不用 printf %q。bash 4.4 起 %q 对特殊字符输出 $'...'，
+# CentOS 7 / tlinux2 的 bash 4.2 解析不了。单引号形式在 bash 3.2 到 5.x 一致。
+# setsid -f 是 util-linux 2.24+ 才有，旧系统回退 setsid ... &。
+_START_DAEMON_HELPER = r"""
+dts_shell_quote() {
+  local s="$1"
+  s="${s//\'/\'\\\'\'}"
+  printf '%s' "'${s}'"
+}
+
 start_daemon() {
   local bin="$1"
   local conf="$2"
   local out="$3"
+  local qbin qconf qout
+  qbin=$(dts_shell_quote "$bin")
+  qconf=$(dts_shell_quote "$conf")
+  qout=$(dts_shell_quote "$out")
+  mkdir -p __DTS_BASE__
+  chown mysql:mysql __DTS_BASE__
+  chown -R mysql:mysql "${DEPLOY_PATH}"
   if setsid -f true >/dev/null 2>&1; then
-    setsid -f "${bin}" -config "${conf}" > "${out}" 2>&1 < /dev/null
+    su - mysql -c "setsid -f ${qbin} -config ${qconf} > ${qout} 2>&1 < /dev/null"
   else
-    setsid "${bin}" -config "${conf}" > "${out}" 2>&1 < /dev/null &
+    su - mysql -c "setsid ${qbin} -config ${qconf} > ${qout} 2>&1 < /dev/null &"
   fi
 }
-"""
+""".replace(
+    "__DTS_BASE__", MYSQL_DTS_DEPLOY_BASE_PATH
+)
 
-start_mysql_dts_master_template = (
-    """
+# 部署目录布局：bin / conf / log 相对 DEPLOY_PATH，介质在 BK_PKG_INSTALL_PATH。
+_LAYOUT_VARS = r"""
 set -euo pipefail
 DEPLOY_PATH={{deploy_path}}
 PKG_NAME={{pkg_name}}
@@ -44,9 +67,13 @@ CONFIG_FILE={{config_file}}
 BIN_DIR="${DEPLOY_PATH}/bin"
 CONF_DIR="${DEPLOY_PATH}/conf"
 LOG_DIR="${DEPLOY_PATH}/log"
-PKG_FILE="/data/install/${PKG_NAME}"
+PKG_FILE="__INSTALL_DIR__/${PKG_NAME}"
 OUTPUT_FILE="${LOG_DIR}/${DTS_NODE_NAME}.output"
+""".replace(
+    "__INSTALL_DIR__", BK_PKG_INSTALL_PATH
+)
 
+_REQUIRE_PKG = r"""
 if [[ -z "${PKG_NAME}" ]]; then
   echo "pkg_name is empty" >&2
   exit 1
@@ -57,25 +84,59 @@ if [[ -z "${DTS_NODE_NAME}" ]]; then
 fi
 if [[ ! -f "${PKG_FILE}" ]]; then
   echo "DTS package not found: ${PKG_FILE}" >&2
-  ls -la /data/install/ || true
+  ls -la __INSTALL_DIR__/ || true
   exit 1
 fi
+""".replace(
+    "__INSTALL_DIR__", BK_PKG_INSTALL_PATH
+)
 
+_REQUIRE_CONF = r"""
+if [[ ! -f "${CONF_DIR}/${CONFIG_FILE}" ]]; then
+  echo "Config file not found: ${CONF_DIR}/${CONFIG_FILE}" >&2
+  ls -la "${CONF_DIR}/" || true
+  exit 1
+fi
+"""
+
+_EXTRACT_IN_PLACE = r"""
 mkdir -p "${DEPLOY_PATH}" "${CONF_DIR}" "${LOG_DIR}"
 if ! tar -zxf "${PKG_FILE}" -C "${DEPLOY_PATH}" --strip-components=1 2>/dev/null; then
   tar -xf "${PKG_FILE}" -C "${DEPLOY_PATH}" --strip-components=1
 fi
-if [[ ! -f "${BIN_DIR}/dm-master" ]]; then
-  echo "dm-master missing after extract, expect ${BIN_DIR}/dm-master" >&2
-  ls -la "${DEPLOY_PATH}" "${BIN_DIR}" || true
+"""
+
+# 重装共用：解压到 packages 隔离目录后，将 deploy_path/bin 整目录软链到新包 bin（不动 conf）
+_REINSTALL_EXTRACT_AND_LINK_BIN = r"""
+# 解压到隔离目录：{deploy_path}/packages/{pkg_basename}/
+PKG_BASENAME="${PKG_NAME%.tar*}"
+PKG_ROOT="${DEPLOY_PATH}/packages/${PKG_BASENAME}"
+mkdir -p "${PKG_ROOT}"
+if ! tar -zxf "${PKG_FILE}" -C "${PKG_ROOT}" --strip-components=1 2>/dev/null; then
+  tar -xf "${PKG_FILE}" -C "${PKG_ROOT}" --strip-components=1
+fi
+PKG_BIN="${PKG_ROOT}/bin"
+if [[ ! -d "${PKG_BIN}" ]]; then
+  echo "package bin missing after extract, expect ${PKG_BIN}" >&2
+  ls -la "${PKG_ROOT}" || true
   exit 1
 fi
-chmod +x "${BIN_DIR}/dm-master"
-"""
-    + _START_DAEMON_HELPER
-    + """
-start_daemon "${BIN_DIR}/dm-master" "${CONF_DIR}/${CONFIG_FILE}" "${OUTPUT_FILE}"
+chmod +x "${PKG_BIN}"/* 2>/dev/null || true
 
+# 整目录软链：{deploy_path}/bin -> {pkg_root}/bin（不动 conf）
+# 兼容：bin 已是软链（只删链接，绝不跟链清掉旧 packages）；bin 是普通目录（首次重装）则 rm -rf
+# 注意：路径不要带尾部 /，避免 rm 跟随软链删目标内容
+if [[ -L "${BIN_DIR}" ]]; then
+  rm -f "${BIN_DIR}"
+elif [[ -d "${BIN_DIR}" ]]; then
+  rm -rf "${BIN_DIR}"
+elif [[ -e "${BIN_DIR}" ]]; then
+  rm -f "${BIN_DIR}"
+fi
+ln -sfn "${PKG_BIN}" "${BIN_DIR}"
+"""
+
+_WAIT_READY = r"""
 LISTEN_PORT="{{listen_port}}"
 is_port_listen() {
   local port="$1"
@@ -88,95 +149,71 @@ is_port_listen() {
   fi
 }
 
-# 进程在 + master-addr 端口已监听，才视为启动成功（OpenAPI 注册由后续验收组件负责）
+# 进程在且端口已监听，才视为启动成功
 ready=0
 for _i in $(seq 1 10); do
-  if pgrep -f "${BIN_DIR}/dm-master" >/dev/null 2>&1 && is_port_listen "${LISTEN_PORT}"; then
+  if pgrep -f "${BIN_DIR}/__BIN__" >/dev/null 2>&1 && is_port_listen "${LISTEN_PORT}"; then
     ready=1
     break
   fi
   sleep 1
 done
 if [[ "${ready}" -ne 1 ]]; then
-  echo "dm-master failed to become ready (process/port ${LISTEN_PORT}):" >&2
+  echo "__BIN__ failed to become ready (process/port ${LISTEN_PORT}):" >&2
   cat "${OUTPUT_FILE}" >&2 || true
   exit 1
 fi
-echo "started dm-master ${DTS_NODE_NAME} (listen ${LISTEN_PORT})"
+echo "__ACTION__ __BIN__ ${DTS_NODE_NAME} (listen ${LISTEN_PORT})"
 """
-)
 
-start_mysql_dts_worker_template = (
-    """
-set -euo pipefail
-DEPLOY_PATH={{deploy_path}}
-PKG_NAME={{pkg_name}}
-DTS_NODE_NAME={{dts_node_name}}
-CONFIG_FILE={{config_file}}
-BIN_DIR="${DEPLOY_PATH}/bin"
-CONF_DIR="${DEPLOY_PATH}/conf"
-LOG_DIR="${DEPLOY_PATH}/log"
-PKG_FILE="/data/install/${PKG_NAME}"
-OUTPUT_FILE="${LOG_DIR}/${DTS_NODE_NAME}.output"
 
-if [[ -z "${PKG_NAME}" ]]; then
-  echo "pkg_name is empty" >&2
+def _require_binary(binary: str, *, linked: bool) -> str:
+    """解压后要求文件存在并 chmod；软链后要求可执行，并补上日志目录。"""
+    if linked:
+        body = r"""
+if [[ ! -x "${BIN_DIR}/__BIN__" ]]; then
+  echo "__BIN__ missing after bin link, expect ${BIN_DIR}/__BIN__" >&2
+  ls -la "${BIN_DIR}" || true
   exit 1
 fi
-if [[ -z "${DTS_NODE_NAME}" ]]; then
-  echo "dts_node_name is empty" >&2
-  exit 1
-fi
-if [[ ! -f "${PKG_FILE}" ]]; then
-  echo "DTS package not found: ${PKG_FILE}" >&2
-  ls -la /data/install/ || true
-  exit 1
-fi
-
-mkdir -p "${DEPLOY_PATH}" "${CONF_DIR}" "${LOG_DIR}"
-if ! tar -zxf "${PKG_FILE}" -C "${DEPLOY_PATH}" --strip-components=1 2>/dev/null; then
-  tar -xf "${PKG_FILE}" -C "${DEPLOY_PATH}" --strip-components=1
-fi
-if [[ ! -f "${BIN_DIR}/dm-worker" ]]; then
-  echo "dm-worker missing after extract, expect ${BIN_DIR}/dm-worker" >&2
+mkdir -p "${LOG_DIR}"
+"""
+    else:
+        body = r"""
+if [[ ! -f "${BIN_DIR}/__BIN__" ]]; then
+  echo "__BIN__ missing after extract, expect ${BIN_DIR}/__BIN__" >&2
   ls -la "${DEPLOY_PATH}" "${BIN_DIR}" || true
   exit 1
 fi
-chmod +x "${BIN_DIR}/dm-worker"
+chmod +x "${BIN_DIR}/__BIN__"
 """
-    + _START_DAEMON_HELPER
-    + """
-start_daemon "${BIN_DIR}/dm-worker" "${CONF_DIR}/${CONFIG_FILE}" "${OUTPUT_FILE}"
+    return body.replace("__BIN__", binary)
 
-LISTEN_PORT="{{listen_port}}"
-is_port_listen() {
-  local port="$1"
-  if command -v ss >/dev/null 2>&1; then
-    ss -ltn 2>/dev/null | awk '{print $4}' | grep -qE "(^|[.:])${port}$"
-  elif command -v netstat >/dev/null 2>&1; then
-    netstat -ltn 2>/dev/null | awk '{print $4}' | grep -qE "(^|[.:])${port}$"
-  else
-    (echo >"/dev/tcp/127.0.0.1/${port}") >/dev/null 2>&1
-  fi
-}
 
-# 进程在 + worker-addr 端口已监听，才视为启动成功
-ready=0
-for _i in $(seq 1 10); do
-  if pgrep -f "${BIN_DIR}/dm-worker" >/dev/null 2>&1 && is_port_listen "${LISTEN_PORT}"; then
-    ready=1
-    break
-  fi
-  sleep 1
-done
-if [[ "${ready}" -ne 1 ]]; then
-  echo "dm-worker failed to become ready (process/port ${LISTEN_PORT}):" >&2
-  cat "${OUTPUT_FILE}" >&2 || true
-  exit 1
-fi
-echo "started dm-worker ${DTS_NODE_NAME} (listen ${LISTEN_PORT})"
-"""
-)
+def _build_role_script(binary: str, *, reinstall: bool) -> str:
+    """拼一份 master/worker 的首次部署或重装脚本。"""
+    parts = [_LAYOUT_VARS, _REQUIRE_PKG]
+    if reinstall:
+        parts.extend([_REQUIRE_CONF, _REINSTALL_EXTRACT_AND_LINK_BIN, _require_binary(binary, linked=True)])
+        action = "reinstalled"
+    else:
+        parts.extend([_EXTRACT_IN_PLACE, _require_binary(binary, linked=False)])
+        action = "started"
+    parts.extend(
+        [
+            _START_DAEMON_HELPER,
+            f'\nstart_daemon "${{BIN_DIR}}/{binary}" "${{CONF_DIR}}/${{CONFIG_FILE}}" "${{OUTPUT_FILE}}"\n',
+            _WAIT_READY.replace("__BIN__", binary).replace("__ACTION__", action),
+        ]
+    )
+    return "".join(parts)
+
+
+start_mysql_dts_master_template = _build_role_script("dm-master", reinstall=False)
+start_mysql_dts_worker_template = _build_role_script("dm-worker", reinstall=False)
+# 重装：隔离目录软链 bin，沿用原 conf，不改 conf 下的文件。
+reinstall_mysql_dts_master_template = _build_role_script("dm-master", reinstall=True)
+reinstall_mysql_dts_worker_template = _build_role_script("dm-worker", reinstall=True)
 
 stop_mysql_dts_process_template = """
 set -euo pipefail
@@ -350,187 +387,6 @@ def render_clean_cluster_relay_and_dump_script(
         _append_exported_data_cleanup(lines, seen, extra or "")
     lines.append("echo cleaned dts relay and exported_data")
     return "\n".join(lines) + "\n"
-
-
-# 重装共用：解压到 packages 隔离目录后，将 deploy_path/bin 整目录软链到新包 bin（不动 conf）
-_REINSTALL_EXTRACT_AND_LINK_BIN = """
-# 解压到隔离目录：{deploy_path}/packages/{pkg_basename}/
-PKG_BASENAME="${PKG_NAME%.tar*}"
-PKG_ROOT="${DEPLOY_PATH}/packages/${PKG_BASENAME}"
-mkdir -p "${PKG_ROOT}"
-if ! tar -zxf "${PKG_FILE}" -C "${PKG_ROOT}" --strip-components=1 2>/dev/null; then
-  tar -xf "${PKG_FILE}" -C "${PKG_ROOT}" --strip-components=1
-fi
-PKG_BIN="${PKG_ROOT}/bin"
-if [[ ! -d "${PKG_BIN}" ]]; then
-  echo "package bin missing after extract, expect ${PKG_BIN}" >&2
-  ls -la "${PKG_ROOT}" || true
-  exit 1
-fi
-chmod +x "${PKG_BIN}"/* 2>/dev/null || true
-
-# 整目录软链：{deploy_path}/bin -> {pkg_root}/bin（不动 conf）
-# 兼容：bin 已是软链（只删链接，绝不跟链清掉旧 packages）；bin 是普通目录（首次重装）则 rm -rf
-# 注意：路径不要带尾部 /，避免 rm 跟随软链删目标内容
-if [[ -L "${BIN_DIR}" ]]; then
-  rm -f "${BIN_DIR}"
-elif [[ -d "${BIN_DIR}" ]]; then
-  rm -rf "${BIN_DIR}"
-elif [[ -e "${BIN_DIR}" ]]; then
-  rm -f "${BIN_DIR}"
-fi
-ln -sfn "${PKG_BIN}" "${BIN_DIR}"
-"""
-
-# 重装脚本模板：将新介质解压到隔离目录，整目录软链 bin，用原 conf 拉起
-# 注意：绝不修改 conf/ 目录下的任何文件
-reinstall_mysql_dts_master_template = (
-    """
-set -euo pipefail
-DEPLOY_PATH={{deploy_path}}
-PKG_NAME={{pkg_name}}
-DTS_NODE_NAME={{dts_node_name}}
-CONFIG_FILE={{config_file}}
-BIN_DIR="${DEPLOY_PATH}/bin"
-CONF_DIR="${DEPLOY_PATH}/conf"
-LOG_DIR="${DEPLOY_PATH}/log"
-PKG_FILE="/data/install/${PKG_NAME}"
-OUTPUT_FILE="${LOG_DIR}/${DTS_NODE_NAME}.output"
-
-if [[ -z "${PKG_NAME}" ]]; then
-  echo "pkg_name is empty" >&2
-  exit 1
-fi
-if [[ -z "${DTS_NODE_NAME}" ]]; then
-  echo "dts_node_name is empty" >&2
-  exit 1
-fi
-if [[ ! -f "${PKG_FILE}" ]]; then
-  echo "DTS package not found: ${PKG_FILE}" >&2
-  ls -la /data/install/ || true
-  exit 1
-fi
-if [[ ! -f "${CONF_DIR}/${CONFIG_FILE}" ]]; then
-  echo "Config file not found: ${CONF_DIR}/${CONFIG_FILE}" >&2
-  ls -la "${CONF_DIR}/" || true
-  exit 1
-fi
-"""
-    + _REINSTALL_EXTRACT_AND_LINK_BIN
-    + """
-if [[ ! -x "${BIN_DIR}/dm-master" ]]; then
-  echo "dm-master missing after bin link, expect ${BIN_DIR}/dm-master" >&2
-  ls -la "${BIN_DIR}" || true
-  exit 1
-fi
-mkdir -p "${LOG_DIR}"
-"""
-    + _START_DAEMON_HELPER
-    + """
-start_daemon "${BIN_DIR}/dm-master" "${CONF_DIR}/${CONFIG_FILE}" "${OUTPUT_FILE}"
-
-LISTEN_PORT="{{listen_port}}"
-is_port_listen() {
-  local port="$1"
-  if command -v ss >/dev/null 2>&1; then
-    ss -ltn 2>/dev/null | awk '{print $4}' | grep -qE "(^|[.:])${port}$"
-  elif command -v netstat >/dev/null 2>&1; then
-    netstat -ltn 2>/dev/null | awk '{print $4}' | grep -qE "(^|[.:])${port}$"
-  else
-    (echo >"/dev/tcp/127.0.0.1/${port}") >/dev/null 2>&1
-  fi
-}
-
-ready=0
-for _i in $(seq 1 10); do
-  if pgrep -f "${BIN_DIR}/dm-master" >/dev/null 2>&1 && is_port_listen "${LISTEN_PORT}"; then
-    ready=1
-    break
-  fi
-  sleep 1
-done
-if [[ "${ready}" -ne 1 ]]; then
-  echo "dm-master failed to become ready (process/port ${LISTEN_PORT}):" >&2
-  cat "${OUTPUT_FILE}" >&2 || true
-  exit 1
-fi
-echo "reinstalled dm-master ${DTS_NODE_NAME} (listen ${LISTEN_PORT})"
-"""
-)
-
-reinstall_mysql_dts_worker_template = (
-    """
-set -euo pipefail
-DEPLOY_PATH={{deploy_path}}
-PKG_NAME={{pkg_name}}
-DTS_NODE_NAME={{dts_node_name}}
-CONFIG_FILE={{config_file}}
-BIN_DIR="${DEPLOY_PATH}/bin"
-CONF_DIR="${DEPLOY_PATH}/conf"
-LOG_DIR="${DEPLOY_PATH}/log"
-PKG_FILE="/data/install/${PKG_NAME}"
-OUTPUT_FILE="${LOG_DIR}/${DTS_NODE_NAME}.output"
-
-if [[ -z "${PKG_NAME}" ]]; then
-  echo "pkg_name is empty" >&2
-  exit 1
-fi
-if [[ -z "${DTS_NODE_NAME}" ]]; then
-  echo "dts_node_name is empty" >&2
-  exit 1
-fi
-if [[ ! -f "${PKG_FILE}" ]]; then
-  echo "DTS package not found: ${PKG_FILE}" >&2
-  ls -la /data/install/ || true
-  exit 1
-fi
-if [[ ! -f "${CONF_DIR}/${CONFIG_FILE}" ]]; then
-  echo "Config file not found: ${CONF_DIR}/${CONFIG_FILE}" >&2
-  ls -la "${CONF_DIR}/" || true
-  exit 1
-fi
-"""
-    + _REINSTALL_EXTRACT_AND_LINK_BIN
-    + """
-if [[ ! -x "${BIN_DIR}/dm-worker" ]]; then
-  echo "dm-worker missing after bin link, expect ${BIN_DIR}/dm-worker" >&2
-  ls -la "${BIN_DIR}" || true
-  exit 1
-fi
-mkdir -p "${LOG_DIR}"
-"""
-    + _START_DAEMON_HELPER
-    + """
-start_daemon "${BIN_DIR}/dm-worker" "${CONF_DIR}/${CONFIG_FILE}" "${OUTPUT_FILE}"
-
-LISTEN_PORT="{{listen_port}}"
-is_port_listen() {
-  local port="$1"
-  if command -v ss >/dev/null 2>&1; then
-    ss -ltn 2>/dev/null | awk '{print $4}' | grep -qE "(^|[.:])${port}$"
-  elif command -v netstat >/dev/null 2>&1; then
-    netstat -ltn 2>/dev/null | awk '{print $4}' | grep -qE "(^|[.:])${port}$"
-  else
-    (echo >"/dev/tcp/127.0.0.1/${port}") >/dev/null 2>&1
-  fi
-}
-
-ready=0
-for _i in $(seq 1 10); do
-  if pgrep -f "${BIN_DIR}/dm-worker" >/dev/null 2>&1 && is_port_listen "${LISTEN_PORT}"; then
-    ready=1
-    break
-  fi
-  sleep 1
-done
-if [[ "${ready}" -ne 1 ]]; then
-  echo "dm-worker failed to become ready (process/port ${LISTEN_PORT}):" >&2
-  cat "${OUTPUT_FILE}" >&2 || true
-  exit 1
-fi
-echo "reinstalled dm-worker ${DTS_NODE_NAME} (listen ${LISTEN_PORT})"
-"""
-)
 
 
 def render_reinstall_master_script(

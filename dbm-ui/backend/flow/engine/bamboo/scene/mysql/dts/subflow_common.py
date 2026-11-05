@@ -11,8 +11,11 @@ specific language governing permissions and limitations under the License.
 from dataclasses import asdict
 from typing import Any
 
+from django.utils.translation import gettext as _
+
 from backend import env
 from backend.flow.engine.bamboo.scene.mysql.common.common_sub_flow import init_machine_sub_flow
+from backend.flow.plugins.components.collections.mysql.mysql_os_init import SysInitComponent
 from backend.flow.utils.mysql.dts.constants import (
     MYSQL_DTS_MASTER_PEER_PORT,
     MYSQL_DTS_MASTER_PORT,
@@ -44,6 +47,18 @@ def hosts_to_exec_targets(hosts: list[DtsHostSpec]) -> list[dict]:
 def unique_host_ips(hosts: list[DtsHostSpec]) -> list[str]:
     """Keep first-seen IP order; drop empties and duplicates."""
     return list(dict.fromkeys(host.ip for host in hosts if host.ip))
+
+
+def add_dts_os_init_act(sub, *, bk_cloud_id: int, hosts: list[DtsHostSpec]) -> None:
+    """在目标机上跑 MySQL 的 SysInit，创建可登录的 mysql 系统账号。"""
+    exec_ips = unique_host_ips(hosts)
+    if not exec_ips:
+        return
+    sub.add_act(
+        act_name=_("初始化机器"),
+        act_component_code=SysInitComponent.code,
+        kwargs={"exec_ip": exec_ips, "bk_cloud_id": bk_cloud_id},
+    )
 
 
 def add_dts_idle_check_subflow(sub, *, root_id: str, bk_cloud_id: int, hosts: list[DtsHostSpec]) -> None:
@@ -142,6 +157,7 @@ def worker_config_file(node_name: str) -> str:
 
 
 __all__ = [
+    "add_dts_os_init_act",
     "build_dts_exec_shell_kwargs",
     "build_dts_trans_file_kwargs",
     "build_master_addr",

@@ -49,8 +49,9 @@ def mysql_dts_reinstall_subflow(inp: MysqlDtsReinstallSubflowInput) -> SubBuilde
     1) precheck（检查活跃迁移，force_reinstall 可跳过）
     2) stop（停止所有 DTS 进程）
     3) transfile（下发新介质到 /data/install）
-    4) reinstall（解压到隔离目录 → 更新 bin 软链 → 用原 conf 拉起）
-    5) verify（OpenAPI 连通性验收：master/worker 节点匹配）
+    4) 重装 Master（解压到隔离目录 → 更新 bin 软链 → 用原 conf 以 mysql 拉起）
+    5) 重装 Worker（同上）
+    6) verify（OpenAPI 连通性验收：master/worker 节点匹配）
 
     注意：
     - 不渲染/推送配置（既有 conf 绝对不动）

@@ -132,6 +132,18 @@ class MysqlDtsCcStandardizeMountTest(SimpleTestCase):
         mock_cc_std.return_value.build_sub_process.assert_called_once()
         self.assertEqual(sub.add_sub_pipeline.call_args_list[0].args[0], "idle-sub")
         self.assertEqual(sub.add_sub_pipeline.call_args_list[-1].args[0], "cc-sub")
+        from backend.flow.plugins.components.collections.mysql.mysql_os_init import SysInitComponent
+
+        init_calls = [
+            call
+            for call in sub.add_act.call_args_list
+            if call.kwargs.get("act_component_code") == SysInitComponent.code
+        ]
+        self.assertEqual(len(init_calls), 1)
+        self.assertEqual(init_calls[0].kwargs["kwargs"]["exec_ip"], ["127.0.0.2", "127.0.0.3"])
+        self.assertEqual(init_calls[0].kwargs["kwargs"]["bk_cloud_id"], 0)
+        first_act = next(call for call in sub.mock_calls if call[0] == "add_act")
+        self.assertEqual(first_act.kwargs["act_component_code"], SysInitComponent.code)
 
     @patch(
         "backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_deploy_subflow.add_dts_idle_check_subflow",
@@ -221,6 +233,11 @@ class MysqlDtsCcStandardizeMountTest(SimpleTestCase):
         self.assertEqual(sub.add_sub_pipeline.call_args_list[0].args[0], "idle-sub")
         self.assertEqual(sub.add_sub_pipeline.call_args_list[1].args[0], "worker-sub")
         self.assertEqual(sub.add_sub_pipeline.call_args_list[-1].args[0], "cc-sub")
+        from backend.flow.plugins.components.collections.mysql.mysql_os_init import SysInitComponent
+
+        first_act = next(call for call in sub.mock_calls if call[0] == "add_act")
+        self.assertEqual(first_act.kwargs["act_component_code"], SysInitComponent.code)
+        self.assertEqual(first_act.kwargs["kwargs"]["exec_ip"], ["127.0.0.4"])
 
     @patch(
         "backend.flow.engine.bamboo.scene.mysql.dts.mysql_dts_append_worker_subflow.add_dts_idle_check_subflow",
