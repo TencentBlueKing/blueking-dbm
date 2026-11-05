@@ -48,6 +48,7 @@ class RedisFailoverDrillReportViewSet(FailoverDrillReportViewSet):
         "instance_type": ["exact", "in"],
         "state": ["exact", "in"],
         "dbha_status": ["exact", "in"],
+        "version": ["exact", "in"],
         "create_at": ["gte", "lte"],
     }
     report_title = FailoverDrillReportViewSet.report_title + REDIS_CUSTOM_FIELDS

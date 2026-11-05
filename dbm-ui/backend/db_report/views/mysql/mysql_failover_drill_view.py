@@ -78,6 +78,7 @@ class MySQLFailoverDrillSerializer(FailoverDrillSerializer):
             "duration",  # MySQL-specific
             "dbha_health_status",  # MySQL-specific
             "dbha_info",
+            "version",
         )
 
 

@@ -11,6 +11,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.enums import ClusterType
+from backend.db_periodic_task.constants import FailoverDrillVersion
 from backend.db_report.report_basemodel import BaseReportABS
 from backend.db_services.redis.autofix.enums import DBHASwitchResult
 
@@ -34,6 +35,12 @@ class FailoverDrillReport(BaseReportABS):
     switch_start_time = models.DateTimeField(help_text=_("开始切换时间"), null=True)
     switch_finished_time = models.DateTimeField(help_text=_("结束切换时间"), null=True)
     task_status = models.CharField(max_length=255, help_text=_("容灾任务执行状态"), default="")
+    version = models.CharField(
+        max_length=16,
+        choices=FailoverDrillVersion.get_choices(),
+        default=FailoverDrillVersion.V1.value,
+        help_text=_("DBHA版本"),
+    )
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["main_task_id", "instance_type"], name="unique_main_type")]

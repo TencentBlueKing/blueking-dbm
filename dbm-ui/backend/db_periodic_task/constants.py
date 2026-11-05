@@ -38,3 +38,8 @@ class NoticeSignalEnum(StrStructuredEnum):
     closed = EnumField("closed", _("告警关闭时"))
     ack = EnumField("ack", _("告警确认时"))
     no_data = EnumField("no_data", _("无数据告警"))
+
+
+class FailoverDrillVersion(StrStructuredEnum):
+    V1 = EnumField("v1", _("DBHA v1"))
+    V2 = EnumField("v2", _("DBHA v2"))

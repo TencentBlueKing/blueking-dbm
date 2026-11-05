@@ -14,6 +14,7 @@ from django.utils.translation import gettext as _
 
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.exceptions import DBMetaException
+from backend.db_periodic_task.constants import FailoverDrillVersion
 
 from ...models import FailoverDrillConfig
 from .cluster_apply_destroy import cluster_status_polling, flow_status_polling
@@ -26,7 +27,9 @@ logger = logging.getLogger("celery")
 @app.task(rate_limit="1/m")
 def ha_failover_drill_unit(city: str):
     try:
-        conf = FailoverDrillConfig.objects.get(cluster_type=ClusterType.TenDBHA.value)
+        conf = FailoverDrillConfig.objects.get(
+            cluster_type=ClusterType.TenDBHA.value, version=FailoverDrillVersion.V1.value
+        )
     except Exception as e:
         raise DBMetaException(message="failover drill configuration error.{}".format(e))
 
@@ -107,7 +110,9 @@ def spider_failover_drill_unit(city: str):
     @return:
     """
     try:
-        conf = FailoverDrillConfig.objects.get(cluster_type=ClusterType.TenDBCluster.value)
+        conf = FailoverDrillConfig.objects.get(
+            cluster_type=ClusterType.TenDBCluster.value, version=FailoverDrillVersion.V1.value
+        )
     except Exception as e:
         raise DBMetaException(message=_("failover drill configuration error.{}".format(e)))
 
