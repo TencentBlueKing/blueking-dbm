@@ -203,7 +203,7 @@ func (f *GoFlashback) PreCheck() error {
 				colPosName := fmt.Sprintf("col[%d]", columnInfo[originalColumnName].ColPos-1)
 				newColumnName := fmt.Sprintf("%s:%s", colPosName, columnInfo[originalColumnName].ColType)
 				if columnInfo[originalColumnName].IntUnsigned {
-					newColumnName += "_unsigned"
+					newColumnName += "_unsigned" // bigint_unsigned
 				}
 				records[0][i] = newColumnName
 			}

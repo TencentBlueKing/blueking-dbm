@@ -373,13 +373,16 @@ def query_slowlog_aggregated(
         raise DBMMcpBaseException(msg=f"query slowlog aggregated data failed: {e}")
 
     result: List[Dict] = []
+    # USE_TZ=True 且 stats_db 连接 time_zone='+00:00'，ORM 返回的 datetime 必为 UTC aware，
+    # 这里统一转到默认时区（settings.TIME_ZONE，东八区）输出，形如 2026-11-17T16:30:00+08:00。
+    # 显式传 default_timezone（而非依赖 localtime 默认的 current_timezone），保证输出时区稳定。
+    default_tz = timezone.get_default_timezone()
     for item in rows:
-        # 将时间字段转为字符串，方便序列化
         for time_field in ["time_window_min", "time_window_max"]:
-            if item.get(time_field) and hasattr(item[time_field], "strftime"):
-                item[time_field] = item[time_field].strftime("%Y-%m-%d %H:%M:%S")
-            elif item.get(time_field):
-                item[time_field] = str(item[time_field])
+            value = item.get(time_field)
+            if not value:
+                continue
+            item[time_field] = timezone.localtime(value, default_tz).replace(microsecond=0).isoformat()
         # 去除 query_digest_text 中的反引号，优化 markdown 展示
         if item.get("query_digest_text"):
             item["query_digest_text"] = item["query_digest_text"].replace("`", "")

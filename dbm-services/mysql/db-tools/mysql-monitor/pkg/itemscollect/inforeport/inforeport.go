@@ -43,7 +43,13 @@ func (c *infoReport) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) 
 	if err := configreport.ReportRotatebinlogConfig(dbPort, c.db); err != nil {
 		slog.Warn("config-report", slog.String("error", err.Error()))
 	}
+	if err := configreport.ReportDbbackupOptions(dbPort, c.db); err != nil {
+		slog.Warn("config-report", slog.String("error", err.Error()))
+	}
 	if err := configreport.ReportChecksumConfig(dbPort, c.db); err != nil {
+		slog.Warn("config-report", slog.String("error", err.Error()))
+	}
+	if err := configreport.ReportMonitorItemsConfig(dbPort, c.db); err != nil {
 		slog.Warn("config-report", slog.String("error", err.Error()))
 	}
 	if err := pkgversion.CollectPkgVersion(); err != nil {

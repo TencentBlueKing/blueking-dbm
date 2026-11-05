@@ -6,17 +6,13 @@ package dbbackup
 // 暂时先不改
 type BackupOptions struct {
 	// BackupType auto | logical | physical
-	BackupType  string `json:"BackupType" validate:"required"`
-	CrontabTime string `json:"CrontabTime" validate:"required"`
-	IgnoreObjs  struct {
-		// "mysql,test,db_infobase,information_schema,performance_schema,sys"
-		IgnoreDatabases string `json:"ExcludeDatabases"`
-		IgnoreTables    string `json:"ExcludeTables"`
-	} `json:"Logical"`
-	Master logicBackupDataOption `json:"Master" validate:"required"`
-	Slave  logicBackupDataOption `json:"Slave"`
+	BackupType  string                `json:"BackupType" validate:"required"`
+	CrontabTime string                `json:"CrontabTime" validate:"required"`
+	Master      logicBackupDataOption `json:"Master" validate:"required"`
+	Slave       logicBackupDataOption `json:"Slave"`
 	// Readonly 只读组可单独设置备份内容，目前把非 standby 的 slave 都归到 只读组
 	Readonly logicBackupDataOption `json:"Readonly"`
+	Spider   logicBackupDataOption `json:"Spider"`
 	// EnableBackupClient auto | yes | no
 	EnableBackupClient string `json:"EnableBackupClient"`
 }

@@ -1,4 +1,4 @@
-FROM golang:1.23
+FROM golang:1.26
 
 ADD build/db-event-consumer /
 RUN mkdir /logs

@@ -89,7 +89,7 @@ func probe(baseCfg *mysql.Config, timeout time.Duration) (r probeResult) {
 }
 
 func main() {
-	dsn := flag.String("dsn", "", "mysql dsn, e.g. user:pass@tcp(1.2.3.4:3306)/?timeout=5s")
+	dsn := flag.String("dsn", "", "mysql dsn, e.g. user:pass@tcp(1.2.3.4:3306)/?timeout=1s")
 	interval := flag.Duration("interval", 2*time.Second, "probe interval")
 	threshold := flag.Duration("threshold", 100*time.Millisecond, "log when total cost exceeds this")
 	verbose := flag.Bool("v", false, "log every probe")
@@ -108,6 +108,7 @@ func main() {
 	}
 	probeTimeout := cfg.Timeout + 5*time.Second
 
+	log.SetOutput(os.Stdout)
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds)
 	log.Printf("start probe addr=%s user=%s interval=%s threshold=%s", cfg.Addr, cfg.User, *interval, *threshold)
 

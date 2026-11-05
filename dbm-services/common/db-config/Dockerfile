@@ -1,4 +1,4 @@
-FROM golang:1.19
+FROM golang:1.26
 
 RUN ln -sf /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
 RUN echo "Asia/Shanghai" > /etc/timezone

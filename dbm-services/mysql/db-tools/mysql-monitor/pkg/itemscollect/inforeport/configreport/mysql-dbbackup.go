@@ -14,6 +14,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 
 	actorCst "dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/mysql-dbbackup/cmd"
@@ -29,8 +30,8 @@ func ReportDbbackupConfig(dbPort int, db *pkg.MySQLMonitorDBH) error {
 	cfg := &ModelLocalConfig{
 		Host:      config.MonitorConfig.Ip,
 		Port:      dbPort,
-		ConfType:  "dbbackup",
-		ConfFile:  confFile,
+		ConfType:  "backup",
+		ConfFile:  "dbbackup.ini",
 		ConfigKey: "",
 	}
 
@@ -52,15 +53,10 @@ func ReportDbbackupConfig(dbPort int, db *pkg.MySQLMonitorDBH) error {
 		return nil
 	}
 
-	cnf, err := cmd.GetConfigForReport(confFile)
+	payload, err := buildDbbackupPayload(confFile)
 	if err != nil {
 		return err
 	}
-	masked, _, err := MaskedJSONPayload(cnf)
-	if err != nil {
-		return err
-	}
-	payload := FlattenOneLevel(masked)
 	bodyBytes, err := json.Marshal(payload)
 	if err != nil {
 		return err
@@ -76,6 +72,45 @@ func ReportDbbackupConfig(dbPort int, db *pkg.MySQLMonitorDBH) error {
 
 	cfg.ConfigValue = body
 	cfg.ClusterDomain = config.MonitorConfig.ImmuteDomain
-	cfg.ConfFile = filepath.Base(cfg.ConfFile) // 不用绝对路径
 	return ReplaceLocalConfig(db, cfg)
+}
+
+// buildDbbackupPayload 解析 dbbackup.ini，脱敏、收一级，并补充角色维度的 DataSchemaGrant 和 EnableBackupClient
+func buildDbbackupPayload(confFile string) (map[string]interface{}, error) {
+	cnf, err := cmd.GetConfigForReport(confFile)
+	if err != nil {
+		return nil, err
+	}
+	masked, _, err := MaskedJSONPayload(cnf)
+	if err != nil {
+		return nil, err
+	}
+	m, ok := FlattenOneLevel(masked).(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("unexpected dbbackup config format: %s", confFile)
+	}
+	addRoleDataSchemaGrant(m, cnf.Public.MysqlRole)
+	copyKey(m, "BackupClient.EnableBackupClient", "EnableBackupClient")
+	return m, nil
+}
+
+// roleDataSchemaGrantPrefix dbbackup MysqlRole（小写）→ 角色维度的 key 前缀
+var roleDataSchemaGrantPrefix = map[string]string{
+	"master":        "Master",
+	"slave":         "Slave",
+	"spider_master": "Spider",
+}
+
+// addRoleDataSchemaGrant 把扁平化后的 Public.DataSchemaGrant 按角色复制一份为 {Role}.DataSchemaGrant
+// 例如 MysqlRole=slave 时增加 "Slave.DataSchemaGrant"；角色不在映射表中时不处理
+func addRoleDataSchemaGrant(m map[string]interface{}, mysqlRole string) {
+	prefix, ok := roleDataSchemaGrantPrefix[strings.ToLower(mysqlRole)]
+	if !ok {
+		return
+	}
+	v, ok := m["Public.DataSchemaGrant"]
+	if !ok {
+		return
+	}
+	m[prefix+".DataSchemaGrant"] = v
 }

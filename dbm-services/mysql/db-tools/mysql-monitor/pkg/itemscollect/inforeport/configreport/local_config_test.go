@@ -133,6 +133,80 @@ func TestFlattenOneLevelNonMap(t *testing.T) {
 	}
 }
 
+func TestAddRoleDataSchemaGrant(t *testing.T) {
+	cases := map[string]string{
+		"master":        "Master.DataSchemaGrant",
+		"SLAVE":         "Slave.DataSchemaGrant",
+		"SPIDER_MASTER": "Spider.DataSchemaGrant",
+		"repeater":      "",
+	}
+	for role, wantKey := range cases {
+		bk := &dbbackupConfig.BackupConfig{}
+		bk.Public.MysqlRole = role
+		bk.Public.DataSchemaGrant = "all"
+		masked, _, err := MaskedJSONPayload(bk)
+		if err != nil {
+			t.Fatal(err)
+		}
+		m := FlattenOneLevel(masked).(map[string]interface{})
+		addRoleDataSchemaGrant(m, role)
+
+		if m["Public.DataSchemaGrant"] != "all" {
+			t.Errorf("role %s: Public.DataSchemaGrant missing", role)
+		}
+		n := 0
+		for k := range m {
+			if strings.HasSuffix(k, ".DataSchemaGrant") && k != "Public.DataSchemaGrant" {
+				n++
+			}
+		}
+		if wantKey == "" {
+			if n != 0 {
+				t.Errorf("role %s: should not add role key", role)
+			}
+			continue
+		}
+		if m[wantKey] != "all" || n != 1 {
+			t.Errorf("role %s: expect only %s=all, got %v", role, wantKey, m)
+		}
+	}
+}
+
+func TestCopyEnableBackupClient(t *testing.T) {
+	bk := &dbbackupConfig.BackupConfig{}
+	bk.BackupClient.EnableBackupClient = "auto"
+	masked, _, err := MaskedJSONPayload(bk)
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload := FlattenOneLevel(masked)
+	copyKey(payload, "BackupClient.EnableBackupClient", "EnableBackupClient")
+	m := payload.(map[string]interface{})
+	if m["EnableBackupClient"] != "auto" || m["BackupClient.EnableBackupClient"] != "auto" {
+		t.Errorf("dbbackup EnableBackupClient not copied: %v", m["EnableBackupClient"])
+	}
+
+	rb := &rotate.Config{}
+	rb.Public.BackupEnable = "yes"
+	masked, _, err = MaskedJSONPayload(rb)
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload = FlattenOneLevel(masked)
+	copyKey(payload, "public.backup_enable", "EnableBackupClient")
+	m = payload.(map[string]interface{})
+	if m["EnableBackupClient"] != "yes" || m["public.backup_enable"] != "yes" {
+		t.Errorf("rotatebinlog EnableBackupClient not copied: %v", m["EnableBackupClient"])
+	}
+
+	// 源 key 不存在时不新增
+	m = map[string]interface{}{"a": 1}
+	copyKey(m, "missing", "EnableBackupClient")
+	if _, ok := m["EnableBackupClient"]; ok {
+		t.Error("should not add key when src missing")
+	}
+}
+
 func TestModelLocalConfigTableName(t *testing.T) {
 	m := ModelLocalConfig{}
 	tn := m.TableName()
