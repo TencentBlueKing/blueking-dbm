@@ -23,4 +23,7 @@ class BaseProxyPassViewSet(viewsets.SystemViewSet):
     global_login_exempt = True
 
     def get_permissions(self):
+        if self.action == "iplist_by_cloud":
+            return []
+
         return [ProxyPassPermission()]

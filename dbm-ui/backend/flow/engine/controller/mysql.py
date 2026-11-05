@@ -74,6 +74,7 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_single_disable_flow import MyS
 from backend.flow.engine.bamboo.scene.mysql.mysql_single_enable_flow import MySQLSingleEnableFlow
 from backend.flow.engine.bamboo.scene.mysql.mysql_truncate_flow import MySQLTruncateFlow
 from backend.flow.engine.bamboo.scene.mysql.pt_table_sync import PtTableSyncFlow
+from backend.flow.engine.bamboo.scene.mysql.revoke.mysql_dts_migrate_revoke_flow import MysqlDtsMigrateRevokeFlow
 from backend.flow.engine.bamboo.scene.mysql.revoke.mysql_revoke_flows import (
     MysqlAddSlaveRevokeFlow,
     MysqlHaApplyRevokeFlow,
@@ -83,7 +84,6 @@ from backend.flow.engine.bamboo.scene.mysql.revoke.mysql_revoke_flows import (
     MysqlRestoreSlaveRevokeFlow,
     MysqlSingleApplyRevokeFlow,
 )
-from backend.flow.engine.bamboo.scene.mysql.revoke.mysql_dts_migrate_revoke_flow import MysqlDtsMigrateRevokeFlow
 from backend.flow.engine.bamboo.scene.mysql.validate.dbconsole_dump_validator import DbConsoleDumpFlowValidator
 from backend.flow.engine.bamboo.scene.mysql.validate.mysql_dts_migrate_validator import MysqlDtsMigrateFlowValidator
 from backend.flow.engine.bamboo.scene.mysql.validate.mysql_local_upgrade_validator import MySQLLocalUpgradeValidator
