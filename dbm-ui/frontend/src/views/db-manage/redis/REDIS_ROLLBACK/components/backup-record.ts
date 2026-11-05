@@ -69,9 +69,11 @@ export const getBackupTypeText = (identify: string) => (identify.startsWith('BIL
 
 // TendisSSD / TendisPlus 有 binlog，可填写构造到
 export const hasBinlog = (clusterType: string) =>
-  [ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE, ClusterTypes.TWEMPROXY_TENDISPLUS_INSTANCE].includes(
-    clusterType as ClusterTypes,
-  );
+  [
+    ClusterTypes.PREDIXY_TENDISPLUS_CLUSTER,
+    ClusterTypes.PREDIXY_TENDISPLUS_INSTANCE,
+    ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
+  ].includes(clusterType as ClusterTypes);
 
 export const getScopeText = (record: IBackupRecord) =>
   record.scope === 'all'
