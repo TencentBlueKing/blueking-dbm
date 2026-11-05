@@ -33,6 +33,7 @@ from backend.db_services.dbbase.resources.serializers import (
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.mysql.sql_import import mock_data
 from backend.db_services.mysql.sql_import.constants import MAX_UPLOAD_SQL_FILE_COUNT, SQLCharset
+from backend.db_services.mysql.sql_import.validators import validate_sql_file_name
 from backend.db_services.redis.resources.redis_cluster.query import RedisListRetrieveResource
 from backend.dbm_init.constants import CC_APP_ABBR_ATTR
 from backend.ticket.builders.common.field import DBTimezoneField
@@ -404,7 +405,7 @@ class SQLUploadSerializer(serializers.Serializer):
             raise serializers.ValidationError(_("最多上传{}个文件").format(MAX_UPLOAD_SQL_FILE_COUNT))
 
         for file in sql_files:
-            if file.name.rsplit(".")[-1].lower() != "sql":
-                raise serializers.ValidationError(_("请保证sql文件[{}]的后缀为.sql").format(file.name))
+            # 文件名会拼进制品库路径并下发到目标机，需按白名单收敛
+            validate_sql_file_name(file.name.split("/")[-1], ".sql")
 
         return attrs
