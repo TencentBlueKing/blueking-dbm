@@ -106,7 +106,8 @@ class TestDbConsoleDumpFlowValidatorInject(SimpleTestCase):
         self.assertEqual(result[0]["field"], "where")
         self.assertIn("simulation down", result[0]["errors"])
         mock_inject.assert_called_once()
-        mock_explain.assert_called_once()
+        # 注入检查服务不可用是 fail-closed，直接返回错误，不再进入 EXPLAIN
+        mock_explain.assert_not_called()
 
 
 def _query(

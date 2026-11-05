@@ -21,6 +21,8 @@ from backend.components import BKBaseApi
 from backend.configuration.common_sqls import DB_TYPE__COMMON_SQL_MAP, PROXY_COMMON_SQL_STATEMENTS
 from backend.configuration.constants import (
     BIZ_DEFAULT_CONFIGS,
+    DEFAULT_LOG_DOWNLOAD_PAGE_SIZE,
+    DEFAULT_LOG_LINES_CONFIG,
     DEFAULT_MACHINE_PROPERTY,
     DISK_CLASSES,
     SystemSettingsEnum,
@@ -131,6 +133,12 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
             "DBA_ROBOT": SystemSettings.get_setting_value(key=SystemSettingsEnum.DBA_ROBOT.value, default={}),
             "ENABLE_DBM_AI": env.ENABLE_DBM_AI,
             "USER_MANAGE_FRONTEND_APIGW_DOMAIN": env.USER_MANAGE_FRONTEND_APIGW_DOMAIN,
+            "LOG_DOWNLOAD_PAGE_SIZE": SystemSettings.get_setting_value(
+                SystemSettingsEnum.LOG_DOWNLOAD_PAGE_SIZE.value, default=DEFAULT_LOG_DOWNLOAD_PAGE_SIZE
+            ),
+            "LOG_LINES_CONFIG": SystemSettings.get_setting_value(
+                SystemSettingsEnum.LOG_LINES_CONFIG.value, default=DEFAULT_LOG_LINES_CONFIG
+            ),
         }
         # 非外部环境，补充额外环境变量
         if not env.ENABLE_EXTERNAL_PROXY and not env.ENABLE_OPEN_EXTERNAL_PROXY:
