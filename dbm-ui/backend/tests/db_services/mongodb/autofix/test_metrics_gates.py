@@ -246,6 +246,39 @@ def test_same_rs_limit_does_not_block_other_shard():
     assert reasons == {}
 
 
+def test_same_rs_limit_counts_replica_set_members_not_machine_group_ports():
+    """一台机器组挂两个副本集时，每个副本集只有一个异常成员，不能因为端口数达到 2 就被拒绝。"""
+    cand = HostCandidate(
+        ip="127.0.0.1",
+        rs_keys={"d|s0", "d|s1"},
+        names={"127.0.0.1:27017", "127.0.0.1:27018"},
+        names_by_rs={"d|s0": {"127.0.0.1:27017"}, "d|s1": {"127.0.0.1:27018"}},
+    )
+    passed, reasons = same_rs_limit([cand], max_abnormal=2)
+    assert [item.ip for item in passed] == ["127.0.0.1"]
+    assert reasons == {}
+
+
+def test_same_rs_limit_collapses_ip_port_and_bare_ip():
+    """旧 Core 的裸 ip 和新候选的 ip:port 是同一台机器，不能算成两个异常成员。"""
+    cand = HostCandidate(ip="127.0.0.1", rs_keys={"d|s0"}, names={"127.0.0.1:27017"})
+    passed, reasons = same_rs_limit([cand], active_names_by_rs={"d|s0": {"127.0.0.1"}}, max_abnormal=2)
+    assert [item.ip for item in passed] == ["127.0.0.1"]
+    assert reasons == {}
+
+
+def test_same_rs_limit_counts_unmapped_host_instead_of_zero():
+    """没有 names_by_rs 时仍按这台机器计 1，不能把熔断闸绕过去。"""
+    cand = HostCandidate(
+        ip="127.0.0.1",
+        rs_keys={"d|s0", "d|s1"},
+        names={"127.0.0.1:27017", "127.0.0.1:27018"},
+    )
+    passed, reasons = same_rs_limit([cand], active_names_by_rs={"d|s0": {"127.0.0.9"}}, max_abnormal=2)
+    assert passed == []
+    assert "127.0.0.1" in reasons
+
+
 def test_same_rs_limit_ignores_empty_domain_key():
     """磁盘-only 空维度 rs_key='|' 不得把无关主机并成同一 RS。"""
     c1 = HostCandidate(ip="127.0.0.1", rs_keys={"|"}, names={"127.0.0.1:27017"})

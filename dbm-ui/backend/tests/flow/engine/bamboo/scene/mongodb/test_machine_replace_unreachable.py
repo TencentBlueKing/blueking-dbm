@@ -1,0 +1,80 @@
+# -*- coding: utf-8 -*-
+"""
+TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
+Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
+Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
+You may obtain a copy of the License at https://opensource.org/licenses/MIT
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+specific language governing permissions and limitations under the License.
+"""
+from backend.flow.plugins.components.collections.mongodb.mongo_replace_probe_down import (
+    replace_down_flag,
+    source_down_decision,
+)
+
+
+def _probe(dead_ips):
+    def probe(ip, bk_cloud_id):
+        if ip in dead_ips:
+            return False
+        if ip == "127.0.0.9":
+            return None
+        return True
+
+    return probe
+
+
+def test_replace_down_flag_matches_probe_node_output():
+    hosts = [
+        {"ip": "127.0.0.1", "bk_cloud_id": 0},
+        {"ip": "127.0.0.2", "bk_cloud_id": 0, "down": True},
+    ]
+    assert replace_down_flag(hosts, _probe(set())) == 1
+    assert replace_down_flag([{"ip": "127.0.0.3", "bk_cloud_id": 0}], _probe({"127.0.0.3"})) == 1
+    assert replace_down_flag([{"ip": "127.0.0.9", "bk_cloud_id": 0}], _probe(set())) == 0
+    assert replace_down_flag([{"ip": "127.0.0.5", "bk_cloud_id": 0}], _probe(set())) == 0
+
+
+def test_source_down_needs_gse_and_data_plane():
+    assert source_down_decision([False, False, False], False) is True
+    assert source_down_decision([False], True) is False
+    assert source_down_decision([False], None) is False
+    assert source_down_decision([False, None], False) is False
+    assert source_down_decision([True], False) is False
+    assert source_down_decision([], False) is False
+
+
+def test_mongos_change_meta_respects_host_down_flag():
+    from backend.flow.utils.mongodb.mongodb_dataclass import ActKwargs
+
+    ak = ActKwargs()
+    info = {
+        "db_type": "mongos",
+        "created_by": "admin",
+        "bk_biz_id": 3,
+        "mongos": [
+            {
+                "ip": "127.0.0.1",
+                "down": True,
+                "instances": [{"cluster_id": 9, "port": 27021}],
+                "target": {"ip": "127.0.0.2", "spec": {"id": 1}},
+            }
+        ],
+    }
+    kwargs = ak.get_change_meta_replace_kwargs(info=info, instance={})
+    assert kwargs["defer_deinstall"] is True
+
+
+def test_old_host_instances_extracts_seg_range_for_cluster_role():
+    from backend.flow.consts import MongoDBClusterRole
+    from backend.flow.engine.bamboo.scene.mongodb.sub_task.replicaset_replace import _old_host_instances
+
+    info = {
+        "ip": "127.0.0.1",
+        "bk_cloud_id": 0,
+        "instances": [{"port": 27001, "seg_range": "shard-s1", "cluster_name": "cls"}],
+    }
+    old_hosts, old_instances = _old_host_instances(info, MongoDBClusterRole.ShardSvr.value)
+    assert old_hosts == [{"ip": "127.0.0.1", "bk_cloud_id": 0}]
+    assert old_instances == [{"ip": "127.0.0.1", "bk_cloud_id": 0, "port": 27001, "set_id": "shard-s1"}]
