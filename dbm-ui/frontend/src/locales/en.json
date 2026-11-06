@@ -6813,5 +6813,12 @@
   "选择日期": "Select Date",
   "分": "Minute",
   "追加到表格": "Append to Table",
+  "文件路径非法": "Invalid file path",
+  "文件名不能为空": "File name cannot be empty",
+  "文件名不能包含 ..": "File name cannot contain ..",
+  "文件名包含非法字符，仅允许字母、数字、中文、下划线、连字符和点": "File name contains invalid characters. Only letters, digits, Chinese characters, underscores, hyphens and dots are allowed",
+  "仅支持 .sql 文件": "Only .sql files are supported",
+  "文件名长度不能超过n个字符": "File name cannot exceed {n} characters",
+  "SQL 文件【name】校验不通过：reason": "SQL file [{name}] failed validation: {reason}",
   "这行勿动！新增翻译请在上一行添加！": ""
 }

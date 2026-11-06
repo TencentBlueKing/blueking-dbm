@@ -112,6 +112,8 @@
 
   import SqlFileModel from '@views/db-manage/common/model/sql-file/SqlFile';
 
+  import { validateSqlFilename } from '@utils';
+
   import Editor from '../editor/Index.vue';
   import MessageList from '../editor/MessageList.vue';
   import useEditableFileContent from '../hooks/useEditableFileContent';
@@ -235,12 +237,26 @@
     const fileNameList: string[] = [];
     const currentFileDataMap = {} as Record<string, SqlFileModel>;
     const params = new FormData();
+    // 通过文件名校验、实际附加到语法检测请求的文件数
+    let validFileCount = 0;
 
     Array.from(files).forEach((curFile, fileIndex) => {
       fileNameList.push(curFile.name);
       currentFileDataMap[curFile.name] = new SqlFileModel({
         file: curFile,
       });
+
+      // 文件名非法：直接标记上传失败，不发送到后端
+      const filenameResult = validateSqlFilename(curFile.name);
+      if (!filenameResult.valid) {
+        currentFileDataMap[curFile.name].grammarCheckStart();
+        currentFileDataMap[curFile.name].uploadFailed({
+          content: '--',
+          realFilePath: '/',
+          uploadErrorMessage: filenameResult.message,
+        });
+        return;
+      }
 
       if (isAutoUpload) {
         currentFileDataMap[curFile.name].grammarCheckStart();
@@ -255,6 +271,7 @@
           return;
         }
         params.append(`sql_files[${fileIndex}]`, curFile);
+        validFileCount += 1;
       } else {
         getFileContent(currentFileDataMap[curFile.name]).then((fileContent) => {
           Object.assign(currentFileDataMap[curFile.name], { content: fileContent });
@@ -274,6 +291,13 @@
     }
 
     if (!isAutoUpload) {
+      return;
+    }
+
+    // 本批没有合法文件，不发起语法检测
+    if (validFileCount === 0) {
+      uploadRef.value.value = '';
+      triggerChange();
       return;
     }
 
@@ -323,6 +347,20 @@
 
   const handleGrammarCheck = () => {
     const currentFileData = uploadFileDataMap.value[selectFileName.value];
+
+    // 文件名非法（如变更 DB 修改后被重置为待检测）：直接标记上传失败，不发送到后端
+    const filenameResult = validateSqlFilename(selectFileName.value);
+    if (!filenameResult.valid) {
+      currentFileData.grammarCheckStart();
+      currentFileData.uploadFailed({
+        content: '--',
+        realFilePath: '/',
+        uploadErrorMessage: filenameResult.message,
+      });
+      triggerChange();
+      return;
+    }
+
     const params = new FormData();
 
     params.append('sql_files[0]', currentFileData.file!);
