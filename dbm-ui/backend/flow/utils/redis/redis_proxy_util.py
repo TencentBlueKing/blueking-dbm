@@ -359,6 +359,8 @@ def get_cache_backup_mode(bk_biz_id: int, cluster_id: int) -> str:
             return resp["content"].get("cache_backup_mode", "")
     except Exception:
         return "aof"
+    # 集群级没有配置时显式返回空串(消费方按未配置口径处理), 避免隐式返回 None
+    return ""
 
 
 def get_storage_versions_by_cluster_type(cluster_type: str) -> list:
