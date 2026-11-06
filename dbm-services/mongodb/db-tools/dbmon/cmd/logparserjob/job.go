@@ -13,6 +13,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// maxTime 是检查 mongo.log 是否要切分的间隔，不是解析会话的时长。
 const maxTime = 600
 
 // logparseJob

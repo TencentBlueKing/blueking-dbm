@@ -2,6 +2,7 @@
 package logparserjob
 
 import (
+	"bufio"
 	"context"
 	"dbm-services/mongodb/db-tools/dbmon/pkg/fileinfo"
 	"dbm-services/mongodb/db-tools/dbmon/pkg/fileutil"
@@ -188,9 +189,12 @@ func ParseFile(srcFileName string, dirName, outFileName string, follow bool,
 			CompleteLines: true,
 		})
 	if err != nil {
+		_ = dstWriter.Close()
 		err = errors.Wrap(err, "seek")
 		return
 	}
+	// rotatelogs 每次 Write 都落到 syscall。缓冲后按秒 flush，轮转仍按 flush 时刻切文件。
+	bufWriter := bufio.NewWriterSize(dstWriter, 32*1024)
 
 	// 如果metaInfo不为空，且最后一个字符不是逗号，则添加逗号
 	if len(metaInfo) > 0 && metaInfo[len(metaInfo)-1] != ',' {
@@ -212,18 +216,17 @@ func ParseFile(srcFileName string, dirName, outFileName string, follow bool,
 			logger.Info("context done, stop parsing")
 			goto END
 		case <-ticker.C:
-			// 每秒保存一次.
-			err = seekCache.Save(true)
+			// 每秒刷盘并保存 offset。inode 已在检测到轮转时写入内存，这里不再 stat。
+			if flushErr := bufWriter.Flush(); flushErr != nil {
+				logger.Error("flush json log failed", zap.Error(flushErr))
+			}
+			err = seekCache.Save(false)
 			logger.Debug(fmt.Sprintf("save seekinfo %+v", seekCache), zap.Error(err))
 		case line := <-tailHandle.Lines:
 			if line == nil {
-				if follow {
-					continue
-				} else {
-					// 非follow模式下，这表示文件读取完毕
-					logger.Info("non-follow, nil received, stop parsing")
-					goto END
-				}
+				// channel 已关闭。follow 时继续读会在关闭的 channel 上空转。
+				logger.Info("tail closed, stop parsing", zap.Bool("follow", follow))
+				goto END
 			}
 
 			logger.Debug("line info received", zap.String("line", line.Text),
@@ -259,13 +262,13 @@ func ParseFile(srcFileName string, dirName, outFileName string, follow bool,
 			msgJson, _ := json.Marshal(msg)
 			// 在{} 中插入 metaInfo. metaInfo 可以为空 []byte{}
 			if len(metaInfo) > 0 {
-				_, _ = dstWriter.Write(msgJson[0:1])
-				_, _ = dstWriter.Write(metaInfo)
-				_, _ = dstWriter.Write(msgJson[1:])
+				_, _ = bufWriter.Write(msgJson[0:1])
+				_, _ = bufWriter.Write(metaInfo)
+				_, _ = bufWriter.Write(msgJson[1:])
 			} else {
-				_, _ = dstWriter.Write(msgJson)
+				_, _ = bufWriter.Write(msgJson)
 			}
-			_, _ = dstWriter.Write([]byte("\n"))
+			_, _ = bufWriter.Write([]byte("\n"))
 
 			if prevNum > line.Num || prevNum == -1 {
 				logger.Info("line number reset, update inode",
@@ -284,9 +287,13 @@ func ParseFile(srcFileName string, dirName, outFileName string, follow bool,
 	}
 
 END:
+	if flushErr := bufWriter.Flush(); flushErr != nil {
+		logger.Error("flush json log failed", zap.Error(flushErr))
+	}
 	seekCache.Save(true)
-	logger.Info("cleanup tail handle")
-	tailHandle.Cleanup()
+	logger.Info("stop tail handle")
+	// 不要再调用 Cleanup。它和 Stop 都会 RemoveWatch，全局计数会被减成负数，
+	// 下一次 Watch 不再注册 inotify，tail 就只能在重新打开文件时读到当时的末尾。
 	err = tailHandle.Stop()
 	if err != nil {
 		logger.Error("stop tail handle failed", zap.Error(err))

@@ -112,6 +112,31 @@ func TestParseV3DurationMillis(t *testing.T) {
 	if attr["durationMillis"] != float64(105) {
 		t.Fatalf("attr.durationMillis = %v, want 105", attr["durationMillis"])
 	}
+	if _, ok := attr["command"].(string); !ok {
+		t.Fatalf("command type %T, want string", attr["command"])
+	}
+}
+
+func TestParseV3NestedAttrBecomesString(t *testing.T) {
+	line := []byte(`{"t":{"$date":"2024-04-12T19:30:50.102+08:00"},"s":"I","c":"NETWORK","id":22943,"ctx":"listener","msg":"Connection accepted","attr":{"remote":"1.1.1.1:43937","extra":{"k":1}}}`)
+	msg, _, err := ParseV3Mongolog(line)
+	if err != nil {
+		t.Fatalf("ParseV3Mongolog: %v", err)
+	}
+	attr, ok := msg.Attr.(map[string]interface{})
+	if !ok {
+		t.Fatalf("attr type %T", msg.Attr)
+	}
+	if attr["remote"] != "1.1.1.1:43937" {
+		t.Fatalf("remote = %v", attr["remote"])
+	}
+	extra, ok := attr["extra"].(string)
+	if !ok {
+		t.Fatalf("extra type %T, want string", attr["extra"])
+	}
+	if extra != `{"k":1}` {
+		t.Fatalf("extra = %s", extra)
+	}
 }
 
 func TestParseV1Log(t *testing.T) {
