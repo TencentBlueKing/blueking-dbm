@@ -23,6 +23,10 @@ func (r *Checker) moveResult() error {
 		)
 		return err
 	}
+	defer func() {
+		_ = rows.Close()
+	}()
+
 	var columns []string
 	for rows.Next() {
 		var col string
@@ -34,12 +38,31 @@ func (r *Checker) moveResult() error {
 
 		columns = append(columns, col)
 	}
+	if err := rows.Err(); err != nil {
+		slog.Error("iterator columns", slog.String("error", err.Error()))
+		return err
+	}
+
+	if len(columns) == 0 {
+		slog.Error(
+			"result table columns empty", slog.String("result table", r.resultTbl), slog.String("result db", r.resultDB),
+		)
+		return fmt.Errorf("result table columns empty")
+	}
 
 	slog.Info("move result", slog.Time("from", r.startTS))
 
 	columnsStr := strings.Join(columns, ",")
 	// 为了兼容 flashback, 这里拼上库前缀
-	_, err = r.conn.ExecContext(
+	conn, err := r.acquireConn(context.Background())
+	if err != nil {
+		slog.Error("acquire conn failed", slog.String("error", err.Error()))
+		return err
+	}
+	defer func() {
+		_ = conn.Close()
+	}()
+	_, err = conn.ExecContext(
 		context.Background(),
 		fmt.Sprintf(
 			`REPLACE INTO %s.%s (%s) SELECT %s FROM %s.%s WHERE ts >= ? AND master_ip = ? AND master_port = ?`,

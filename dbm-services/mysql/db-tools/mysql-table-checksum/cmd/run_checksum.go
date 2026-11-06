@@ -7,15 +7,22 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"math/rand/v2"
 	"os"
 	"path/filepath"
 	"slices"
+	"time"
 
 	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/checker"
 	"dbm-services/mysql/db-tools/mysql-table-checksum/pkg/config"
 
 	"github.com/juju/fslock"
 	"gopkg.in/yaml.v2"
+)
+
+const (
+	checksumStaggerSlots    = 4
+	checksumStaggerInterval = 3 * time.Minute
 )
 
 func generateRun(mode config.CheckMode, configPath string) error {
@@ -33,6 +40,9 @@ func generateRun(mode config.CheckMode, configPath string) error {
 	}
 
 	initLogger(config.ChecksumConfig.Log, mode)
+
+	staggerWait(config.ChecksumConfig.Port, mode)
+	slog.Info("generate run stagger lock got")
 
 	ck, err := checker.NewChecker(mode)
 	if err != nil {
@@ -159,4 +169,31 @@ func getSelfInfo() (sii *mysql.StorageInstanceInfo, err error) {
 	}
 
 	return &siis[idx], nil
+}
+
+func staggerWait(port int, mode config.CheckMode) {
+	lockPath := filepath.Join(
+		"/tmp",
+		fmt.Sprintf(
+			".dbm_checksum_stagger_%s_%d.lock", mode,
+			port%checksumStaggerSlots,
+		),
+	)
+	lock := fslock.New(lockPath)
+
+	for {
+		if err := lock.TryLock(); err == nil {
+			break
+		}
+		slog.Info("checksum stagger wait", slog.String("lock", lockPath))
+		time.Sleep(10 * time.Second)
+	}
+
+	defer func() {
+		_ = lock.Unlock()
+	}()
+
+	interval := checksumStaggerInterval + time.Duration(rand.IntN(61))*time.Second
+	slog.Info("stagger sleep", slog.Duration("interval with jitter", interval))
+	time.Sleep(interval)
 }
