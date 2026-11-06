@@ -62,7 +62,7 @@
             </div>
           </DbFormItem>
           <DbFormItem
-            :description="t('面向所有有待办的用户，按人发送个性化汇总；与是否启用群聊无关')"
+            :description="t('面向所有有待办的用户，按人发送待办汇总；与是否启用群通知无关')"
             :label="t('个人通知渠道')"
             property="notice"
             :rules="noticeRules">
@@ -253,7 +253,7 @@
       trigger: 'change',
     },
     {
-      message: t('企微群 ID 已存在'),
+      message: t('群 ID 重复'),
       trigger: 'change',
       validator: (value: string) => {
         if (!value.trim()) {
