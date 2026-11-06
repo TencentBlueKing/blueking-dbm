@@ -114,8 +114,29 @@ def test_cluster_for_iam(test_bk_biz_id, test_cluster_module, test_city):
 
 
 @pytest.fixture
+def mock_iam_backend():
+    """
+    提供Mock的鉴权后端。
+    Permission 的鉴权调用都经由 backend，直接替换 Permission._iam 已不生效
+    """
+    from unittest.mock import MagicMock
+
+    from backend.iam_app.handlers.backends.base import IAMBackend
+
+    backend = MagicMock(spec=IAMBackend)
+    backend.is_allowed.return_value = True
+    backend.policy_query.side_effect = lambda username, action, obj_list: list(obj_list)
+    backend.grant_creator_actions.return_value = (True, "success")
+    backend.multi_actions_is_allowed.return_value = {}
+    backend.batch_is_allowed.return_value = {}
+    backend.get_apply_url.return_value = "http://apply.url"
+    backend.get_system_info.return_value = {}
+    return backend
+
+
+@pytest.fixture
 def mock_iam_client():
-    """提供Mock的IAM客户端"""
+    """提供Mock的IAM SDK客户端，供 IAMV3Backend 使用"""
     from unittest.mock import MagicMock
 
     from iam import DummyIAM

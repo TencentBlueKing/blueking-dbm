@@ -13,6 +13,7 @@ import copy
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend import env
 from backend.iam_app import mock_data
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
@@ -34,23 +35,48 @@ class SimpleIamActionResourceRequestSerializer(serializers.Serializer):
     is_raise_exception = serializers.BooleanField(help_text=_("是否抛出异常"), required=False, default=False)
 
     def validate(self, attrs):
+        # 前端传参不变的情况下， 如果是绑定BIZ_DBTYPE类型的action， 需要单独处理
+        if (
+            env.ENABLE_IAM_V4
+            and ActionEnum.get_action_by_id(attrs["action_id"]).related_resource_type_v4 == ResourceEnum.BIZ_DBTYPE
+        ):
+            return attrs
+
         related_resources = copy.deepcopy(ActionEnum.get_action_by_id(attrs["action_id"]).related_resource_types)
         if len(related_resources) > 2 or (
             len(related_resources) == 2 and ResourceEnum.BUSINESS not in related_resources
         ):
             raise serializers.ValidationError(_("仅支持业务下一个动作关联一种类型的资源"))
 
-        attrs["resources"] = []
+        return attrs
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        action = ActionEnum.get_action_by_id(instance["action_id"])
+        # 前端传参不变的情况下， 如果是绑定BIZ_DBTYPE类型的action， 需要单独处理
+        if env.ENABLE_IAM_V4 and action.related_resource_type_v4 == ResourceEnum.BIZ_DBTYPE:
+            data["resources"] = [
+                {
+                    "type": ResourceEnum.BIZ_DBTYPE.id,
+                    "id": ResourceEnum.BIZ_DBTYPE.make_instance_id(instance["bk_biz_id"], instance["resource_id"]),
+                }
+            ]
+            return data
+
+        related_resources = copy.deepcopy(action.related_resource_types)
+        resources = []
         # 如果有业务资源
-        if attrs.get("bk_biz_id") and ResourceEnum.BUSINESS in related_resources:
-            attrs["resources"].append({"type": ResourceEnum.BUSINESS.id, "id": attrs["bk_biz_id"]})
+        if instance.get("bk_biz_id") and ResourceEnum.BUSINESS in related_resources:
+            resources.append({"type": ResourceEnum.BUSINESS.id, "id": instance["bk_biz_id"]})
             related_resources.remove(ResourceEnum.BUSINESS)
         # 如果关联其他资源
         if related_resources:
             resource_type = related_resources[0].id
-            attrs["resources"].append({"type": resource_type, "id": attrs["resource_id"]})
+            resources.append({"type": resource_type, "id": instance["resource_id"]})
 
-        return attrs
+        data["resources"] = resources
+        return data
 
 
 class GetApplyDataResSerializer(serializers.Serializer):

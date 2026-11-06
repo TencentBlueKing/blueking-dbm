@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 from collections import defaultdict
 from dataclasses import asdict, dataclass
 from typing import Dict, List, Union
@@ -17,7 +18,7 @@ from iam import Action
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole
-from backend.iam_app.constans import MAX_ACTION_NAME_LEN, CommonActionLabel
+from backend.iam_app.constans import DEPRECATED_ACTION_GROUP, MAX_ACTION_NAME_LEN, CommonActionLabel
 from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta
 from backend.iam_app.exceptions import ActionNotExistError, BaseIAMError
 from backend.ticket.constants import TicketEnumField, TicketType
@@ -42,6 +43,10 @@ class ActionMeta(Action):
     common_labels: List[str] = None  # 动作隶属常用操作配置组
 
     is_ticket_action: bool = False  # 表示该动作是单据工具箱
+
+    # ---------------- IAM V4 字段 ----------------
+    # V4 的动作只有 id/name/resource_type_id 三个字段，且只能关联单个资源类型，
+    related_resource_type_v4: ResourceMeta = None
 
     def __post_init__(self):
         super(ActionMeta, self).__init__(id=self.id)
@@ -74,6 +79,7 @@ class ActionMeta(Action):
         content = asdict(self)
         content.pop("is_ticket_action")
         content.pop("common_labels")
+        content.pop("related_resource_type_v4")
         content.update(
             {
                 "description": self.description or self.name,
@@ -100,6 +106,34 @@ class ActionMeta(Action):
             related_resource_types.append(related_resource_type)
 
         content["related_resource_types"] = related_resource_types
+        return content
+
+    def get_related_resource_type_v4(self) -> Union[ResourceMeta, None]:
+        """
+        获取V4关联的资源类型。V4的动作只能关联一个资源类型，未显式指定时取关联列表的第一个
+        """
+        if self.related_resource_type_v4:
+            return self.related_resource_type_v4
+        if not self.related_resource_types:
+            return None
+
+        return self.related_resource_types[0]
+
+    def is_disabled_v4(self) -> bool:
+        """动作是否不同步到V4：已废弃分组的动作不再注册，关联资源未同步的动作也无法注册"""
+        if self.group == DEPRECATED_ACTION_GROUP:
+            return True
+        related_resource_type = self.get_related_resource_type_v4()
+        return bool(related_resource_type and related_resource_type.iamv4_disable)
+
+    def to_json_v4(self):
+        """V4的动作定义"""
+        related_resource_type = self.get_related_resource_type_v4()
+        content = {
+            "id": self.id,
+            "name": self.name,
+            "resource_type_id": related_resource_type.id if related_resource_type else "",
+        }
         return content
 
     def __hash__(self):
@@ -177,8 +211,8 @@ class ActionEnum:
         type="edit",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
-        group=_("业务"),
-        subgroup=_("业务配置"),
+        # V4只能关联一个资源，业务与DB类型合成为业务DB类型
+        related_resource_type_v4=ResourceEnum.BIZ_DBTYPE,
     )
 
     BIZ_ASSISTANCE_VARS_CONFIG = ActionMeta(
@@ -355,6 +389,8 @@ class ActionEnum:
         related_actions=[],
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
         group=_("业务"),
+        # V4只能关联一个资源，业务与DB类型合成为业务DB类型
+        related_resource_type_v4=ResourceEnum.BIZ_DBTYPE,
         subgroup=_("数据库配置"),
     )
 
@@ -2393,6 +2429,8 @@ class ActionEnum:
         group=_("业务"),
         subgroup=_("告警管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
+        # V4只能关联一个资源，业务与DB类型合成为业务DB类型
+        related_resource_type_v4=ResourceEnum.BIZ_DBTYPE,
     )
 
     GLOBAL_ALARM_POLICY_MANAGE = ActionMeta(
