@@ -408,9 +408,11 @@ func (i *InstallDorisService) CheckFrontEndStart() (err error) {
 
 // StopByFeHelper TODO
 func (i *InstallDorisService) StopByFeHelper() (err error) {
-	_, err = osutil.ExecShellCommand(false, fmt.Sprintf(
-		"su - mysql -c \"%s/%s/bin/stop_fe.sh\"",
-		i.DorisEnvDir, i.Params.Role))
+	// 用 ExecShellCommandJ：stop_fe.sh 会把停止日志写到 stderr，
+	// 用 ExecShellCommand 会因「stderr 非空即失败」把正常停止判为失败
+	_, err = osutil.ExecShellCommandJ(false, fmt.Sprintf(
+		"su - mysql -c \"%s %s/%s/bin/stop_fe.sh\"",
+		dorisutil.LoadProfileCmd, i.DorisEnvDir, i.Params.Role))
 	return err
 
 }
