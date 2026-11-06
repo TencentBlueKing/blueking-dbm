@@ -529,6 +529,39 @@ func TestFilterWhitelistedInstances_MatchByClusterNameAfterRebuild(t *testing.T)
 	}
 }
 
+func TestFilterWhitelistedInstances_MatchByClusterNameIgnoresCloud(t *testing.T) {
+	setupEnableSwitchingForTest(t)
+	setupEnableWhiteListForTest(t)
+
+	// v1 matches by cluster_name only. A whitelist hit must still apply when the
+	// instance lives in a different cloud than the failure group.
+	server := testutil.NewDbhaV1BlackWhiteListTestServer(t, []*dbm.Dbhav1BlackWhiteListItem{
+		{
+			BkBizID:       100,
+			ClusterID:     200,
+			ClusterName:   "shared-name.db",
+			SwitchVersion: string(hamodel.SwitchVersionV2),
+			Status:        string(hamodel.StatusTypeEnabled),
+		},
+	})
+	setupBlackWhiteListAPIForTest(t, server.URL)
+
+	w := newWorkflowForHandleFailureGroupTests(t, &dbm.Client{})
+	group := buildSingleFailureGroup()
+	meta := whitelistMeta("127.0.0.1", 200, "shared-name.db")
+	meta.BkCloudID = 0
+	req := &switcher.Request{
+		DbType:   haprobe.DbTypeMySql,
+		InstData: []*dbm.DbInstMetadata{meta},
+	}
+
+	w.filterByWhitelistForSwitch(context.Background(), nil, group, req, nil)
+
+	if len(req.InstData) != 1 {
+		t.Fatalf("expected 1 instance remaining when matching by cluster_name only, got %d", len(req.InstData))
+	}
+}
+
 func TestFilterWhitelistedInstances_NoneWhitelisted(t *testing.T) {
 	setupEnableSwitchingForTest(t)
 	setupEnableWhiteListForTest(t)
