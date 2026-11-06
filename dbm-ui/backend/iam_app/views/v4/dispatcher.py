@@ -92,7 +92,8 @@ class IAMV4ResourceApiDispatcher(DjangoBasicResourceApiDispatcher):
                 return self._error_response(404, "NOT_FOUND", "unsupported method", request_id)
         except Exception as e:  # pylint: disable=broad-except
             logger.exception("[iam_v4_callback] request(%s) failed: %s", request_id, e)
-            return self._error_response(500, "INTERNAL", str(e), request_id)
+            # 异常详情只记日志，不回传给调用方，避免泄露内部实现
+            return self._error_response(500, "INTERNAL", "internal server error", request_id)
 
     @staticmethod
     def _is_auth_allowed(basic_auth: str) -> bool:
