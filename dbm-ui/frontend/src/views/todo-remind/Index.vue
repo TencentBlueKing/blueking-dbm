@@ -30,7 +30,7 @@
         <DbForm
           ref="form"
           class="notice-form"
-          :label-width="100"
+          :label-width="140"
           :model="formData">
           <DbFormItem
             :label="t('启用提醒')"
@@ -62,127 +62,109 @@
             </div>
           </DbFormItem>
           <DbFormItem
-            :label="t('通知渠道')"
+            :description="t('面向所有有待办的用户，按人发送个性化汇总；与是否启用群聊无关')"
+            :label="t('个人通知渠道')"
             property="notice"
-            required
             :rules="noticeRules">
-            <div class="channel-config">
-              <!-- 个人通知（全员） -->
-              <div class="channel-group">
-                <div class="channel-group-head">
-                  <span class="channel-group-title-text">{{ t('个人通知（全员）') }}</span>
-                  <span class="channel-group-inline-desc">
-                    {{ t('面向所有有待办的用户，按人发送个性化汇总；与是否启用群聊无关。') }}
-                  </span>
-                </div>
-                <div class="personal-channels">
-                  <BkCheckbox
-                    v-for="item in personalChannelList"
-                    :key="item.type"
-                    v-model="formData.notice.checkbox[item.type]"
-                    class="channel-check-label"
-                    :disabled="!formData.isEnable"
-                    @change="handleCheckboxChange">
-                    <img
-                      class="channel-icon"
-                      :src="`data:image/png;base64,${item.icon}`" />
-                    {{ item.label }}
-                  </BkCheckbox>
-                </div>
-              </div>
-              <!-- 企微群聊（仅 DBA） -->
-              <div class="channel-group">
-                <div class="channel-group-head">
-                  <span class="channel-group-title-text">{{ t('企微群聊（仅 DBA）') }}</span>
-                  <span class="channel-group-inline-desc">{{
-                    t('仅汇总 DBA 待办并发送到所填群聊，不包含普通用户。')
-                  }}</span>
-                </div>
-                <div class="rule-toolbar mb-12">
-                  <BkButton
-                    class="w-88"
-                    :disabled="!formData.isEnable"
-                    @click="handleAddRule">
-                    <DbIcon
-                      class="mr-4"
-                      type="add" />
-                    {{ t('添加') }}
-                  </BkButton>
-                  <span class="rule-summary">{{ t('共 {n} 条规则', { n: formData.rules.length }) }}</span>
-                </div>
-                <PrimaryTable
-                  class="rule-table"
-                  :data="formData.rules"
-                  row-key="uid">
-                  <TableColumn
-                    col-key="chat_id"
-                    :min-width="220">
-                    <template #title>
-                      <span class="rule-required">*</span>
-                      {{ t('企微群 ID') }}
-                    </template>
-                    <template #default="{ row, rowIndex }: { row: IRuleRow; rowIndex: number }">
-                      <DbFormItem
-                        error-display-type="tooltips"
-                        :property="`rules.${rowIndex}.chat_id`"
-                        :rules="chatIdRules">
-                        <BkInput
-                          v-model="row.chat_id"
-                          clearable
-                          :disabled="!formData.isEnable"
-                          :placeholder="t('请输入企微群 ID')" />
-                      </DbFormItem>
-                    </template>
-                  </TableColumn>
-                  <TableColumn
-                    col-key="components"
-                    :min-width="280">
-                    <template #title>
-                      <span class="rule-required">*</span>
-                      {{ t('待办人员范围') }}
-                    </template>
-                    <template #default="{ row, rowIndex }: { row: IRuleRow; rowIndex: number }">
-                      <DbFormItem
-                        error-display-type="tooltips"
-                        :property="`rules.${rowIndex}.components`"
-                        :rules="componentRules">
-                        <DbSelect
-                          v-model="row.components"
-                          class="rule-component-select"
-                          clearable
-                          collapse-tags
-                          :disabled="!formData.isEnable"
-                          :list="ruleComponentOptions"
-                          multiple
-                          multiple-mode="tag"
-                          :placeholder="t('请选择组件')" />
-                      </DbFormItem>
-                    </template>
-                  </TableColumn>
-                  <TableColumn
-                    col-key="row-operation"
-                    :title="t('操作')"
-                    :width="80">
-                    <template #default="{ rowIndex }: { rowIndex: number }">
-                      <BkButton
-                        :disabled="!formData.isEnable"
-                        text
-                        theme="danger"
-                        @click="() => handleDeleteRule(rowIndex)">
-                        {{ t('删除') }}
-                      </BkButton>
-                    </template>
-                  </TableColumn>
-                  <template #empty>
-                    <BkException
-                      :description="t('暂无群通知规则')"
-                      scene="part"
-                      style="font-size: 12px"
-                      type="empty" />
-                  </template>
-                </PrimaryTable>
-              </div>
+            <div class="personal-channels">
+              <BkCheckbox
+                v-for="item in personalChannelList"
+                :key="item.type"
+                v-model="formData.notice.checkbox[item.type]"
+                class="channel-check-label"
+                :disabled="!formData.isEnable"
+                @change="handleCheckboxChange">
+                <img
+                  class="channel-icon"
+                  :src="`data:image/png;base64,${item.icon}`" />
+                {{ item.label }}
+              </BkCheckbox>
             </div>
+          </DbFormItem>
+          <DbFormItem
+            :description="t('仅汇总 DBA 待办并发送到所填群聊，不包含普通用户')"
+            :label="t('企微群通知')">
+            <div class="rule-toolbar mb-12">
+              <BkButton
+                class="w-88"
+                :disabled="!formData.isEnable"
+                @click="handleAddRule">
+                <DbIcon
+                  class="mr-4"
+                  type="add" />
+                {{ t('添加') }}
+              </BkButton>
+              <span
+                v-if="formData.rules.length > 0"
+                class="rule-summary">
+                {{ t('共 {n} 条规则', { n: formData.rules.length }) }}
+              </span>
+            </div>
+            <PrimaryTable
+              v-if="formData.rules.length > 0"
+              class="rule-table"
+              :data="formData.rules"
+              row-key="uid">
+              <TableColumn
+                col-key="chat_id"
+                :min-width="220">
+                <template #title>
+                  <span class="rule-required">*</span>
+                  {{ t('企微群 ID') }}
+                </template>
+                <template #default="{ row, rowIndex }: { row: IRuleRow; rowIndex: number }">
+                  <DbFormItem
+                    error-display-type="tooltips"
+                    :property="`rules.${rowIndex}.chat_id`"
+                    :rules="chatIdRules">
+                    <BkInput
+                      v-model="row.chat_id"
+                      clearable
+                      :disabled="!formData.isEnable"
+                      :placeholder="t('请输入企微群 ID')" />
+                  </DbFormItem>
+                </template>
+              </TableColumn>
+              <TableColumn
+                col-key="components"
+                :min-width="280">
+                <template #title>
+                  <span class="rule-required">*</span>
+                  {{ t('待办人员范围') }}
+                </template>
+                <template #default="{ row, rowIndex }: { row: IRuleRow; rowIndex: number }">
+                  <DbFormItem
+                    error-display-type="tooltips"
+                    :property="`rules.${rowIndex}.components`"
+                    :rules="componentRules">
+                    <DbSelect
+                      v-model="row.components"
+                      class="rule-component-select"
+                      clearable
+                      collapse-tags
+                      :disabled="!formData.isEnable"
+                      :list="ruleComponentOptions"
+                      multiple
+                      multiple-mode="tag"
+                      :placeholder="t('请选择组件')" />
+                  </DbFormItem>
+                </template>
+              </TableColumn>
+              <TableColumn
+                col-key="row-operation"
+                :title="t('操作')"
+                :width="80">
+                <template #default="{ rowIndex }: { rowIndex: number }">
+                  <BkButton
+                    :disabled="!formData.isEnable"
+                    text
+                    theme="danger"
+                    @click="() => handleDeleteRule(rowIndex)">
+                    {{ t('删除') }}
+                  </BkButton>
+                </template>
+              </TableColumn>
+            </PrimaryTable>
           </DbFormItem>
         </DbForm>
       </BkCard>
@@ -298,7 +280,7 @@
       trigger: 'change',
       validator: () => {
         if (formData.isEnable) {
-          return Object.values(formData.notice.checkbox).some((item) => item) || formData.rules.length > 0;
+          return Object.values(formData.notice.checkbox).some((item) => item);
         }
         return true;
       },
@@ -523,36 +505,9 @@
       }
 
       // 通知渠道配置样式
-      .channel-config {
-        width: 100%;
-      }
-
-      .channel-group {
-        margin-top: 6px;
-
-        &:not(:first-child) {
-          padding-top: 20px;
-          margin-top: 20px;
-          border-top: 1px solid #f0f1f5;
-        }
-      }
-
-      .channel-group-head {
-        margin-bottom: 12px;
-        font-size: 13px;
-        line-height: 1.65;
-        color: #313238;
-      }
-
-      .channel-group-title-text {
-        font-weight: 600;
-        color: #313238;
-      }
-
-      .channel-group-inline-desc {
-        margin-left: 8px;
+      .channel-desc {
         font-size: 12px;
-        font-weight: normal;
+        line-height: 20px;
         color: #979ba5;
       }
 
