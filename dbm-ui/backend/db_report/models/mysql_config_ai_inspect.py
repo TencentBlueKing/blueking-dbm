@@ -41,6 +41,8 @@ class MysqlConfigAiInspect(AuditedModel):
     report_id = models.CharField(max_length=64, default="", help_text=_("报告 ID"))
     share_url = models.CharField(max_length=512, default="", help_text=_("报告分享完整链接"))
     summary = models.TextField(default="", help_text=_("巡检总结"))
+    score = models.FloatField(null=True, blank=True, default=None, help_text=_("配置巡检分数，空表示未评分"))
+    score_detail = models.JSONField(default=dict, help_text=_("配置巡检评分依据"))
     agent_cost_ms = models.IntegerField(default=0, help_text=_("Agent 耗时（毫秒）"))
     error_msg = models.TextField(default="", help_text=_("失败原因"))
 
