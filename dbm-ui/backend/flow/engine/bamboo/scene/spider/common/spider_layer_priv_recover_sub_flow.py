@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-TenDBCluster 接入层：从 Spider/tdbctl grant 备份恢复权限到指定机器与端口（非 HA storage 维度）。
+TenDBCluster 接入层：从 spider master grant 备份按 Spider 端口恢复权限到指定机器（非 HA storage 维度）。
 """
 import copy
 import logging
