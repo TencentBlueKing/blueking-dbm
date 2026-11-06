@@ -844,7 +844,7 @@ func (w *Workflow) reportMetadataUpdatedStats(ctx context.Context) {
 		if e := apm.DbmMetadataUpdatedCount.SetWithLabels(map[string]string{
 			haapm.MetricLabelServiceID:   w.myServiceID,
 			haapm.MetricLabelServiceName: apm.MetricServerName,
-			apm.MetricLabelDbType:        normalizeDbType(item.DbType).String(),
+			apm.MetricLabelDbType:        item.DbType.Normalize().String(),
 		}, float64(item.Count)); e != nil {
 			logger.Warn("failed to report dbm_metadata_updated_count, dbType: %s, errmsg: %s", item.DbType, e)
 		}
@@ -870,7 +870,7 @@ func (w *Workflow) reportStatusUpdatedStats(ctx context.Context) {
 		labels := map[string]string{
 			haapm.MetricLabelServiceID:   w.myServiceID,
 			haapm.MetricLabelServiceName: apm.MetricServerName,
-			apm.MetricLabelDbType:        normalizeDbType(item.DbType).String(),
+			apm.MetricLabelDbType:        item.DbType.Normalize().String(),
 			apm.MetricLabelHarvestType:   string(normalizeHarvestType(item.HarvestType)),
 		}
 		if e := apm.DbhaDataStatusUpdatedCount.SetWithLabels(labels,
@@ -903,19 +903,11 @@ func (w *Workflow) reportStatusIPActiveStats(ctx context.Context) {
 		if e := apm.DbhaDataStatusActiveIPCount.SetWithLabels(map[string]string{
 			haapm.MetricLabelServiceID:   w.myServiceID,
 			haapm.MetricLabelServiceName: apm.MetricServerName,
-			apm.MetricLabelDbType:        normalizeDbType(item.DbType).String(),
+			apm.MetricLabelDbType:        item.DbType.Normalize().String(),
 		}, float64(item.Count)); e != nil {
 			logger.Warn("failed to report dbha_data_status_active_ip_count, dbType: %s, errmsg: %s", item.DbType, e)
 		}
 	}
-}
-
-// normalizeDbType maps an empty db_type to DbTypeUnknown so that metrics never expose an empty label.
-func normalizeDbType(dbType haprobe.DbType) haprobe.DbType {
-	if dbType == haprobe.DbTypeNone {
-		return haprobe.DbTypeUnknown
-	}
-	return dbType
 }
 
 // normalizeHarvestType maps a missing harvest_type to the default collection group, matching

@@ -28,6 +28,12 @@ import (
 	"math"
 	"testing"
 	"time"
+
+	"dbm-services/common/dbha-v2/internal/receiver/apm"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 )
 
 func TestDelayMillisSkipsUnusableTimestamps(t *testing.T) {
@@ -87,5 +93,58 @@ func TestFirstSuccessUsesEarliestEndpoint(t *testing.T) {
 	ok, at := firstSuccess(results, 0, 0)
 	if !ok || !at.Equal(t0) {
 		t.Fatalf("expected earliest success at %s, ok: %v, at: %s", t0, ok, at)
+	}
+}
+
+func TestRecordWriteStatsNormalizesDbType(t *testing.T) {
+	const (
+		testTopic      = "topic"
+		unknownDbType  = "not-a-db-type"
+		mysqlDbType    = "mysql"
+		dropCountWant  = 3
+		delayCountWant = 1
+	)
+
+	drops := prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "test_sink_drop_messages_total", Help: "test",
+	}, []string{apm.MetricLabelSink, apm.MetricLabelDbType, apm.MetricLabelReason})
+	delays := prometheus.NewHistogramVec(prometheus.HistogramOpts{
+		Name: "test_sink_write_delay_ms", Help: "test", Buckets: []float64{1000},
+	}, []string{apm.MetricLabelSink, apm.MetricLabelDbType})
+
+	prevDrops := apm.SinkDropMessagesTotal.ToMetric().Collector
+	prevDelays := apm.SinkWriteDelayMs.ToMetric().Collector
+	apm.SinkDropMessagesTotal.ToMetric().Collector = drops
+	apm.SinkWriteDelayMs.ToMetric().Collector = delays
+	t.Cleanup(func() {
+		apm.SinkDropMessagesTotal.ToMetric().Collector = prevDrops
+		apm.SinkWriteDelayMs.ToMetric().Collector = prevDelays
+	})
+
+	var stats WriteStats
+	stats.AddDrop("", ReasonInvalidJSON, 1)
+	stats.AddDrop(unknownDbType, ReasonFatal, 2)
+	stats.AddDrop(mysqlDbType, ReasonDedup, 1)
+	stats.Samples = append(stats.Samples,
+		DelaySample{DbType: "", Ms: 10},
+		DelaySample{DbType: unknownDbType, Ms: 20},
+	)
+	RecordWriteStats(testTopic, stats)
+
+	if got := testutil.CollectAndCount(drops); got != dropCountWant {
+		t.Fatalf("sink_drop_messages_total has %d series, want %d", got, dropCountWant)
+	}
+	unknown := haprobe.DbType("").Normalize().String()
+	if got := testutil.ToFloat64(drops.WithLabelValues(testTopic, unknown, ReasonInvalidJSON)); got != 1 {
+		t.Fatalf("empty db_type drop = %v, want 1", got)
+	}
+	if got := testutil.ToFloat64(drops.WithLabelValues(testTopic, unknown, ReasonFatal)); got != 2 {
+		t.Fatalf("unknown db_type drop = %v, want 2", got)
+	}
+	if got := testutil.ToFloat64(drops.WithLabelValues(testTopic, mysqlDbType, ReasonDedup)); got != 1 {
+		t.Fatalf("known db_type drop = %v, want 1", got)
+	}
+	if got := testutil.CollectAndCount(delays); got != delayCountWant {
+		t.Fatalf("sink_write_delay_ms has %d series, want %d", got, delayCountWant)
 	}
 }

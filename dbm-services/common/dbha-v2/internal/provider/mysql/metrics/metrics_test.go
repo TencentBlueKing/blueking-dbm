@@ -24,7 +24,13 @@
 
 package mysqlmetrics
 
-import "testing"
+import (
+	"slices"
+	"testing"
+
+	"dbm-services/common/dbha-v2/internal/analysis/apm"
+	"dbm-services/common/dbha-v2/pkg/haapm"
+)
 
 func TestMySQLMetricNames(t *testing.T) {
 	want := map[string]*struct{}{
@@ -52,5 +58,19 @@ func TestMySQLMetricNames(t *testing.T) {
 	}
 	for name := range want {
 		t.Errorf("missing metric name %q", name)
+	}
+}
+
+func TestMySQLSwitchingHistogramLabels(t *testing.T) {
+	want := []string{apm.MetricLabelActionScope, apm.MetricLabelDbType}
+	metrics := []*haapm.HaHistogram{
+		ClusterSwitchingTimeConsumingMs,
+		HostSwitchingTimeConsumingMs,
+		InstanceSwitchingTimeConsumingMs,
+	}
+	for _, metric := range metrics {
+		if !slices.Equal(metric.ToMetric().Labels, want) {
+			t.Errorf("%s labels = %v, want %v", metric.ToMetric().Name, metric.ToMetric().Labels, want)
+		}
 	}
 }

@@ -43,22 +43,46 @@ var excludedPaths = map[string]bool{
 	"/swagger.json":    true,
 }
 
+// metricLabelUnmatched folds every unmatched route into one bounded path label value.
+const metricLabelUnmatched = "unmatched"
+
+// allowedHTTPMethods bounds the method label to the standard HTTP methods.
+var allowedHTTPMethods = map[string]struct{}{
+	http.MethodGet:     {},
+	http.MethodPost:    {},
+	http.MethodPut:     {},
+	http.MethodDelete:  {},
+	http.MethodPatch:   {},
+	http.MethodHead:    {},
+	http.MethodOptions: {},
+}
+
+// normalizeHTTPMethod folds unknown HTTP methods into a single bounded label value.
+func normalizeHTTPMethod(method string) string {
+	if _, ok := allowedHTTPMethods[method]; ok {
+		return method
+	}
+	return metricLabelUnknown
+}
+
 // MetricMiddleware returns a gin middleware for collecting API metrics
 func MetricMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		method := c.Request.Method
-
-		// This avoids high cardinality issues in metrics
-		path := c.FullPath()
-		if path == "" {
-			// Fallback to raw path if FullPath is empty (e.g., 404 routes)
-			path = c.Request.URL.Path
-		}
-
-		// Skip excluded paths
-		if isExcludedPath(path) {
+		// Excluded paths are judged by the route template for registered routes and
+		// by the raw URL for unmatched ones, before the path label is normalized.
+		routePath := c.FullPath()
+		if isExcludedPath(routePath) || (routePath == "" && isExcludedPath(c.Request.URL.Path)) {
 			c.Next()
 			return
+		}
+
+		method := normalizeHTTPMethod(c.Request.Method)
+
+		// Registered routes expose their route template; unmatched requests are folded
+		// into a constant so arbitrary URLs cannot create unbounded series.
+		path := routePath
+		if path == "" {
+			path = metricLabelUnmatched
 		}
 
 		start := time.Now()
