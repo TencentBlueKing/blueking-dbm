@@ -33,53 +33,28 @@ func ParseV3Mongolog(data []byte) (*MongoLogMsg, []byte, error) {
 		return &row, nil, err
 	}
 
-	var attrStr []byte
-	attrStr, _ = json.Marshal(row.Attr)
-
-	switch row.Attr.(type) {
+	switch attr := row.Attr.(type) {
 	case map[string]interface{}:
-		if row.Id == LogTypeSlowlog {
-			attr := row.Attr.(map[string]interface{})
-			// 将不确定的字段转换为string: command
-			// durationMillis 保持原值，兼容 attr.durationMillis 查询
-			for k, v := range attr {
-				if k == "durationMillis" {
-					continue
-				}
-				switch v.(type) {
-				case string, float64, bool, int:
-					continue
-				default:
-					datav, _ := json.Marshal(v)
-					attr[k] = string(datav)
-				}
+		// 将 command 等复合字段转成 string。durationMillis 保持原值，兼容 attr.durationMillis 查询。
+		for k, v := range attr {
+			if k == "durationMillis" {
+				continue
 			}
-
-			row.Attr = attr
-		} else {
-			attr := row.Attr.(map[string]interface{})
-			// 将不确定的字段转换为string: command
-			for k, v := range attr {
-				if k == "durationMillis" {
-					continue
-				}
-				switch v.(type) {
-				case string, float64, bool, int:
-					continue
-				default:
-					datav, _ := json.Marshal(v)
-					attr[k] = string(datav)
-				}
+			switch v.(type) {
+			case string, float64, bool, int:
+				continue
+			default:
+				datav, _ := json.Marshal(v)
+				attr[k] = string(datav)
 			}
-			row.Attr = attr
 		}
+		row.Attr = attr
 		row.copyDurationMillisFromAttr()
-
 	default:
 		log.Warnf("unmarshal Attr failed: unknown type %T", row.Attr)
 	}
 
-	return &row, attrStr, err
+	return &row, nil, err
 }
 
 func (m *MongoLogMsg) copyDurationMillisFromAttr() {
