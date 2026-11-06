@@ -99,6 +99,21 @@ class TestSQLImportViewSet:
         result = response.json()["data"]
         assert isinstance(result, dict)
 
+    @patch("backend.db_services.mysql.sql_import.handlers.SQLSimulationApi", SQLSimulationApiMock)
+    def test_common_grammar_check(self):
+        """测试公共语法检查 - 不依赖集群和版本"""
+        url = f"/apis/mysql/bizs/{constant.BK_BIZ_ID}/sql_import/common_grammar_check/"
+        data = {
+            "path": "mysql/sqlfile/123",
+            "files": ["grant.sql", "update.sql"],
+            "execute_objects": [{"sql_files": ["grant.sql"], "dbnames": ["db%"], "ignore_dbnames": []}],
+        }
+        response = client.post(url, data=data, content_type="application/json")
+
+        assert response.status_code == status.HTTP_200_OK
+        result = response.json()["data"]
+        assert set(result) == {"grant.sql", "update.sql"}
+
     @patch("backend.db_services.mysql.sql_import.handlers.get_storage", get_storage_mock)
     @patch("backend.db_services.mysql.sql_import.handlers.MySQLController")
     @patch("backend.db_services.mysql.sql_import.handlers.generate_root_id")

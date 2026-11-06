@@ -192,6 +192,28 @@ class SQLHandler(object):
 
         return check_info
 
+    def common_grammar_check(
+        self,
+        path: str,
+        files: List[str],
+        execute_objects: List[Dict[str, Any]] = None,
+    ) -> Dict:
+        """
+        公共语法检查：未选定集群和版本时，只检查 MySQL 与 Spider 共有的禁用、高危规则。
+        sql文件需提前上传到制品库，本接口只读取不上传。
+        @param path: 制品库中sql文件所在目录
+        @param files: sql文件名列表
+        @param execute_objects: sql执行体信息，line_id 由后端按行序补齐
+        """
+        params = {"bk_biz_id": self.bk_biz_id, "path": path, "files": files}
+        if execute_objects:
+            for index, execute in enumerate(execute_objects):
+                execute["line_id"] = index
+            params["execute_objects"] = execute_objects
+
+        # 组件层解包下游 data；code 非 0 时抛 ApiResultError，message 为下游返回的原因
+        return SQLSimulationApi.common_grammar_check(params=params) or {}
+
     def semantic_check(
         self,
         charset: str,

@@ -31,6 +31,12 @@ SQL_GRAMMAR_CHECK_RESPONSE_DATA = {
     },
 }
 
+SQL_COMMON_GRAMMAR_CHECK_REQUEST_DATA = {
+    "path": "mysql/sqlfile/123",
+    "files": ["grant.sql", "update.sql"],
+    "execute_objects": [{"line_id": 0, "sql_files": ["grant.sql"], "dbnames": ["db%"], "ignore_dbnames": []}],
+}
+
 SQL_SEMANTIC_CHECK_REQUEST_DATA = {
     "created_by": "admin",
     "bk_biz_id": "2005000194",

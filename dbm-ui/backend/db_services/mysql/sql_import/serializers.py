@@ -105,6 +105,43 @@ class SQLGrammarCheckResponseSerializer(serializers.Serializer):
         swagger_schema_fields = {"example": mock_data.SQL_GRAMMAR_CHECK_RESPONSE_DATA}
 
 
+class SQLCommonGrammarCheckExecuteObjectSerializer(serializers.Serializer):
+    line_id = serializers.IntegerField(help_text=_("行号，由后端按行序覆盖"), required=False)
+    sql_files = serializers.ListField(
+        help_text=_("该行使用的sql文件名，必须出现在files中"),
+        child=serializers.CharField(trim_whitespace=False),
+        allow_empty=False,
+    )
+    dbnames = serializers.ListField(
+        help_text=_("目标变更DB，可带%、?通配"), child=serializers.CharField(), required=False, default=list
+    )
+    ignore_dbnames = serializers.ListField(
+        help_text=_("排除DB"), child=serializers.CharField(), required=False, default=list
+    )
+
+
+class SQLCommonGrammarCheckSerializer(serializers.Serializer):
+    path = serializers.CharField(help_text=_("制品库中sql文件所在目录"))
+    files = serializers.ListField(
+        help_text=_("sql文件名列表，只接受单个文件名"),
+        child=serializers.CharField(trim_whitespace=False),
+        allow_empty=False,
+    )
+    execute_objects = serializers.ListSerializer(
+        help_text=_("sql执行体信息"), child=SQLCommonGrammarCheckExecuteObjectSerializer(), required=False
+    )
+
+    class Meta:
+        swagger_schema_fields = {"example": mock_data.SQL_COMMON_GRAMMAR_CHECK_REQUEST_DATA}
+
+    def validate(self, attrs):
+        for execute_object in attrs.get("execute_objects") or []:
+            unknown_files = set(execute_object["sql_files"]) - set(attrs["files"])
+            if unknown_files:
+                raise ValidationError(_("execute_objects中的sql文件{}必须出现在files中").format(sorted(unknown_files)))
+        return attrs
+
+
 class SQLSemanticCheckSerializer(serializers.Serializer):
     class ExecuteSQLObjectSerializer(ExecuteSQLObjectsSerializer):
         import_mode = serializers.ChoiceField(help_text=_("sql导入模式"), choices=SQLImportMode.get_choices())
