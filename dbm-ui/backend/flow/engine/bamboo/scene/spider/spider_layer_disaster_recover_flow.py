@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-TenDBCluster 接入层全毁灾难恢复：冷安装 Spider/tdbctl → Remote 授权 → 表结构 → 权限 → 路由 → 元数据切换。
+TenDBCluster 接入层全毁灾难恢复：冷安装 Spider/tdbctl → Remote 授权 → 表结构 → Spider 权限 → 路由 → 元数据切换。
 支持 spider_master / spider_slave 角色独立或同时恢复（同时恢复时严格按 master → slave 串行编排）。
 """
 import copy
@@ -75,6 +75,9 @@ from backend.ticket.constants import TicketType
 
 logger = logging.getLogger("flow")
 
+# 接入层权限备份查询的时间窗口（天）：查询与人工确认提示文案共用，避免两处硬编码不一致
+SPIDER_PRIV_BACKUP_DEADLINE_DAYS = 7
+
 
 class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNodesFlow):
     """
@@ -132,6 +135,9 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
     - pkg_id 无需传入，流程内通过 get_spider_pkg_id_for_layer_disaster_recover 自动解析。
     - master_new 与 slave_new 不可有重叠 IP（同一台机器不能既装 master 又装 slave），由 Validator 阻断。
     - 仅恢复 slave 时 Validator 已通过 L1+L3 双层校验中控（DBMeta RUNNING + DRS 探活）。
+    - 权限恢复只取 spider master 角色的 grant 备份，按 spider_port 恢复；TDBCTL 权限不恢复。
+    - 查不到最近 SPIDER_PRIV_BACKUP_DEADLINE_DAYS 天内的权限备份时，在域名恢复段前插入人工确认节点，
+      提示需手动恢复权限；disable_manual_confirm=True 时跳过该确认。
     - 直调 FlowTestView 不会触发 Validator，需自行确保参数合法。
     """
 
@@ -230,7 +236,12 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
             act_name=_("Remote 与接入层内置账号授权"),
             act_component_code=AddSystemUserInClusterComponent.code,
             kwargs=asdict(
-                AddSpiderSystemUserKwargs(ctl_master_ip=primary_ctl_ip, user=TDBCTL_USER, passwd=tdbctl_pass)
+                AddSpiderSystemUserKwargs(
+                    ctl_master_ip=primary_ctl_ip,
+                    user=TDBCTL_USER,
+                    passwd=tdbctl_pass,
+                    drop_user_before_grant=True,
+                )
             ),
         )
         return seg.build_sub_process(sub_name=_("[{}] master 安装段").format(cluster.immute_domain))
@@ -271,6 +282,7 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
         ctl_port: int,
         info: dict,
         cluster_ticket: dict,
+        priv_backup_missing: dict,
     ) -> Any:
         """
         Stage 2 - master 路由段：DBMeta 写入 → 初始化并下发接入层路由（三步合一）→ 表结构同步 → 权限恢复。
@@ -334,7 +346,7 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
             target_role=TenDBClusterSpiderRole.SPIDER_MASTER.value,
             restore_ips=[h["ip"] for h in new_masters],
             spider_port=spider_port,
-            ctl_port=ctl_port,
+            priv_backup_missing=priv_backup_missing,
         )
         return seg.build_sub_process(sub_name=_("[{}] master 路由段").format(cluster.immute_domain))
 
@@ -350,6 +362,7 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
         ctl_port: int,
         info: dict,
         cluster_ticket: dict,
+        priv_backup_missing: dict,
     ) -> Any:
         """
         Stage 3 - slave 路由段：（仅重建 slave：先定向清理旧 slave 路由）→ 主中控登记 slave 路由
@@ -404,7 +417,7 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
             ),
         )
 
-        # slave 段权限恢复（与 master 段独立，由同一备份策略驱动；TDBCTL 角色备份会被自动跳过）
+        # slave 段权限恢复：复用同一份 spider master grant 备份，按 spider_port 恢复到新 slave
         self._maybe_add_priv_recover(
             seg=seg,
             cluster=cluster,
@@ -412,7 +425,7 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
             target_role=TenDBClusterSpiderRole.SPIDER_SLAVE.value,
             restore_ips=[h["ip"] for h in new_slaves],
             spider_port=spider_port,
-            ctl_port=ctl_port,
+            priv_backup_missing=priv_backup_missing,
         )
 
         seg.add_act(
@@ -585,12 +598,13 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
         target_role: str,
         restore_ips: List[str],
         spider_port: int,
-        ctl_port: int,
+        priv_backup_missing: dict,
     ) -> None:
-        """从 spider/tdbctl grant 备份按 mysql_role 选择 restore_port，挂在指定 segment 上。
+        """从 spider master grant 备份按 spider_port 恢复权限，挂在指定 segment 上。
 
-        @param target_role: 当前 segment 恢复的目标 spider 角色，用于过滤不兼容的备份角色。
-                            slave 节点不部署中控，故 TDBCTL 角色备份对 slave 段无意义，应跳过。
+        @param target_role: 当前 segment 恢复的目标 spider 角色，仅用于日志区分 master/slave 段。
+        @param priv_backup_missing: 本集群的跳过状态容器，仅「明确查不到备份」时置位，
+                                    供上层在域名恢复段前插入人工确认节点。
         """
         # 缺省视为 from_spider_grant_backup，与 Serializer/Validator 默认值保持一致（兼容直调 FlowTestView）
         mode = info.get("privilege_recovery_mode") or "from_spider_grant_backup"
@@ -601,25 +615,20 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
                 )
             )
             return
-        handler = MySQLBackupHandler(cluster_id=cluster.id, deadlines_days=7)
+        handler = MySQLBackupHandler(cluster_id=cluster.id, deadlines_days=SPIDER_PRIV_BACKUP_DEADLINE_DAYS)
         backup_info = handler.get_tendbcluster_spider_layer_grant_priv_backup_info(
             spider_priv_backup_id=info.get("spider_priv_backup_id") or None,
         )
         if not backup_info:
+            priv_backup_missing["priv_backup_missing"] = True
             logger.warning(
                 _(
-                    "集群 {} 的 {} 段跳过权限恢复：{} 天内未找到 spider/tdbctl 的 grant 备份记录"
-                    "（mysql_role in [spider_master, TDBCTL] 且 data_schema_grant=grant），"
+                    "集群 {} 的 {} 段跳过权限恢复：{} 天内未找到 spider master 的 grant 权限备份记录"
+                    "（mysql_role=spider_master 且 data_schema_grant 含 grant/all），"
                     "可先触发接入层 grant 备份或改用 account_rules_only 模式"
                 ).format(cluster.id, target_role, handler.deadlines_days)
             )
             return
-        role = (backup_info or {}).get("mysql_role") or ""
-        # slave 节点无中控实例，TDBCTL 角色备份的 grant 文件按 ctl_port 恢复在 slave 上必然失败，跳过
-        if target_role == TenDBClusterSpiderRole.SPIDER_SLAVE.value and str(role).upper() == "TDBCTL":
-            logger.warning(_("集群 {} 的 spider_slave 段跳过 TDBCTL 角色 grant 备份恢复（slave 节点无中控实例）").format(cluster.id))
-            return
-        restore_port = ctl_port if str(role).upper() == "TDBCTL" else spider_port
         priv_sub = spider_layer_priv_recover_sub_flow(
             root_id=self.root_id,
             uid=str(self.data["uid"]),
@@ -627,7 +636,7 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
             cluster_model=cluster,
             restore_ips=restore_ips,
             backup_info=backup_info,
-            restore_port=int(restore_port),
+            restore_port=int(spider_port),
         )
         if priv_sub:
             seg.add_sub_pipeline(sub_flow=priv_sub)
@@ -759,6 +768,8 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
 
         sub_pipeline = SubBuilder(root_id=self.root_id, data=cluster_ticket)
         disable_manual_confirm = self.data.get("disable_manual_confirm", False)
+        # 本集群局部状态：master/slave 两段共享，仅「明确查不到权限备份」时置位
+        priv_backup_missing = {"priv_backup_missing": False}
 
         # ────── Pre-Stage：合并路由预览 + 起始 Pause + DNS 摘除 ──────
         self._add_pre_stage(
@@ -811,6 +822,7 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
                     ctl_port=ctl_port,
                     info=info,
                     cluster_ticket=cluster_ticket,
+                    priv_backup_missing=priv_backup_missing,
                 )
             )
 
@@ -840,7 +852,18 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
                     ctl_port=ctl_port,
                     info=info,
                     cluster_ticket=cluster_ticket,
+                    priv_backup_missing=priv_backup_missing,
                 )
+            )
+
+        # ────── 权限恢复缺失提示：查不到备份时先人工确认，再恢复域名 ──────
+        if priv_backup_missing["priv_backup_missing"] and not disable_manual_confirm:
+            sub_pipeline.add_act(
+                act_name=_(
+                    "集群 {} 未找到最近 {} 天内的 spider master grant 权限备份，已跳过自动权限恢复；" "请先手动恢复 Spider 接入层权限，确认后再继续域名恢复"
+                ).format(cluster.immute_domain, SPIDER_PRIV_BACKUP_DEADLINE_DAYS),
+                act_component_code=PauseComponent.code,
+                kwargs={},
             )
 
         # ────── 域名恢复段：目标拓扑（新节点 + 保留节点）全部登记并核对后，统一恢复域名解析 ──────

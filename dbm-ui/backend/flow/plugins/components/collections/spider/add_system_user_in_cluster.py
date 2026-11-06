@@ -2,6 +2,7 @@ from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 
 from backend.components import DBPrivManagerApi
+from backend.components.db_remote_service.client import DRSApi
 from backend.constants import IP_PORT_DIVIDER
 from backend.flow.consts import PrivRole
 from backend.flow.plugins.components.collections.common.base_service import BaseService
@@ -26,12 +27,35 @@ class AddSystemUserInClusterService(BaseService):
 
         return True
 
+    def __grant_priv(self, params, drop_user_before_grant):
+        if drop_user_before_grant:
+            address = params["address"]
+            user = params["user"]
+            host = params["hosts"][0]
+            try:
+                res = DRSApi.rpc(
+                    {
+                        "addresses": [address],
+                        "cmds": [f"drop user '{user}'@'{host}'"],
+                        "force": False,
+                        "bk_cloud_id": params["bk_cloud_id"],
+                    }
+                )
+                error_msg = res[0]["error_msg"]
+            except Exception as err:  # pylint: disable=broad-except
+                error_msg = err
+            # 新实例没有该账号，删除失败不能让本节点失败
+            if error_msg:
+                self.log_warning(_("在[{}]删除内置账号失败: {}").format(address, error_msg))
+        return self.__add_priv(params)
+
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
         global_data = data.get_one_of_inputs("global_data")
         user = kwargs["user"]
         password = kwargs["passwd"]
         is_append_deploy = kwargs.get("is_append_deploy")
+        drop_user_before_grant = kwargs.get("drop_user_before_grant", False)
 
         # 远程授权
         params = {
@@ -52,40 +76,40 @@ class AddSystemUserInClusterService(BaseService):
         for spider_ip in global_data["spider_ip_list"]:
             params["address"] = f'{spider_ip["ip"]}{IP_PORT_DIVIDER}{global_data["spider_port"]}'
             params["role"] = PrivRole.SPIDER.value
-            if not self.__add_priv(params=params):
+            if not self.__grant_priv(params, drop_user_before_grant):
                 return False
         # 新集群部署，对所有的新的slave spider节点授权, 迁移的集群可能端口不一致
         if global_data.get("slave_spider_ip_list"):
             for spider_ip in global_data["slave_spider_ip_list"]:
                 params["address"] = f'{spider_ip["ip"]}{IP_PORT_DIVIDER}{global_data["slave_spider_port"]}'
                 params["role"] = PrivRole.SPIDER.value
-                if not self.__add_priv(params=params):
+                if not self.__grant_priv(params, drop_user_before_grant):
                     return False
         # 新集群部署，对所有的新的运维 spider节点授权, 迁移的集群可能端口不一致
         if global_data.get("mnt_spider_ip_list"):
             for spider_ip in global_data["mnt_spider_ip_list"]:
                 params["address"] = f'{spider_ip["ip"]}{IP_PORT_DIVIDER}{global_data["mnt_spider_port"]}'
                 params["role"] = PrivRole.SPIDER.value
-                if not self.__add_priv(params=params):
+                if not self.__grant_priv(params, drop_user_before_grant):
                     return False
         if global_data.get("mnt_slave_spider_ip_list"):
             for spider_ip in global_data["mnt_slave_spider_ip_list"]:
                 params["address"] = f'{spider_ip["ip"]}{IP_PORT_DIVIDER}{global_data["mnt_slave_spider_port"]}'
                 params["role"] = PrivRole.SPIDER.value
-                if not self.__add_priv(params=params):
+                if not self.__grant_priv(params, drop_user_before_grant):
                     return False
         #  新集群部署，对所有的新的ctl节点授权
         if is_append_deploy:
             for ctl_ip in global_data["tdbctl_ip_list"]:
                 params["address"] = f'{ctl_ip["ip"]}{IP_PORT_DIVIDER}{global_data["ctl_port"]}'
                 params["role"] = PrivRole.TDBCTL.value
-                if not self.__add_priv(params=params):
+                if not self.__grant_priv(params, drop_user_before_grant):
                     return False
         else:
             for ctl_ip in global_data["spider_ip_list"]:
                 params["address"] = f'{ctl_ip["ip"]}{IP_PORT_DIVIDER}{global_data["ctl_port"]}'
                 params["role"] = PrivRole.TDBCTL.value
-                if not self.__add_priv(params=params):
+                if not self.__grant_priv(params, drop_user_before_grant):
                     return False
 
         # 新集群部署，对所有的新remote节点授权
@@ -93,7 +117,7 @@ class AddSystemUserInClusterService(BaseService):
             for mysql_port in global_data["mysql_ports"]:
                 params["address"] = f'{mysql_ip["ip"]}{IP_PORT_DIVIDER}{mysql_port}'
                 params["role"] = PrivRole.MYSQL.value
-                if not self.__add_priv(params=params):
+                if not self.__grant_priv(params, drop_user_before_grant):
                     return False
 
         return True
