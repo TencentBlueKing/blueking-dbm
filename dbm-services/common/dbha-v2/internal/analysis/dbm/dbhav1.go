@@ -50,13 +50,14 @@ type Dbhav1BlackWhiteListItem struct {
 }
 
 // Dbhav1BlackWhitelistQueryArgs represents the query args for getting black white list in dbha-v1.
+// Pointers keep 0 / "" as explicit filters; a nil field is omitted and means no filter.
 type Dbhav1BlackWhitelistQueryArgs struct {
-	BkBizID       int    `json:"bk_biz_id,omitempty"`
-	BkCloudID     int    `json:"bk_cloud_id,omitempty"`
-	ClusterID     int    `json:"cluster_id,omitempty"`
-	ClusterName   string `json:"cluster_name,omitempty"`
-	SwitchVersion string `json:"switch_version,omitempty"`
-	Status        string `json:"status,omitempty"`
+	BkBizID       *int    `json:"bk_biz_id,omitempty"`
+	BkCloudID     *int    `json:"bk_cloud_id,omitempty"`
+	ClusterID     *int    `json:"cluster_id,omitempty"`
+	ClusterName   *string `json:"cluster_name,omitempty"`
+	SwitchVersion *string `json:"switch_version,omitempty"`
+	Status        *string `json:"status,omitempty"`
 }
 
 // Dbhav1BlackWhitelistGetRequest represents the request for getting black white list in dbha-v1.
@@ -106,23 +107,25 @@ func (c *Client) requestBlackWhiteList(ctx context.Context, req *Dbhav1BlackWhit
 	return code, blackWhiteListRsp, nil
 }
 
-// GetBlackWhiteListFromDbhaV1 gets black white list from dbha-v1
-func (c *Client) GetBlackWhiteListFromDbhaV1(ctx context.Context, bkCloudId int, bkBizId int) ([]*Dbhav1BlackWhiteListItem, error) {
+// GetBlackWhiteListFromDbhaV1 gets black white list from dbha-v1.
+// Query filters match v1 GetAllBlackWhiteList: cloud + switch_version=v2 + status=enabled.
+func (c *Client) GetBlackWhiteListFromDbhaV1(ctx context.Context, bkCloudId int) ([]*Dbhav1BlackWhiteListItem, error) {
+	switchVersion := string(hamodel.SwitchVersionV2)
+	status := string(hamodel.StatusTypeEnabled)
 	req := Dbhav1BlackWhitelistGetRequest{
 		BkCloudID:    bkCloudId,
 		DbCloudToken: config.Cfg.Workflow.Dbhav1ApiBlackWhitelistGet.Token,
 		Name:         "get_black_white_list",
 		QueryArgs: Dbhav1BlackWhitelistQueryArgs{
-			BkCloudID:     bkCloudId,
-			BkBizID:       bkBizId,
-			SwitchVersion: string(hamodel.SwitchVersionV2),
-			Status:        string(hamodel.StatusTypeEnabled),
+			BkCloudID:     &bkCloudId,
+			SwitchVersion: &switchVersion,
+			Status:        &status,
 		},
 	}
 
 	logger.Debug(
-		"dbha-v1 black white list query request, bk_cloud_id: %d, bk_biz_id: %d, switch_version: %s, status: %s",
-		bkCloudId, bkBizId, hamodel.SwitchVersionV2, hamodel.StatusTypeEnabled)
+		"dbha-v1 black white list query request, bk_cloud_id: %d, switch_version: %s, status: %s",
+		bkCloudId, hamodel.SwitchVersionV2, hamodel.StatusTypeEnabled)
 
 	_, response, err := c.requestBlackWhiteList(ctx, &req)
 	if err != nil {
