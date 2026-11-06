@@ -6,7 +6,7 @@ TenDBCluster 接入层全毁灾难恢复单据校验。
    因此本 Validator 不做任何依赖 new 列表的校验，仅做与 new 无关的元数据/参数校验：
      - 集群存在性 / 类型 / 是否可操作
      - spider_port / ctl_port 端口解析
-     - privilege_recovery_mode 合法性及对应备份存在性
+     - privilege_recovery_mode 合法性（备份存在性由流程构建期统一判定）
    涉及 new/old IP 列表、中控探活、SLAVE_ENTRY 存在等校验，
    需在资源分配后由 flow 自身或专门的 pre-flight 阶段执行。
 """
@@ -14,7 +14,6 @@ from django.utils.translation import gettext as _
 
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
-from backend.db_report.mysql_backup.handers import MySQLBackupHandler
 from backend.flow.engine.validate.mysql_base_validate import MysqlBaseValidator
 from backend.flow.utils.spider.spider_disaster_recover import resolve_spider_ctl_ports
 
@@ -50,13 +49,8 @@ class TenDBClusterSpiderLayerDisasterRecoverFlowValidator(MysqlBaseValidator):
         mode = info.get("privilege_recovery_mode") or PrivilegeRecoveryMode.FROM_SPIDER_GRANT_BACKUP
         if mode not in (PrivilegeRecoveryMode.FROM_SPIDER_GRANT_BACKUP, PrivilegeRecoveryMode.ACCOUNT_RULES_ONLY):
             error_msg_list.append(_("privilege_recovery_mode 非法\n"))
-        elif mode == PrivilegeRecoveryMode.FROM_SPIDER_GRANT_BACKUP:
-            handler = MySQLBackupHandler(cluster_id=cluster.id, deadlines_days=7)
-            backup = handler.get_tendbcluster_spider_layer_grant_priv_backup_info(
-                spider_priv_backup_id=info.get("spider_priv_backup_id") or None,
-            )
-            if not backup:
-                error_msg_list.append(_("未找到 Spider/tdbctl grant 备份，请检查备份或改用 account_rules_only\n"))
+        # 备份存在性不在此阻断：流程构建期由 _maybe_add_priv_recover 统一查询，
+        # 查不到时在域名恢复段前插入 Pause 人工确认节点，提示用户手动恢复权限。
 
         return error_msg_list
 

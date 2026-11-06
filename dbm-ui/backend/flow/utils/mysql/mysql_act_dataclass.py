@@ -376,6 +376,7 @@ class AddSpiderSystemUserKwargs:
     user: str  # 内置账号名称
     passwd: str  # 内置账号密码
     is_append_deploy: bool = False  # 是否是追加部署
+    drop_user_before_grant: bool = False  # 授权前先删除已有同名账号
 
 
 @dataclass()
