@@ -93,7 +93,8 @@ func UpdatePartitionsConfig(input *service.CreatePartitionsInput) (error, []serv
 
 			service.CreateManageLog(tbName, logTbName, partitionConfig.ID, opUpdate, input.Updator)
 
-			if ContainsMapV2(Slice2MapV2([]int{1, 3, 4}), partitionConfig.PartitionType) {
+			// 非标准类型不按入参重算，字段和字段类型未改时保持库里的原类型
+			if ContainsMapV2(Slice2MapV2([]int{1, 3, 4, 6}), partitionConfig.PartitionType) {
 				if input.PartitionColumn != partitionConfig.PartitionColumn ||
 					input.PartitionColumnType != partitionConfig.PartitionColumnType {
 					return errors.New("非标准分区类型，不可修改分区字段和分区字段类型！"), nil
