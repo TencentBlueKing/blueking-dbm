@@ -13,7 +13,7 @@ import logging
 import time
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
-from typing import Dict
+from typing import Dict, Set
 
 from blueapps.account.models import User
 from celery import shared_task
@@ -26,6 +26,7 @@ from backend.components import BKMonitorV3Api
 from backend.configuration.constants import (
     DAILY_TODO_REMIND_DEFAULT,
     DBM_USER_TODO_TYPE_MAP_DEFAULT,
+    WECOM_GROUP_MAX_USERS_PER_MSG,
     DBType,
     SystemSettingsEnum,
 )
@@ -45,41 +46,32 @@ TODO_TYPE_CONTEXT = {
     "TODO": _("待执行"),
     "INNER_TODO": _("待继续"),
     "RESOURCE_REPLENISH": _("待补货"),
+    "CONFIRM_PENDING": _("待确认修改"),
     "FAILED": _("失败待处理"),
     "TIMER": _("定时中"),
-}
-
-CATEGORY_MAP = {
-    DBType.MySQL.value: "storage",
-    DBType.TenDBCluster.value: "storage",
-    DBType.Sqlserver.value: "storage",
-    DBType.Redis.value: "memory",
-    DBType.MongoDB.value: "memory",
-    DBType.Oracle.value: "memory",
-    DBType.Es.value: "big_data",
-    DBType.Kafka.value: "big_data",
-    DBType.Doris.value: "big_data",
-    DBType.Hdfs.value: "big_data",
-    DBType.Pulsar.value: "big_data",
 }
 
 REMIND_TITLE = _("「DBM」：每日待办提醒")
 
 TODO_DIR = f"{env.BK_SAAS_HOST}/ticket-self-todo"
 
-# MASS_CONTEXT_TEMPLATE = _("\n以下 DBA 有待办事项待处理：\n\n{}\n\n共 {} 人，{} 项待办\n")
-MASS_CONTEXT_TEMPLATE = _("\n本条消息涉及DBA：{} 人\n待办总数：{}条\n\n{}\n")
-
-# ONE_ON_ONE_CONTEXT_TEMPLATE = _("\n你有以下待办事项待处理：\n\n{}\n")
 ONE_ON_ONE_CONTEXT_TEMPLATE = _("\nHi，{}\n\n您在「DBM」共有 {} 条待办待处理：\n\n{}\n\n")
+
+# 群消息模板
+GROUP_HEADER_TEMPLATE = _("DBA：{user_count} 人，待办 {todo_count} 条")
+GROUP_USER_TODO_TEMPLATE = _("{username}（{count} 条）：{details}")
+GROUP_USER_EMPTY_TEMPLATE = _("{username}：{empty_text}")
+GROUP_LINK_TEMPLATE = _("{text}：{url}")
+TODO_EMPTY_TEXT = _("待办已清空")
+
+# 计算待办的并发线程数
+CALC_TODO_THREAD_NUM = 10
 
 
 class CalcPersonalTodoClass:
     @classmethod
     def get_ticket_todo_count(cls, username, infos):
         """获取单据待办"""
-        exclude_values = {"MY_APPROVE", "SELF_MANAGE", "DONE"}
-        count_map = {count_type: 0 for count_type in CountType.get_values() if count_type not in exclude_values}
         status_counts = (
             Ticket.objects.filter(
                 status__in=TICKET_TODO_STATUS_SET,
@@ -89,11 +81,19 @@ class CalcPersonalTodoClass:
             .distinct()
             .values_list("status", flat=True)
         )
+        result_map = defaultdict(int)
         for sts, count in Counter(status_counts).items():
+            # RUNNING 归并到「待继续」
             sts = CountType.INNER_TODO.value if sts == "RUNNING" else sts
-            count_map[TODO_TYPE_CONTEXT[sts]] = count
-        new_count_map = {key: value for key, value in count_map.items() if value}
-        return new_count_map
+            # 新增的单据状态未必能及时补到文案映射里，兜底用枚举文案/状态值，避免整个提醒任务失败
+            if sts in TODO_TYPE_CONTEXT:
+                label = TODO_TYPE_CONTEXT[sts]
+            elif sts in CountType.get_values():
+                label = CountType.get_choice_label(sts)
+            else:
+                label = sts
+            result_map[label] += count
+        return dict(result_map)
 
     @classmethod
     def get_inspect_todo_count(cls, username, infos):
@@ -185,12 +185,12 @@ class CalcPersonalTodoClass:
 
 def get_todo_context(count, text):
     """
-    获取各个类型待办的模板
+    获取各个类型待办的模板，群消息与个人消息共用
     """
     # 当传入是一个数量时，直接生成模板返回
     if isinstance(count, int):
         if count:
-            return _("{text} {count}条").format(text=text, count=count)
+            return _("{text} {count} 条").format(text=text, count=count)
 
     # 当传入的是一个字典时，则待办需要生成各类型的待办明细模板
     elif isinstance(count, dict):
@@ -198,82 +198,45 @@ def get_todo_context(count, text):
         if total:
             contexts = [f"{DBType.get_choice_label(type_)} {count}" for type_, count in count.items()]
             contexts = "，".join(contexts)
-            return _("{text}：{total} 条（{contexts}）").format(text=text, total=total, contexts=contexts)
+            return _("{text} {total} 条（{contexts}）").format(text=text, total=total, contexts=contexts)
     return ""
 
 
-def get_db_type_dba_group(user_infos, groups):
-    """按组件性质划分dba人员组，对已经计算出结果的dba人员进行分组"""
-    storage_set = groups.get("storage", set())
-    memory_set = groups.get("memory", set())
-    big_data_set = groups.get("big_data", set())
+def get_db_type_dba_map() -> Dict[str, Set[str]]:
+    """获取 数据库组件类型 -> 当前 DBA 人员 的映射
 
-    storage_group = {}
-    memory_group = {}
-    big_data_group = {}
-    other_group = {}
-
-    # 人员划分到各自对应的组里， 目前分四个组
-    for username, info in user_infos.items():
-        if username in storage_set:
-            storage_group[username] = info
-        elif username in memory_set:
-            memory_group[username] = info
-        elif username in big_data_set:
-            big_data_group[username] = info
-        else:
-            other_group[username] = info
-
-    return [storage_group, memory_group, big_data_group, other_group]
+    按组件类型跨业务合并（含 bk_biz_id 为 0 的平台默认 DBA 记录）。
+    每次发送时实时读取，人员变更从下一次提醒自动生效。
+    """
+    db_type_dba_map: Dict[str, Set[str]] = defaultdict(set)
+    for db_type, users in DBAdministrator.objects.values_list("db_type", "users"):
+        if not users or db_type not in DBType.get_values():
+            continue
+        db_type_dba_map[db_type].update(users)
+    return db_type_dba_map
 
 
-def get_mass_context(user_infos, groups):
-    """组装群聊的待办模板"""
-    db_type_groups = get_db_type_dba_group(user_infos, groups)
-    contexts = []
-    # 按不同的组件架构发送通知
-    for db_type_group in db_type_groups:
-        all_total = 0
-        max_len = 800
-        user_contexts = ""
-        receivers = []
-        all_user_count = len(db_type_group)
-        for username in db_type_group:
-            all_user_count -= 1
-            receivers.append(username)
-            context_list = [context for context in db_type_group[username]["context_list"] if context]
-            all_total += db_type_group[username]["count"]
-            user_context = "，".join(context_list)
-            user_contexts += f"{username}：{user_context}\n"
-
-            if len(user_contexts) > max_len or all_user_count == 0:
-                at_list = "".join([f"<@{staff}>" for staff in receivers])
-                user_contexts += "\n" + at_list
-                contexts.append(MASS_CONTEXT_TEMPLATE.format(len(receivers), all_total, user_contexts))
-                receivers = []
-                user_contexts = ""
-                all_total = 0
-    return contexts
-
-
-def get_single_context(detail, username):
-    """组装个人的待办模板"""
-    context_list = detail["context_list"]
-    context_list = [context for context in context_list if context]
-    context = "\n".join(context_list)
-    return ONE_ON_ONE_CONTEXT_TEMPLATE.format(username, detail.get("count"), context)
+def resolve_rule_dba_users(rule, db_type_dba_map) -> Set[str]:
+    """计算单条群通知规则圈定的 DBA 人员（所选组件当前 DBA 的并集）"""
+    users = set()
+    for db_type in rule.get("components") or []:
+        db_type_users = db_type_dba_map.get(db_type)
+        if db_type_users is None:
+            # 组件当前没有任何 DBA 配置时跳过，不影响同规则内其他组件
+            logger.warning(_("todo remind rule component has no dba: {}").format(db_type))
+            continue
+        users.update(db_type_users)
+    return users
 
 
 def get_dba_infos():
-    """获取所有dba的信息"""
-    admin_records = DBAdministrator.objects.all().values_list("bk_biz_id", "db_type", "users")
+    """获取所有dba的信息：username -> 该 DBA 作为 DBA 负责的全部组件"""
     dba_infos = defaultdict(list)
-
-    for bk_biz_id, db_type, users in admin_records:
-        if users:
-            primary_user = users[0]
-
-            dba_infos[primary_user].append({"bk_biz_id": bk_biz_id, "db_type": db_type, "users": users})
+    for bk_biz_id, db_type, users in DBAdministrator.objects.values_list("bk_biz_id", "db_type", "users"):
+        if not users:
+            continue
+        for username in users:
+            dba_infos[username].append({"bk_biz_id": bk_biz_id, "db_type": db_type, "users": list(users)})
 
     return dict(dba_infos)
 
@@ -305,43 +268,110 @@ def send_msg(title, context, receivers, msg_type):
         logger.error(_("send todo remind error, receivers: {}, error: {}").format(receivers, e))
 
 
-def _process_user_chunk(
-    user_chunk,
-    dba_infos,
-    user_todo_map,
-    todo_types,
-):
+def calc_user_todo(username, dba_infos, user_todo_map, todo_types):
+    """计算单个用户的待办信息
+
+    注意：待办范围只与人有关，与群通知规则里圈人的组件无关。
+    DBA 按其负责的全部组件统计待办，非 DBA 只统计普通待办类型。
     """
-    处理一批用户，返回该批次中的 dba 和非 dba 用户待办信息
-    """
-    local_dba = {}
-    local_no_dba = {}
+    user_component_infos = dba_infos.get(username, [])
+    todo_funcs = user_todo_map["dba" if user_component_infos else "ordinary"]
 
-    for user in user_chunk:
-        user_all_todo_info = {"count": 0, "context_list": []}
-        is_dba = user.username in dba_infos
+    user_todo_info = {"count": 0, "context_list": []}
+    for todo_func in todo_funcs:
+        func = getattr(CalcPersonalTodoClass, f"get_{todo_func}_count", None)
+        if func is None:
+            continue
+        try:
+            count_info = func(username, user_component_infos)
+        except Exception:
+            # 单个待办类型统计失败不影响该用户其它类型，更不影响整批提醒
+            logger.exception("calc todo count error, username: %s, todo_func: %s", username, todo_func)
+            continue
+        if isinstance(count_info, int):
+            user_todo_info["count"] += count_info
+        elif isinstance(count_info, dict):
+            user_todo_info["count"] += sum(count_info.values())
 
-        todo_funcs = user_todo_map["dba" if is_dba else "ordinary"]
+        context = get_todo_context(count_info, todo_types.get(todo_func, todo_func))
+        if context:
+            user_todo_info["context_list"].append(context)
 
-        for todo_func in todo_funcs:
-            func_name = f"get_{todo_func}_count"
-            if not hasattr(CalcPersonalTodoClass, func_name):
-                continue
+    return user_todo_info
 
-            count_info = getattr(CalcPersonalTodoClass, func_name)(user.username, dba_infos.get(user.username, []))
-            if isinstance(count_info, int):
-                user_all_todo_info["count"] += count_info
-            elif isinstance(count_info, dict):
-                user_all_todo_info["count"] += sum(count_info.values())
-            user_all_todo_info["context_list"].append(get_todo_context(count_info, todo_types[todo_func]))
 
-        if user_all_todo_info["count"]:
-            if is_dba:
-                local_dba[user.username] = user_all_todo_info
-            else:
-                local_no_dba[user.username] = user_all_todo_info
+def _calc_user_todo_chunk(usernames, dba_infos, user_todo_map, todo_types):
+    """处理一批用户的待办计算，返回该批次所有用户的待办信息（含待办为 0 的用户）"""
+    return {username: calc_user_todo(username, dba_infos, user_todo_map, todo_types) for username in usernames}
 
-    return local_dba, local_no_dba
+
+def calc_user_todos(usernames, dba_infos, user_todo_map, todo_types):
+    """多线程计算一批用户的待办，返回 username -> 待办信息"""
+    usernames = list(usernames)
+    if not usernames:
+        return {}
+
+    num_threads = min(CALC_TODO_THREAD_NUM, len(usernames))
+    chunk_size = max(1, len(usernames) // num_threads)
+    user_chunks = [usernames[index : index + chunk_size] for index in range(0, len(usernames), chunk_size)]
+
+    user_todo_infos = {}
+    with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
+        futures = [
+            executor.submit(_calc_user_todo_chunk, chunk, dba_infos, user_todo_map, todo_types)
+            for chunk in user_chunks
+        ]
+        for future in concurrent.futures.as_completed(futures):
+            user_todo_infos.update(future.result())
+
+    return user_todo_infos
+
+
+def get_group_context(user_items):
+    """组装单条群消息，user_items: [(username, 待办信息)]"""
+    todo_total = sum(user_info["count"] for _, user_info in user_items)
+
+    user_contexts = []
+    receivers = []
+    for username, user_info in user_items:
+        if user_info["count"]:
+            receivers.append(username)
+            user_contexts.append(
+                GROUP_USER_TODO_TEMPLATE.format(
+                    username=username,
+                    count=user_info["count"],
+                    details="，".join(user_info["context_list"]),
+                )
+            )
+        else:
+            user_contexts.append(GROUP_USER_EMPTY_TEMPLATE.format(username=username, empty_text=TODO_EMPTY_TEXT))
+
+    contexts = [GROUP_HEADER_TEMPLATE.format(user_count=len(user_items), todo_count=todo_total)]
+    # 一人一行，相邻两行之间空一行
+    contexts.append("\n\n".join(user_contexts))
+    # 只 @ 本条消息中待办条数大于 0 的人
+    if receivers:
+        contexts.append(" ".join(f"<@{staff}>" for staff in receivers))
+    contexts.append(GROUP_LINK_TEMPLATE.format(text=_("前往处理"), url=TODO_DIR))
+
+    return "\n{}\n".format("\n\n".join(contexts))
+
+
+def get_group_contexts(user_items):
+    """按待办条数从多到少排列，每 WECOM_GROUP_MAX_USERS_PER_MSG 人一条消息"""
+    sorted_user_items = sorted(user_items, key=lambda item: (-item[1]["count"], item[0]))
+    return [
+        get_group_context(sorted_user_items[index : index + WECOM_GROUP_MAX_USERS_PER_MSG])
+        for index in range(0, len(sorted_user_items), WECOM_GROUP_MAX_USERS_PER_MSG)
+    ]
+
+
+def get_single_context(detail, username):
+    """组装个人的待办模板"""
+    context_list = detail["context_list"]
+    context_list = [context for context in context_list if context]
+    context = "\n".join(context_list)
+    return ONE_ON_ONE_CONTEXT_TEMPLATE.format(username, detail.get("count"), context)
 
 
 @shared_task
@@ -351,73 +381,66 @@ def send_todo_remind():
     todo_remind_conf = SystemSettings.get_setting_value(
         SystemSettingsEnum.DBM_DAILY_TODO_REMIND, default=DAILY_TODO_REMIND_DEFAULT
     )
-    if not todo_remind_conf["is_enable"]:
+    if not todo_remind_conf.get("is_enable"):
         return
 
-    # 没有通知方式也不做处理
-    send_types = [conf["type"] for conf in todo_remind_conf["notice"]]
-    if not send_types:
+    # 群通知规则：每条规则配置一个企微群 + 待办人员范围（数据库组件）
+    wecom_group_rules = todo_remind_conf.get("wecom_group_rules") or []
+    # 个人通知渠道（企微群聊已由群通知规则接管，不再走个人通知）
+    personal_types = [
+        conf["type"] for conf in todo_remind_conf.get("notice") or [] if conf["type"] != MsgType.WECOM_ROBOT.value
+    ]
+    if not personal_types and not wecom_group_rules:
         return
 
-    users = list(User.objects.all())
     user_todo_map = SystemSettings.get_setting_value(
         SystemSettingsEnum.DBM_USER_TODO_TYPE_MAP, default=DBM_USER_TODO_TYPE_MAP_DEFAULT
     )
     todo_types = user_todo_map["types"]
     dba_infos = get_dba_infos()
-    # 将用户列表均匀分成10份（若不足10人则每人一份）
-    num_threads = 10
-    chunk_size = max(1, len(users) // num_threads)
-    user_chunks = [users[i : i + chunk_size] for i in range(0, len(users), chunk_size)]
 
-    dba_user = {}
-    no_dba_user = {}
-    # 多线程执行
-    with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
-        futures = [
-            executor.submit(_process_user_chunk, chunk, dba_infos, user_todo_map, todo_types) for chunk in user_chunks
+    # 待办人员范围以每次发送时的最新组件 DBA 关系计算
+    db_type_dba_map = get_db_type_dba_map() if wecom_group_rules else {}
+    rule_dba_users = [(rule, resolve_rule_dba_users(rule, db_type_dba_map)) for rule in wecom_group_rules]
+
+    # 只计算需要通知的用户：群规则圈定的 DBA + 个人通知开启时的全量用户
+    target_usernames = set()
+    for _rule, dba_users in rule_dba_users:
+        target_usernames.update(dba_users)
+    if personal_types:
+        target_usernames.update(User.objects.values_list("username", flat=True))
+
+    user_todo_infos = calc_user_todos(target_usernames, dba_infos, user_todo_map, todo_types)
+
+    # 1. 按群通知规则发送群消息
+    for rule, dba_users in rule_dba_users:
+        chat_id = rule["chat_id"]
+        if not dba_users:
+            logger.info("wecom group {} has no dba, skip this time".format(chat_id))
+            continue
+
+        user_items = [
+            (username, user_todo_infos.get(username) or {"count": 0, "context_list": []}) for username in dba_users
         ]
-        for future in concurrent.futures.as_completed(futures):
-            local_dba, local_no_dba = future.result()
-            dba_user.update(local_dba)
-            no_dba_user.update(local_no_dba)
+        for group_context in get_group_contexts(user_items):
+            send_msg(REMIND_TITLE, group_context, [chat_id], MsgType.WECOM_ROBOT)
+            # 防止发送频率过快被限
+            time.sleep(0.5)
 
-    # 如果有群里，则发送群聊消息
-    if MsgType.WECOM_ROBOT.value in send_types:
-        groups = defaultdict(set)
-        # dba人员表按组件架构做分组
-        for admin in DBAdministrator.objects.all():
-            if not admin.users:
-                continue
-            category = CATEGORY_MAP.get(admin.db_type, "other")
-            groups[category].update(admin.users)
-
-        mass_contexts = get_mass_context(dba_user, groups)
-        if mass_contexts:
-            receivers = [
-                conf["value"] for conf in todo_remind_conf["notice"] if conf["type"] == MsgType.WECOM_ROBOT.value
-            ][0].split(",")
-            for mass_context in mass_contexts:
-                send_msg(REMIND_TITLE, mass_context, receivers, MsgType.WECOM_ROBOT)
-                # 防止发送频率过快被限
-                time.sleep(0.5)
-
-        # 发送完群聊剔除对应的类型
-        send_types.remove(MsgType.WECOM_ROBOT)
-
-    if not send_types:
+    # 2. 个人通知：有待办的用户都会通知到
+    if not personal_types:
         return
 
-    # 对剩下的通知类型进行通知，有待办的用户都会通知到
-    dba_user.update(no_dba_user)
-    for username in dba_user:
-        ordinary_context = get_single_context(dba_user[username], username)
+    for username, user_todo_info in user_todo_infos.items():
+        if not user_todo_info["count"]:
+            continue
+        ordinary_context = get_single_context(user_todo_info, username)
         if not ordinary_context:
             continue
         try:
-            if MsgType.RTX.value in send_types:
+            if MsgType.RTX.value in personal_types:
                 send_msg(REMIND_TITLE, ordinary_context, [username], MsgType.RTX)
-            if MsgType.MAIL.value in send_types:
+            if MsgType.MAIL.value in personal_types:
                 send_msg(REMIND_TITLE, ordinary_context, [username], MsgType.MAIL)
 
         except Exception as e:
