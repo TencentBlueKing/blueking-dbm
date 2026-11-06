@@ -74,6 +74,11 @@
   import FlowMode from '@services/model/ticket/flow';
   import TicketModel from '@services/model/ticket/ticket';
 
+  import {
+    createWorkSheet as createBaseWorkSheet,
+    downloadWorkBook,
+  } from '@views/ticket-center/common/ticket-detail/components/flow-info/utils/exportWorkBook';
+
   import { isHttpUrl } from '@utils';
 
   import FlowCollapse from '../FlowCollapse.vue';
@@ -92,9 +97,6 @@
   // Excel 对 Sheet 名的限制：最长 31 个字符，不能包含 : \ / ? * [ ]
   const SHEET_NAME_MAX_LENGTH = 31;
   const SHEET_NAME_ILLEGAL_REG = /[:\\/?*[\]]/g;
-  // 导出列宽按内容自适应的上下限（单位：字符宽度），避免列太窄看不全或单列过宽
-  const COLUMN_MIN_WIDTH = 10;
-  const COLUMN_MAX_WIDTH = 60;
 
   const activeIndex = ref<string[]>([]);
 
@@ -161,18 +163,6 @@
     });
   };
 
-  // 文本显示宽度：中文等全角字符按 2 个字符宽计算，多行文本取最长一行
-  const getTextWidth = (value: unknown) => {
-    if (value === null || value === undefined) {
-      return 0;
-    }
-    return Math.max(
-      ...String(value)
-        .split('\n')
-        .map((line) => Array.from(line).reduce((width, char) => width + (char.charCodeAt(0) > 255 ? 2 : 1), 0)),
-    );
-  };
-
   const createWorkSheet = (table: OutputTable) => {
     const header = table.titles.map((title) => title.display_name);
     const rows = table.values.map((row) =>
@@ -185,15 +175,7 @@
         return getCellValue(value);
       }),
     );
-    const workSheet = XLSX.utils.aoa_to_sheet([header, ...rows]);
-
-    // 列宽取表头与该列所有单元格中最宽的值，留 2 个字符余量，并限制在上下限内
-    workSheet['!cols'] = header.map((title, colIndex) => {
-      const contentWidth = Math.max(getTextWidth(title), ...rows.map((row) => getTextWidth(row[colIndex])));
-      return {
-        wch: Math.min(Math.max(contentWidth + 2, COLUMN_MIN_WIDTH), COLUMN_MAX_WIDTH),
-      };
-    });
+    const workSheet = createBaseWorkSheet([header, ...rows]);
 
     table.values.forEach((row, rowIndex) => {
       table.titles.forEach((title, colIndex) => {
@@ -224,22 +206,7 @@
     const ticketId = props.ticketDetail?.id || props.data.ticket;
     const fileName = `${ticketTypeName}_${ticketId}_${t('交付结果')}_${dayjs().format('YYYYMMDD')}.xlsx`;
 
-    // 不用 XLSX.writeFile：它会往 body 插入 a 标签并模拟点击，该点击冒泡到 body 后会被
-    // dbm-table-detail-dialog 的「点击外部关闭」判定为外部点击，导致单据详情弹窗被关闭
-    const blob = new Blob([XLSX.write(workBook, { bookType: 'xlsx', type: 'array' })], {
-      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = fileName;
-    // 只拦截冒泡，不阻止默认行为，下载照常触发
-    link.addEventListener('click', (event) => event.stopPropagation());
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    // 立即释放在部分浏览器（如 Firefox）下会导致下载失败，与 SheetJS 自身实现一致延后 60s 回收
-    setTimeout(() => URL.revokeObjectURL(url), 60 * 1000);
+    downloadWorkBook(workBook, fileName);
   };
 
   watch(
