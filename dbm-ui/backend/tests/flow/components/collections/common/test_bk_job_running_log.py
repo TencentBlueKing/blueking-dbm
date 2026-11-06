@@ -69,3 +69,14 @@ class TestBkJobRunningLogThrottle(SimpleTestCase):
         ):
             svc._maybe_log_job_running(data, kwargs, "介质下发")
         self.assertEqual(svc.log_info.call_count, 3)
+
+    def test_suppressed_node_never_logs_but_keeps_inputs(self):
+        t0 = 1_700_000_000
+        svc, data, kwargs, _ = _make(t0, {"node_name": "回档恢复", "suppress_running_log": True})
+        for offset in (0, 60, 3600, 7200):
+            with patch(
+                "backend.flow.plugins.components.collections.common.base_service.time.time", return_value=t0 + offset
+            ):
+                svc._maybe_log_job_running(data, kwargs, "回档恢复")
+        svc.log_info.assert_not_called()
+        self.assertIs(data.inputs.kwargs, kwargs)

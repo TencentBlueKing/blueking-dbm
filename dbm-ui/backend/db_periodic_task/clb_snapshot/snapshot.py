@@ -76,14 +76,32 @@ class ClusterCLBSnapshot:
         )
 
 
+class CLBSnapshotCacheError(RuntimeError):
+    """The default cache did not store one or more snapshots."""
+
+
 def _key(cluster_id: int) -> str:
     return CLB_SNAPSHOT_KEY.format(cluster_id=cluster_id)
 
 
 def write_many(snapshots: Iterable[ClusterCLBSnapshot]) -> None:
-    records = {_key(snap.cluster_id): snap.to_dict() for snap in snapshots}
-    if records:
-        cache.set_many(records, timeout=CLB_SNAPSHOT_TTL_SECONDS)
+    """Store each snapshot with ``SET``.
+
+    ``cache.set_many`` pipelines a ``MULTI``/``EXEC`` transaction. The default
+    cache rejects a transaction that was not preceded by ``WATCH``, and with
+    ``IGNORE_EXCEPTIONS`` that failure is dropped while the caller still sees
+    a return. One ``SET`` per cluster avoids the transaction. A ``SET`` the
+    backend reports as not stored raises, so the job is not logged as written.
+    """
+    failed: List[int] = []
+    swallows_errors = bool(getattr(cache, "_ignore_exceptions", False))
+    for snap in snapshots:
+        stored = cache.set(_key(snap.cluster_id), snap.to_dict(), timeout=CLB_SNAPSHOT_TTL_SECONDS)
+        # LocMemCache.set returns None. django-redis returns True, or None when it swallows an error.
+        if stored is False or (stored is None and swallows_errors):
+            failed.append(snap.cluster_id)
+    if failed:
+        raise CLBSnapshotCacheError("clb_snapshot: cache did not store cluster_ids=%s" % failed)
 
 
 def get_many(cluster_ids: Iterable[int]) -> Dict[int, Optional[ClusterCLBSnapshot]]:

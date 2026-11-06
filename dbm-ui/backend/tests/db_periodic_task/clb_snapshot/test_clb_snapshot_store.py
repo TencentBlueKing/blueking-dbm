@@ -7,6 +7,7 @@ from django.test import override_settings
 from backend.db_periodic_task.clb_snapshot.snapshot import (
     CLB_SNAPSHOT_TTL_SECONDS,
     CLBEntrySnapshot,
+    CLBSnapshotCacheError,
     ClusterCLBSnapshot,
     get_many,
     write_many,
@@ -87,9 +88,22 @@ def test_new_snapshot_replaces_previous():
 
 def test_write_uses_ttl_above_48_hours():
     with patch("backend.db_periodic_task.clb_snapshot.snapshot.cache") as mocked:
+        mocked._ignore_exceptions = False
+        mocked.set.return_value = True
         write_many([_snapshot(1)])
-    assert mocked.set_many.call_args.kwargs["timeout"] == CLB_SNAPSHOT_TTL_SECONDS
+    mocked.set.assert_called_once()
+    assert mocked.set.call_args.kwargs["timeout"] == CLB_SNAPSHOT_TTL_SECONDS
+    assert mocked.set.call_args.args[0] == "dbm:clb_snapshot:1"
     assert CLB_SNAPSHOT_TTL_SECONDS >= 72 * 3600
+
+
+def test_write_raises_when_cache_drops_the_set():
+    with patch("backend.db_periodic_task.clb_snapshot.snapshot.cache") as mocked:
+        mocked._ignore_exceptions = True
+        mocked.set.return_value = None
+        with pytest.raises(CLBSnapshotCacheError, match="cluster_ids=\\[7, 2\\]"):
+            write_many([_snapshot(7), _snapshot(2)])
+    assert mocked.set.call_count == 2
 
 
 def test_get_many_does_not_touch_name_service():

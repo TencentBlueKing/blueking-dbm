@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, List, Optional
 
 from django.db import transaction
 from django.utils import timezone
@@ -208,14 +208,6 @@ def _bar(done: int, total: int, width: int) -> str:
     return "[{}{}]".format("█" * filled, "░" * (width - filled))
 
 
-def _current_bill(open_bills: Iterable[Dict[str, Any]]) -> Optional[int]:
-    """The bill doing the most work; ties go to the smallest id."""
-    candidates = [bill for bill in open_bills if bill.get("bill_id") is not None]
-    if not candidates:
-        return None
-    return sorted(candidates, key=lambda bill: (-int(bill.get("doing") or 0), int(bill["bill_id"])))[0]["bill_id"]
-
-
 def format_progress(total: int, done: int, open_bills: List[Dict[str, Any]], elapsed: float) -> str:
     """One progress line, at most MAX_PROGRESS_LINE characters.
 
@@ -225,7 +217,6 @@ def format_progress(total: int, done: int, open_bills: List[Dict[str, Any]], ela
     done = min(max(int(done), 0), total) if total else 0
     percent = 100 if total == 0 else done * 100 // total
     waiting = max(total - done, 0)
-    current = _current_bill(open_bills)
     open_count = len(open_bills)
     eta = _format_eta((total - done) * elapsed / done) if elapsed >= PROGRESS_MIN_SAMPLE_SECONDS and done else "?"
 
@@ -234,17 +225,14 @@ def format_progress(total: int, done: int, open_bills: List[Dict[str, Any]], ela
             _bar(done, total, width),
             "{}%".format(percent),
             "done={}".format(done),
-            "wait={}".format(waiting),
+            "waiting={}".format(waiting),
         ]
-        if current is not None:
-            parts.append("bill={}".format(current))
         if with_open and open_count > 1:
             parts.append("open={}".format(open_count))
         parts.append("ETA={}".format(eta))
         return " ".join(parts)
 
-    # Prefer the full line; then drop the open count, then shrink the bar. The bill id is
-    # never shortened.
+    # Prefer the full line; then drop the open count, then shrink the bar.
     for width in (PROGRESS_BAR_WIDTH, 12, 8, 6):
         for with_open in (True, False) if width == PROGRESS_BAR_WIDTH else (False,):
             line = render(width, with_open)

@@ -118,6 +118,38 @@ def test_plus_binlog_names_carry_kvstore_and_index():
     assert binlog_record(name, "t", 1, "1.1.1.1", 30000, T0)["index"] is None
 
 
+def test_cluster_protocol_source_currency_follows_live_cluster_nodes():
+    from backend.db_services.redis.rollback.shards import ShardResolver, source_is_current
+
+    nodes = "\n".join(
+        [
+            "m1 1.1.1.1:30000@40000 master - 0 0 1 connected 0-5460",
+            "m2 1.1.1.2:30000@40000 master - 0 0 2 connected 5461-10922",
+            "m3 1.1.1.3:30000@40000 master - 0 0 3 connected 10923-16383",
+            "s1 1.1.1.9:30000@40000 myself,slave m1 0 0 1 connected",
+            "",
+        ]
+    )
+    cluster = MagicMock(id=1, bk_cloud_id=0, cluster_type=PLUS)
+    cluster.storageinstance_set.filter.return_value.filter.return_value.first.return_value = MagicMock(
+        ip_port="1.1.1.9:30000"
+    )
+    resolver = ShardResolver(cluster)
+    with patch(
+        "backend.db_services.redis.rollback.shards.PayloadHandler.redis_get_cluster_password",
+        return_value={"redis_password": "pwd"},
+    ), patch("backend.db_services.redis.rollback.shards.DRSApi.redis_rpc", return_value=[{"result": nodes}]) as rpc:
+        current = {ref.shard_value: ref for ref in resolver.from_db_meta()}
+        assert [m["shard_value"] for m in resolver.cluster_shard_map()] == SLOT_SHARDS
+    assert rpc.call_count == 1
+
+    slave_backup = {"source_ip": "1.1.1.9", "server_port": 30000, "source_role": "slave"}
+    master_backup = {"source_ip": "1.1.1.2", "server_port": 30000, "source_role": "master"}
+    assert source_is_current(slave_backup, current["0-5460"]) is True
+    assert source_is_current(master_backup, current["5461-10922"]) is True
+    assert source_is_current({**master_backup, "source_role": "slave"}, current["5461-10922"]) is False
+
+
 def test_slot_ranges_merge_and_drop_migration_markers():
     assert slot_ranges("10651-10923 1365-1637 1638") == "1365-1638,10651-10923"
     assert slot_ranges("0-100 [101->-abcdef]") == "0-100"

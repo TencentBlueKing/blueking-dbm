@@ -854,7 +854,7 @@ def test_progress_counts_partial_open_bills():
         svc._log_progress(data, entries, totals={1: {"todo": 10, "doing": 5, "fail": 0}}, force=True)
 
     assert "done=85" in logs[-1]
-    assert "wait=15" in logs[-1]
+    assert "waiting=15" in logs[-1]
 
 
 def test_progress_counts_freshly_submitted_batches_as_waiting():
@@ -872,7 +872,7 @@ def test_progress_counts_freshly_submitted_batches_as_waiting():
         svc._log_progress(data, entries, force=True)
 
     assert "done=0" in logs[-1]
-    assert "wait=100" in logs[-1]
+    assert "waiting=100" in logs[-1]
 
 
 def test_legacy_download_failure_logs_the_bills_already_submitted():

@@ -167,22 +167,6 @@ class RedisRollbackFlow:
             act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
         )
 
-        if not is_drill:
-            shield_kwargs = deepcopy(act_kwargs)
-            redis_pipeline.add_act(
-                act_name=_("屏蔽临时主机告警-{}").format(dest_ips),
-                act_component_code=AddAlarmShieldComponent.code,
-                kwargs={
-                    **asdict(shield_kwargs),
-                    "description": _("Redis回档-屏蔽告警-{}").format(plan.immute_domain),
-                    "dimensions": [
-                        {"name": "appid", "values": [str(plan.bk_biz_id)]},
-                        {"name": "bk_target_ip", "values": dest_ips},
-                    ],
-                    "duration_seconds": int(self.data.get("alarm_shield_duration_seconds", 2 * 3600)),
-                },
-            )
-
         redis_pipeline.add_parallel_acts(acts_list=self._trans_file_acts(plan, act_kwargs, dest_ips))
 
         init_acts = []
@@ -276,6 +260,23 @@ class RedisRollbackFlow:
         # Verification replaced the manual confirmation; skip_mannual_confirm is accepted and ignored.
         redis_pipeline.add_parallel_sub_pipeline(sub_flow_list=download_subs)
 
+        # No instance or exporter exists on the temp hosts before restore, so a shield started
+        # earlier would only burn its fixed duration during long downloads.
+        if not is_drill:
+            redis_pipeline.add_act(
+                act_name=_("屏蔽临时主机告警-{}").format(dest_ips),
+                act_component_code=AddAlarmShieldComponent.code,
+                kwargs={
+                    **asdict(deepcopy(act_kwargs)),
+                    "description": _("Redis回档-屏蔽告警-{}").format(plan.immute_domain),
+                    "dimensions": [
+                        {"name": "appid", "values": [str(plan.bk_biz_id)]},
+                        {"name": "bk_target_ip", "values": dest_ips},
+                    ],
+                    "duration_seconds": int(self.data.get("alarm_shield_duration_seconds", 2 * 3600)),
+                },
+            )
+
         resource_spec = info["resource_spec"]["redis"]
         cluster_dst_instance = [
             "{}{}{}".format(dest_host.ip, IP_PORT_DIVIDER, port)
@@ -303,7 +304,8 @@ class RedisRollbackFlow:
                 {
                     "act_name": _("Redis-{}-安装并回档恢复").format(dest_host.ip),
                     "act_component_code": ExecuteDBActuatorScriptComponent.code,
-                    "kwargs": asdict(recover_kwargs),
+                    # The actuator emits its own progress snapshots; BK-Job polling lines only add noise.
+                    "kwargs": {**asdict(recover_kwargs), "suppress_running_log": True},
                 }
             )
         redis_pipeline.add_parallel_acts(acts_list=recover_acts)

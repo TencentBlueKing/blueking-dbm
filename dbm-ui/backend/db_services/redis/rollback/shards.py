@@ -16,8 +16,9 @@ from typing import Iterable, List, Optional, Sequence, Tuple
 
 from django.utils.translation import gettext as _
 
+from backend.components import DRSApi
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterType, InstanceRole
+from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus
 from backend.db_meta.models import Cluster
 from backend.db_services.redis.rollback.constants import (
     BACKUP_ROLE_MASTER,
@@ -27,6 +28,9 @@ from backend.db_services.redis.rollback.constants import (
     TWEMPROXY_SHARD_MIN,
     TWEMPROXY_SHARD_TOTAL,
 )
+from backend.db_services.redis.util import is_redis_cluster_protocal
+from backend.flow.utils.base.payload_handler import PayloadHandler
+from backend.flow.utils.redis.redis_cluster_nodes import get_masters_with_slots, group_slaves_by_master_id
 
 logger = logging.getLogger("flow")
 
@@ -155,16 +159,81 @@ def source_is_current(record: dict, current: Optional[ShardRef]) -> bool:
 
 
 class ShardResolver:
-    """Resolve topology-independent shard_value from db_meta or backup records."""
+    """Resolve topology-independent shard_value from db_meta or backup records.
+
+    Cluster-protocol types keep no slot ranges in db_meta, so their current shards come from a
+    live ``CLUSTER NODES``; db_meta is only the fallback when the cluster cannot be reached.
+    """
 
     def __init__(self, cluster: Cluster):
         self.cluster = cluster
+        self._cached_db_meta_refs: Optional[List[ShardRef]] = None
 
     def from_db_meta(self) -> List[ShardRef]:
-        refs: List[ShardRef] = []
-        for master in self.cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value):
-            refs.append(self._ref_from_master(master))
-        return refs
+        """Current topology shards, resolved once per resolver: DRS calls cost seconds per request."""
+        if self._cached_db_meta_refs is None:
+            refs = None
+            fallback_reason = ""
+            if is_redis_cluster_protocal(self.cluster.cluster_type):
+                refs, fallback_reason = self._from_cluster_nodes()
+            if refs is None:
+                refs = [
+                    self._ref_from_master(master, fallback_reason)
+                    for master in self.cluster.storageinstance_set.filter(
+                        instance_role=InstanceRole.REDIS_MASTER.value
+                    )
+                ]
+            self._cached_db_meta_refs = refs
+        return list(self._cached_db_meta_refs)
+
+    def _from_cluster_nodes(self) -> Tuple[Optional[List[ShardRef]], str]:
+        """``(refs, "")`` from a live ``CLUSTER NODES``, or ``(None, reason)`` to fall back to db_meta."""
+        storages = self.cluster.storageinstance_set
+        slaves = storages.filter(instance_role=InstanceRole.REDIS_SLAVE.value)
+        node = (
+            slaves.filter(status=InstanceStatus.RUNNING.value).first()
+            or slaves.first()
+            or storages.filter(instance_role=InstanceRole.REDIS_MASTER.value).first()
+        )
+        if not node:
+            return None, _("集群没有存储实例")
+        try:
+            password = PayloadHandler.redis_get_cluster_password(self.cluster).get("redis_password")
+            resp = DRSApi.redis_rpc(
+                {
+                    "addresses": [node.ip_port],
+                    "db_num": 0,
+                    "password": password,
+                    "command": "cluster nodes",
+                    "bk_cloud_id": self.cluster.bk_cloud_id,
+                }
+            )
+            if not resp:
+                raise ValueError(_("DRS 无返回"))
+            output = str(resp[0].get("result") or "")
+            masters = get_masters_with_slots(output)
+            slaves_by_master = group_slaves_by_master_id(output)
+        except Exception as exc:  # pylint: disable=broad-except
+            reason = _("DRS 获取 {} cluster nodes 失败，降级读取 db_meta: {}").format(node.ip_port, exc)
+            logger.warning("cluster %s: %s", self.cluster.id, reason)
+            return None, reason
+        if not masters:
+            reason = _("{} cluster nodes 无持有 slot 的 master，降级读取 db_meta").format(node.ip_port)
+            logger.warning("cluster %s: %s", self.cluster.id, reason)
+            return None, reason
+
+        refs = []
+        for master in masters:
+            slaves_of_master = slaves_by_master.get(master.node_id) or []
+            refs.append(
+                ShardRef(
+                    shard_value=master.slot_src_str,
+                    current_master=master.addr,
+                    current_slave=slaves_of_master[0].addr if slaves_of_master else None,
+                    resolvable=True,
+                )
+            )
+        return refs, ""
 
     def from_backup_records(self, records: Iterable[dict]) -> List[ShardRef]:
         current = {ref.shard_value: ref for ref in self.from_db_meta() if ref.resolvable and ref.shard_value}
@@ -204,7 +273,7 @@ class ShardResolver:
             )
         return mapping
 
-    def _ref_from_master(self, master) -> ShardRef:
+    def _ref_from_master(self, master, fallback_reason: str = "") -> ShardRef:
         shard_value = self._master_shard_value(master)
         slave_ipport = None
         try:
@@ -230,7 +299,7 @@ class ShardResolver:
                 current_master=ip_port(master.machine.ip, master.port),
                 current_slave=slave_ipport,
                 resolvable=False,
-                warning=parsed.reason,
+                warning="; ".join(reason for reason in (fallback_reason, parsed.reason) if reason),
             )
         return ShardRef(
             shard_value=shard_value,
