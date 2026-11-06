@@ -131,8 +131,8 @@ def test_progress_line_contains_required_fields():
     assert line.startswith("[")
     assert "62%" in line
     assert "done=1240" in line
-    assert "wait=760" in line
-    assert "bill=101" in line
+    assert "waiting=760" in line
+    assert "bill=" not in line
     assert "open=2" in line
     assert "ETA=" in line
     assert len(line) <= download_window.MAX_PROGRESS_LINE
@@ -149,11 +149,6 @@ def test_progress_eta_formats():
     assert download_window.format_progress(100, 50, [], 120).endswith("ETA=2m")
     assert download_window.format_progress(100, 50, [], 3900).endswith("ETA=1h5m")
     assert download_window.format_progress(100, 0, [], 3600).endswith("ETA=?")
-
-
-def test_current_bill_prefers_the_busiest_then_the_smallest_id():
-    line = download_window.format_progress(200, 100, [{"bill_id": 12, "doing": 5}, {"bill_id": 11, "doing": 5}], 60)
-    assert "bill=11" in line
 
 
 def test_progress_without_bills():

@@ -387,7 +387,11 @@ class BkJobService(BaseService, metaclass=ABCMeta):
         """未结束时打印「任务正在执行」：1 小时内每 60s 一条，之后每 5 分钟。
 
         节流时间戳写在 kwargs 并回写 inputs。outputs 跨 schedule 不会带回，不能用来记上次打印时间。
+        kwargs 带 ``suppress_running_log`` 时不打印（节点自身已输出进度），但仍回写 inputs。
         """
+        if kwargs.get("suppress_running_log"):
+            data.inputs.kwargs = kwargs
+            return
         now_ts = int(time.time())
         start_key = f"{node_name}_job_running_start_ts"
         last_key = f"{node_name}_job_running_last_log_ts"
