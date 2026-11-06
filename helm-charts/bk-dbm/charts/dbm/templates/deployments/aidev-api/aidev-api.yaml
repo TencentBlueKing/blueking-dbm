@@ -1,0 +1,93 @@
+{{- if .Values.saas.aidevApi.enabled -}}
+{{- $fullName := ( include "dbm.aidev-api.fullname" .) -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullName }}
+  labels:
+    {{- include "dbm.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.saas.aidevApi.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "dbm.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: "{{ $fullName }}"
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "dbm.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: "{{ $fullName }}"
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      terminationGracePeriodSeconds: {{ .Values.saas.aidevApi.terminationGracePeriodSeconds }}
+      serviceAccountName: {{ include "dbm.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.global.imageRegistry | default .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /bin/bash
+            - -c
+          args:
+            - >-
+              exec gunicorn wsgi -k gthread --threads {{ .Values.saas.aidevApi.threads }} --graceful-timeout {{ .Values.saas.aidevApi.gracefulTimeout }} --max-requests {{ .Values.saas.aidevApi.maxRequests }} --max-requests-jitter {{ .Values.saas.aidevApi.maxRequestsJitter }} -t {{ .Values.saas.aidevApi.timeout }} -w {{ .Values.saas.aidevApi.gunicornWorker }} -b :8000 --access-logfile - --error-logfile - --access-logformat '[%(h)s] %({request_id}i)s %(u)s %(t)s "%(r)s" %(s)s %(D)s %(b)s "%(f)s" "%(a)s"'
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.livenessProbe.path | default "/ping"}}
+              port: http
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds | default 15}}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds | default 30}}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds | default 15}}
+            successThreshold: {{ .Values.livenessProbe.successThreshold | default 1}}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold | default 3}}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.readinessProbe.path | default "/ping"}}
+              port: http
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds | default 15}}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds | default 30}}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds | default 15}}
+            successThreshold: {{ .Values.readinessProbe.successThreshold | default 1}}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold | default 3}}
+          env:
+            {{- $envs := mergeOverwrite (deepCopy .Values.envs) (dict "ENABLE_DBM_AI" "true") }}
+            {{- range $key, $value := $envs }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+          {{- if .Values.extraEnvVarsCM }}
+          envFrom:
+            - configMapRef:
+                name: {{ .Values.extraEnvVarsCM }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.saas.aidevApi.resources | nindent 12 }}
+      {{- include "dbm.initContainersWaitForMigrate" . | nindent 6 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end -}}
