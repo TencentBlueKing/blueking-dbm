@@ -74,3 +74,33 @@ Define victoriametrics insert component definition name
 {{- define "surrealdb-cdName" -}}
 surrealdb-{{ .Values.addonVersion}}
 {{- end -}}
+
+{{/*
+Get SURREAL_USER from surreal component env
+*/}}
+{{- define "surreal.user" -}}
+{{- range .Values.componentList -}}
+  {{- if eq .componentName "surreal" -}}
+    {{- if .env -}}
+      {{- if hasKey .env "SURREAL_USER" -}}
+        {{- .env.SURREAL_USER -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- end }}
+
+{{/*
+Get SURREAL_PASS from surreal component env
+*/}}
+{{- define "surreal.pass" -}}
+{{- range .Values.componentList -}}
+  {{- if eq .componentName "surreal" -}}
+    {{- if .env -}}
+      {{- if hasKey .env "SURREAL_PASS" -}}
+        {{- .env.SURREAL_PASS -}}
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- end }}
