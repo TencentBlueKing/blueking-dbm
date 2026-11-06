@@ -109,6 +109,9 @@ type ClusterInfo struct {
 	RedisSlaveSet   []string          `json:"redis_slave_set"`      // addr ip:port
 	ProxyPassword   string            `json:"proxy_pass"`
 	StoragePassword string            `json:"storage_pass"`
+	// CacheBackupMode 可选(aof/rdb), 决定 cluster 互切降级方向(old_master 变从库)的 appendonly 目标值;
+	// rdb 模式从库不开 AOF, aof / 未配置(空)时开 AOF. 缺省按现状口径(aof)处理.
+	CacheBackupMode string `json:"cache_backup_mode"`
 }
 
 // SwitchParam cluster bind entry
@@ -263,6 +266,17 @@ func (job *RedisSwitch) Run() (err error) {
 				job.runtime.Logger.Error("enable write before change 2 master %d:[%+v];with err:%+v", idx, storagePair, err)
 			}
 		}
+		// cache 架构从库为备份通常带着 appendonly=yes 运行(建同步时 CreateReplicaREL / dbmon CheckPersist 打开,
+		// 或版本升级重建配置时 StepAppendonlyForReplica 写入). 它一旦被切换提升为 master,
+		// 没有任何后续动作会把 appendonly 翻回 no, 运行态 yes 再被任何一次 config rewrite 固化,
+		// 就成了重启也无法纠正的 AOF master. 因此关闭并落盘内聚在切换原语里: 角色变到哪, 配置跟到哪.
+		if consts.IsRedisInstanceDbType(job.params.ClusterMeta.ClusterType) {
+			if err := job.disableAppendonly4NewMaster(storagePair.SlaveInfo.IP,
+				storagePair.SlaveInfo.Port, job.params.ClusterMeta.StoragePassword); err != nil {
+				job.runtime.Logger.Error("disable appendonly before change 2 master %d:[%+v];with err:%+v", idx, storagePair, err)
+				return err
+			}
+		}
 		// 这里需要区分集群类型， 不同架构切换方式不一致
 		if consts.IsTwemproxyClusterType(job.params.ClusterMeta.ClusterType) {
 			job.runtime.Logger.Info("do switch of twemproxy arch %s:%s",
@@ -324,6 +338,36 @@ func (job *RedisSwitch) enableWrite4Slave(ip string, port int, pass string) erro
 		return fmt.Errorf("slaveofNooNE:%s", rst)
 	}
 	job.runtime.Logger.Info("[%s] config set slave-read-only no result:%s", newMasterAddr, rst)
+	return nil
+}
+
+// disableAppendonly4NewMaster cache 架构从库升主前关闭 AOF 并落盘.
+//
+// 只关运行态不够: conf 文件里残留的 appendonly yes 会在下次重启时打回原形,
+// 而切换链路里其他动作(如 trySetMasterAuth)的 config rewrite 恰恰会把运行态固化.
+// 所以这里 config set + config rewrite 一起做, 保证磁盘配置与升主后的角色一致.
+func (job *RedisSwitch) disableAppendonly4NewMaster(ip string, port int, pass string) error {
+	newMasterAddr := fmt.Sprintf("%s:%d", ip, port)
+	newMasterConn, err := myredis.NewRedisClientWithRetry(newMasterAddr,
+		pass, 0, job.params.ClusterMeta.ClusterType, time.Second*10)
+	if err != nil {
+		return err
+	}
+	defer newMasterConn.Close()
+	rst, err := newMasterConn.ConfigSet("appendonly", "no")
+	if err != nil {
+		job.runtime.Logger.Error("[%s] config set appendonly no failed:%+v", newMasterAddr, err)
+		return err
+	}
+	if rst != "OK" {
+		job.runtime.Logger.Error("[%s] config set appendonly no failed:%s", newMasterAddr, rst)
+		return fmt.Errorf("appendonlyNo:%s", rst)
+	}
+	if _, err := newMasterConn.ConfigRewrite(); err != nil {
+		job.runtime.Logger.Error("[%s] config rewrite after appendonly no failed:%+v", newMasterAddr, err)
+		return err
+	}
+	job.runtime.Logger.Info("[%s] config set appendonly no + rewrite success", newMasterAddr)
 	return nil
 }
 
@@ -454,6 +498,20 @@ func (job *RedisSwitch) trySetMasterAuth(sp InstanceSwitchParam) {
 	defer conn.Close()
 	if _, err := conn.ConfigSet("masterauth", job.params.ClusterMeta.StoragePassword); err != nil {
 		job.runtime.Logger.Warn("try set old master :%s:%d failed:%+v", sp.MasterInfo.IP, sp.MasterInfo.Port, err)
+	}
+	// cluster failover 后 old_master 已自动成为 new_master 的从库, cache 架构按集群备份模式设置 appendonly:
+	// rdb 备份的从库不开 AOF(与 dbmon CheckPersist 对 rdb 模式从库关 AOF 的口径一致);
+	// aof / 未配置(空)时开 AOF, 与升级链路重建配置的 StepAppendonlyForReplica 口径一致.
+	// 随后的 rewrite 把磁盘配置一并翻过来.
+	if consts.IsRedisInstanceDbType(job.params.ClusterMeta.ClusterType) {
+		appendonlyTarget := "yes"
+		if strings.EqualFold(strings.TrimSpace(job.params.ClusterMeta.CacheBackupMode), "rdb") {
+			appendonlyTarget = "no"
+		}
+		if _, err := conn.ConfigSet("appendonly", appendonlyTarget); err != nil {
+			job.runtime.Logger.Warn("try set old master :%s:%d appendonly %s failed:%+v",
+				sp.MasterInfo.IP, sp.MasterInfo.Port, appendonlyTarget, err)
+		}
 	}
 	if _, err := conn.ConfigRewrite(); err != nil {
 		job.runtime.Logger.Warn("try rewrite old master :%s:%d failed:%+v", sp.MasterInfo.IP, sp.MasterInfo.Port, err)

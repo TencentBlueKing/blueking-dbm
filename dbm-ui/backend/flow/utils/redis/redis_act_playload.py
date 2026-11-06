@@ -2021,6 +2021,11 @@ class RedisActPayload(object):
                     # "redis_slave_set": cluster_meta["redis_slave_set"], # 似乎没有用.
                     "proxy_pass": proxy_pass,
                     "storage_pass": storage_pass,
+                    # cache 互切降级方向(old_master 变从库)的 appendonly 目标值由它决定:
+                    # rdb 模式从库不开 AOF, aof/未配置(空)时开 AOF
+                    "cache_backup_mode": get_cache_backup_mode(
+                        bk_biz_id=cluster_meta["bk_biz_id"], cluster_id=params.get("cluster_id", 0)
+                    ),
                 },
                 "switch_info": params["switch_info"],  # list
                 "switch_condition": params["switch_condition"],  # dict
@@ -2799,6 +2804,11 @@ class RedisActPayload(object):
             "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.CLUSTER_FAILOVER.value,
             "payload": {
                 "redis_password": params["redis_password"],
+                # 可选; cache 口径集群传 cluster_type 后, actuator 会在 failover 前后
+                # 翻转 appendonly(升主前关、降从后开), 避免从库带着 AOF 被提升为主.
+                "cluster_type": params.get("cluster_type", ""),
+                # 降级方向(old_master 变从库)的 appendonly 目标值: rdb → no, aof/未配置 → yes
+                "cache_backup_mode": params.get("cache_backup_mode", ""),
                 "redis_master_slave_pairs": params["redis_master_slave_pairs"],
                 "force": False,
             },

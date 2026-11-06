@@ -34,7 +34,15 @@ type masterSlavePair struct {
 
 // RedisClusterFailoverParam redis cluster failover param
 type RedisClusterFailoverParam struct {
-	RedisPassword         string            `json:"redis_password" validate:"required"`
+	RedisPassword string `json:"redis_password" validate:"required"`
+	// ClusterType 可选. appendonly 翻转只作用于 cache 口径的集群类型(RedisCluster/PredixyRedisCluster 等):
+	// 从库为备份通常以 appendonly=yes 运行, 升主前必须关掉并落盘, 否则提升后就成了重启也无法纠正的 AOF master.
+	// 缺省(空)时不碰 appendonly, 保持 tendisplus 等老调用方行为不变(它们的持久化在磁盘上).
+	ClusterType string `json:"cluster_type"`
+	// CacheBackupMode 可选, 取值 aof / rdb, 与 dbmon.yaml 的 cache_backup_mode 同源.
+	// 决定 failover 后 old_master(已变从库)的 appendonly 目标值: rdb 模式从库不开 AOF,
+	// aof / 未配置(空)时开 AOF. 缺省按现状口径(aof)处理.
+	CacheBackupMode       string            `json:"cache_backup_mode"`
 	RedisMasterSlavePairs []masterSlavePair `json:"redis_master_slave_pairs" validate:"required"` // {"master_ip:master_port","slave_ip:slave_port"}
 	// 如果是强制failover,则不检查集群状态是否ok,不检查所有slave的link状态是否ok,failover时加上force 参数,failover后也不检查new_slave(old_master)同步是否跟上
 	Force bool `json:"force"`
@@ -122,11 +130,96 @@ func (job *RedisClusterFailover) Run() (err error) {
 			return
 		}
 	}
+
+	// cluster failover  old_master 会自动成为 new_master 的从库,
+	// cache 架构从库按约定开 AOF(与升级链路重建配置的 StepAppendonlyForReplica 口径一致).
+	job.enableOldMastersAppendonly()
+
 	err = job.groupRunFailoverAndWaitReplicateStateOk()
 	if err != nil {
 		return
 	}
+
+	err = job.disableSlavesAppendonly()
+	if err != nil {
+		return
+	}
+
 	return nil
+}
+
+// isCacheClusterType appendonly 翻转只作用于 cache 口径的集群类型; 参数缺省时不碰, 兼容老调用方.
+func (job *RedisClusterFailover) isCacheClusterType() bool {
+	return job.params.ClusterType != "" && consts.IsRedisInstanceDbType(job.params.ClusterType)
+}
+
+// disableSlavesAppendonly failover 后把待提升 slave 的 AOF 关掉并落盘,
+func (job *RedisClusterFailover) disableSlavesAppendonly() (err error) {
+	if !job.isCacheClusterType() {
+		return nil
+	}
+	for _, ms := range job.params.RedisMasterSlavePairs {
+		rc, err := myredis.NewRedisClientWithRetry(ms.Slave.Addr(), job.params.RedisPassword, 0,
+			job.params.ClusterType, 5*time.Second)
+		if err != nil {
+			return err
+		}
+		rst, err := rc.ConfigSet("appendonly", "no")
+		if err == nil && rst != "OK" {
+			err = fmt.Errorf("appendonlyNo:%s", rst)
+		}
+		if err == nil {
+			_, err = rc.ConfigRewrite()
+		}
+		rc.Close()
+		if err != nil {
+			job.runtime.Logger.Error("disable appendonly on slave:%s before failover failed,err:%v",
+				ms.Slave.Addr(), err)
+			return err
+		}
+		job.runtime.Logger.Info("disable appendonly on slave:%s before failover success", ms.Slave.Addr())
+	}
+	return nil
+}
+
+// replicaAppendonlyTarget failover 后 old_master(已变从库)的 appendonly 目标值, 跟随集群备份模式:
+// rdb 备份的集群从库不开 AOF(与 dbmon CheckPersist 对 rdb 模式从库关 AOF 的口径一致);
+// aof / 未配置(空, get_cache_backup_mode 对 RedisCluster 架构返回空)时开 AOF,
+// 与 CreateReplicaREL、StepAppendonlyForReplica 的现状口径一致.
+func (job *RedisClusterFailover) replicaAppendonlyTarget() string {
+	if strings.EqualFold(strings.TrimSpace(job.params.CacheBackupMode), "rdb") {
+		return "no"
+	}
+	return "yes"
+}
+
+// enableOldMastersAppendonly failover 后按备份模式给 old_master(已自动变成从库)设置 appendonly 并落盘.
+// 失败只告警不回滚: failover 本身已成功, appendonly 可以由 dbmon / 后续配置刷新兜底.
+func (job *RedisClusterFailover) enableOldMastersAppendonly() {
+	if !job.isCacheClusterType() {
+		return
+	}
+	target := job.replicaAppendonlyTarget()
+	for _, ms := range job.params.RedisMasterSlavePairs {
+		rc, err := myredis.NewRedisClientWithRetry(ms.Master.Addr(), job.params.RedisPassword, 0,
+			job.params.ClusterType, 5*time.Second)
+		if err != nil {
+			job.runtime.Logger.Warn("conn old master:%s after failover failed,err:%v", ms.Master.Addr(), err)
+			continue
+		}
+		_, err = rc.ConfigSet("appendonly", target)
+		if err == nil {
+			_, err = rc.ConfigRewrite()
+		}
+		rc.Close()
+		if err != nil {
+			job.runtime.Logger.Warn("set appendonly=%s on old master:%s after failover failed,err:%v",
+				target, ms.Master.Addr(), err)
+			continue
+		}
+		job.runtime.Logger.Info("set appendonly=%s on old master:%s after failover success(cache_backup_mode=%s)",
+			target, ms.Master.Addr(), job.params.CacheBackupMode)
+	}
 }
 
 func (job *RedisClusterFailover) checkAllRedisConnected() (err error) {

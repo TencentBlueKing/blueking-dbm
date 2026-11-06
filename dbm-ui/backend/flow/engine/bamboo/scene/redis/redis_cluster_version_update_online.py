@@ -963,6 +963,11 @@ class RedisClusterVersionUpdateOnline(object):
         ctx.act_kwargs.cluster = {
             "redis_password": ctx.cluster_meta_data["redis_password"],
             "redis_master_slave_pairs": ctx.pairs_to_switch,
+            "cluster_type": ctx.cluster_meta_data["cluster_type"],
+            # failover 后 old_master 变从库, 其 appendonly 目标值跟随集群备份模式
+            "cache_backup_mode": get_cache_backup_mode(
+                bk_biz_id=ctx.cluster_meta_data["bk_biz_id"], cluster_id=ctx.cluster_id
+            ),
             "force": False,
         }
         ctx.act_kwargs.get_redis_payload_func = RedisActPayload.redis_cluster_failover.__name__

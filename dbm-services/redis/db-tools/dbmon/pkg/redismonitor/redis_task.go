@@ -404,6 +404,15 @@ func (task *RedisMonitorTask) CheckPersist() {
 			var _ok string
 			// 备份要求是AOF ， 那我把这个AOF 再打开呗
 			_ok, task.Err = cliItem.ConfigSet("appendonly", "yes")
+			if task.Err == nil {
+				// config set 只改运行态; 不 rewrite 的话 conf 文件里仍是 no,
+				// 分叉的磁盘配置会被后续任何一次 config rewrite 固化成错误状态.
+				if _, task.Err = cliItem.ConfigRewrite(); task.Err != nil {
+					mylog.Logger.Warn(fmt.Sprintf("redis_slave(%s) config rewrite after appendonly yes failed:%+v",
+						cliItem.Addr, task.Err))
+					task.Err = nil // rewrite 失败不阻断监控, 下个周期会再纠偏
+				}
+			}
 			msg = fmt.Sprintf("redis_slave(%s) appendonly==%s; reset 2 YES.(config set %s)", cliItem.Addr, appendonly, _ok)
 			mylog.Logger.Warn(msg)
 			task.eventSender.SendWarning(consts.EventRedisPersist, msg, consts.WarnLevelWarning, task.ServerConf.ServerIP)
