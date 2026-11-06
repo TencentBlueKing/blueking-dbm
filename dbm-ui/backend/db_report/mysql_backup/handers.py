@@ -62,6 +62,17 @@ def _mysql_quote_like(value: str) -> str:
     return escaped.replace("%", "\\%").replace("_", "\\_")
 
 
+def _has_grant_privilege(data_schema_grant: str) -> bool:
+    """
+    判断备份记录的内容标识是否包含权限备份。
+
+    data_schema_grant 是逗号分隔的组合值，如 "schema,grant" / "grant,schema"；
+    "all" 表示包含全部内容（含权限）。记录是否真正可用仍由 priv 文件判据决定。
+    """
+    tokens = {token.strip().lower() for token in str(data_schema_grant or "").split(",")}
+    return "grant" in tokens or "all" in tokens
+
+
 class MySQLBackupHandler:
     """
     mysql 备份文件查询相关接口
@@ -311,12 +322,12 @@ class MySQLBackupHandler:
         self, spider_priv_backup_id: str = None, latest_time: datetime = None
     ) -> Dict[str, Any]:
         """
-        TenDBCluster：查询 Spider/tdbctl 独立 grant 备份（data_schema_grant=grant），用于接入层灾难恢复。
+        TenDBCluster：查询 spider master 的独立 grant 备份（data_schema_grant 含 grant/all），用于接入层权限恢复。
         不依赖 storage 实例列表过滤；按 backup_consistent_time 降序取首条含 priv 文件的记录。
+        TDBCTL 角色的备份不参与查询，中控权限不恢复。
         """
         conditions = Q(cluster_id=self.cluster.id, cluster_address=self.cluster.immute_domain)
-        conditions &= Q(data_schema_grant__iexact="grant")
-        conditions &= Q(mysql_role__in=["spider_master", "TDBCTL"])
+        conditions &= Q(mysql_role="spider_master")
         if spider_priv_backup_id:
             conditions &= Q(backup_id=spider_priv_backup_id)
         if self.deadlines_days > 0:
@@ -331,6 +342,8 @@ class MySQLBackupHandler:
         logger.info(self.query)
 
         for backup_info in backup_infos:
+            if not _has_grant_privilege(backup_info.data_schema_grant):
+                continue
             backup_info.backup_consistent_time = backup_info.backup_consistent_time.isoformat()
             backup_info.backup_begin_time = backup_info.backup_begin_time.isoformat()
             backup_info.backup_end_time = backup_info.backup_end_time.isoformat()
@@ -354,7 +367,7 @@ class MySQLBackupHandler:
                 "mysql_role": mysql_role,
             }
 
-        self.errmsg = _("集群id {} 未找到 Spider/tdbctl grant 权限备份记录").format(self.cluster.id)
+        self.errmsg = _("集群id {} 未找到 spider master grant 权限备份记录").format(self.cluster.id)
         logger.error(self.errmsg)
         return None
 
