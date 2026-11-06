@@ -49,6 +49,7 @@ RESOURCE_UPDATE_REMARK = {
     "rack_id": _("机架"),
     "device_class": _("机型"),
     "storage_device": _("数据盘"),
+    "os_name": _("操作系统"),
 }
 
 

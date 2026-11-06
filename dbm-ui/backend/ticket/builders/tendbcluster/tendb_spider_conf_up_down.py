@@ -10,8 +10,8 @@ specific language governing permissions and limitations under the License.
 """
 from django.utils.translation import gettext_lazy as _
 
-from backend.db_meta.enums import TenDBClusterSpiderRole
-from backend.db_meta.models import Cluster
+from backend.db_meta.enums import AccessLayer, TenDBClusterSpiderRole
+from backend.db_meta.models import Cluster, DBModule
 from backend.flow.engine.controller.spider import SpiderController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
@@ -34,14 +34,22 @@ class TendbSpiderConfUpDownResourceParamBuilder(TendbBaseOperateResourceParamBui
         infos = self.ticket_data["infos"]
         cluster_ids = fetch_cluster_ids(infos)
         cluster_map = Cluster.objects.in_bulk(cluster_ids)
+        module_map = DBModule.objects.in_bulk([cluster.db_module_id for cluster in cluster_map.values()])
         for info in infos:
+            cluster = cluster_map[info["cluster_id"]]
             self.patch_common_affinity(
                 info,
                 role=info["switch_spider_role"],
-                cluster=cluster_map[info["cluster_id"]],
+                cluster=cluster,
                 exclusive_hosts=[],
                 tolerance=0.5,
                 no_need_affinity=info["switch_spider_role"] == TenDBClusterSpiderRole.SPIDER_SLAVE,
+            )
+            self.patch_module_os_params(
+                info["resource_spec"],
+                role=info["switch_spider_role"],
+                db_module=module_map.get(cluster.db_module_id),
+                access_layer=AccessLayer.PROXY,
             )
 
     def post_callback(self):

@@ -14,7 +14,7 @@ import json
 import logging
 import os
 from collections import defaultdict
-from typing import Callable, Dict, List, Union
+from typing import Callable, Dict, List, Optional, Union
 
 from django.db.models import Q
 from django.utils.translation import gettext as _
@@ -23,8 +23,10 @@ from rest_framework import serializers
 from backend import env
 from backend.configuration.constants import AffinityEnum, DBType, SystemSettingsEnum
 from backend.configuration.models import DBAdministrator, SystemSettings
+from backend.db_meta.api.db_module.version import get_layer_permit_os
 from backend.db_meta.enums import MachineType, TenDBClusterSpiderRole
-from backend.db_meta.models import AppCache, Cluster, Machine, ProxyInstance, StorageInstance
+from backend.db_meta.models import AppCache, Cluster, DBModule, Machine, ProxyInstance, StorageInstance
+from backend.db_package.models import Package
 from backend.db_services.dbbase.constants import IpSource
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket.constants import TICKET_EXPIRE_DEFAULT_CONFIG, FlowRetryType, FlowType, TicketType
@@ -394,6 +396,85 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
             )
             exclusive_hosts = cluster__remain_hosts_map.get(cluster.id, [])
             self.patch_common_affinity(info, role, cluster, exclusive_hosts, cluster_tolerance, no_need_affinity)
+
+    @staticmethod
+    def patch_module_os_params(resource_spec: dict, role: str, db_module: DBModule, access_layer: str):
+        """
+        按模块版本的操作系统约束，补充单个角色的资源申请参数
+        @param resource_spec: 资源申请规格
+        @param role: 申请角色名，即 resource_spec 中的 key
+        @param db_module: 集群所属模块
+        @param access_layer: 角色所在层，存储层或接入层
+        """
+        # 不存在模块，则跳过
+        if not db_module:
+            return
+
+        # 不存在该角色的资源池申请，或是手动选择主机，则跳过
+        if not resource_spec.get(role) or "hosts" in resource_spec[role]:
+            return
+
+        permit_os = get_layer_permit_os(db_module, access_layer)
+        # 模块未设置该层版本，保持原有申请行为
+        if not permit_os:
+            return
+
+        os_type, os_names = permit_os
+        resource_spec[role]["os_type"] = os_type
+        # 不限制操作系统（空列表）或查不到介质包（None）时，只按操作系统类型申请
+        if os_names:
+            resource_spec[role]["os_names"] = os_names
+
+    def patch_info_module_os_params(self, role: str, access_layer: str):
+        """
+        批量申请时，按每条 info 所属集群的模块，补充该角色的操作系统参数
+        @param role: 申请角色名
+        @param access_layer: 角色所在层，存储层或接入层
+        """
+        from backend.ticket.builders.common.base import fetch_cluster_ids
+
+        infos = self.ticket_data["infos"]
+        cluster_map = Cluster.objects.in_bulk(fetch_cluster_ids(infos))
+        module_map = DBModule.objects.in_bulk([cluster.db_module_id for cluster in cluster_map.values()])
+
+        for info in infos:
+            cluster = cluster_map[fetch_cluster_ids(info)[0]]
+            db_module = module_map.get(cluster.db_module_id)
+            self.patch_module_os_params(info.get("resource_spec", {}), role, db_module, access_layer)
+
+    @staticmethod
+    def patch_package_os_params(resource_spec: dict, role: str, package: Optional[Package]):
+        """
+        按介质包支持的操作系统，补充单个角色的资源申请参数。
+        迁移升级这类单据自己指定了要安装的介质包，所以按介质包约束，而不是按模块
+        @param resource_spec: 资源申请规格
+        @param role: 申请角色名，即 resource_spec 中的 key
+        @param package: 单据要安装的介质包
+        """
+        # 存量介质包可能没填操作系统类型，保持原有申请行为
+        if not package or not package.permit_os_type:
+            return
+
+        # 不存在该角色的资源池申请，或是手动选择主机，则跳过
+        if not resource_spec.get(role) or "hosts" in resource_spec[role]:
+            return
+
+        resource_spec[role]["os_type"] = package.permit_os_type
+        # 介质包不限制操作系统（空列表）时，只按操作系统类型申请
+        if package.permit_os:
+            resource_spec[role]["os_names"] = package.permit_os
+
+    def patch_info_package_os_params(self, role: str):
+        """
+        批量申请时，按每条 info 选择的介质包 pkg_id，补充该角色的操作系统参数
+        @param role: 申请角色名
+        """
+        infos = self.ticket_data["infos"]
+        package_map = Package.objects.in_bulk([info["pkg_id"] for info in infos])
+
+        for info in infos:
+            package = package_map.get(info["pkg_id"])
+            self.patch_package_os_params(info.get("resource_spec", {}), role, package)
 
 
 class RecycleCleanMachineParamBuilder(FlowParamBuilder):
