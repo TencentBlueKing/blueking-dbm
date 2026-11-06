@@ -135,10 +135,11 @@ func SupervisorAddConfig(supervisorConfDir string, component string) error {
 
 	group := RoleEnum(component).Group()
 	dorisHome := fmt.Sprintf("/data/dorisenv/%s", component)
-	// 用 bash -c 包裹启动命令，先 source dorisprofile 加载 JAVA_HOME 等环境变量。
+	// 用 bash -c 包裹启动命令，先加载 dorisprofile 取得 JAVA_HOME 等环境变量。
 	// supervisor 直接 exec 不加载 profile，不加这一步会导致 start_fe.sh/start_be.sh 找不到 java。
-	startCmd := fmt.Sprintf("bash -c 'source /data/dorisenv/dorisprofile && exec %s/bin/start_%s.sh'",
-		dorisHome, group)
+	// 这里保留 && ：profile 加载失败时不应带着空 JAVA_HOME 启动进程。
+	startCmd := fmt.Sprintf("bash -c '. %s && exec %s/bin/start_%s.sh'",
+		dorisutil.DefaultDorisProfile, dorisHome, group)
 	data := []byte(fmt.Sprintf(`[program:%s]
 command=%s ; the program (relative uses PATH, can take args)
 directory=%s ; supervisord 

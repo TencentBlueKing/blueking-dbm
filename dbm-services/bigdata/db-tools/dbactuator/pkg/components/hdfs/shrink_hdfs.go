@@ -340,9 +340,10 @@ type RefreshNodesService struct {
 
 // RefreshNodes TODO
 func (r *RefreshNodesService) RefreshNodes() (err error) {
-	execCommand := fmt.Sprintf("su - %s -c \"hdfs dfsadmin -refreshNodes\"", r.ExecuteUser)
+	execCommand := fmt.Sprintf("su - %s -c \"%s hdfs dfsadmin -refreshNodes\"", r.ExecuteUser, LoadProfileCmd)
 	// 不检查是否执行成功
-	if _, err := osutil.ExecShellCommand(false, execCommand); err != nil {
+	// 用 ExecShellCommandJ：hdfs 脚本的 log4j 告警会写到 stderr，ExecShellCommand 会据此误判为失败
+	if _, err := osutil.ExecShellCommandJ(false, execCommand); err != nil {
 		logger.Error("[%s] execute failed, %v", execCommand, err)
 	}
 	return nil

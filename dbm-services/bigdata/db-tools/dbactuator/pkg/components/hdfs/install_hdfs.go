@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"strings"
+	"time"
 
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/components"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/components/hdfs/config_tpl"
@@ -160,8 +161,8 @@ func (i *InstallHdfsService) InstallJournalNode() (err error) {
 // InstallNn1 TODO
 func (i *InstallHdfsService) InstallNn1() (err error) {
 
-	formatCommand := fmt.Sprintf("su - %s -c \"source /etc/profile ; hdfs namenode -format -force 2> /dev/null\"",
-		i.ExecuteUser)
+	formatCommand := fmt.Sprintf("su - %s -c \"%s hdfs namenode -format -force 2> /dev/null\"",
+		i.ExecuteUser, LoadProfileCmd)
 	if _, err = osutil.ExecShellCommand(false, formatCommand); err != nil {
 		// 不通过指令是否返回0判断是否初始化完成
 		logger.Error("%s execute failed, %v", formatCommand, err)
@@ -184,7 +185,7 @@ func (i *InstallHdfsService) InstallNn1() (err error) {
 
 	// 默认执行成功，不捕获err，不校验(校验需要到JN部署机器上进行，若非部署在同一台比较难实现)
 	initSharedEditsCommand := fmt.Sprintf(
-		"su - %s -c \"source /etc/profile ; hdfs namenode -initializeSharedEdits -force 2> /dev/null\"", i.ExecuteUser)
+		"su - %s -c \"%s hdfs namenode -initializeSharedEdits -force 2> /dev/null\"", i.ExecuteUser, LoadProfileCmd)
 	if _, err = osutil.ExecShellCommand(false, initSharedEditsCommand); err != nil {
 		logger.Error("%s execute failed, %v", initSharedEditsCommand, err)
 	}
@@ -194,7 +195,8 @@ func (i *InstallHdfsService) InstallNn1() (err error) {
 // InstallNn2 TODO
 func (i *InstallHdfsService) InstallNn2() (err error) {
 
-	standbyCommand := fmt.Sprintf("su - %s -c \"hdfs namenode -bootstrapStandby -force 2> /dev/null\"", i.ExecuteUser)
+	standbyCommand := fmt.Sprintf(
+		"su - %s -c \"%s hdfs namenode -bootstrapStandby -force 2> /dev/null\"", i.ExecuteUser, LoadProfileCmd)
 	if _, err = osutil.ExecShellCommand(false, standbyCommand); err != nil {
 		logger.Error("%s execute failed, %v", standbyCommand, err)
 	}
@@ -212,18 +214,16 @@ func (i *InstallHdfsService) InstallNn2() (err error) {
 		logger.Error("%s execute failed, %v", checkCmd, err)
 		return err
 	}
-	sleepCommand := fmt.Sprintf("su - %s -c \"sleep 30 \"", i.ExecuteUser)
-	if _, err = osutil.ExecShellCommand(false, sleepCommand); err != nil {
-		logger.Error("%s execute failed, %v", sleepCommand, err)
-	}
+	// 等待元数据落盘，纯等待无需起 shell 进程
+	time.Sleep(30 * time.Second)
 
 	if err = i.SupervisorUpdateConfig(NameNode); err != nil {
 		logger.Error("SupervisorUpdateConfig failed, %v", err)
 		return err
 	}
 
-	formatZKCommand := fmt.Sprintf("su - %s -c \"source /etc/profile; hdfs zkfc -formatZK -force 2> /dev/null\"",
-		i.ExecuteUser)
+	formatZKCommand := fmt.Sprintf("su - %s -c \"%s hdfs zkfc -formatZK -force 2> /dev/null\"",
+		i.ExecuteUser, LoadProfileCmd)
 	if _, err = osutil.ExecShellCommand(false, formatZKCommand); err != nil {
 		logger.Error("%s execute failed, %v", formatZKCommand, err)
 	}

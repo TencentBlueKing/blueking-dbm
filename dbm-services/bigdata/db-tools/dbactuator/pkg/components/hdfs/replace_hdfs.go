@@ -3,12 +3,15 @@ package hdfs
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/components"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/rollback"
 	"dbm-services/bigdata/db-tools/dbactuator/pkg/util/osutil"
 	"dbm-services/common/go-pubpkg/logger"
+
+	"github.com/pkg/errors"
 )
 
 // GenerateKeyParams TODO
@@ -72,7 +75,9 @@ type WriteKeyService struct {
 
 // WriteKey TODO
 func (i *WriteKeyService) WriteKey() (err error) {
-	executeCmd := fmt.Sprintf("su - %s -c \"mkdir -p ~/.ssh/; echo '%s' >> ~/.ssh/authorized_keys\"",
+	// mkdir/echo 不依赖组件环境变量，无需加载 profile
+	executeCmd := fmt.Sprintf(
+		"su - %s -c \"mkdir -p ~/.ssh/; echo '%s' >> ~/.ssh/authorized_keys\"",
 		i.ExecuteUser, i.Params.Key)
 	if _, err := osutil.ExecShellCommand(false, executeCmd); err != nil {
 		logger.Error("%s execute failed, %v", executeCmd, err)
@@ -142,34 +147,69 @@ type CheckActiveService struct {
 	RollBackContext rollback.RollBackObjects
 }
 
-// CheckActive TODO
-func (i *CheckActiveService) CheckActive() (err error) {
-	checkActiveResult := make(map[string]string, 2)
-	checkNn1Cmd := fmt.Sprintf("su - %s -c \"hdfs haadmin -getServiceState nn1 | xargs echo -n\"", i.ExecuteUser)
-	checkNn2Cmd := fmt.Sprintf("su - %s -c \"hdfs haadmin -getServiceState nn2 | xargs echo -n\"", i.ExecuteUser)
+// NameNode HA 服务状态，hdfs haadmin -getServiceState 的合法输出。
+// 上游 dbm-ui 的 update_hdfs_resource.py 按 cluster_active_info["active"] / ["standby"]
+// 取值，因此这两个状态必须同时拿到，且不能出现其它 key。
+const (
+	nnStateActive  = "active"
+	nnStateStandby = "standby"
+)
 
+// getNameNodeServiceState 查询单个 NameNode 的 HA 状态。
+// 使用 ExecShellCommandJ（仅 exit code 非 0 才算失败）：hdfs 脚本会把 log4j 告警写到 stderr，
+// 用 ExecShellCommand 会因「stderr 非空即失败」把正常查询判为失败。
+func (i *CheckActiveService) getNameNodeServiceState(nnName string) (string, error) {
+	cmd := fmt.Sprintf("su - %s -c \"%s hdfs haadmin -getServiceState %s\"",
+		i.ExecuteUser, LoadProfileCmd, nnName)
+	output, err := osutil.ExecShellCommandJ(false, cmd)
+	if err != nil {
+		return "", errors.WithMessagef(err, "execute [%s] failed", cmd)
+	}
+	state := strings.ToLower(strings.TrimSpace(output))
+	if state != nnStateActive && state != nnStateStandby {
+		return "", errors.Errorf("unexpected service state of %s: %q", nnName, state)
+	}
+	return state, nil
+}
+
+// CheckActive 查询 nn1/nn2 的主备状态，以 {"active": ip, "standby": ip} 的形式输出。
+func (i *CheckActiveService) CheckActive() (err error) {
 	maxRetryCount := 3
-	// var interval int = 5
+	checkActiveResult := make(map[string]string, 2)
+
 	for retryCount := 0; retryCount < maxRetryCount; retryCount++ {
 		time.Sleep(5 * time.Second)
-		if result, err := osutil.ExecShellCommand(false, checkNn1Cmd); err != nil {
-			logger.Error("%s execute failed, %v", checkNn1Cmd, err)
+
+		nn1State, nn1Err := i.getNameNodeServiceState("nn1")
+		if nn1Err != nil {
+			logger.Error("get nn1 service state failed, %v", nn1Err)
 			continue
-		} else {
-			checkActiveResult[result] = i.Params.Nn1Ip
 		}
-		if result, err := osutil.ExecShellCommand(false, checkNn2Cmd); err != nil {
-			logger.Error("%s execute failed, %v", checkNn2Cmd, err)
+		nn2State, nn2Err := i.getNameNodeServiceState("nn2")
+		if nn2Err != nil {
+			logger.Error("get nn2 service state failed, %v", nn2Err)
 			continue
-		} else {
-			checkActiveResult[result] = i.Params.Nn2Ip
-			break
 		}
+		// 必须是一主一备，同为 active（脑裂）或同为 standby（无主）都要重试
+		if nn1State == nn2State {
+			logger.Error("nn1 and nn2 are both %s, retrying", nn1State)
+			continue
+		}
+
+		checkActiveResult[nn1State] = i.Params.Nn1Ip
+		checkActiveResult[nn2State] = i.Params.Nn2Ip
+		break
+	}
+
+	// 重试耗尽仍未拿到完整主备信息时必须报错：
+	// 若返回空 map 且不报错，上游会把「没查到主备」当成功结果继续执行后续替换动作
+	if len(checkActiveResult) != 2 {
+		return errors.Errorf("failed to get active/standby namenode after %d retries", maxRetryCount)
 	}
 
 	jsonBytes, err := json.Marshal(checkActiveResult)
 	if err != nil {
-		logger.Error("transfer checkActiveResult to json failed", err.Error())
+		logger.Error("transfer checkActiveResult to json failed, %v", err)
 		return err
 	}
 	// 标准输出 json返回结果
