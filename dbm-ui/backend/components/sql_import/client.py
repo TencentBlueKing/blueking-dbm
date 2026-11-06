@@ -32,6 +32,22 @@ class _SQLSimulationApi(BaseApi):
             description=_("sql语法检查-sqlserver专属"),
         )
 
+        # 公共语法检查：未选定集群/版本时，只检查 MySQL 与 Spider 共有的禁用、高危规则。
+        # 使用示例：
+        # {
+        #     "bk_biz_id": 123,
+        #     "path": "mysql/sqlfile/123",
+        #     "files": ["grant.sql", "update.sql"],
+        #     "execute_objects": [
+        #         {"line_id": 0, "sql_files": ["grant.sql"], "dbnames": ["db%"], "ignore_dbnames": []}
+        #     ]
+        # }
+        self.common_grammar_check = self.generate_data_api(
+            method="POST",
+            url="/syntax/check/common",
+            description=_("sql语法检查-公共规则(不依赖集群和版本)"),
+        )
+
         # 使用示例：
         # {
         #     "cluster_type": "mysql",

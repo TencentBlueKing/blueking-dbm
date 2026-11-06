@@ -31,6 +31,16 @@ class SQLSimulationApiMock:
         return sql_check_info
 
     @classmethod
+    def common_grammar_check(cls, *agrs, **kwargs):
+        files = kwargs["params"].get("files", None)
+        base_check_info = {
+            "syntax_fails": None,
+            "highrisk_warnings": None,
+            "bancommand_warnings": None,
+        }
+        return {sql_file: dict(base_check_info) for sql_file in files}
+
+    @classmethod
     def sqlserver_grammar_check(cls, *agrs, **kwargs):
         files = kwargs["params"].get("files", None)
         return {

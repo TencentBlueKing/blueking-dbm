@@ -28,6 +28,7 @@ from backend.db_services.mysql.sql_import.serializers import (
     QuerySemanticDataSerializer,
     RevokeSemanticCheckResponseSerializer,
     RevokeSemanticCheckSerializer,
+    SQLCommonGrammarCheckSerializer,
     SQLGrammarCheckResponseSerializer,
     SQLGrammarCheckSerializer,
     SQLSemanticCheckResponseSerializer,
@@ -82,6 +83,16 @@ class SQLImportViewSet(viewsets.SystemViewSet):
     @action(methods=["POST"], detail=False, serializer_class=SQLGrammarCheckSerializer)
     def grammar_check(self, request, bk_biz_id):
         return self._view_common_handler(request, bk_biz_id, SQLHandler.grammar_check.__name__)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("sql公共语法检查(不依赖集群和版本)"),
+        request_body=SQLCommonGrammarCheckSerializer(),
+        tags=[SWAGGER_TAG],
+        responses={status.HTTP_200_OK: SQLGrammarCheckResponseSerializer()},
+    )
+    @action(methods=["POST"], detail=False, serializer_class=SQLCommonGrammarCheckSerializer)
+    def common_grammar_check(self, request, bk_biz_id):
+        return self._view_common_handler(request, bk_biz_id, SQLHandler.common_grammar_check.__name__)
 
     @common_swagger_auto_schema(
         operation_summary=_("sql语义检查"),
