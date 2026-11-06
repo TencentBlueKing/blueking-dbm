@@ -51,10 +51,11 @@ func (c whitelistCluster) String() string {
 	return fmt.Sprintf("%d:%d:%d:%s", c.BkBizID, c.BkCloudID, c.ClusterID, c.ClusterName)
 }
 
-// MatchKey is the v1-compatible lookup key: cloud + cluster_name (domain).
-// cluster_id is omitted so a rebuilt cluster with the same name still matches.
+// MatchKey is the v1-compatible lookup key: cluster_name (domain) only.
+// v1 caches whitelist as map[cluster_name]bool; cluster_id and cloud_id are
+// omitted so a rebuilt cluster with the same name still matches.
 func (c whitelistCluster) MatchKey() string {
-	return fmt.Sprintf("%d:%s", c.BkCloudID, c.ClusterName)
+	return c.ClusterName
 }
 
 // queryBlackWhiteListFromDbhaV1 queries black white list from dbha-v1.
@@ -69,7 +70,7 @@ func (s *Synchronizer) queryBlackWhiteListFromDbhaV1(
 
 	var lastErr error
 	for attempt := 1; attempt <= blackWhiteListQueryMaxAttempts; attempt++ {
-		items, err := s.cli.GetBlackWhiteListFromDbhaV1(ctx, bkCloudId, bkBizId)
+		items, err := s.cli.GetBlackWhiteListFromDbhaV1(ctx, bkCloudId)
 		if err == nil {
 			return items, nil
 		}
