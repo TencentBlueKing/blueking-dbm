@@ -57,19 +57,27 @@ func parseQueries(t *testing.T, sql, clusterType string) []ParseFileQuery {
 	return lines
 }
 
-func TestGetCommandOmitsPrintLengthByDefault(t *testing.T) {
+func TestGetCommandArgsOmitsPrintLengthByDefault(t *testing.T) {
 	tf := &TmysqlParseFile{
 		TmysqlParse: TmysqlParse{TmysqlParseBinPath: "/data/tmysqlparse"},
 	}
 	tf.tmpWorkdir = t.TempDir()
-	cmd := tf.getCommand("a.sql", "5.7", "")
+	args, err := tf.getCommandArgs("a.sql", "5.7", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	cmd := strings.Join(args, " ")
 	if strings.Contains(cmd, "print-query-length") {
 		t.Fatalf("default command must not set print length: %s", cmd)
 	}
 	if !strings.Contains(cmd, "--mysql-variant=mysql") {
 		t.Fatalf("mysql variant missing: %s", cmd)
 	}
-	cmd = tf.getCommand("a.sql", "5.7", app.TendbCluster)
+	args, err = tf.getCommandArgs("a.sql", "5.7", app.TendbCluster)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cmd = strings.Join(args, " ")
 	if !strings.Contains(cmd, "--mysql-variant=mariadb") {
 		t.Fatalf("mariadb variant missing: %s", cmd)
 	}
