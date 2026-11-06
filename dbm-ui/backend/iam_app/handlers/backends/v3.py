@@ -230,8 +230,9 @@ class IAMV3Backend(IAMBackend):
         self, action_ids: List[str], resources_list: List[List[Resource]] = None, system_id: str = env.BK_IAM_SYSTEM_ID
     ):
         application = self.make_application(action_ids, resources_list, system_id)
-        # ok, message, url = self.iam.get_apply_url(application)
-        ok, message, url = self.call_with_retry(self.iam.get_apply_url, application)
+        ok, message, url = self.call_with_retry(
+            self.iam.get_apply_url, application, default=(False, "iam request failed", "")
+        )
         if not ok:
             logger.error(f"iam generate apply url fail: {message}")
             return env.IAM_APP_URL
@@ -239,8 +240,9 @@ class IAMV3Backend(IAMBackend):
         return url
 
     def get_system_info(self):
-        # ok, message, data = self._iam._client.query(settings.BK_IAM_SYSTEM_ID)
-        ok, message, data = self.call_with_retry(self.iam._client.query, settings.BK_IAM_SYSTEM_ID)
+        ok, message, data = self.call_with_retry(
+            self.iam._client.query, settings.BK_IAM_SYSTEM_ID, default=(False, "iam request failed", {})
+        )
         if not ok:
-            raise GetSystemInfoError(_("获取系统信息错误：{message}").format(message))
+            raise GetSystemInfoError(_("获取系统信息错误：{message}").format(message=message))
         return data

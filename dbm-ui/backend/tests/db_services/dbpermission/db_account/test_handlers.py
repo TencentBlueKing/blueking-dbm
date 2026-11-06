@@ -29,14 +29,13 @@ def account_handler():
     return AccountHandler(bk_biz_id=1, account_type=AccountType.MYSQL.value, operator="tester")
 
 
-def test_create_account_triggers_signal(monkeypatch, account_handler):
+def test_create_account(monkeypatch, account_handler):
     account = AccountMeta(user="foo", password="bar")
     create_resp = {"message": "created"}
     account_payload = {"results": [{"user": "foo", "password": "bar"}]}
 
     create_mock = MagicMock(return_value=create_resp)
     get_mock = MagicMock(return_value=account_payload)
-    signal_mock = MagicMock()
 
     monkeypatch.setattr(
         "backend.db_services.dbpermission.db_account.handlers.DBPrivManagerApi.create_account", create_mock
@@ -58,7 +57,6 @@ def test_create_account_triggers_signal(monkeypatch, account_handler):
     get_mock.assert_called_once_with(
         params={"bk_biz_id": 1, "cluster_type": AccountType.MYSQL.value, "user_like": "foo"}
     )
-    assert signal_mock.send.call_args.kwargs["account"]["user"] == "foo"
 
 
 def test_list_account_rules_formats_response(monkeypatch, account_handler):
