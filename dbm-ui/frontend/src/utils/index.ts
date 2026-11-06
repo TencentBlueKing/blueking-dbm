@@ -49,5 +49,6 @@ export * from './time';
 export * from './transformDataToQuery';
 export * from './url';
 export * from './validateBrackets';
+export * from './validateSqlFilename';
 export * from './vNodeToHtml';
 export * from './vueHelper';
