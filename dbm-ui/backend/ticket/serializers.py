@@ -210,7 +210,9 @@ class TicketFlowSerializer(TranslationSerializerMixin, serializers.ModelSerializ
             ).first()
             if next_flow:
                 return next_flow.flow_alias or obj.get_flow_type_display()
-            return obj.ticket.get_ticket_type_display()
+            # 末位人工确认节点没有后继流程，优先展示节点自身配置的别名(即确认后要执行的动作)，
+            # 未配置别名时才回退到单据类型名
+            return obj.flow_alias or obj.ticket.get_ticket_type_display()
         return obj.flow_alias or obj.get_flow_type_display()
 
     def get_summary(self, obj):
