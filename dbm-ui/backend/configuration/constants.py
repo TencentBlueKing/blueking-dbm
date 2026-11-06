@@ -220,6 +220,9 @@ class SystemSettingsEnum(StrStructuredEnum):
     # 腾讯云监控拉取告警。环境变量 DBM_TENCENTCLOUD_MONITOR_SECRET_ID / SECRET_KEY 优先于本配置。
     TENCENT_CLOUD_MONITOR = EnumField("TENCENT_CLOUD_MONITOR", _("腾讯云监控访问凭证"))
     TENCENT_CLOUD_ALARM_SYNC = EnumField("TENCENT_CLOUD_ALARM_SYNC", _("腾讯云告警同步水位"))
+    # 节点日志V2
+    LOG_DOWNLOAD_PAGE_SIZE = EnumField("LOG_DOWNLOAD_PAGE_SIZE", _("节点日志按页拉取的页大小"))
+    LOG_LINES_CONFIG = EnumField("LOG_LINES_CONFIG", _("节点日志V2预览行数配置"))
 
 
 class DisableDBHAAutofixLevel(StrStructuredEnum):
@@ -377,6 +380,14 @@ TENCENT_CLOUD_MONITOR_INITIAL_VALUE = {
 }
 TENCENT_CLOUD_ALARM_SYNC_INITIAL_VALUE = {"watermark": 0}
 
+# 节点日志V2默认值：按页拉取大小、预览行数配置(前缀/后缀最大展示行数)
+# 注意: prefix_max / suffix_max 的默认值即为上限，只能调小不能调大；
+# _node_log_lines 对取值 <=0 或 > 默认值的情况会静默回落到默认值。
+DEFAULT_LOG_DOWNLOAD_PAGE_SIZE = 2000
+LOG_LINES_PREFIX_KEY = "prefix_max"
+LOG_LINES_SUFFIX_KEY = "suffix_max"
+DEFAULT_LOG_LINES_CONFIG = {LOG_LINES_PREFIX_KEY: 100, LOG_LINES_SUFFIX_KEY: 9889}
+
 DEFAULT_SETTINGS = [
     # [key, 类型，初始值, 描述]
     [SystemSettingsEnum.BKM_DBM_TOKEN.value, "str", "", _("监控数据源token")],
@@ -426,6 +437,18 @@ DEFAULT_SETTINGS = [
         "dict",
         TENCENT_CLOUD_ALARM_SYNC_INITIAL_VALUE,
         _("腾讯云告警同步水位"),
+    ],
+    [
+        SystemSettingsEnum.LOG_DOWNLOAD_PAGE_SIZE.value,
+        "int",
+        DEFAULT_LOG_DOWNLOAD_PAGE_SIZE,
+        _("节点日志按页拉取的页大小"),
+    ],
+    [
+        SystemSettingsEnum.LOG_LINES_CONFIG.value,
+        "dict",
+        DEFAULT_LOG_LINES_CONFIG,
+        _("节点日志V2预览行数配置(前缀/后缀最大展示行数): prefix_max 默认100, suffix_max 默认9889; 只能调小不能调大, 配置值大于默认值时按默认值生效"),
     ],
 ]
 
