@@ -101,28 +101,35 @@ func (r *Checker) connect() (err error) {
 		return err
 	}
 
-	r.conn, err = r.db.Connx(context.Background())
+	return nil
+}
+
+func (r *Checker) acquireConn(ctx context.Context) (*sqlx.Conn, error) {
+	conn, err := r.db.Connx(ctx)
 	if err != nil {
 		slog.Error("get conn from sqlx.db", slog.String("error", err.Error()))
-		return err
-	}
-	_, err = r.conn.ExecContext(
-		context.Background(), `SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;`,
-	)
-	if err != nil {
-		slog.Error("set transaction isolation level", slog.String("error", err.Error()))
-		return err
+		return nil, err
 	}
 
-	_, err = r.conn.ExecContext(context.Background(), `SET BINLOG_FORMAT = 'STATEMENT'`)
+	_, err = conn.ExecContext(
+		ctx, `SET SESSION TRANSACTION ISOLATION LEVEL REPEATABLE READ;`,
+	)
 	if err != nil {
+		_ = conn.Close()
+		slog.Error("set transaction isolation level", slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	_, err = conn.ExecContext(ctx, `SET BINLOG_FORMAT = 'STATEMENT'`)
+	if err != nil {
+		_ = conn.Close()
 		slog.Error(
 			"set binlog format to statement before insert fake result", slog.String("error", err.Error()),
 		)
-		return err
+		return nil, err
 	}
 
-	return nil
+	return conn, nil
 }
 
 func (r *Checker) validateSlaves() error {
@@ -209,8 +216,17 @@ func (r *Checker) prepareDsnsTable() error {
 		return err
 	}
 
+	conn, err := r.acquireConn(context.Background())
+	if err != nil {
+		slog.Error("acquire connection", slog.String("error", err.Error()))
+		return err
+	}
+	defer func() {
+		_ = conn.Close()
+	}()
+
 	for _, slave := range r.Config.Slaves {
-		_, err := r.conn.ExecContext(
+		_, err := conn.ExecContext(
 			context.Background(),
 			fmt.Sprintf(`INSERT INTO %s.dsns (dsn) VALUES (?)`, r.resultDB),
 			fmt.Sprintf(`h=%s,u=%s,p=%s,P=%d`, slave.Ip, slave.User, slave.Password, slave.Port),

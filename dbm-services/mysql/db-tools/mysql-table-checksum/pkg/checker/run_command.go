@@ -106,7 +106,17 @@ func (r *Checker) preRunGeneral() error {
 		slog.Info("run checksum disabled")
 		return nil
 	}
-	_, err = r.conn.ExecContext(
+
+	conn, err := r.acquireConn(context.Background())
+	if err != nil {
+		slog.Error("acquire connection", slog.String("error", err.Error()))
+		return err
+	}
+	defer func() {
+		_ = conn.Close()
+	}()
+
+	_, err = conn.ExecContext(
 		context.Background(),
 		fmt.Sprintf("DELETE FROM `%s`.`%s` WHERE ts < NOW() - INTERVAL 10 DAY", r.resultDB, r.resultHistoryTable),
 	)
@@ -162,7 +172,17 @@ func (r *Checker) runGeneral() error {
 					r.resultDB, r.resultTbl,
 				)
 
-				_, cleanUpErr = r.conn.ExecContext(context.Background(), cleanUpSQL)
+				conn, err := r.acquireConn(context.Background())
+				if err != nil {
+					slog.Error("acquire conn failed", slog.String("error", err.Error()))
+					cleanUpErr = err
+					return
+				}
+				defer func() {
+					_ = conn.Close()
+				}()
+
+				_, cleanUpErr = conn.ExecContext(context.Background(), cleanUpSQL)
 				if cleanUpErr != nil {
 					slog.Error("clean up retry run checksum", slog.String("error", cleanUpErr.Error()))
 					return
@@ -272,8 +292,17 @@ func (r *Checker) writeFakeResult(fakeDB string, fakeTbl string, demand bool) er
 	}
 
 	ctx := context.Background()
+	conn, err := r.acquireConn(ctx)
+	if err != nil {
+		slog.Error("acquire conn failed", slog.String("error", err.Error()))
+		return err
+	}
+	defer func() {
+		_ = conn.Close()
+	}()
+
 	var globalBinlogFormat string
-	err := r.conn.QueryRowxContext(ctx, `SELECT @@global.binlog_format`).Scan(&globalBinlogFormat)
+	err = conn.QueryRowxContext(ctx, `SELECT @@global.binlog_format`).Scan(&globalBinlogFormat)
 	if err != nil {
 		slog.Error("get global binlog format failed", slog.String("error", err.Error()))
 		return err
@@ -282,19 +311,19 @@ func (r *Checker) writeFakeResult(fakeDB string, fakeTbl string, demand bool) er
 		slog.Info("switch binlog format to row")
 
 		var binlogFormatOld string
-		err = r.conn.QueryRowxContext(ctx, `SELECT @@session.binlog_format`).Scan(&binlogFormatOld)
+		err = conn.QueryRowxContext(ctx, `SELECT @@session.binlog_format`).Scan(&binlogFormatOld)
 		if err != nil {
 			slog.Error("get session binlog_format", slog.String("error", err.Error()))
 			return err
 		}
 
-		_, err = r.conn.ExecContext(ctx, `SET SESSION binlog_format='ROW'`)
+		_, err = conn.ExecContext(ctx, `SET SESSION binlog_format='ROW'`)
 		if err != nil {
 			slog.Error("set session binlog_format to ROW", slog.String("error", err.Error()))
 			return err
 		}
 		defer func() {
-			_, restoreErr := r.conn.ExecContext(
+			_, restoreErr := conn.ExecContext(
 				ctx,
 				fmt.Sprintf("SET SESSION binlog_format='%s'", binlogFormatOld),
 			)
@@ -311,7 +340,7 @@ func (r *Checker) writeFakeResult(fakeDB string, fakeTbl string, demand bool) er
 	}
 
 	ts := time.Now().Format("2006-01-02 15:04:05")
-	_, err = r.conn.ExecContext(
+	_, err = conn.ExecContext(
 		ctx,
 		fmt.Sprintf(
 			"REPLACE INTO %s.%s("+

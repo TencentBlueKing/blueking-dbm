@@ -160,7 +160,16 @@ func (r *Checker) hasCheckableTables() (bool, error) {
 		return false, err
 	}
 
-	rows, err := r.conn.QueryxContext(
+	conn, err := r.acquireConn(context.Background())
+	if err != nil {
+		slog.Error("acquire connection", slog.String("error", err.Error()))
+		return false, err
+	}
+	defer func() {
+		_ = conn.Close()
+	}()
+
+	rows, err := conn.QueryxContext(
 		context.Background(),
 		`SELECT table_schema, table_name
 		 FROM information_schema.tables

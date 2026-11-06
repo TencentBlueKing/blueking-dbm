@@ -19,7 +19,6 @@ type Checker struct {
 	Config             *config.Config
 	Mode               config.CheckMode
 	db                 *sqlx.DB
-	conn               *sqlx.Conn
 	args               []string
 	cancel             context.CancelFunc
 	startTS            time.Time
