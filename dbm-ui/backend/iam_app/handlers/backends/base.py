@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 import abc
 import logging
 import time
-from typing import Any, Callable, List, Union
+from typing import Any, Callable, Dict, List, Union
 
 from iam import Resource
 from requests.exceptions import ConnectionError as RequestsConnectionError
@@ -68,6 +68,32 @@ class IAMBackend(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def grant_creator_actions(self, resource: Resource, creator: str) -> Any:
         """资源新建后给创建者授权"""
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def multi_actions_is_allowed(
+        self, username: str, actions: List[Union[ActionMeta, str]], resources: List[Resource]
+    ) -> Dict[str, bool]:
+        """多个动作对同一个资源鉴权"""
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def batch_is_allowed(
+        self, username: str, actions: List[Union[ActionMeta, str]], resources_list: List[List[Resource]]
+    ) -> Dict:
+        """多个动作对多个资源批量鉴权"""
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def get_apply_url(
+        self, action_ids: List[str], resources_list: List[List[Resource]] = None, system_id: str = env.BK_IAM_SYSTEM_ID
+    ) -> str:
+        """生成无权限申请跳转链接"""
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def get_system_info(self) -> Dict:
+        """获取权限中心注册的系统信息"""
         raise NotImplementedError
 
 
