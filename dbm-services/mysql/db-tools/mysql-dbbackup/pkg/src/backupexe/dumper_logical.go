@@ -187,6 +187,7 @@ func (l *LogicalDumper) Execute(ctx context.Context) error {
 		l.backupEndTime = time.Now()
 	}()
 	binPath := filepath.Join(l.dbbackupHome, "/bin/mydumper")
+	cmutil.LogBinaryVersion(binPath, logger.Log.Infof, logger.Log.Warnf)
 	args, err := l.buildArgs()
 	if err != nil {
 		return err
