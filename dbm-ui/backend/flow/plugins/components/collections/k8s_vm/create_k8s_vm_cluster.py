@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 import logging.config
-from typing import List
+from typing import List, Optional
 
 from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
@@ -18,6 +18,7 @@ from pipeline.core.flow.activity import Service
 
 import backend.flow.utils.k8s_db.vm.k8s_vm_context_dataclass as flow_context
 from backend.components import KubernetesApi
+from backend.db_meta.enums import ClusterType
 from backend.exceptions import ApiRequestError, ApiResultError
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.k8s_db.vm.consts import (
@@ -26,10 +27,24 @@ from backend.flow.utils.k8s_db.vm.consts import (
     COMPONENT_VMSTORAGE,
     HA_TOPO_NAME,
     NAMESPACE_PREFIX,
+    QUERY_TOPO_NAME,
     STORAGE_ADDON_TYPE,
+    VM_DEFAULT_EXTRA_ARGS,
 )
 
 logger = logging.getLogger("flow")
+
+
+def build_extra_args(component_name: str, user_env: Optional[dict]) -> dict:
+    """
+    构造组件的 EXTRA_ARGS：组件默认参数 + 用户自定义参数（用户值优先）
+    user_env 兼容两种格式：{"EXTRA_ARGS": {...}} 或扁平的 {参数名: 值}
+    """
+    extra_args = dict(VM_DEFAULT_EXTRA_ARGS.get(component_name, {}))
+    user_env = user_env or {}
+    nested = user_env.get("EXTRA_ARGS")
+    extra_args.update(nested if isinstance(nested, dict) else user_env)
+    return extra_args
 
 
 class CreateK8sVmClusterService(BaseService):
@@ -48,9 +63,17 @@ class CreateK8sVmClusterService(BaseService):
 
         component_items = global_data["component_list"]
         component_names = [item.get("component_name") for item in component_items]
-        expected_component_names = {COMPONENT_VMINSERT, COMPONENT_VMSELECT, COMPONENT_VMSTORAGE}
+        expected_component_names = (
+            {COMPONENT_VMSELECT}
+            if global_data["cluster_type"] == ClusterType.K8sVictoriametricsSelect.value
+            else {COMPONENT_VMINSERT, COMPONENT_VMSELECT, COMPONENT_VMSTORAGE}
+        )
         if len(component_names) != len(expected_component_names) or set(component_names) != expected_component_names:
-            self.log_error(_("VictoriaMetrics组件列表必须且只能包含vminsert、vmselect、vmstorage"))
+            self.log_error(
+                _("VictoriaMetrics集群类型[{}]的组件列表必须且只能包含[{}]，当前为[{}]").format(
+                    global_data["cluster_type"], "、".join(sorted(expected_component_names)), component_names
+                )
+            )
             return False
 
         for item in component_items:
@@ -63,6 +86,7 @@ class CreateK8sVmClusterService(BaseService):
                 return False
 
         component_list = []
+        is_query_cluster = global_data["cluster_type"] == ClusterType.K8sVictoriametricsSelect.value
         for item in component_items:
             component = {
                 "componentName": item["component_name"],
@@ -77,6 +101,9 @@ class CreateK8sVmClusterService(BaseService):
                     "memory": item.get("limit_memory", item["request_memory"]),
                 },
             }
+
+            # 默认 EXTRA_ARGS + 用户自定义参数（用户值优先），统一为嵌套的 EXTRA_ARGS 格式
+            component["env"] = {"EXTRA_ARGS": build_extra_args(item["component_name"], item.get("env"))}
 
             if item.get("storage"):
                 component["volumeClaimTemplates"] = {
@@ -96,7 +123,7 @@ class CreateK8sVmClusterService(BaseService):
             "storageAddonType": STORAGE_ADDON_TYPE,
             "storageAddonVersion": global_data["major_version"],
             "addonClusterVersion": global_data["major_version"],
-            "topoName": HA_TOPO_NAME,
+            "topoName": QUERY_TOPO_NAME if is_query_cluster else HA_TOPO_NAME,
             "terminationPolicy": "DoNotTerminate",
             "bkBizId": global_data["bk_biz_id"],
             "bkBizName": global_data["bk_biz_name"],

@@ -20,14 +20,15 @@ import backend.flow.utils.k8s_db.vm.k8s_vm_context_dataclass as flow_context
 from backend.components import KubernetesApi
 from backend.exceptions import ApiRequestError, ApiResultError
 from backend.flow.plugins.components.collections.common.base_service import BaseService
-from backend.flow.utils.k8s_db.vm.consts import VMSELECT_CLB_SUFFIX
+from backend.flow.utils.k8s_db.utils import build_clb_name
+from backend.flow.utils.k8s_db.vm.consts import CLB_NAME_SUFFIX
 
 logger = logging.getLogger("flow")
 
 
-class ApplyK8sVmVmselectClbService(BaseService):
+class ApplyK8sVmClbService(BaseService):
     """
-    申请k8s vm vmselect clb
+    申请k8s vm clb（vminsert/vmselect 双组件共用）
     """
 
     def _execute(self, data, parent_data):
@@ -35,17 +36,18 @@ class ApplyK8sVmVmselectClbService(BaseService):
         global_data = data.get_one_of_inputs("global_data")
         trans_data = data.get_one_of_inputs("trans_data")
         cluster_name = global_data["k8s_cluster_name"]
+        db_cluster_name = global_data["cluster_name"]
         bk_biz_id = global_data["bk_biz_id"]
         is_public = global_data.get("is_public")
 
         if trans_data is None or trans_data == "${trans_data}":
             trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
 
-        logger.info(_("获取 vmselect CLB 区域信息，bkBizId: {}，isPublic: {}").format(bk_biz_id, is_public))
+        logger.info(_("获取 vminsert CLB 区域信息，bkBizId: {}，isPublic: {}").format(bk_biz_id, is_public))
         try:
             regions_resp = KubernetesApi.get_regions(params={"bkBizId": bk_biz_id, "isPublic": is_public})
         except (ApiRequestError, ApiResultError) as err:
-            self.log_error(_("获取vmselect CLB区域信息失败: {}").format(err))
+            self.log_error(_("获取vminsert CLB区域信息失败: {}").format(err))
             return False
         region_code = ""
         vpc_id = ""
@@ -67,20 +69,20 @@ class ApplyK8sVmVmselectClbService(BaseService):
         params = {
             "region": region_code,
             "vpc_id": vpc_id,
-            "clb_name": "{}-{}".format(cluster_name, VMSELECT_CLB_SUFFIX),
+            "clb_name": build_clb_name(db_cluster_name, bk_biz_id, CLB_NAME_SUFFIX),
             "clb_nums": 1,
             "async_to_dbm": False,
         }
         try:
             clb_id = KubernetesApi.apply_clb(params)
         except (ApiRequestError, ApiResultError) as err:
-            self.log_error(_("申请vmselect CLB失败: {}").format(err))
+            self.log_error(_("申请CLB失败: {}").format(err))
             return False
         if not clb_id or not isinstance(clb_id, str):
             self.log_error(_("字段类型错误: {} 需要 {} 类型").format(clb_id, "str"))
             return False
 
-        trans_data.vmselect_clb_id = clb_id
+        trans_data.clb_id = clb_id
         trans_data.vpc_id = vpc_id
         trans_data.region_code = region_code
         trans_data.region_name = region_name
@@ -94,7 +96,7 @@ class ApplyK8sVmVmselectClbService(BaseService):
         ]
 
 
-class ApplyK8sVmVmselectClbComponent(Component):
+class ApplyK8sVmClbComponent(Component):
     name = __name__
-    code = "apply_k8s_vm_vmselect_clb"
-    bound_service = ApplyK8sVmVmselectClbService
+    code = "apply_k8s_vm_clb"
+    bound_service = ApplyK8sVmClbService

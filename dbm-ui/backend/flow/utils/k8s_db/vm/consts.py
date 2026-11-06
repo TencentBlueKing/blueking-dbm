@@ -12,17 +12,59 @@ specific language governing permissions and limitations under the License.
 # VictoriaMetrics 部署相关的常量集中定义，避免多处 magic string / magic number
 
 # 命名空间前缀，最终形如 "{NAMESPACE_PREFIX}-{db_app_abbr}-{bk_biz_id}"
-NAMESPACE_PREFIX = "victoriametrics"
+NAMESPACE_PREFIX = "vm"
 
 # dbs 侧标识
 STORAGE_ADDON_TYPE = "victoriametrics"
 HA_TOPO_NAME = "cluster"
+QUERY_TOPO_NAME = "select"
 HA_TAGS = ["dbm", "victoriametrics"]
 
 # 组件名（与 dbs 约定的 componentName 一致）
 COMPONENT_VMINSERT = "vminsert"
 COMPONENT_VMSELECT = "vmselect"
 COMPONENT_VMSTORAGE = "vmstorage"
+
+# 各组件默认启动参数（写入容器 EXTRA_ARGS），参考 dbs dataweb 的 VMClusterConfigBuilder.buildComponentEnv
+VM_DEFAULT_EXTRA_ARGS = {
+    COMPONENT_VMSELECT: {
+        "envflag.enable": "true",
+        "envflag.prefix": "VM_",
+        "loggerFormat": "json",
+        "cacheExpireDuration": "5m",
+        "search.maxUniqueTimeseries": "500000",
+        "search.maxSamplesPerQuery": "1000000000",
+        "search.maxPointsPerTimeseries": "500000",
+        "search.maxSeries": "200000",
+        "memory.allowedPercent": "20",
+        "search.maxMemoryPerQuery": "2GB",
+        "search.logQueryMemoryUsage": "1GB",
+        "search.logSlowQueryDuration": "5s",
+        "search.queryStats.lastQueriesCount": "10000",
+        "search.queryStats.minQueryDuration": "3s",
+        "search.maxQueryLen": "4MB",
+        "dedup.minScrapeInterval": "1ms",
+        "search.maxConcurrentRequests": "16",
+    },
+    COMPONENT_VMINSERT: {
+        "envflag.enable": "true",
+        "envflag.prefix": "VM_",
+        "loggerFormat": "json",
+        "influxDBLabel": "__bk_db__",
+        "maxLabelsPerTimeseries": "100",
+    },
+    COMPONENT_VMSTORAGE: {
+        "envflag.enable": "true",
+        "envflag.prefix": "VM_",
+        "loggerFormat": "json",
+        "cacheExpireDuration": "15m",
+        "dedup.minScrapeInterval": "1ms",
+        "internStringMaxLen": "128",
+        "memory.allowedPercent": "50",
+        "retentionPeriod": 6,
+        "search.maxConcurrentRequests": "16",
+    },
+}
 
 # 服务暴露相关
 VMINSERT_SERVICE_NAME = "vminsert-clb"
@@ -31,9 +73,7 @@ VMINSERT_PORT = 8480
 VMSELECT_PORT = 8481
 
 # CLB 名称后缀
-VMINSERT_CLB_SUFFIX = "vminsert-clb"
-VMSELECT_CLB_SUFFIX = "vmselect-clb"
+CLB_NAME_SUFFIX = "vm-clb"
 
-# 域名前缀，最终形如 "{DOMAIN_PREFIX}.{cluster_name}.{db_app_abbr}.db"
-VMINSERT_DOMAIN_PREFIX = "vminsert"
-VMSELECT_DOMAIN_PREFIX = "vmselect"
+# 集群统一域名前缀，最终形如 "{VM_DOMAIN_PREFIX}.{cluster_name}.{db_app_abbr}.db"
+VM_DOMAIN_PREFIX = "victoriametrics"

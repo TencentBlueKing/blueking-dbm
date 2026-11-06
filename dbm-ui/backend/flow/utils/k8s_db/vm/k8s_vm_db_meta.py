@@ -41,6 +41,9 @@ class VmDBMeta(object):
         api.cluster.k8s_vm.delete(self.ticket_data["cluster_id"])
         return {"id": self.ticket_data["cluster_id"]}
 
+    def k8s_victoriametrics_destroy(self) -> dict:
+        return self.k8s_victoriametrics_delete()
+
     def k8s_victoriametrics_disable(self) -> dict:
         api.cluster.k8s_vm.disable(self.ticket_data["cluster_id"])
         return {"id": self.ticket_data["cluster_id"]}
@@ -53,7 +56,6 @@ class VmDBMeta(object):
             "bk_biz_id": self.ticket_data["bk_biz_id"],
             "cluster_type": self.ticket_data["cluster_type"],
             "immute_domain": self.ticket_data["domain"],
-            "vmselect_domain": self.ticket_data["vmselect_domain"],
             "major_version": self.ticket_data["major_version"],
             "phase": "online",
             "status": "normal",
@@ -63,3 +65,9 @@ class VmDBMeta(object):
 
         with atomic():
             return api.cluster.k8s_vm.create(**cluster)
+
+    def k8s_victoriametrics_cluster_apply(self) -> dict:
+        return self.k8s_victoriametrics_apply()
+
+    def k8s_victoriametrics_select_apply(self) -> dict:
+        return self.k8s_victoriametrics_apply()

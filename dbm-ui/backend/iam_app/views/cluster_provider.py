@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
 TencentBlueKing is pleased to support the open source community by making 蓝鲸智云-DB管理系统(BlueKing-BK-DBM) available.
 Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
@@ -171,7 +171,11 @@ class K8sSurrealClusterResourceProvider(ClusterResourceProvider):
 
 class K8sVictoriametricsClusterResourceProvider(ClusterResourceProvider):
     resource_meta: ResourceMeta = ResourceEnum.K8S_VICTORIAMETRICS
-    cluster_types: ClusterType = [ClusterType.K8sVictoriametricsHa]
+    cluster_types: ClusterType = [
+        ClusterType.K8sVictoriametricsCluster,
+        ClusterType.K8sVictoriametricsHa,
+        ClusterType.K8sVictoriametricsSelect,
+    ]
 
 
 class K8sRisingwaveClusterResourceProvider(ClusterResourceProvider):

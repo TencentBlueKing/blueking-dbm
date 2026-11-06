@@ -36,8 +36,8 @@ class VmDBMetaService(BaseService):
             trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
 
         global_data["region"] = trans_data.region_name
-        global_data["domain"] = trans_data.vminsert_domain
-        global_data["vmselect_domain"] = trans_data.vmselect_domain
+        # vminsert / vmselect / vmstorage 共用统一域名，仅以端口区分
+        global_data["domain"] = trans_data.vm_domain
         vm_meta = VmDBMeta(ticket_data=global_data)
         result = vm_meta.write()
         trans_data.cluster_id = result["id"]

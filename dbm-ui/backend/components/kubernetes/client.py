@@ -45,6 +45,11 @@ class _KubernetesApi(BaseApi):
             url="/v4/dbs/component/pods",
             description=_("获取组件实例列表"),
         )
+        self.cluster_services = self.generate_data_api(
+            method="GET",
+            url="/v4/dbs/cluster/services",
+            description=_("获取集群连接信息"),
+        )
         self.pod_detail = self.generate_data_api(
             method="GET",
             url="/v4/dbs/k8s_cluster/pod",
@@ -119,6 +124,11 @@ class _KubernetesApi(BaseApi):
             method="POST",
             url="/v4/dbs/opsRequest/expose",
             description=_("暴露端口"),
+        )
+        self.expose_instance = self.generate_data_api(
+            method="POST",
+            url="/v4/dbs/opsRequest/expose/instance",
+            description=_("vmstorage实例级CLB启停"),
         )
         self.get_regions = self.generate_data_api(
             method="GET",
