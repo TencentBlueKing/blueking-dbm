@@ -90,9 +90,9 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { useGlobalBizs } from '@stores';
-
   import ResourceHostOwner from '@components/resource-host-owner/Index.vue';
+
+  import { getResourceHostOwnerData } from './resourceHostOwner';
 
   export interface IResouce {
     bk_cloud_id: number;
@@ -132,39 +132,8 @@
   defineProps<Props>();
 
   const { t } = useI18n();
-  const biz = useGlobalBizs();
 
   const transformMToG = (value: number) => {
     return value ? (value / 1024).toFixed(2) : '--';
-  };
-
-  const getResourceHostOwnerData = (data: IResouce) => {
-    if (data.for_biz_info) {
-      return {
-        for_biz: data.for_biz_info,
-        labels: data.label_info,
-        resource_type: data.resource_type,
-      };
-    }
-
-    const baseData = {
-      labels: [],
-      resource_type: data.resource_type,
-    };
-    // 兼容历史单据数据结构
-    if (typeof data.for_biz === 'number') {
-      return {
-        ...baseData,
-        for_biz: {
-          bk_biz_id: data.for_biz,
-          bk_biz_name: biz.bizIdMap.get(data.for_biz)?.display_name || '--',
-        },
-      };
-    }
-
-    return {
-      ...baseData,
-      for_biz: data.for_biz,
-    };
   };
 </script>
