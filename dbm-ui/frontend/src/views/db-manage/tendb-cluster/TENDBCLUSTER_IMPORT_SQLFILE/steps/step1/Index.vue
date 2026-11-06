@@ -81,7 +81,7 @@
     createTicketPayload,
   } from '@views/db-manage/common/toolbox-field/form-item/ticket-payload/Index.vue';
 
-  import { utcDisplayTime } from '@utils';
+  import { messageError, utcDisplayTime, validateSqlFiles } from '@utils';
 
   const router = useRouter();
   const route = useRoute();
@@ -199,6 +199,16 @@
   // 开始模拟执行
   const handleSubmit = () => {
     formRef.value!.validate().then(() => {
+      // 克隆单 / 模拟执行重新修改回填的文件来自历史数据，提交前校验文件名与路径
+      const sqlFilesResult = validateSqlFiles(
+        uploadFilePath.value,
+        formData.execute_objects.flatMap((item) => item.sql_files),
+      );
+      if (!sqlFilesResult.valid) {
+        messageError(sqlFilesResult.message);
+        return;
+      }
+
       const { payload, ...restFormData } = formData;
       runSemanticCheck({
         ...restFormData,
