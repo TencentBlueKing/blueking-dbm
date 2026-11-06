@@ -94,6 +94,12 @@ func disabledStrategy() stratOpt {
 	return func(s *hamodel.DbSwitchingStrategy) { s.Status = hamodel.StatusTypeDisabled }
 }
 
+// withReason sets the event reason so that strategies for the same business and event
+// can coexist under the idx_biz_event_reason unique index.
+func withReason(reason haprobe.DbEventNameReason) stratOpt {
+	return func(s *hamodel.DbSwitchingStrategy) { s.TriggerEventNameReason = reason }
+}
+
 // globalStrat builds one of the default global strategies (BkBizID=0, switch, priority 9999).
 func globalStrat(event haprobe.DbEventName) *hamodel.DbSwitchingStrategy {
 	return strat(event.String(), event, 9999, hamodel.ActionTypeSwitch, 0, 1)
@@ -617,7 +623,8 @@ func TestMatchStrategies_Multi(t *testing.T) {
 			desc: "same event same priority, switch beats notify",
 			strategies: []*hamodel.DbSwitchingStrategy{
 				strat("custom-switch-ssh", haprobe.DbEventNameSshAuthFailure, 1, hamodel.ActionTypeSwitch, 100, 1),
-				strat("custom-notify-ssh", haprobe.DbEventNameSshAuthFailure, 1, hamodel.ActionTypeNotify, 100, 1),
+				strat("custom-notify-ssh", haprobe.DbEventNameSshAuthFailure, 1, hamodel.ActionTypeNotify, 100, 1,
+					withReason(haprobe.DbEventNameReasonSSHAuthException)),
 			},
 			instances: []FailureInstanceInfo{
 				inst("127.0.0.1", 3306, haprobe.DbEventNameSshAuthFailure),
@@ -632,7 +639,8 @@ func TestMatchStrategies_Multi(t *testing.T) {
 			desc: "notify with higher priority binds multiple instances; unmatched instances fall into nil group",
 			strategies: []*hamodel.DbSwitchingStrategy{
 				strat("custom-notify-ssh", haprobe.DbEventNameSshAuthFailure, 1, hamodel.ActionTypeNotify, 100, 1),
-				strat("custom-switch-ssh", haprobe.DbEventNameSshAuthFailure, 2, hamodel.ActionTypeSwitch, 100, 1),
+				strat("custom-switch-ssh", haprobe.DbEventNameSshAuthFailure, 2, hamodel.ActionTypeSwitch, 100, 1,
+					withReason(haprobe.DbEventNameReasonSSHAuthException)),
 			},
 			instances: []FailureInstanceInfo{
 				inst("127.0.0.1", 3306, haprobe.DbEventNameSshAuthFailure),

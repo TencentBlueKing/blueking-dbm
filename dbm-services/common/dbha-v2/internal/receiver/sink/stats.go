@@ -30,6 +30,7 @@ import (
 
 	"dbm-services/common/dbha-v2/internal/receiver/apm"
 	"dbm-services/common/dbha-v2/pkg/logger"
+	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
 const (
@@ -174,7 +175,7 @@ func RecordWriteStats(topic string, stats WriteStats) {
 	for _, item := range items {
 		err := apm.SinkDropMessagesTotal.AddWithLabels(map[string]string{
 			apm.MetricLabelSink:   topic,
-			apm.MetricLabelDbType: item.dbType,
+			apm.MetricLabelDbType: haprobe.DbType(item.dbType).Normalize().String(),
 			apm.MetricLabelReason: item.reason,
 		}, float64(item.n))
 		if err != nil {
@@ -189,7 +190,8 @@ func observeDelaySamples(topic string, samples []DelaySample) {
 	}
 	grouped := make(map[string][]float64)
 	for _, sample := range samples {
-		grouped[sample.DbType] = append(grouped[sample.DbType], sample.Ms)
+		dbType := haprobe.DbType(sample.DbType).Normalize().String()
+		grouped[dbType] = append(grouped[dbType], sample.Ms)
 	}
 	for dbType, values := range grouped {
 		bound := apm.SinkWriteDelayMs.WithLabels(map[string]string{
