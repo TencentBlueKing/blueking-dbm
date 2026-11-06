@@ -201,6 +201,34 @@ func (t DbType) String() string {
 	return string(t)
 }
 
+// knownDbTypes is the closed set IsKnown uses.
+var knownDbTypes = map[DbType]struct{}{
+	DbTypeMySql:     {},
+	DbTypeRedis:     {},
+	DbTypeSqlServer: {},
+	DbTypeMongo:     {},
+	DbTypeRiak:      {},
+	DbTypeHdfs:      {},
+	DbTypeEs:        {},
+	DbTypeKafka:     {},
+	DbTypeDoris:     {},
+	DbTypePulsar:    {},
+}
+
+// IsKnown reports whether t is one of the supported database types.
+func (t DbType) IsKnown() bool {
+	_, ok := knownDbTypes[t]
+	return ok
+}
+
+// Normalize maps an unsupported or empty db_type to DbTypeUnknown.
+func (t DbType) Normalize() DbType {
+	if t.IsKnown() {
+		return t
+	}
+	return DbTypeUnknown
+}
+
 // DbEvent Include some exception events
 type DbEvent struct {
 	Name       DbEventName       `json:"name,omitempty"`

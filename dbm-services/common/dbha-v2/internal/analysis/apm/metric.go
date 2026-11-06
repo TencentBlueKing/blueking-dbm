@@ -29,7 +29,6 @@ import (
 )
 
 const (
-	MetricLabelSwitchID    = "switch_id"
 	MetricLabelActionScope = "action_scope"
 	MetricLabelDbType      = "db_type"
 	MetricLabelQueryType   = "query_type"

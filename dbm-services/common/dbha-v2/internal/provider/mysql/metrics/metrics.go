@@ -44,21 +44,21 @@ func init() {
 		"mysql_cluster_switching_time_consuming_ms",
 		"Time consuming of MySQL cluster switching in milliseconds",
 		haapm.DefaultDurationBuckets,
-		apm.MetricLabelSwitchID, apm.MetricLabelActionScope, apm.MetricLabelDbType,
+		apm.MetricLabelActionScope, apm.MetricLabelDbType,
 	)
 
 	HostSwitchingTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
 		"mysql_host_switching_time_consuming_ms",
 		"Time consuming of MySQL host switching in milliseconds",
 		haapm.DefaultDurationBuckets,
-		apm.MetricLabelSwitchID, apm.MetricLabelActionScope, apm.MetricLabelDbType,
+		apm.MetricLabelActionScope, apm.MetricLabelDbType,
 	)
 
 	InstanceSwitchingTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
 		"mysql_instance_switching_time_consuming_ms",
 		"Time consuming of MySQL instance switching in milliseconds",
 		haapm.DefaultDurationBuckets,
-		apm.MetricLabelSwitchID, apm.MetricLabelActionScope, apm.MetricLabelDbType,
+		apm.MetricLabelActionScope, apm.MetricLabelDbType,
 	)
 
 	SwitchingSuccessTotal = haapm.NewHaCounter(

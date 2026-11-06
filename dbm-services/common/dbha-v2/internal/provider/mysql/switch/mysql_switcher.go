@@ -470,7 +470,6 @@ func (m *Mysql) reportMysqlSwitchingMetrics(timeConsumingMetric *haapm.HaHistogr
 
 	// report the mysql switching time consuming
 	if err := timeConsumingMetric.ObserveWithLabels(map[string]string{
-		apm.MetricLabelSwitchID:    req.SwitchID,
 		apm.MetricLabelActionScope: string(req.ActionScope),
 		apm.MetricLabelDbType:      string(m.DbTypeName()),
 	}, float64(time.Since(start).Milliseconds())); err != nil {
