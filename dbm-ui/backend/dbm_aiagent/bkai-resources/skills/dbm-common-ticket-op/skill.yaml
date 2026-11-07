@@ -1,0 +1,10 @@
+apiVersion: bkai.tencent.com/v1
+kind: Skill
+
+metadata:
+  code: dbm-common-ticket-op
+  name: DBM单据通用操作
+
+spec:
+  generate_type: space
+  is_public: false

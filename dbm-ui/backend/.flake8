@@ -14,6 +14,8 @@ exclude =
     */bin/*,
     */settings/*,
     scripts/*,
+    # AIDEV Skill 包为独立资源，不按后端 flake8 规范校验
+    dbm_aiagent/bkai-resources/*,
 
 # 指定文件忽略规则
 per-file-ignores =

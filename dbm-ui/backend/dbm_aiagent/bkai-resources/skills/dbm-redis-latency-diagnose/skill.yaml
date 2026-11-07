@@ -1,0 +1,10 @@
+apiVersion: bkai.tencent.com/v1
+kind: Skill
+
+metadata:
+  code: dbm-redis-latency-diagnose
+  name: Redis集群延迟问题诊断
+
+spec:
+  generate_type: space
+  is_public: false
