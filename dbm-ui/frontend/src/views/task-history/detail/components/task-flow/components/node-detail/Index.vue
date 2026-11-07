@@ -193,10 +193,12 @@
 
   import OperationRecord from '@views/task-history/detail/components/OperationRecord.vue';
   import {
+    fetchTicketVersion,
     type FlowDetail,
     type FlowNode,
     getNodeDisplayStatus,
     NODE_STATUS_META,
+    ticketIdInjectionKey,
   } from '@views/task-history/detail/utils';
 
   import { messageSuccess } from '@utils';
@@ -231,6 +233,7 @@
   const { t } = useI18n();
   const userProfileStore = useUserProfile();
   const systemEnvironStore = useSystemEnviron();
+  const ticketId = inject(ticketIdInjectionKey)!;
 
   const isAiLogAnalysisOpen = computed(
     () => systemEnvironStore.urls.ENABLE_DBM_AI && window.PROJECT_CONFIG.AI_LOG_ANALYSIS_OPEN,
@@ -338,11 +341,14 @@
   const handleTodo = async () => {
     try {
       todoLoading.value = true;
+      const version = await fetchTicketVersion(ticketId.value);
       await ticketBatchProcessTodo({
         action: 'APPROVE',
         operations: [
           {
-            params: {},
+            params: {
+              version,
+            },
             todo_id: props.node.todoId,
           },
         ],
@@ -369,7 +375,7 @@
         root_id: props.rootId,
         version_id: logVersion.value,
       });
-      const logContent = formatLogData(logList).join('\n');
+      const logContent = formatLogData(logList.result).join('\n');
       await show();
       await sendMessage(props.flowData?.flow_info.ticket_type_display || '', logContent);
     } finally {

@@ -169,7 +169,7 @@
         },
         {
           controllerId: 'tendbcluster',
-          icon: 'mysql',
+          icon: 'tendbcluster',
           id: TicketTypes.TENDBCLUSTER_APPLY,
           name: t('TendbCluster分布式集群部署'),
         },
@@ -310,6 +310,18 @@
           icon: 'cluster',
           id: TicketTypes.K8S_QDRANT_HA_APPLY,
           name: t('Qdrant 集群部署'),
+        },
+        {
+          controllerId: 'k8s_victoriametrics',
+          icon: 'cluster',
+          id: TicketTypes.K8S_VICTORIAMETRICS_CLUSTER_APPLY,
+          name: t('VictoriaMetrics 标准集群部署'),
+        },
+        {
+          controllerId: 'k8s_victoriametrics',
+          icon: 'cluster',
+          id: TicketTypes.K8S_VICTORIAMETRICS_SELECT_APPLY,
+          name: t('VictoriaMetrics 查询集群部署'),
         },
       ],
       id: 'k8s',

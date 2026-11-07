@@ -2,6 +2,17 @@
   <FlowCollapse
     v-if="abstractList.length"
     :title="t('交付结果')">
+    <template #header>
+      <span class="table-title">{{ t('交付结果') }}</span>
+      <!-- header 整块是折叠触发区，点导出不能顺带折叠面板 -->
+      <BkButton
+        v-if="exportableList.length"
+        class="ml-8"
+        size="small"
+        @click.stop="handleExport">
+        {{ t('导出') }}
+      </BkButton>
+    </template>
     <div class="flow-abstract-main">
       <BkCollapse
         v-for="(item, index) in abstractList"
@@ -56,9 +67,17 @@
   </FlowCollapse>
 </template>
 <script setup lang="ts">
+  import dayjs from 'dayjs';
   import { useI18n } from 'vue-i18n';
+  import * as XLSX from 'xlsx';
 
   import FlowMode from '@services/model/ticket/flow';
+  import TicketModel from '@services/model/ticket/ticket';
+
+  import {
+    createWorkSheet as createBaseWorkSheet,
+    downloadWorkBook,
+  } from '@views/ticket-center/common/ticket-detail/components/flow-info/utils/exportWorkBook';
 
   import { isHttpUrl } from '@utils';
 
@@ -66,11 +85,18 @@
 
   interface Props {
     data: FlowMode<unknown, any>;
+    ticketDetail?: TicketModel<unknown>;
   }
+
+  type OutputTable = FlowMode['output_data'][number];
 
   const props = defineProps<Props>();
 
   const { t } = useI18n();
+
+  // Excel 对 Sheet 名的限制：最长 31 个字符，不能包含 : \ / ? * [ ]
+  const SHEET_NAME_MAX_LENGTH = 31;
+  const SHEET_NAME_ILLEGAL_REG = /[:\\/?*[\]]/g;
 
   const activeIndex = ref<string[]>([]);
 
@@ -92,6 +118,96 @@
         };
       });
   });
+
+  // 可导出的表：可见且有数据，顺序与页面一致；为空时不展示导出按钮
+  const exportableList = computed(() =>
+    props.data.output_data.filter(
+      (item) => !item.hidden && Array.isArray(item.titles) && Array.isArray(item.values) && item.values.length > 0,
+    ),
+  );
+
+  // 单元格写完整原始值，空值留空单元格（不沿用页面的 -- 占位），对象类值序列化输出
+  const getCellValue = (value: unknown) => {
+    if (value === null || value === undefined || value === '') {
+      return null;
+    }
+    if (typeof value === 'object') {
+      return JSON.stringify(value);
+    }
+    return value;
+  };
+
+  // 拼 Sheet 名：重名时追加（n），截断基础名保证总长不超过 Excel 上限
+  const buildSheetName = (baseName: string, index: number) => {
+    const suffix = index > 1 ? `（${index}）` : '';
+    return `${baseName.slice(0, SHEET_NAME_MAX_LENGTH - suffix.length)}${suffix}`;
+  };
+
+  const getSheetNames = (list: OutputTable[]) => {
+    // Excel 判断 Sheet 重名不区分大小写，按小写记录已用名称
+    const usedNames = new Set<string>();
+    const nameCountMap = new Map<string, number>();
+    return list.map((item) => {
+      const baseName = (item.table_display_name || item.table_name || 'Sheet').replace(SHEET_NAME_ILLEGAL_REG, '_');
+      const count = (nameCountMap.get(baseName) || 0) + 1;
+      nameCountMap.set(baseName, count);
+      // 截断后可能和其他表撞名，继续递增序号直到唯一
+      let index = count;
+      let sheetName = buildSheetName(baseName, index);
+      while (usedNames.has(sheetName.toLowerCase())) {
+        index += 1;
+        sheetName = buildSheetName(baseName, index);
+      }
+      usedNames.add(sheetName.toLowerCase());
+      return sheetName;
+    });
+  };
+
+  const createWorkSheet = (table: OutputTable) => {
+    const header = table.titles.map((title) => title.display_name);
+    const rows = table.values.map((row) =>
+      table.titles.map((title) => {
+        const value = row[title.id];
+        // url 列与页面一致：有效地址显示列名，链接在生成 sheet 后补上；无效地址留空
+        if (title.type === 'url') {
+          return isHttpUrl(value) ? title.display_name : null;
+        }
+        return getCellValue(value);
+      }),
+    );
+    const workSheet = createBaseWorkSheet([header, ...rows]);
+
+    table.values.forEach((row, rowIndex) => {
+      table.titles.forEach((title, colIndex) => {
+        const value = row[title.id];
+        if (title.type !== 'url' || !isHttpUrl(value)) {
+          return;
+        }
+        // 首行是表头，数据行从第 2 行开始
+        const cell = workSheet[XLSX.utils.encode_cell({ c: colIndex, r: rowIndex + 1 })];
+        if (cell) {
+          cell.l = { Target: value };
+        }
+      });
+    });
+
+    return workSheet;
+  };
+
+  const handleExport = () => {
+    const list = exportableList.value;
+    const sheetNames = getSheetNames(list);
+    const workBook = XLSX.utils.book_new();
+    list.forEach((table, index) => {
+      XLSX.utils.book_append_sheet(workBook, createWorkSheet(table), sheetNames[index]);
+    });
+
+    const ticketTypeName = props.ticketDetail?.ticket_type_display || props.data.ticket_type;
+    const ticketId = props.ticketDetail?.id || props.data.ticket;
+    const fileName = `${ticketTypeName}_${ticketId}_${t('交付结果')}_${dayjs().format('YYYYMMDD')}.xlsx`;
+
+    downloadWorkBook(workBook, fileName);
+  };
 
   watch(
     abstractList,

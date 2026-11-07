@@ -12,37 +12,49 @@
 -->
 
 <template>
-  <div
-    v-if="abstractList.length"
-    class="deliver-results-main">
-    <div class="tip-display">
-      {{ t('根据任务执行情况，输出以下任务执行结果摘要：') }}
-    </div>
-    <div class="table-list">
-      <BkCollapse
-        v-for="(item, index) in abstractList"
-        :key="index"
-        v-model="activeIndex"
-        class="table-collapse-main">
-        <BkCollapsePanel :name="String(index)">
-          <template #header>
-            <div class="collapse-panel-header">
-              <span class="panel-title">
-                {{ item.table_name }}
-              </span>
-              <DbIcon
-                :class="{ 'active-icon': !activeIndex.includes(String(index)) }"
-                type="down-big" />
-            </div>
-          </template>
-          <template #content>
-            <PrimaryTable
-              :columns="item.titles"
-              :data="item.values" />
-          </template>
-        </BkCollapsePanel>
-      </BkCollapse>
-    </div>
+  <div class="deliver-results-main">
+    <!-- ticketId 未就绪或请求进行中都算加载中，避免页签下先出现一片空白 -->
+    <BkLoading
+      class="deliver-results-loading"
+      :loading="isLoading"
+      :z-index="2">
+      <template v-if="abstractList.length">
+        <div class="tip-display">
+          {{ t('根据任务执行情况，输出以下任务执行结果摘要：') }}
+        </div>
+        <div class="table-list">
+          <BkCollapse
+            v-for="(item, index) in abstractList"
+            :key="index"
+            v-model="activeIndex"
+            class="table-collapse-main">
+            <BkCollapsePanel :name="String(index)">
+              <template #header>
+                <div class="collapse-panel-header">
+                  <span class="panel-title">
+                    {{ item.table_name }}
+                  </span>
+                  <DbIcon
+                    :class="{ 'active-icon': !activeIndex.includes(String(index)) }"
+                    type="down-big" />
+                </div>
+              </template>
+              <template #content>
+                <PrimaryTable
+                  :columns="item.titles"
+                  :data="item.values" />
+              </template>
+            </BkCollapsePanel>
+          </BkCollapse>
+        </div>
+      </template>
+      <!-- 请求异常时保留页签并给出重试入口，不能再像以前一样留下无法恢复的空白 -->
+      <EmptyStatus
+        v-else-if="!isLoading"
+        :is-anomalies="!!error"
+        :is-searching="false"
+        @refresh="fetchTicketFlows" />
+    </BkLoading>
   </div>
 </template>
 <script setup lang="ts">
@@ -51,6 +63,8 @@
   import { useRequest } from 'vue-request';
 
   import { getTicketFlows } from '@services/source/ticketFlow';
+
+  import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
 
   import { isHttpUrl } from '@utils';
 
@@ -77,24 +91,26 @@
   const abstractList = ref<AbstractItem[]>([]);
   const activeIndex = ref<string[]>([]);
 
-  const { run: fetchTicketFlows } = useRequest(getTicketFlows, {
+  // 请求失败或 onSuccess 抛错都会落到 error，此时不发空列表，页签保留并给出重试入口
+  const {
+    error,
+    loading,
+    run: requestTicketFlows,
+  } = useRequest(getTicketFlows, {
     manual: true,
     onSuccess: (data) => {
       const currentFlow = data.find((item) => item.flow_obj_id === props.rootId);
-      if (!currentFlow) {
-        emits('requestFinish', []);
-        return;
-      }
-      if (Array.isArray(currentFlow.output_data) && currentFlow.output_data.length) {
+      if (currentFlow && Array.isArray(currentFlow.output_data) && currentFlow.output_data.length) {
         abstractList.value = currentFlow.output_data
-          .filter((item) => !item.hidden)
+          // titles 缺失的条目直接跳过，不能让单条脏数据把整个页签打空
+          .filter((item) => !item.hidden && Array.isArray(item.titles))
           .map((item) => ({
             ...item,
-            titles: item.titles.map((item) => ({
+            titles: item.titles.map((title) => ({
               cell:
-                item.type === 'url'
-                  ? (_, { row }) => {
-                      const value = row[item.id];
+                title.type === 'url'
+                  ? (_h: unknown, { row }: { row: Record<string, unknown> }) => {
+                      const value = row[title.id];
                       if (isHttpUrl(value)) {
                         return h(
                           'a',
@@ -103,20 +119,33 @@
                             rel: 'noreferrer',
                             target: '_blank',
                           },
-                          item.display_name,
+                          title.display_name,
                         );
                       }
                       return '--';
                     }
                   : undefined,
-              colKey: item.id,
-              title: item.display_name,
+              colKey: title.id,
+              title: title.display_name,
             })),
           }));
       }
+      // 只有请求成功、拿到确定的空结果才通知父层移除页签
       emits('requestFinish', abstractList.value);
     },
   });
+
+  // 请求还没发起时 loading 仍是 false，用 ticketId 兜住，避免未加载就渲染成空态
+  const isLoading = computed(() => loading.value || !props.ticketId);
+
+  const fetchTicketFlows = () => {
+    if (!props.ticketId) {
+      return;
+    }
+    requestTicketFlows({
+      id: props.ticketId,
+    });
+  };
 
   watch(
     abstractList,
@@ -131,11 +160,7 @@
   watch(
     () => props.ticketId,
     () => {
-      if (props.ticketId) {
-        fetchTicketFlows({
-          id: props.ticketId,
-        });
-      }
+      fetchTicketFlows();
     },
     {
       immediate: true,
@@ -145,6 +170,11 @@
 <style lang="less">
   .deliver-results-main {
     padding: 0 24px;
+
+    // 加载中没有内容撑高，需要给个高度，否则 loading 图标看不见
+    .deliver-results-loading {
+      min-height: 200px;
+    }
 
     .tip-display {
       margin-bottom: 16px;

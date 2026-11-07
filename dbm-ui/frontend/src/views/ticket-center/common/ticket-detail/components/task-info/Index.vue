@@ -16,8 +16,19 @@
     v-model:collapse="isTaskInfoCardCollapse"
     mode="collapse"
     :title="t('需求信息')">
+    <template
+      v-if="latestRecord"
+      #desc>
+      <I18nT
+        keypath="最近修改_n_c_t"
+        scope="global">
+        <bk-user-display-name :user-id="latestRecord.operator" />
+        <span>{{ latestRecord.modeText }}</span>
+        <span>{{ latestRecord.createAtDisplay }}</span>
+      </I18nT>
+    </template>
     <ComFactory :data="data" />
-    <InfoList>
+    <InfoList v-if="!isDataExport">
       <Item
         :label="t('备注')"
         style="width: 100%">
@@ -30,28 +41,37 @@
 </template>
 
 <script setup lang="ts">
+  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRoute } from 'vue-router';
 
+  import type TicketModifyRecordModel from '@services/model/ticket/modify-record';
   import TicketModel from '@services/model/ticket/ticket';
+
+  import { TicketTypes } from '@common/const';
 
   import InfoList, { Item } from './com-factory/components/info-list/Index.vue';
   import ComFactory from './com-factory/Index.vue';
 
   interface Props {
     data: TicketModel;
+    modifyRecords: TicketModifyRecordModel[];
   }
 
   defineOptions({
     name: 'TicketTaskInfo',
   });
 
-  defineProps<Props>();
+  const props = defineProps<Props>();
 
   const { t } = useI18n();
   const route = useRoute();
+  const isDataExport = computed(() => [TicketTypes.MYSQL_DUMP_DATA, TicketTypes.TENDBCLUSTER_DUMP_DATA].includes(props.data.ticket_type));
 
   const isTaskInfoCardCollapse = ref(true);
+
+  // 只显示最近一次改单，任何状态（含终态）都显示
+  const latestRecord = computed(() => _.last(props.modifyRecords));
 
   watch(
     route,

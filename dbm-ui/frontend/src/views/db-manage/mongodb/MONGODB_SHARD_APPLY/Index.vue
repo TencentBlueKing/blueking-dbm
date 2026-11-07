@@ -14,6 +14,7 @@
 <template>
   <SmartAction :offset-target="getSmartActionOffsetTarget">
     <div class="shared-cluster-apply">
+      <TicketModifyAlert />
       <DbForm
         ref="formRef"
         auto-label-width
@@ -48,6 +49,7 @@
             <DbSelect
               v-model="formData.details.db_version"
               class="item-input"
+              :disabled="modifyState.isAdjustApply"
               filterable
               :input-search="false"
               :loading="getVersionsLoading">
@@ -65,6 +67,7 @@
             <DbInput
               v-model="formData.details.start_port"
               clearable
+              :disabled="modifyState.isAdjustApply"
               :min="1"
               show-clear-only-hover
               style="width: 185px"
@@ -150,6 +153,7 @@
                 required>
                 <DbInput
                   v-model="formData.details.resource_spec.mongos.count"
+                  :disabled="modifyState.isAdjustApply"
                   :min="2"
                   type="number" />
                 <span class="input-desc">{{ t('至少n台', { n: 2 }) }}</span>
@@ -179,6 +183,7 @@
             <DbInput
               v-model="formData.details.oplog_percent"
               clearable
+              :disabled="modifyState.isAdjustApply"
               :max="100"
               :min="0"
               show-clear-only-hover
@@ -203,6 +208,7 @@
           <BkFormItem :label="t('备注')">
             <DbInput
               v-model="formData.remark"
+              :disabled="modifyState.isAdjustApply"
               :maxlength="100"
               :placeholder="t('请提供更多有用信息申请信息_以获得更快审批')"
               style="width: 655px"
@@ -210,6 +216,7 @@
           </BkFormItem>
         </DbCard>
       </DbForm>
+      <TicketModifyRemark />
     </div>
     <template #action>
       <BkButton
@@ -217,12 +224,13 @@
         :loading="baseState.isSubmitting"
         theme="primary"
         @click="handleSubmit">
-        {{ t('提交') }}
+        {{ modifyState.submitText || t('提交') }}
       </BkButton>
       <DbResetButton
         class="ml-8"
         :confirm-handler="handleResetformData"
-        :disabled="baseState.isSubmitting" />
+        :content="modifyState.resetContent"
+        :disabled="baseState.isSubmitting || isModifyUnchanged" />
       <BkButton
         class="ml-8 w-88"
         :disabled="baseState.isSubmitting"
@@ -234,7 +242,7 @@
 </template>
 
 <script setup lang="ts">
-  import type { UnwrapRef } from 'vue';
+  import type { ComputedRef, UnwrapRef } from 'vue';
   import { inject } from 'vue';
   import { type ComponentProps } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
@@ -259,6 +267,8 @@
   import RegionRequirements from '@views/db-manage/common/apply-items/region-requirements-mongodb/Index.vue';
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
+  import TicketModifyAlert from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyAlert.vue';
+  import TicketModifyRemark from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyRemark.vue';
   import { APPLY_SCHEME } from '@views/db-manage/common/apply-schema/Index.vue';
   import { serviceApplyKey } from '@views/service-apply/const.ts';
 
@@ -327,10 +337,11 @@
   const { t } = useI18n();
   const route = useRoute();
   const router = useRouter();
-  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket } = useApplyBase();
+  const { applyBizInfo, baseState, bizState, handleCancel, handleCreateAppAbbr, handleCreateTicket, modifyState } =
+    useApplyBase();
   const serviceApply = inject(serviceApplyKey);
 
-  useTicketDetail<Mongodb.ShardApply>(TicketTypes.MONGODB_SHARD_APPLY, {
+  const shardTicketDetail = useTicketDetail<Mongodb.ShardApply>(TicketTypes.MONGODB_SHARD_APPLY, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
       const { send_msg_config: sendMsgConfig } = ticketDetail.config;
@@ -339,9 +350,9 @@
         bk_biz_id: ticketDetail.bk_biz_id,
         config: {
           send_msg_config: {
-            is_send: sendMsgConfig.is_send ?? true,
-            msg_type: sendMsgConfig.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
-            receiver__username: sendMsgConfig.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
+            is_send: sendMsgConfig?.is_send ?? true,
+            msg_type: sendMsgConfig?.msg_type ?? [MessageTypes.MAIL, MessageTypes.RTX],
+            receiver__username: sendMsgConfig?.is_send ? (sendMsgConfig.receiver__username?.split(',') ?? []) : [],
           },
         },
         remark: ticketDetail.remark,
@@ -363,7 +374,8 @@
         const resourceSpec = Object.entries(details.resource_spec!).reduce((prev, [specType, specInfo]) => {
           const labels = (specInfo.labels || []).map((labelItem, labelIndex) => ({
             id: Number(labelItem),
-            value: specInfo.label_names[labelIndex],
+            // MCP / API 建的单据可能没有 label_names、location_spec，标签名由标签选择器按 id 补齐
+            value: specInfo.label_names?.[labelIndex],
           }));
           return Object.assign(prev, {
             [specType]: {
@@ -376,11 +388,28 @@
             },
           });
         }, {});
-        const subzoneIds = details.resource_spec!.mongo_config.location_spec.sub_zone_ids || [];
+        const subzoneIds = details.resource_spec!.mongo_config.location_spec?.sub_zone_ids || [];
         Object.assign(formData.details, {
           resource_spec: resourceSpec,
           sub_zone_ids: subzoneIds,
         });
+        // ShardSvr 的机器组数、集群 Shard 数存在 details 顶层；每个 Shard 节点数未单独保存，按总机器数 / 机器组数反推（后端校验整除）
+        // details 类型未声明 capacity，后端按提交原样保存 resource_spec，带用户填写的集群容量需求
+        const mongodbSpec = details.resource_spec!.mongodb as {
+          capacity: number;
+        } & Mongodb.ShardApply['resource_spec']['mongodb'];
+        Object.assign(formData.details.resource_spec.mongodb, {
+          capacity: mongodbSpec.capacity || 0,
+          shard_machine_group: details.shard_machine_group,
+          shard_node_count: mongodbSpec.count / details.shard_machine_group,
+          shards_num: details.shard_num,
+        });
+        // 自动推荐方案的容量必填，自定义方案提交的容量为 0
+        // 调整申请只放开规格与机器组数，自动推荐方案选规格会连带改 Shard 数，按自定义方案回填（容量原样提交）
+        applySchema.value =
+          mongodbSpec.capacity && !modifyState.isAdjustApply ? APPLY_SCHEME.AUTO : APPLY_SCHEME.CUSTOM;
+        // 提交时 ShardSvr 的规格详情取自 specData，原本只在选择部署方案时写入
+        mongoConfigSpecData.value = mongodbSpec;
         nextTick(() => {
           regionRequirementsRef.value!.setInitSubzone(subzoneIds);
         });
@@ -521,64 +550,93 @@
   };
 
   const handleResetformData = () => {
+    // 改单模式下重置回到单据当前内容
+    if (modifyState.isModify) {
+      shardTicketDetail?.refresh();
+      return;
+    }
     Object.assign(formData, initData());
     nextTick(() => {
       window.changeConfirm = false;
     });
   };
 
-  const handleSubmit = async () => {
-    await formRef.value?.validate();
-
-    baseState.isSubmitting = true;
-
+  /**
+   * 组装提交的 details；「重置」置灰的计算属性也会调用，须保持无副作用
+   */
+  const getDetails = () => {
     const { details } = formData;
     const { resource_spec: resourceSpec } = details;
     const { mongo_config: mongoConfig, mongodb, mongos } = resourceSpec;
     const mongodbSpecData = mongoConfigSpecData.value as NonNullable<UnwrapRef<typeof mongoConfigSpecData>>;
     const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
 
+    return {
+      ...details,
+      resource_spec: {
+        mongo_config: {
+          count: mongoConfig.count,
+          // spec_id: mongoConfig.spec_id,
+          ...mongoCofigSpecRef.value!.getData(),
+          ...regionAndDisasterParams,
+          label_names: mongoConfig.labels.map((item: { value: string }) => item.value),
+          labels: mongoConfig.labels.map((item: { id: number }) => String(item.id)),
+        },
+        mongodb: {
+          // ...mongodb,
+          ...regionAndDisasterParams,
+          capacity: mongodb.capacity,
+          count: mongodb.count,
+          cpu: mongodbSpecData.cpu,
+          instance_num: mongodbSpecData.instance_num,
+          label_names: mongodb.labels.map((item: { value: string }) => item.value),
+          labels: mongodb.labels.map((item: { id: number }) => String(item.id)),
+          mem: mongodbSpecData.mem,
+          spec_id: mongodb.spec_id,
+          spec_name: mongodbSpecData.spec_name,
+          storage_spec: mongodbSpecData.storage_spec,
+        },
+        mongos: {
+          ...mongos,
+          ...mongosSpecRef.value!.getData(),
+          ...regionAndDisasterParams,
+          label_names: mongos.labels.map((item: { value: string }) => item.value),
+          labels: mongos.labels.map((item: { id: number }) => String(item.id)),
+        },
+      },
+      shard_machine_group: mongodb.shard_machine_group,
+      shard_num: mongodb.shards_num,
+    };
+  };
+
+  // 改单模式下与单据当前内容无差异时置灰「重置」；getDetails 依赖的组件挂载前、ShardSvr 规格详情就绪前不判断，否则会取到空引用
+  // 显式标注类型：它在模板里使用，靠推断会经 regionRequirementsRef 绕回模板形成循环推断
+  const isModifyUnchanged: ComputedRef<boolean> = computed(() => {
+    if (!modifyState.isModify || !modifyState.ticketData.value) {
+      return false;
+    }
+    if (
+      !mongoCofigSpecRef.value ||
+      !mongosSpecRef.value ||
+      !regionRequirementsRef.value ||
+      !mongoConfigSpecData.value
+    ) {
+      return false;
+    }
+    return modifyState.getDiffList(getDetails()).length < 1;
+  });
+
+  const handleSubmit = async () => {
+    await formRef.value?.validate();
+
+    baseState.isSubmitting = true;
+
     const params = {
       ...formData,
       config: {
         send_msg_config: notifyRelatedPersonsRef.value!.getValue(),
       },
-      details: {
-        ...details,
-        resource_spec: {
-          mongo_config: {
-            count: mongoConfig.count,
-            // spec_id: mongoConfig.spec_id,
-            ...mongoCofigSpecRef.value!.getData(),
-            ...regionAndDisasterParams,
-            label_names: mongoConfig.labels.map((item: { value: string }) => item.value),
-            labels: mongoConfig.labels.map((item: { id: number }) => String(item.id)),
-          },
-          mongodb: {
-            // ...mongodb,
-            ...regionAndDisasterParams,
-            capacity: mongodb.capacity,
-            count: mongodb.count,
-            cpu: mongodbSpecData.cpu,
-            instance_num: mongodbSpecData.instance_num,
-            label_names: mongodb.labels.map((item: { value: string }) => item.value),
-            labels: mongodb.labels.map((item: { id: number }) => String(item.id)),
-            mem: mongodbSpecData.mem,
-            spec_id: mongodb.spec_id,
-            spec_name: mongodbSpecData.spec_name,
-            storage_spec: mongodbSpecData.storage_spec,
-          },
-          mongos: {
-            ...mongos,
-            ...mongosSpecRef.value!.getData(),
-            ...regionAndDisasterParams,
-            label_names: mongos.labels.map((item: { value: string }) => item.value),
-            labels: mongos.labels.map((item: { id: number }) => String(item.id)),
-          },
-        },
-        shard_machine_group: mongodb.shard_machine_group,
-        shard_num: mongodb.shards_num,
-      },
+      details: getDetails(),
     };
 
     // 若业务没有英文名称则先创建业务英文名称再创建单据，反正直接创建单据

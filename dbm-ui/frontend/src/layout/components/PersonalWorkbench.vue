@@ -10,7 +10,7 @@
       :name="t('我的待办')">
       <DbMenuItem
         v-db-console="'personalWorkbench.myTodos'"
-        icon="todos"
+        icon="danjudaiban"
         route-name="MyTodos">
         {{ t('单据待办') }}
         <template #append>
@@ -20,7 +20,7 @@
       <DbMenuItem
         v-if="userProfileStore.isDba"
         v-db-console="'personalWorkbench.platformAlarmEventsTodo'"
-        icon="warning"
+        icon="gaojingshijiandaiban"
         route-name="platformAlarmEventsTodo">
         {{ t('告警事件待办') }}
         <template #append>
@@ -30,7 +30,7 @@
       <DbMenuItem
         v-if="userProfileStore.isDba"
         v-db-console="'personalWorkbench.InspectionTodos'"
-        icon="cluster-standardize"
+        icon="xunjiandaiban-2"
         route-name="inspectionTodosGlobal">
         {{ t('巡检待办') }}
         <template #append>
@@ -49,7 +49,7 @@
       </DbMenuItem>
       <DbMenuItem
         v-db-console="'personalWorkbench.clusterDisableTodo'"
-        icon="todos"
+        icon="jiqunxiajiadaiban"
         route-name="ClusterDisableTodo">
         {{ t('集群下架待办') }}
         <template #append>
@@ -59,7 +59,7 @@
       <DbMenuItem
         v-if="userProfileStore.isDba"
         v-db-console="'personalWorkbench.RiskMemoTodos'"
-        icon="file"
+        icon="fengxianbaowanglu"
         route-name="RiskMemoTodos">
         {{ t('风险备忘录') }}
         <template #append>
@@ -73,7 +73,7 @@
       :name="t('我的申请')">
       <DbMenuItem
         v-db-console="'personalWorkbench.myTickets'"
-        icon="ticket"
+        icon="wodeshenqing-2"
         route-name="SelfServiceMyTickets">
         {{ t('我的申请') }}
       </DbMenuItem>
@@ -84,7 +84,7 @@
       :name="t('我的已办')">
       <DbMenuItem
         v-db-console="'personalWorkbench.myTickets'"
-        icon="todos"
+        icon="yibandanju-2"
         route-name="ticketSelfDone">
         {{ t('已办单据') }}
       </DbMenuItem>
@@ -105,7 +105,7 @@
       :name="t('数据库部署')">
       <DbMenuItem
         v-db-console="'personalWorkbench.serviceApply'"
-        icon="ticket"
+        icon="bushushenqing-2"
         route-name="serviceApply">
         {{ t('部署申请') }}
       </DbMenuItem>
@@ -152,6 +152,7 @@
 
     return (
       ticketCount.value.pending.APPROVE +
+      ticketCount.value.pending.CONFIRM_PENDING +
       ticketCount.value.pending.FAILED +
       ticketCount.value.pending.RESOURCE_REPLENISH +
       ticketCount.value.pending.INNER_TODO +

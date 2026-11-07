@@ -38,6 +38,7 @@ export type * as Riak from './details/riak';
 export type * as Sqlserver from './details/sqlserver';
 export type * as SurrealDB from './details/surrealdb';
 export type * as TendbCluster from './details/tendbCluster';
+export type * as VictoriaMetrics from './details/victoriametrics';
 
 const STATUS_APPROVE = 'APPROVE';
 const STATUS_FAILED = 'FAILED';
@@ -50,9 +51,11 @@ const STATUS_TODO = 'TODO';
 const STATUS_INNER_TODO = 'INNER_TODO';
 const STATUS_PENDING = 'PENDING';
 const STATUS_REVOKED = 'REVOKED';
+const STATUS_CONFIRM_PENDING = 'CONFIRM_PENDING';
 
 export default class Ticket<T extends unknown | DetailBase = unknown> {
   static STATUS_APPROVE = STATUS_APPROVE;
+  static STATUS_CONFIRM_PENDING = STATUS_CONFIRM_PENDING;
   static STATUS_FAILED = STATUS_FAILED;
   static STATUS_INNER_TODO = STATUS_INNER_TODO;
   static STATUS_PENDING = STATUS_PENDING;
@@ -66,6 +69,7 @@ export default class Ticket<T extends unknown | DetailBase = unknown> {
 
   static statusTextMap = {
     [STATUS_APPROVE]: t('待审批'),
+    [STATUS_CONFIRM_PENDING]: t('待确认修改'),
     [STATUS_FAILED]: t('已失败'),
     [STATUS_INNER_TODO]: t('待继续'),
     [STATUS_PENDING]: t('待调度'),
@@ -82,6 +86,7 @@ export default class Ticket<T extends unknown | DetailBase = unknown> {
   bk_biz_name: string;
   config: {
     send_msg_config: {
+      default_receiver_username?: string; // 默认收件人（提单人 + 主DBA），逗号分隔
       is_send: boolean;
       msg_type: MessageTypes[]; // 目前只有邮件的方式
       receiver__username: string;
@@ -113,6 +118,8 @@ export default class Ticket<T extends unknown | DetailBase = unknown> {
   todo_operators: string[];
   update_at: string;
   updater: string;
+  // 单据列表接口返回 null，列表场景需用 get_ticket_version 补齐；详情未返回表示还没改过单
+  version: number | null;
 
   constructor(payload = {} as Ticket<T>) {
     this.bk_biz_id = payload.bk_biz_id;
@@ -137,6 +144,7 @@ export default class Ticket<T extends unknown | DetailBase = unknown> {
     this.todo_operators = payload.todo_operators || [];
     this.update_at = payload.update_at;
     this.updater = payload.updater;
+    this.version = payload.version ?? null;
     this.related_object = payload.related_object || {
       objects: [],
       title: '',
@@ -145,6 +153,19 @@ export default class Ticket<T extends unknown | DetailBase = unknown> {
 
   get createAtDisplay() {
     return utcDisplayTime(this.create_at);
+  }
+
+  get dataExportModeDisplay() {
+    if (![TicketTypes.MYSQL_DUMP_DATA, TicketTypes.TENDBCLUSTER_DUMP_DATA].includes(this.ticket_type)) {
+      return '';
+    }
+    // 列表若未返回 details，不能将未知模式误判为历史库表导出。
+    if (!this.details || typeof this.details !== 'object' || !('cluster_id' in this.details)) {
+      return '--';
+    }
+    return 'export_mode' in this.details && this.details.export_mode === 'sql'
+      ? t('按 SQL 导出')
+      : t('按库表导出');
   }
 
   get isFinished() {

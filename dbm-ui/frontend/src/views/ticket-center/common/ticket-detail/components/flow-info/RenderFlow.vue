@@ -23,11 +23,13 @@
           <Component
             :is="flowTypeModule[item.flow_type]"
             :data="item"
+            :modify-records="modifyRecords"
             :ticket-detail="ticketDetail" />
         </template>
         <FlowTypeBase
           v-else
           :data="item"
+          :modify-records="modifyRecords"
           :ticket-detail="ticketDetail" />
       </template>
     </DbTimeLine>
@@ -42,6 +44,7 @@
   import { useRequest } from 'vue-request';
 
   import FlowMode from '@services/model/ticket/flow';
+  import type TicketModifyRecordModel from '@services/model/ticket/modify-record';
   import TicketModel from '@services/model/ticket/ticket';
   import { getTicketFlows } from '@services/source/ticketFlow';
 
@@ -52,6 +55,8 @@
   import DbTimeLine from './components/time-line/Index.vue';
 
   interface Props {
+    // 改单记录；关联单据的流程不传，不展示改单记录
+    modifyRecords?: TicketModifyRecordModel[];
     ticketDetail: TicketModel<unknown>;
   }
 
@@ -59,7 +64,9 @@
     name: 'TicketFlowInfo',
   });
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    modifyRecords: () => [],
+  });
 
   const flowTypeModule = Object.values(
     import.meta.glob<{

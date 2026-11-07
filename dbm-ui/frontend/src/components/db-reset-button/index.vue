@@ -14,7 +14,7 @@
 <template>
   <DbPopconfirm
     :confirm-handler="confirmHandler"
-    :content="t('重置后当前录入的所有内容将清空。')"
+    :content="content || t('重置后当前录入的所有内容将清空。')"
     :title="t('确认重置')">
     <AuthButton
       v-if="actionId"
@@ -44,6 +44,8 @@
     actionId?: string;
     bizId?: string | number;
     confirmHandler: () => Promise<any> | void;
+    // 确认气泡正文，不传时为默认的「清空」提示
+    content?: string;
     disabled?: boolean;
     outline?: boolean;
     permission?: boolean | string;
@@ -57,6 +59,7 @@
   withDefaults(defineProps<Props>(), {
     actionId: '',
     bizId: undefined,
+    content: '',
     disabled: false,
     outline: false,
     permission: 'normal',

@@ -6,7 +6,7 @@
     <CardCheckbox
       v-model="modelValue"
       :desc="t('独立 BCS 集群资源，物理隔离，适合对性能/安全有严格要求的场景')"
-      :disabled="exclusiveModeDisabled"
+      :disabled="isAdjustApply"
       :disabled-tooltips="t('暂不支持')"
       :title="t('独占集群')"
       true-value="ExclusiveMode" />
@@ -14,6 +14,7 @@
       v-model="modelValue"
       class="ml-8"
       :desc="t('共享 BCS 集群资源，弹性调度，适合常规业务场景')"
+      :disabled="isAdjustApply"
       :title="t('共享集群')"
       true-value="SharedMode" />
   </DbFormItem>
@@ -21,22 +22,15 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { ClusterTypes, isExclusiveClusterType } from '@common/const';
+  import { useTicketModifyState } from '@hooks';
 
   import CardCheckbox from '@views/db-manage/common/db-card-checkbox/CardCheckbox.vue';
-
-  interface Props {
-    clusterType: ClusterTypes;
-  }
-
-  const props = defineProps<Props>();
 
   const modelValue = defineModel<string>({
     required: true,
   });
 
   const { t } = useI18n();
-
-  // 仅白名单集群类型支持独占集群，其余保持置灰
-  const exclusiveModeDisabled = computed(() => !isExclusiveClusterType(props.clusterType));
+  // 调整申请模式只放开资源申请条件，本项只读
+  const isAdjustApply = Boolean(useTicketModifyState()?.isAdjustApply);
 </script>

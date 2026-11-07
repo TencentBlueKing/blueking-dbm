@@ -16,7 +16,7 @@ ls -d src/views/db-manage/mysql/*/ | awk -F/ '{print $(NF-1)}' | grep -E '^[A-Z]
 | `MYSQL_CLIENT_CLONE_RULES` | 客户端权限克隆 | A | `SourceColumn`、`TargetColumn` |
 | `MYSQL_CLUSTER_STANDARDIZE` | 标准化 | A | - |
 | `MYSQL_DATA_MIGRATE` | DB 数据克隆 | A | `TargetClusterColumn`（多目标）、`DataSchemaGrantColumn` |
-| `MYSQL_DUMP_DATA` | 数据导出 | A | - |
+| `MYSQL_DUMP_DATA` | 数据导出 | C | `common/data-export` 共享入口、`table-mode` / `sql-mode` 动态表单、`KeepAlive` 保留各模式输入 |
 | `MYSQL_DTS_DATA_MIGRATE` | DTS 同名迁移 | F | `DtsMigrateWrapper`、`TargetClusterColumn`（单目标）、`checkNotExist` 库表校验、`sync_scope` 四字段 `string[]` 协议 |
 | `MYSQL_DTS_DATA_MIGRATE_RENAME` | DTS 库改名迁移 | F | `DtsMigrateWrapper`、`TargetClusterColumn`（单目标）、`DbMappingSideslider`、库映射防误清 |
 | `MYSQL_FIXPOINT_EXIST_CLUSTER` | 构造（已有集群） | F | `FixpointWrapper`、`target-cluster-column`、多个子列组件 |
@@ -55,3 +55,15 @@ ls -d src/views/db-manage/mysql/*/ | awk -F/ '{print $(NF-1)}' | grep -E '^[A-Z]
 
 41 个目录：38 个工具箱 `Index.vue` + 2 个服务申请（`MYSQL_HA_APPLY` / `MYSQL_SINGLE_APPLY`）+ 1 个无
 `Index.vue`（`MYSQL_ROLLBACK_CLUSTER`）。核实日期：2026-09-21。
+
+## 数据导出协议边界
+
+需求 `138983706`，协议核对日期：2026-10-20。同样适用于 `TENDBCLUSTER_DUMP_DATA`。
+
+- 同一单据类型内用 `export_mode: 'sql'` 切换；历史单据未返回此字段时按库表展示。
+- SQL 模式只提交 `cluster_id`、`export_mode`、`result_format`、`charset`、`sql_path`、`sql_filename`；不要混入库表字段。
+- 新建 SQL 导出默认 `txt / default`；再次提单保留已有 `result_format / charset`。
+- `sql_path` 是 `mysql/sqlfile/{bk_biz_id}` 或其子目录，不含文件名；文件名必须匹配 `^[A-Za-z0-9_.-]+\.sql$`。
+- SQL 内容可通过现有 `getFileContent` 读取；原始输入来源字段未定义，待 PEER 确认。不要用文件名或路径推断原始来源，当前克隆按已存文件回填，详情来源显示 `--`。
+- 服务端模式筛选参数未确认，待 PEER 确认；不要仅筛当前分页或自行拼请求字段。列表缺少 `details` 时不能误标为库表模式。
+- 附件允许 `SELECT / USE / SET`，但附件说明 make 已发布版本仍拒绝 `SET`。联调前核实目标环境规则，不以页面提示替代服务端校验。

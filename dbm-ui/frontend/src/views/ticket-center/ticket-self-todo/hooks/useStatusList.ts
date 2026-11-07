@@ -24,6 +24,11 @@ export default (isAssist: Ref<number>) => {
         name: `${t('待审批')}(${countData.APPROVE})`,
       },
       {
+        count: countData.CONFIRM_PENDING,
+        id: TicketModel.STATUS_CONFIRM_PENDING,
+        name: `${t('待确认修改')}(${countData.CONFIRM_PENDING})`,
+      },
+      {
         count: countData.TODO,
         id: TicketModel.STATUS_TODO,
         name: `${t('待执行')}(${countData.TODO})`,

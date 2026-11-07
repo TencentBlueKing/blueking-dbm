@@ -1,6 +1,7 @@
 <template>
   <BkCheckbox
     v-model="isRandom"
+    :disabled="isAdjustApply"
     @change="handleCheckAllChange">
     {{ t('随机') }}
   </BkCheckbox>
@@ -9,6 +10,7 @@
     class="subzone-bar" />
   <BkRadioGroup
     v-model="subzoneLocalValue"
+    :disabled="isAdjustApply"
     @change="handleSingleChange">
     <BkRadio
       v-for="item in subzoneList"
@@ -24,6 +26,8 @@
 
   import { getInfrasSubzonesByCity } from '@services/source/infras';
 
+  import { useTicketModifyState } from '@hooks';
+
   interface Props {
     cityCode: string;
     subzoneList?: ServiceReturnType<typeof getInfrasSubzonesByCity>;
@@ -38,6 +42,9 @@
   const modelValue = defineModel<number[]>({
     required: true,
   });
+
+  // 调整申请只能改规格与资源标签，容灾级别、地域、园区只读
+  const isAdjustApply = Boolean(useTicketModifyState()?.isAdjustApply);
 
   const { t } = useI18n();
 
@@ -65,11 +72,10 @@
   };
 
   defineExpose<Expose>({
+    // 空数组即随机园区，界面同步回随机，否则重置后仍显示之前选中的园区
     setInitSubzone(subzoneIds: number[]) {
-      if (subzoneIds.length > 0) {
-        isRandom.value = false;
-        subzoneLocalValue.value = subzoneIds[0];
-      }
+      isRandom.value = subzoneIds.length < 1;
+      subzoneLocalValue.value = subzoneIds[0] ?? 0;
     },
   });
 </script>
