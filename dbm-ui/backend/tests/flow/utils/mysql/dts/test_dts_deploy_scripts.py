@@ -125,6 +125,10 @@ tar -zxf "{PKG_PATH}" -C "{bin_dir}" --strip-components=1
         self.assertTrue(os.path.isfile(os.path.join(bin_dir, "bin", "dm-master")))
         self.assertFalse(os.path.isfile(os.path.join(bin_dir, "dm-master")))
 
+    @unittest.skipUnless(
+        os.environ.get("DTS_LOCAL_BOOT") == "1",
+        "start script chowns /data/dts and su - mysql; set DTS_LOCAL_BOOT=1 to boot locally",
+    )
     def test_rendered_start_scripts_can_boot_master_and_worker(self):
         """渲染正式启动脚本，本地拉起 Master + Worker 后再停掉。"""
         master_name = "dm-master-0"
