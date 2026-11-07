@@ -409,7 +409,7 @@ func (i *InstallDorisService) CheckFrontEndStart() (err error) {
 // StopByFeHelper TODO
 func (i *InstallDorisService) StopByFeHelper() (err error) {
 	_, err = osutil.ExecShellCommand(false, fmt.Sprintf(
-		"su - mysql -c \"%s/%s/bin/stop_fe.sh\"",
+		"su - mysql -c \"source /etc/profile; %s/%s/bin/stop_fe.sh\"",
 		i.DorisEnvDir, i.Params.Role))
 	return err
 

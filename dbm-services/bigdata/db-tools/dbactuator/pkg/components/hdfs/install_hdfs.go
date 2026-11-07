@@ -194,7 +194,8 @@ func (i *InstallHdfsService) InstallNn1() (err error) {
 // InstallNn2 TODO
 func (i *InstallHdfsService) InstallNn2() (err error) {
 
-	standbyCommand := fmt.Sprintf("su - %s -c \"hdfs namenode -bootstrapStandby -force 2> /dev/null\"", i.ExecuteUser)
+	standbyCommand := fmt.Sprintf(
+		"su - %s -c \"source /etc/profile; hdfs namenode -bootstrapStandby -force 2> /dev/null\"", i.ExecuteUser)
 	if _, err = osutil.ExecShellCommand(false, standbyCommand); err != nil {
 		logger.Error("%s execute failed, %v", standbyCommand, err)
 	}
@@ -212,7 +213,7 @@ func (i *InstallHdfsService) InstallNn2() (err error) {
 		logger.Error("%s execute failed, %v", checkCmd, err)
 		return err
 	}
-	sleepCommand := fmt.Sprintf("su - %s -c \"sleep 30 \"", i.ExecuteUser)
+	sleepCommand := fmt.Sprintf("su - %s -c \"source /etc/profile; sleep 30 \"", i.ExecuteUser)
 	if _, err = osutil.ExecShellCommand(false, sleepCommand); err != nil {
 		logger.Error("%s execute failed, %v", sleepCommand, err)
 	}

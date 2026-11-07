@@ -72,7 +72,8 @@ type WriteKeyService struct {
 
 // WriteKey TODO
 func (i *WriteKeyService) WriteKey() (err error) {
-	executeCmd := fmt.Sprintf("su - %s -c \"mkdir -p ~/.ssh/; echo '%s' >> ~/.ssh/authorized_keys\"",
+	executeCmd := fmt.Sprintf(
+		"su - %s -c \"source /etc/profile; mkdir -p ~/.ssh/; echo '%s' >> ~/.ssh/authorized_keys\"",
 		i.ExecuteUser, i.Params.Key)
 	if _, err := osutil.ExecShellCommand(false, executeCmd); err != nil {
 		logger.Error("%s execute failed, %v", executeCmd, err)
@@ -145,8 +146,10 @@ type CheckActiveService struct {
 // CheckActive TODO
 func (i *CheckActiveService) CheckActive() (err error) {
 	checkActiveResult := make(map[string]string, 2)
-	checkNn1Cmd := fmt.Sprintf("su - %s -c \"hdfs haadmin -getServiceState nn1 | xargs echo -n\"", i.ExecuteUser)
-	checkNn2Cmd := fmt.Sprintf("su - %s -c \"hdfs haadmin -getServiceState nn2 | xargs echo -n\"", i.ExecuteUser)
+	checkNn1Cmd := fmt.Sprintf(
+		"su - %s -c \"source /etc/profile; hdfs haadmin -getServiceState nn1 | xargs echo -n\"", i.ExecuteUser)
+	checkNn2Cmd := fmt.Sprintf(
+		"su - %s -c \"source /etc/profile; hdfs haadmin -getServiceState nn2 | xargs echo -n\"", i.ExecuteUser)
 
 	maxRetryCount := 3
 	// var interval int = 5

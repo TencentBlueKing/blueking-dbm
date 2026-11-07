@@ -19,7 +19,7 @@ func GetLocalNetwork() (string, error) {
 func StartFeByHelper(dorisHomeDir string, role string, masterIp string, rpcPort int) error {
 
 	_, err := osutil.ExecShellCommand(false, fmt.Sprintf(
-		"su - mysql -c \"%s/%s/bin/start_fe.sh --helper %s:%d --daemon\"",
+		"su - mysql -c \"source /etc/profile; %s/%s/bin/start_fe.sh --helper %s:%d --daemon\"",
 		dorisHomeDir, role, masterIp, rpcPort))
 	return err
 }
