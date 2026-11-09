@@ -84,14 +84,67 @@ func TestRegisterDbMetrics_InvalidDbTypePanics(t *testing.T) {
 	RegisterDbMetrics(haprobe.DbTypeNone, haapm.NewHaCounter("tmp_invalid_dbtype_total", "tmp"))
 }
 
+// snapshotDbMetricsState restores the package-level registration state so a test
+// can exercise a successful RegisterDbMetrics call without leaking state.
+func snapshotDbMetricsState(t *testing.T) {
+	t.Helper()
+	dbMetricsMu.Lock()
+	names := make(map[string]struct{}, len(dbMetricsByName))
+	for k := range dbMetricsByName {
+		names[k] = struct{}{}
+	}
+	ordered := append([]interface{}(nil), dbMetricsOrdered...)
+	dbTypes := make(map[haprobe.DbType]struct{}, len(dbMetricsDbTypes))
+	for k := range dbMetricsDbTypes {
+		dbTypes[k] = struct{}{}
+	}
+	dbMetricsMu.Unlock()
+
+	t.Cleanup(func() {
+		dbMetricsMu.Lock()
+		defer dbMetricsMu.Unlock()
+		dbMetricsByName = names
+		dbMetricsOrdered = ordered
+		dbMetricsDbTypes = dbTypes
+	})
+}
+
+// TestRegisterDbMetrics_ProviderOwnedMetricExample documents the extension point:
+// a provider may still register metrics it owns exclusively, with the same
+// validation rules (framework collision and cross-provider duplicate names).
+func TestRegisterDbMetrics_ProviderOwnedMetricExample(t *testing.T) {
+	snapshotDbMetricsState(t)
+
+	metric := haapm.NewHaCounter("tmp_provider_owned_total", "example of a provider-owned metric")
+	RegisterDbMetrics(haprobe.DbTypeMongo, metric)
+
+	got := DbMetrics()
+	if len(got) != 1 || got[0] != metric {
+		t.Fatalf("DbMetrics() = %v, want the registered metric", got)
+	}
+	types := MetricRegisteredDbTypes()
+	if len(types) != 1 || types[0] != haprobe.DbTypeMongo {
+		t.Fatalf("MetricRegisteredDbTypes() = %v, want [mongo]", types)
+	}
+
+	defer func() {
+		if recover() == nil {
+			t.Fatal("expected panic on duplicate metric name")
+		}
+	}()
+	RegisterDbMetrics(haprobe.DbTypeRedis,
+		haapm.NewHaCounter("tmp_provider_owned_total", "duplicate"))
+}
+
 func TestDbMetrics_ReturnsCopy(t *testing.T) {
+	snapshotDbMetricsState(t)
+	RegisterDbMetrics(haprobe.DbTypeMongo,
+		haapm.NewHaCounter("tmp_copy_check_total", "copy check"))
+
 	a := DbMetrics()
 	b := DbMetrics()
-	if len(a) != len(b) {
-		t.Fatalf("length mismatch: %d vs %d", len(a), len(b))
-	}
-	if len(a) == 0 {
-		return
+	if len(a) != 1 || len(b) != 1 {
+		t.Fatalf("expected one metric, got %d and %d", len(a), len(b))
 	}
 	a[0] = nil
 	if b[0] == nil {

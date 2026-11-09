@@ -63,10 +63,10 @@ var (
 	AmBusinessTotal *haapm.HaGauge
 
 	// Switching*
-	TriggerSwitchingInstanceTotal *haapm.HaCounter
-	SwitchingInstanceErrorTotal   *haapm.HaCounter
-	SwitchingInstanceSuccessTotal *haapm.HaCounter
-	SwitchingTimeConsumingMs      *haapm.HaHistogram
+	SwitchingRequestedInstanceTotal *haapm.HaCounter
+	SwitchingInstanceErrorTotal     *haapm.HaCounter
+	SwitchingInstanceSuccessTotal   *haapm.HaCounter
+	SwitchingTimeConsumingMs        *haapm.HaHistogram
 
 	// DB*
 	DbQueryTimeConsumingMs *haapm.HaHistogram
@@ -160,10 +160,12 @@ func initAmBusinessMetrics() {
 }
 
 func initSwitchingMetrics() {
-	// Trigger switching instance total counter
-	TriggerSwitchingInstanceTotal = haapm.NewHaCounter(
-		"trigger_switching_instance_total",
-		"Total number of trigger switching instances",
+	// Switching requested instance total counter, counted before the switch executes.
+	SwitchingRequestedInstanceTotal = haapm.NewHaCounter(
+		"switching_requested_instance_total",
+		"Total number of instances requested for switching, counted before the switch executes; "+
+			"includes requests later skipped by gating.",
+		MetricLabelDbType, MetricLabelActionScope,
 		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
 	)
 
@@ -172,7 +174,7 @@ func initSwitchingMetrics() {
 		"switching_time_consuming_ms",
 		"Time consuming of switching in milliseconds",
 		haapm.DefaultDurationBuckets,
-		MetricLabelDbType,
+		MetricLabelDbType, MetricLabelActionScope,
 		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
 	)
 
@@ -180,6 +182,7 @@ func initSwitchingMetrics() {
 	SwitchingInstanceSuccessTotal = haapm.NewHaCounter(
 		"switching_instance_success_total",
 		"Total number of switching instance success",
+		MetricLabelDbType, MetricLabelActionScope,
 		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
 	)
 
@@ -187,6 +190,7 @@ func initSwitchingMetrics() {
 	SwitchingInstanceErrorTotal = haapm.NewHaCounter(
 		"switching_instance_error_total",
 		"Total number of switching instance error",
+		MetricLabelDbType, MetricLabelActionScope,
 		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
 	)
 }

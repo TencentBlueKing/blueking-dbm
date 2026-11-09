@@ -96,25 +96,21 @@ func TestAnalysisProvidersRegisterSpecialMatchAndDnsGuard(t *testing.T) {
 }
 
 func TestAnalysisProvidersRegisterDbMetrics(t *testing.T) {
-	types := apm.MetricRegisteredDbTypes()
-	wantTypes := map[haprobe.DbType]bool{
-		haprobe.DbTypeMySql: false,
-		haprobe.DbTypeRedis: false,
-	}
-	for _, dt := range types {
-		if _, ok := wantTypes[dt]; ok {
-			wantTypes[dt] = true
-		}
-	}
-	for dt, ok := range wantTypes {
-		if !ok {
-			t.Errorf("expected metric DbType %s registered", dt)
-		}
-	}
-
+	// Switching metrics are shared and owned by the framework, so providers no
+	// longer register per-DbType metrics and MetricRegisteredDbTypes stays empty.
 	fw := map[string]struct{}{}
 	for _, name := range apm.FrameworkMetricNames() {
 		fw[name] = struct{}{}
+	}
+	for _, name := range []string{
+		"switching_time_consuming_ms",
+		"switching_instance_success_total",
+		"switching_instance_error_total",
+		"switching_requested_instance_total",
+	} {
+		if _, ok := fw[name]; !ok {
+			t.Errorf("expected shared switching metric %q in framework metrics", name)
+		}
 	}
 	for _, m := range apm.DbMetrics() {
 		getter, ok := m.(haapm.MetricGetter)

@@ -743,12 +743,14 @@ func (w *Workflow) handleStrategySwitch(
 	logger.Info("trigger switching by strategyId: %d, switchId: %s, dbType: %s, cloudId: %d, instances: %d",
 		strategy.ID, req.SwitchID, group.DbType, group.BkCloudID, len(group.Instances))
 
-	// Report the triggering switching instance total
-	if err := apm.TriggerSwitchingInstanceTotal.AddWithLabels(map[string]string{
+	// Report the number of instances requested for switching, before the switch executes.
+	if err := apm.SwitchingRequestedInstanceTotal.AddWithLabels(map[string]string{
+		apm.MetricLabelDbType:        req.DbType.Normalize().String(),
+		apm.MetricLabelActionScope:   req.ActionScope.Normalize().String(),
 		haapm.MetricLabelServiceID:   w.myServiceID,
 		haapm.MetricLabelServiceName: apm.MetricServerName,
 	}, float64(len(req.InstData))); err != nil {
-		logger.Warn("failed to update switching instance total metric, errmsg: %s", err)
+		logger.Warn("failed to update switching requested instance total metric, errmsg: %s", err)
 	}
 
 	// Build the switching snapshot data
