@@ -445,6 +445,28 @@ class TestFailoverDrillUnitPrecheck:
         rpt = _report()
         assert rpt.task_status == TaskStatus.NO_DBHA_V2_SERVICE_IP
         assert rpt.state == ReportStateType.ABNORMAL
+        assert "拿不到 dbha-v2 服务 IP" in rpt.task_info
+
+    @pytest.mark.usefixtures("multi_db")
+    def test_v2_ha_servers_unavailable_logs_and_sends_alert(self, no_alert):
+        _create_cluster()
+        with patch.object(RedisFailoverDrill, "get_failover_drill_params"), patch.object(
+            RedisFailoverDrill, "get_drill_logical_city_id", return_value=1
+        ), patch.object(RedisFailoverDrill, "get_drill_ip", return_value=DRILL_IP), patch.object(
+            failover_drill_dbha.HADBApiV2, "ha_servers", side_effect=Exception("ha-servers unavailable")
+        ), patch.object(
+            drill_mod.Ticket, "create_ticket"
+        ) as create_ticket:
+            unit_mod.failover_drill_unit({"city": "", "immute_domain": V2_DOMAIN}, _conf(version="v2"))
+
+        create_ticket.assert_not_called()
+        no_alert.assert_called_once()
+        assert no_alert.call_args.kwargs["task_status"] == TaskStatus.NO_DBHA_V2_SERVICE_IP
+        assert "拿不到 dbha-v2 服务 IP" in no_alert.call_args.kwargs["failure_reason"]
+        rpt = _report()
+        assert rpt.task_status == TaskStatus.NO_DBHA_V2_SERVICE_IP
+        assert rpt.state == ReportStateType.ABNORMAL
+        assert "拿不到 dbha-v2 服务 IP" in rpt.task_info
 
 
 class TestFailoverDrillUnitResult:
