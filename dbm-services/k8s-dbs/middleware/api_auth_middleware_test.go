@@ -537,3 +537,41 @@ func TestAPIAuthMiddleware_InvalidJSON_Error(t *testing.T) {
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	assert.False(t, resp["result"].(bool))
 }
+
+// TestCheckIAMPermission_VictoriaMetricsActionIDs 验证 VM 各操作生成的 action_id
+// 与 DBM ActionEnum 注册的 id 一致（启停使用缩写 k8s_vm_enable_disable）。
+func TestCheckIAMPermission_VictoriaMetricsActionIDs(t *testing.T) {
+	t.Setenv(iamExemptStorageWhitelistEnv, "")
+
+	cases := []struct {
+		name       string
+		apiName    string
+		reqBody    map[string]interface{}
+		expectedID string
+	}{
+		{"start", constant.APIClusterStart, map[string]interface{}{"clusterName": "vm-1"}, "k8s_vm_enable_disable"},
+		{"stop", constant.APIClusterStop, map[string]interface{}{"clusterName": "vm-1"}, "k8s_vm_enable_disable"},
+		{"create", constant.APIClusterCreate, map[string]interface{}{"bkBizId": 100}, "k8s_victoriametrics_apply"},
+		{"delete", constant.APIClusterDelete, map[string]interface{}{"clusterName": "vm-1"}, "k8s_victoriametrics_destroy"},
+		{"update", constant.APIClusterUpdate, map[string]interface{}{"clusterName": "vm-1"}, "k8s_victoriametrics_manage"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var capturedActionID string
+			checker := &mockIAMCheckerCapture{allowed: true, capturedAction: &capturedActionID}
+			resolver := &mockClusterTypeResolver{
+				clusterType:  "k8s_victoriametrics_cluster",
+				addonType:    "victoriametrics",
+				dbmClusterID: 42,
+			}
+
+			allowed, _, err := checkIAMPermission(
+				checker, resolver, tc.apiName, toJSON(tc.reqBody), "user1")
+
+			assert.NoError(t, err)
+			assert.True(t, allowed)
+			assert.Equal(t, tc.expectedID, capturedActionID)
+		})
+	}
+}
