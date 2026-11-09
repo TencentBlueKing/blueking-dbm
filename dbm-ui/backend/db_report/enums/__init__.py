@@ -79,6 +79,7 @@ class ReportType(StrStructuredEnum):
     ES_STATUS_CHECK = EnumField("es_status_check", _("ES集群状态巡检"))
     ES_VERSION_CHECK = EnumField("es_version_check", _("ES集群版本巡检"))
     ES_DATANODE_CHECK = EnumField("es_datanode_check", _("ES集群数据节点亲合度巡检"))
+    ES_DATANODE_ATTR_CHECK = EnumField("es_datanode_attr_check", _("ES集群数据节点拓扑属性巡检"))
     ES_MASTER_CHECK = EnumField("es_master_check", _("ES集群master节点巡检"))
     ES_DOMAIN_CHECK = EnumField("es_domain_check", _("ES集群域名巡检"))
     ES_ACCOUNT_CHECK = EnumField("es_account_check", _("ES集群账户巡检"))
