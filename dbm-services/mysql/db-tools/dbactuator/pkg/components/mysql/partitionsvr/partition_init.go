@@ -28,6 +28,12 @@ const PT_CRITICAL_LOAD_THREADS_RUNNING = 100
 const PT_LOCK_WAIT_TIMEOUT = 10
 
 func (pc *PartitionConfig) ExecuteInitStatement(pd *PartitionDetail, conn *native.DbWorker, forceInitInfo *ForceInitInfo) (partitionStepInfo *PartitionStepInfo) {
+	if pc.PartitionType == monthPartitionType {
+		return pc.executeMonthInitStatement(pd, conn, forceInitInfo)
+	}
+	if pc.PartitionType == timestampMonthPartitionType {
+		return pc.executeTimestampMonthInitStatement(pd, conn, forceInitInfo)
+	}
 
 	partitionStepInfo = &PartitionStepInfo{
 		Step:      "init",
@@ -104,9 +110,9 @@ func (pc *PartitionConfig) ExecuteInitStatementByPTTool(initStatement string, fo
 func (pc *PartitionConfig) ExecuteInitStatementByDDL(initStatement string, conn *native.DbWorker, partitionStepInfo *PartitionStepInfo) {
 	// 记录执行的SQL语句
 	partitionStepInfo.Statement = initStatement
-	// ddl的初始化只设置锁等待超时时间。超时或其他错误由 execPartitionStmtWithRetry 重试。
-	err := execPartitionStmtWithRetry("init partition ddl", func() error {
-		_, execErr := conn.ExecMore([]string{fmt.Sprintf("set session lock_wait_timeout=%d", LockWaitTimeout), initStatement})
+	// 锁等待按次数递增。超时或其他错误由 execPartitionStmtWithRetry 重试。
+	err := execPartitionStmtWithRetry("init partition ddl", func(lockWaitTimeout int) error {
+		_, execErr := conn.ExecMore([]string{fmt.Sprintf("set session lock_wait_timeout=%d", lockWaitTimeout), initStatement})
 		return execErr
 	})
 	if err != nil {
@@ -149,6 +155,8 @@ func (pc *PartitionConfig) GetInitStatement(pd *PartitionDetail, conn *native.Db
 		descFormat = "UNIX_TIMESTAMP('2006-01-02')"
 		diff = DiffOneDay
 	case 6:
+		// 分区字段本身已经是秒级 unix timestamp（10位整型，如 int/bigint，单位：秒），无需函数转换，
+		// 直接使用 RANGE (col) VALUES LESS THAN (UNIX_TIMESTAMP('...'))，步长按 86400 秒/天计算
 		pkey = fmt.Sprintf("RANGE (%s)", pc.PartitionColumn)
 		descKey = "less than"
 		descFormat = "UNIX_TIMESTAMP('2006-01-02')"

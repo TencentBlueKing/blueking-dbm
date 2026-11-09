@@ -26,6 +26,12 @@ import (
 //   - pd: 目标库表分区信息
 //   - conn: 数据库连接
 func (pc *PartitionConfig) ExecuteDropStatement(pd *PartitionDetail, conn *native.DbWorker) (partitionStepInfo *PartitionStepInfo) {
+	if pc.PartitionType == monthPartitionType {
+		return pc.executeMonthDropStatement(pd, conn)
+	}
+	if pc.PartitionType == timestampMonthPartitionType {
+		return pc.executeTimestampMonthDropStatement(pd, conn)
+	}
 
 	partitionStepInfo = &PartitionStepInfo{
 		Step:      "drop",
@@ -55,9 +61,9 @@ func (pc *PartitionConfig) ExecuteDropStatement(pd *PartitionDetail, conn *nativ
 	partitionStepInfo.Statement = dropStatement
 
 	// 这里超时退出只是执行退出，mysql内连接无法释放。
-	// 超时或其他错误由 execPartitionStmtWithRetry 重试。
-	dropSQL := fmt.Sprintf("set session lock_wait_timeout=%d; %s", LockWaitTimeout, dropStatement)
-	err = execPartitionStmtWithRetry(fmt.Sprintf("drop partition `%s`.`%s`", pd.DbName, pd.TbName), func() error {
+	// 锁等待按次数递增。超时或其他错误由 execPartitionStmtWithRetry 重试。
+	err = execPartitionStmtWithRetry(fmt.Sprintf("drop partition `%s`.`%s`", pd.DbName, pd.TbName), func(lockWaitTimeout int) error {
+		dropSQL := fmt.Sprintf("set session lock_wait_timeout=%d; %s", lockWaitTimeout, dropStatement)
 		_, execErr := conn.ExecWithTimeout(ExecTimeout, dropSQL)
 		return execErr
 	})
