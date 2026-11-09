@@ -50,7 +50,7 @@ Histogram 在抓取结果里展开为 `_bucket`、`_sum`、`_count`，下表写�
 | --- | --- |
 | `reason` | `miss`、`stale` |
 | `result` | `success`、`failure` |
-| gRPC `method` | `Heartbeat`、`GetProbeConfig`，其余记为 `unknown` |
+| gRPC `method` | `Heartbeat`、`GetProbeConfig`、`ListHaServers`，其余记为 `unknown` |
 | `grpc_code` | gRPC 标准状态码名称，例如 `OK`、`Unavailable`；无法识别时为 `unknown` |
 | `code` | `SUCCESS`、`FAIL`、`NO_DATA`、`unknown` |
 

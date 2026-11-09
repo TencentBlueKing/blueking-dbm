@@ -28,6 +28,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"sync"
 	"time"
 
@@ -68,8 +69,9 @@ type webFingerprint struct {
 }
 
 type discoveryResource struct {
-	client   *discovery.Client
-	registry *discovery.Registry
+	client    *discovery.Client
+	registry  *discovery.Registry
+	discovery *discovery.Discovery
 }
 
 type storageResource struct {
@@ -225,9 +227,14 @@ func (s *Service) buildDiscovery(ctx context.Context, cfg config.Configuration) 
 		return nil, err
 	}
 
-	resource := &discoveryResource{client: client, registry: client.CreateRegistry()}
+	reader, err := client.CreateDiscovery()
+	if err != nil {
+		return nil, err
+	}
+
+	resource := &discoveryResource{client: client, registry: client.CreateRegistry(), discovery: reader}
 	if err := s.setServiceInfo(ctx, resource.registry); err != nil {
-		resource.registry.Close()
+		closeDiscovery(ctx, resource)
 		return nil, err
 	}
 
@@ -283,6 +290,10 @@ func closeDiscovery(_ context.Context, resource *discoveryResource) {
 	if resource.registry != nil {
 		resource.registry.Close()
 	}
+
+	if resource.discovery != nil {
+		resource.discovery.Close()
+	}
 }
 
 func (s *Service) buildStorage(ctx context.Context, cfg config.Configuration) (*storageResource, error) {
@@ -336,6 +347,7 @@ func (s *Service) buildWeb(_ context.Context, cfg config.Configuration) (*hanet.
 	server.SetLifecycleMiddleware(s.storageHTTPMiddleware())
 	server.SetMetricMiddleware(adminapm.MetricMiddleware())
 	open.RegisterOpenAPI(s.currentDBForContext, server)
+	open.RegisterMetaAPI(&haServerLister{srv: s}, server)
 	server.SetSwaggerFileRoute(cfg.DocFileDir + "/swagger.json")
 
 	handler := v5emb.NewHandlerWithConfig(swgui.Config{
@@ -361,6 +373,11 @@ func (s *Service) buildWeb(_ context.Context, cfg config.Configuration) (*hanet.
 
 func (s *Service) storageHTTPMiddleware() gin.HandlerFunc {
 	return func(ctx *gin.Context) {
+		if skipStorageForHTTP(ctx.Request) {
+			ctx.Next()
+			return
+		}
+
 		resource := s.storageSlot.Get()
 		if resource == nil || !resource.acquire() {
 			ctx.AbortWithStatus(503)
@@ -373,6 +390,12 @@ func (s *Service) storageHTTPMiddleware() gin.HandlerFunc {
 		ctx.Request = ctx.Request.WithContext(requestCtx)
 		ctx.Next()
 	}
+}
+
+// skipStorageForHTTP reports whether req is a storage-independent API. Only an exact
+// GET of the HA server list path matches, so all other routes keep the 503 behavior.
+func skipStorageForHTTP(req *http.Request) bool {
+	return req.Method == http.MethodGet && req.URL.Path == open.MetaHaServersPath
 }
 
 func (s *Service) currentDB() *hamysql.GormDB {

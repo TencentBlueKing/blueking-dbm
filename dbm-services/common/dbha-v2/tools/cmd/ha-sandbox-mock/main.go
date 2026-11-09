@@ -38,6 +38,8 @@ type mockConfig struct {
 	mysqlAddr     string
 	httpAddr      string
 	adminGRPCAddr string
+	adminWebAddr  string
+	listHaServers bool
 }
 
 func main() {
@@ -55,31 +57,33 @@ func parseFlags() mockConfig {
 	flag.StringVar(&cfg.httpAddr, "http-addr", "127.0.0.1:18091", "HTTP health listen address")
 	flag.StringVar(&cfg.adminGRPCAddr, "admin-grpc-addr", "",
 		"if set, call Admin Heartbeat and GetProbeConfig then exit")
+	flag.StringVar(&cfg.adminWebAddr, "admin-web-addr", "",
+		"Admin web address used by --list-ha-servers for GET /api/admin/meta/ha-servers")
+	flag.BoolVar(&cfg.listHaServers, "list-ha-servers", false,
+		"call Admin ListHaServers (gRPC) and the HTTP meta API, print one comparison JSON line, then exit")
 	flag.Parse()
 	return cfg
 }
 
 func run(cfg mockConfig) error {
-	if cfg.adminGRPCAddr != "" {
+	if cfg.adminGRPCAddr != "" && !cfg.listHaServers {
 		return callAdminGRPC(cfg.adminGRPCAddr)
 	}
 
-	etcdSrv, etcdLn, err := startEtcdMock(cfg.etcdAddr)
-	if err != nil {
+	if cfg.listHaServers {
+		return listHaServers(cfg.adminGRPCAddr, cfg.adminWebAddr)
+	}
+
+	ctl := newDepControl(cfg.etcdAddr, cfg.mysqlAddr)
+	defer ctl.stopAll()
+	if err := ctl.startEtcd(); err != nil {
 		return err
 	}
-	defer etcdSrv.GracefulStop()
-	defer etcdLn.Close()
-	logEtcdReady(cfg.etcdAddr)
-
-	mysqlLn, err := startMySQLMock(cfg.mysqlAddr)
-	if err != nil {
+	if err := ctl.startMySQL(); err != nil {
 		return err
 	}
-	defer mysqlLn.Close()
-	logMySQLReady(cfg.mysqlAddr)
 
-	httpLn, err := startHTTPHealth(cfg.httpAddr, cfg.etcdAddr, cfg.mysqlAddr)
+	httpLn, err := startHTTPHealth(cfg.httpAddr, cfg.etcdAddr, cfg.mysqlAddr, ctl)
 	if err != nil {
 		return err
 	}

@@ -41,6 +41,7 @@ import (
 var allowedGRPCMethods = map[string]struct{}{
 	"Heartbeat":      {},
 	"GetProbeConfig": {},
+	"ListHaServers":  {},
 }
 
 var allowedGRPCCodes = map[codes.Code]struct{}{

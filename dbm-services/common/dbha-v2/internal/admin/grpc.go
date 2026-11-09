@@ -28,6 +28,8 @@ import (
 	"context"
 	"errors"
 
+	"dbm-services/common/dbha-v2/internal/admin/api/open/handler"
+	"dbm-services/common/dbha-v2/internal/admin/api/open/serializer"
 	adminapm "dbm-services/common/dbha-v2/internal/admin/apm"
 	adminconfig "dbm-services/common/dbha-v2/internal/admin/config"
 	"dbm-services/common/dbha-v2/pkg/logger"
@@ -43,12 +45,13 @@ import (
 // It is referenced by Service and its lifecycle is managed by Service.
 type AdminGrpcService struct {
 	proto.UnimplementedAdminServiceServer
-	srv *Service
+	srv       *Service
+	haServers handler.HaServerLister
 }
 
 // NewAdminGrpcService returns a new AdminGrpcService bound to the given Service.
 func NewAdminGrpcService(s *Service) *AdminGrpcService {
-	return &AdminGrpcService{srv: s}
+	return &AdminGrpcService{srv: s, haServers: &haServerLister{srv: s}}
 }
 
 // NewServer creates a gRPC server with keepalive, message size, and storage lifecycle handling.
@@ -84,15 +87,19 @@ func (g *AdminGrpcService) storageUnaryInterceptor() grpc.UnaryServerInterceptor
 	return func(
 		ctx context.Context,
 		req any,
-		_ *grpc.UnaryServerInfo,
-		handler grpc.UnaryHandler,
+		info *grpc.UnaryServerInfo,
+		next grpc.UnaryHandler,
 	) (any, error) {
+		if info != nil && info.FullMethod == proto.AdminService_ListHaServers_FullMethodName {
+			return next(ctx, req)
+		}
+
 		resource := g.srv.storageSlot.Get()
 		if resource == nil || !resource.acquire() {
 			return nil, status.Error(codes.Unavailable, "storage is reloading")
 		}
 		defer resource.release()
-		return handler(context.WithValue(ctx, storageContextKey{}, resource), req)
+		return next(context.WithValue(ctx, storageContextKey{}, resource), req)
 	}
 }
 
@@ -139,4 +146,24 @@ func (g *AdminGrpcService) GetProbeConfig(
 		Errmsg:  "success",
 		Payload: payload,
 	}, nil
+}
+
+// ListHaServers returns live admin, analysis and receiver instances and their merged IPs.
+// It does not depend on storage. Both success and discovery failure return gRPC OK; on failure
+// code is HA_SERVER_LIST_FAIL, errmsg is a fixed message and servers and ips are empty.
+func (g *AdminGrpcService) ListHaServers(
+	ctx context.Context, _ *proto.ListHaServersRequest,
+) (*proto.ListHaServersResponse, error) {
+	list, err := g.haServers.List(ctx)
+	if err != nil {
+		logger.Warn("list ha servers failed, errmsg: %s", err)
+		return &proto.ListHaServersResponse{
+			Code:    proto.HaServerListCode_HA_SERVER_LIST_FAIL,
+			Errmsg:  serializer.HaServerListUnavailableMessage,
+			Servers: []*proto.HaServerInfo{},
+			Ips:     []string{},
+		}, nil
+	}
+
+	return newListHaServersResponse(serializer.NewHaServerListData(list)), nil
 }

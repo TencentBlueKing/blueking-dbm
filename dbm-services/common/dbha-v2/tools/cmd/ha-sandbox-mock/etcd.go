@@ -66,11 +66,14 @@ func (s *etcdStore) header() *pb.ResponseHeader {
 }
 
 func startEtcdMock(addr string) (*grpc.Server, net.Listener, error) {
+	return serveEtcdStore(addr, newEtcdStore("http://"+addr))
+}
+
+func serveEtcdStore(addr string, store *etcdStore) (*grpc.Server, net.Listener, error) {
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, nil, err
 	}
-	store := newEtcdStore("http://" + addr)
 	srv := grpc.NewServer(
 		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
 			MinTime:             5 * time.Second,

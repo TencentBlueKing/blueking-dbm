@@ -95,6 +95,53 @@ func (ProbeConfigCode) EnumDescriptor() ([]byte, []int) {
 	return file_admin_proto_rawDescGZIP(), []int{0}
 }
 
+// HaServerListCode result code for ListHaServers: success / failure
+type HaServerListCode int32
+
+const (
+	HaServerListCode_HA_SERVER_LIST_SUCCESS HaServerListCode = 0 // success
+	HaServerListCode_HA_SERVER_LIST_FAIL    HaServerListCode = 1 // failure
+)
+
+// Enum value maps for HaServerListCode.
+var (
+	HaServerListCode_name = map[int32]string{
+		0: "HA_SERVER_LIST_SUCCESS",
+		1: "HA_SERVER_LIST_FAIL",
+	}
+	HaServerListCode_value = map[string]int32{
+		"HA_SERVER_LIST_SUCCESS": 0,
+		"HA_SERVER_LIST_FAIL":    1,
+	}
+)
+
+func (x HaServerListCode) Enum() *HaServerListCode {
+	p := new(HaServerListCode)
+	*p = x
+	return p
+}
+
+func (x HaServerListCode) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (HaServerListCode) Descriptor() protoreflect.EnumDescriptor {
+	return file_admin_proto_enumTypes[1].Descriptor()
+}
+
+func (HaServerListCode) Type() protoreflect.EnumType {
+	return &file_admin_proto_enumTypes[1]
+}
+
+func (x HaServerListCode) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use HaServerListCode.Descriptor instead.
+func (HaServerListCode) EnumDescriptor() ([]byte, []int) {
+	return file_admin_proto_rawDescGZIP(), []int{1}
+}
+
 type Uptime struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -403,6 +450,195 @@ func (x *ProbeConfigResponse) GetPayload() string {
 	return ""
 }
 
+// HaServerInfo one live HA server instance registered in etcd
+type HaServerInfo struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Role          string                 `protobuf:"bytes,1,opt,name=role,proto3" json:"role,omitempty"` // admin | analysis | receiver
+	Id            string                 `protobuf:"bytes,2,opt,name=id,proto3" json:"id,omitempty"`
+	Ips           []string               `protobuf:"bytes,3,rep,name=ips,proto3" json:"ips,omitempty"`
+	StartTime     string                 `protobuf:"bytes,4,opt,name=startTime,proto3" json:"startTime,omitempty"` // 2006-01-02T15:04:05-07:00, Asia/Shanghai
+	UpdatedAt     string                 `protobuf:"bytes,5,opt,name=updatedAt,proto3" json:"updatedAt,omitempty"` // 2006-01-02T15:04:05-07:00, Asia/Shanghai
+	Uptime        string                 `protobuf:"bytes,6,opt,name=uptime,proto3" json:"uptime,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *HaServerInfo) Reset() {
+	*x = HaServerInfo{}
+	mi := &file_admin_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *HaServerInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HaServerInfo) ProtoMessage() {}
+
+func (x *HaServerInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_admin_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HaServerInfo.ProtoReflect.Descriptor instead.
+func (*HaServerInfo) Descriptor() ([]byte, []int) {
+	return file_admin_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *HaServerInfo) GetRole() string {
+	if x != nil {
+		return x.Role
+	}
+	return ""
+}
+
+func (x *HaServerInfo) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *HaServerInfo) GetIps() []string {
+	if x != nil {
+		return x.Ips
+	}
+	return nil
+}
+
+func (x *HaServerInfo) GetStartTime() string {
+	if x != nil {
+		return x.StartTime
+	}
+	return ""
+}
+
+func (x *HaServerInfo) GetUpdatedAt() string {
+	if x != nil {
+		return x.UpdatedAt
+	}
+	return ""
+}
+
+func (x *HaServerInfo) GetUptime() string {
+	if x != nil {
+		return x.Uptime
+	}
+	return ""
+}
+
+type ListHaServersRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListHaServersRequest) Reset() {
+	*x = ListHaServersRequest{}
+	mi := &file_admin_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListHaServersRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListHaServersRequest) ProtoMessage() {}
+
+func (x *ListHaServersRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_admin_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListHaServersRequest.ProtoReflect.Descriptor instead.
+func (*ListHaServersRequest) Descriptor() ([]byte, []int) {
+	return file_admin_proto_rawDescGZIP(), []int{6}
+}
+
+type ListHaServersResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Code          HaServerListCode       `protobuf:"varint,1,opt,name=code,proto3,enum=HaServerListCode" json:"code,omitempty"`
+	Errmsg        string                 `protobuf:"bytes,2,opt,name=errmsg,proto3" json:"errmsg,omitempty"`
+	Servers       []*HaServerInfo        `protobuf:"bytes,3,rep,name=servers,proto3" json:"servers,omitempty"`
+	Ips           []string               `protobuf:"bytes,4,rep,name=ips,proto3" json:"ips,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListHaServersResponse) Reset() {
+	*x = ListHaServersResponse{}
+	mi := &file_admin_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListHaServersResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListHaServersResponse) ProtoMessage() {}
+
+func (x *ListHaServersResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_admin_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListHaServersResponse.ProtoReflect.Descriptor instead.
+func (*ListHaServersResponse) Descriptor() ([]byte, []int) {
+	return file_admin_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ListHaServersResponse) GetCode() HaServerListCode {
+	if x != nil {
+		return x.Code
+	}
+	return HaServerListCode_HA_SERVER_LIST_SUCCESS
+}
+
+func (x *ListHaServersResponse) GetErrmsg() string {
+	if x != nil {
+		return x.Errmsg
+	}
+	return ""
+}
+
+func (x *ListHaServersResponse) GetServers() []*HaServerInfo {
+	if x != nil {
+		return x.Servers
+	}
+	return nil
+}
+
+func (x *ListHaServersResponse) GetIps() []string {
+	if x != nil {
+		return x.Ips
+	}
+	return nil
+}
+
 var File_admin_proto protoreflect.FileDescriptor
 
 const file_admin_proto_rawDesc = "" +
@@ -428,14 +664,31 @@ const file_admin_proto_rawDesc = "" +
 	"\x13ProbeConfigResponse\x12$\n" +
 	"\x04code\x18\x01 \x01(\x0e2\x10.ProbeConfigCodeR\x04code\x12\x16\n" +
 	"\x06errmsg\x18\x02 \x01(\tR\x06errmsg\x12\x18\n" +
-	"\apayload\x18\x03 \x01(\tR\apayload*\\\n" +
+	"\apayload\x18\x03 \x01(\tR\apayload\"\x98\x01\n" +
+	"\fHaServerInfo\x12\x12\n" +
+	"\x04role\x18\x01 \x01(\tR\x04role\x12\x0e\n" +
+	"\x02id\x18\x02 \x01(\tR\x02id\x12\x10\n" +
+	"\x03ips\x18\x03 \x03(\tR\x03ips\x12\x1c\n" +
+	"\tstartTime\x18\x04 \x01(\tR\tstartTime\x12\x1c\n" +
+	"\tupdatedAt\x18\x05 \x01(\tR\tupdatedAt\x12\x16\n" +
+	"\x06uptime\x18\x06 \x01(\tR\x06uptime\"\x16\n" +
+	"\x14ListHaServersRequest\"\x91\x01\n" +
+	"\x15ListHaServersResponse\x12%\n" +
+	"\x04code\x18\x01 \x01(\x0e2\x11.HaServerListCodeR\x04code\x12\x16\n" +
+	"\x06errmsg\x18\x02 \x01(\tR\x06errmsg\x12'\n" +
+	"\aservers\x18\x03 \x03(\v2\r.HaServerInfoR\aservers\x12\x10\n" +
+	"\x03ips\x18\x04 \x03(\tR\x03ips*\\\n" +
 	"\x0fProbeConfigCode\x12\x18\n" +
 	"\x14PROBE_CONFIG_SUCCESS\x10\x00\x12\x15\n" +
 	"\x11PROBE_CONFIG_FAIL\x10\x01\x12\x18\n" +
-	"\x14PROBE_CONFIG_NO_DATA\x10\x022\x83\x01\n" +
+	"\x14PROBE_CONFIG_NO_DATA\x10\x02*G\n" +
+	"\x10HaServerListCode\x12\x1a\n" +
+	"\x16HA_SERVER_LIST_SUCCESS\x10\x00\x12\x17\n" +
+	"\x13HA_SERVER_LIST_FAIL\x10\x012\xc5\x01\n" +
 	"\fAdminService\x124\n" +
 	"\tHeartbeat\x12\x11.HeartbeatRequest\x1a\x12.HeartbeatResponse\"\x00\x12=\n" +
-	"\x0eGetProbeConfig\x12\x13.ProbeConfigRequest\x1a\x14.ProbeConfigResponse\"\x00B\tZ\a.;protob\x06proto3"
+	"\x0eGetProbeConfig\x12\x13.ProbeConfigRequest\x1a\x14.ProbeConfigResponse\"\x00\x12@\n" +
+	"\rListHaServers\x12\x15.ListHaServersRequest\x1a\x16.ListHaServersResponse\"\x00B\tZ\a.;protob\x06proto3"
 
 var (
 	file_admin_proto_rawDescOnce sync.Once
@@ -449,27 +702,35 @@ func file_admin_proto_rawDescGZIP() []byte {
 	return file_admin_proto_rawDescData
 }
 
-var file_admin_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_admin_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
+var file_admin_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_admin_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_admin_proto_goTypes = []any{
-	(ProbeConfigCode)(0),        // 0: ProbeConfigCode
-	(*Uptime)(nil),              // 1: Uptime
-	(*HeartbeatRequest)(nil),    // 2: HeartbeatRequest
-	(*HeartbeatResponse)(nil),   // 3: HeartbeatResponse
-	(*ProbeConfigRequest)(nil),  // 4: ProbeConfigRequest
-	(*ProbeConfigResponse)(nil), // 5: ProbeConfigResponse
+	(ProbeConfigCode)(0),          // 0: ProbeConfigCode
+	(HaServerListCode)(0),         // 1: HaServerListCode
+	(*Uptime)(nil),                // 2: Uptime
+	(*HeartbeatRequest)(nil),      // 3: HeartbeatRequest
+	(*HeartbeatResponse)(nil),     // 4: HeartbeatResponse
+	(*ProbeConfigRequest)(nil),    // 5: ProbeConfigRequest
+	(*ProbeConfigResponse)(nil),   // 6: ProbeConfigResponse
+	(*HaServerInfo)(nil),          // 7: HaServerInfo
+	(*ListHaServersRequest)(nil),  // 8: ListHaServersRequest
+	(*ListHaServersResponse)(nil), // 9: ListHaServersResponse
 }
 var file_admin_proto_depIdxs = []int32{
 	0, // 0: ProbeConfigResponse.code:type_name -> ProbeConfigCode
-	2, // 1: AdminService.Heartbeat:input_type -> HeartbeatRequest
-	4, // 2: AdminService.GetProbeConfig:input_type -> ProbeConfigRequest
-	3, // 3: AdminService.Heartbeat:output_type -> HeartbeatResponse
-	5, // 4: AdminService.GetProbeConfig:output_type -> ProbeConfigResponse
-	3, // [3:5] is the sub-list for method output_type
-	1, // [1:3] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	1, // 1: ListHaServersResponse.code:type_name -> HaServerListCode
+	7, // 2: ListHaServersResponse.servers:type_name -> HaServerInfo
+	3, // 3: AdminService.Heartbeat:input_type -> HeartbeatRequest
+	5, // 4: AdminService.GetProbeConfig:input_type -> ProbeConfigRequest
+	8, // 5: AdminService.ListHaServers:input_type -> ListHaServersRequest
+	4, // 6: AdminService.Heartbeat:output_type -> HeartbeatResponse
+	6, // 7: AdminService.GetProbeConfig:output_type -> ProbeConfigResponse
+	9, // 8: AdminService.ListHaServers:output_type -> ListHaServersResponse
+	6, // [6:9] is the sub-list for method output_type
+	3, // [3:6] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_admin_proto_init() }
@@ -482,8 +743,8 @@ func file_admin_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_admin_proto_rawDesc), len(file_admin_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   5,
+			NumEnums:      2,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -48,6 +48,9 @@ const (
 
 var (
 	ErrEmptyWatchedKey = gerrors.New(gerrors.InvalidParameter, "watched key is required but got empty string")
+
+	// ErrDiscoveryClosed is returned by Get and GetWithPrefix after Close has been called.
+	ErrDiscoveryClosed = gerrors.New(gerrors.EtcdFailure, "discovery is closed")
 )
 
 // WatchEvent This event will be generated
@@ -63,6 +66,7 @@ type Discovery struct {
 	quit             chan struct{}
 	cliMu            sync.RWMutex
 	client           *clientv3.Client
+	closed           bool
 	createEtcdClient func() (*clientv3.Client, error)
 	wg               sync.WaitGroup
 }
@@ -88,9 +92,13 @@ func (d *Discovery) WatchWithPrefix(ctx context.Context, key string) (<-chan *Wa
 }
 
 // Get Only get the value of the key.
+// The etcd client is created on first use, so Get works without a prior Watch.
+// It returns ErrDiscoveryClosed after Close has been called.
 func (d *Discovery) Get(ctx context.Context, key string) ([]byte, error) {
 	key = strings.TrimSpace(key)
-	d.cliMu.RLock()
+	if err := d.rLockReadClient(); err != nil {
+		return nil, err
+	}
 	defer d.cliMu.RUnlock()
 
 	resp, err := d.client.Get(ctx, key)
@@ -107,9 +115,13 @@ func (d *Discovery) Get(ctx context.Context, key string) ([]byte, error) {
 }
 
 // GetWithPrefix Get all values that start with the specified key prefix.
+// The returned map is keyed by the full etcd key. The etcd client is created on first use,
+// so GetWithPrefix works without a prior Watch. It returns ErrDiscoveryClosed after Close.
 func (d *Discovery) GetWithPrefix(ctx context.Context, key string) (map[string][]byte, error) {
 	key = strings.TrimSpace(key)
-	d.cliMu.RLock()
+	if err := d.rLockReadClient(); err != nil {
+		return nil, err
+	}
 	defer d.cliMu.RUnlock()
 
 	resp, err := d.client.Get(ctx, key, clientv3.WithPrefix())
@@ -138,10 +150,54 @@ func (d *Discovery) Close() {
 	d.cliMu.Lock()
 	defer d.cliMu.Unlock()
 
+	d.closed = true
 	if d.client != nil {
 		d.client.Close()
 		d.client = nil
 	}
+}
+
+// rLockReadClient makes sure the etcd client exists and returns with cliMu read-locked.
+// The caller must call cliMu.RUnlock when it returns nil; on error no lock is held.
+func (d *Discovery) rLockReadClient() error {
+	d.cliMu.RLock()
+	if !d.closed && d.client != nil {
+		return nil
+	}
+	d.cliMu.RUnlock()
+
+	if err := d.ensureReadClient(); err != nil {
+		return err
+	}
+
+	d.cliMu.RLock()
+	if d.closed || d.client == nil {
+		d.cliMu.RUnlock()
+		return ErrDiscoveryClosed
+	}
+
+	return nil
+}
+
+func (d *Discovery) ensureReadClient() error {
+	d.cliMu.Lock()
+	defer d.cliMu.Unlock()
+
+	if d.closed {
+		return ErrDiscoveryClosed
+	}
+
+	if d.client != nil {
+		return nil
+	}
+
+	etcdCli, err := d.createEtcdClient()
+	if err != nil {
+		return err
+	}
+	d.client = etcdCli
+
+	return nil
 }
 
 func (d *Discovery) watchCommon(ctx context.Context, key string, opts ...clientv3.OpOption) (<-chan *WatchEvent, error) {
