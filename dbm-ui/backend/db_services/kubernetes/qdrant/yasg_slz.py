@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from django.utils.translation import gettext as _
 from rest_framework import serializers
 
 from .query import QdrantHaListRetrieveResource
@@ -53,7 +54,7 @@ resource_topo_graph_example = {
     "groups": [
         {
             "node_id": "master_entry_group",
-            "group_name": "访问入口",
+            "group_name": _("访问入口"),
             "children_id": ["qdrant-cluster-db.ha-test2.blueking.db:6333", "1.1.1.1:6333"],
         },
         {
@@ -69,7 +70,7 @@ resource_topo_graph_example = {
             "target": "qdrant",
             "target_type": "group",
             "label": "access",
-            "label_name": "访问",
+            "label_name": _("访问"),
         }
     ],
     "foreign_relations": {"rep_to": [], "rep_from": [], "access_to": [], "access_from": []},
