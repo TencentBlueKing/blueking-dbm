@@ -13,7 +13,9 @@ from celery.schedules import crontab
 
 from backend.db_periodic_task.local_tasks import register_periodic_task
 from backend.db_periodic_task.local_tasks.kafka_check.kafka_broker_check import check_kafka_broker_affinity
+from backend.db_periodic_task.local_tasks.kafka_check.kafka_disk_growth_check import check_kafka_disk_growth
 from backend.db_periodic_task.local_tasks.kafka_check.kafka_zookeeper_check import check_kafka_zookeeper_affinity
+from backend.db_report.enums.kafka_disk_growth_sub_type import KafkaDiskGrowthRunKind
 
 
 @register_periodic_task(run_every=crontab(hour="9", minute="08"))
@@ -30,3 +32,19 @@ def kafka_broker_affinity_task():
     kafka broker亲和性巡检
     """
     check_kafka_broker_affinity()
+
+
+@register_periodic_task(run_every=crontab(hour="9", minute="25"))
+def kafka_disk_growth_morning_task():
+    """
+    kafka 磁盘持续增长巡检（早间）：用昨天的完整日峰值判定
+    """
+    check_kafka_disk_growth(run_kind=KafkaDiskGrowthRunKind.MORNING.value)
+
+
+@register_periodic_task(run_every=crontab(hour="16", minute="25"))
+def kafka_disk_growth_afternoon_task():
+    """
+    kafka 磁盘持续增长巡检（午后）：用今天截至当时的峰值判定，用于周末前和下班前检查
+    """
+    check_kafka_disk_growth(run_kind=KafkaDiskGrowthRunKind.AFTERNOON.value)

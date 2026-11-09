@@ -86,6 +86,7 @@ class ReportType(StrStructuredEnum):
     # Kafka
     KAFKA_ZOOKEEPER_AFFINITY_CHECK = EnumField("kafka_zookeeper_affinity_check", _("Kafka Zookeeper亲和性巡检"))
     KAFKA_BROKER_AFFINITY_CHECK = EnumField("kafka_broker_affinity_check", _("Kafka Broker亲和性巡检"))
+    KAFKA_DISK_GROWTH_CHECK = EnumField("kafka_disk_growth_check", _("Kafka磁盘持续增长巡检"))
 
 
 class ReportStateType(StrStructuredEnum):
