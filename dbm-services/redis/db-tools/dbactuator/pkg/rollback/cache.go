@@ -24,7 +24,6 @@ import (
 
 const (
 	loadPollInterval = 3 * time.Second
-	loadLogInterval  = time.Minute
 	connectTimeout   = 5 * time.Second
 	minLoadDeadline  = 5 * time.Minute
 	maxLoadDeadline  = 2 * time.Hour
@@ -81,7 +80,8 @@ func (r *cacheRestorer) DoRollback() error {
 		logInfo("RedisRollback %s: all ports already rolled back, nothing to do", r.DestIP)
 		return nil
 	}
-	report.logPlan(limits, r.portPlans(append(append([]InstanceRestore{}, redo...), resume...)), r.UnpackDir)
+	report.logPlan(limits, r.portPlans(append(append([]InstanceRestore{}, redo...), resume...)), r.UnpackDir, "")
+	defer report.trackProgress()()
 
 	window := newMemWindow(limits.MemAvailable, limits.Loading())
 	var wg sync.WaitGroup
@@ -90,6 +90,7 @@ func (r *cacheRestorer) DoRollback() error {
 		dataDir := filepath.Join(r.Host.InstanceDir(inst.DestPort), "data")
 		need := CacheMemory(DataFileBytes(dataDir), isAOFData(dataDir))
 		window.admit(need)
+		report.port(inst.DestPort).enter(phaseLoad, 0, "")
 		wg.Add(1)
 		go func(inst InstanceRestore) {
 			defer wg.Done()
@@ -201,10 +202,9 @@ func (r *cacheRestorer) stage(inst InstanceRestore, p *portReport) (int64, error
 	instDir := r.Host.InstanceDir(inst.DestPort)
 	var need int64
 	if len(inst.FullFiles) > 0 {
-		log.Info("unpack files=%v into %s", inst.FullFiles, r.portWorkDir(inst.DestPort))
 		var item StagedBackup
 		err := p.timed(stageUnpack, func() (err error) {
-			item, err = StageBackup(r.SaveDir, r.portWorkDir(inst.DestPort), inst)
+			item, err = stageBackup(r.SaveDir, r.portWorkDir(inst.DestPort), inst, p)
 			p.addCPU(stageUnpack, item.UnpackCPU)
 			return err
 		})
@@ -212,9 +212,13 @@ func (r *cacheRestorer) stage(inst InstanceRestore, p *portReport) (int64, error
 			log.Error("unpack failed: %v", err)
 			return 0, err
 		}
+		var size int64
 		if st, err := os.Stat(item.DataFile); err == nil {
-			need = CacheMemory(st.Size(), item.IsAOF)
+			size = st.Size()
+			need = CacheMemory(size, item.IsAOF)
 		}
+		log.Info("unpacked %s in %s", shortBytes(size), shortDuration(p.duration(stageUnpack)))
+		p.enter(phaseRestore, 0, "")
 		err = p.timed(stageRestore, func() error {
 			if err := SetPersistence(confFile(instDir), item.IsAOF); err != nil {
 				return err
@@ -225,8 +229,13 @@ func (r *cacheRestorer) stage(inst InstanceRestore, p *portReport) (int64, error
 			log.Error("place data file failed: %v", err)
 			return 0, err
 		}
+		kind := "rdb"
+		if item.IsAOF {
+			kind = "aof"
+		}
+		log.Info("restored: %s placed in %s", kind, shortDuration(p.duration(stageRestore)))
 	} else {
-		log.Info("no full files, keep it empty")
+		log.Info("no full files, left empty")
 	}
 	return need, MarkPending(instDir, inst.Fingerprint())
 }
@@ -234,19 +243,22 @@ func (r *cacheRestorer) stage(inst InstanceRestore, p *portReport) (int64, error
 // startAndWait starts inst once its memory fits, then waits for the load.
 func (r *cacheRestorer) startAndWait(inst InstanceRestore, need int64, window *memWindow, p *portReport) error {
 	log := newPortLog(inst.DestPort)
+	p.waiting("memory")
 	if err := window.acquire(need); err != nil {
 		err = fmt.Errorf("start %s:%d: %v", r.DestIP, inst.DestPort, err)
 		log.Error("%v", err)
 		p.finish(err)
 		return err
 	}
-	log.Info("start, memory~%s", humanBytes(need))
+	p.enter(phaseStart, 0, "")
 	if err := p.timed(stageStart, func() error { return r.Host.Start(inst.DestPort) }); err != nil {
 		window.release(need)
 		log.Error("start failed: %v", err)
 		p.finish(err)
 		return err
 	}
+	log.Info("started, memory~%s", shortBytes(need))
+	p.enter(phaseLoad, 0, "")
 	return r.waitAndMark(inst, need, window, p)
 }
 
@@ -263,7 +275,7 @@ func (r *cacheRestorer) waitAndMark(inst InstanceRestore, need int64, window *me
 		err = MarkDone(r.Host.InstanceDir(inst.DestPort), inst.Fingerprint())
 	}
 	if err != nil {
-		log.Error("%v", err)
+		log.Error("failed: %v", err)
 		p.finish(err)
 		return err
 	}
@@ -271,6 +283,7 @@ func (r *cacheRestorer) waitAndMark(inst InstanceRestore, need int64, window *me
 		log.Warn("cleanup staged files failed: %v", err)
 	}
 	p.finish(nil)
+	log.Info("done")
 	return nil
 }
 
@@ -286,14 +299,19 @@ func (r *cacheRestorer) waitLoaded(inst InstanceRestore, log portLog, p *portRep
 	}
 	dataDir := filepath.Join(instDir, "data")
 	addr := fmt.Sprintf("%s:%d", r.DestIP, inst.DestPort)
-	rss, err := WaitLoaded(log, addr, password, LoadDeadline(DataFileBytes(dataDir), isAOFData(dataDir)))
+	size, aof := DataFileBytes(dataDir), isAOFData(dataDir)
+	dbsize, rss, err := waitLoadedFn(addr, password, LoadDeadline(size, aof), p.loading)
 	if err != nil {
 		window.release(need)
 		return err
 	}
+	log.Info("loaded in %s: dbsize %d, rss %s", shortDuration(time.Since(start)), dbsize, shortBytes(rss))
 	window.loaded(need, rss)
 	return nil
 }
+
+// waitLoadedFn is replaced in tests, which have no instance to wait on.
+var waitLoadedFn = WaitLoaded
 
 // LoadDeadline scales the loading wait with data size: 5m plus 1m per GB, capped at 2h, and ten
 // times as long per GB for an AOF.
@@ -329,11 +347,19 @@ func StageBackup(saveDir, workDir string, inst InstanceRestore) (StagedBackup, e
 	if saveDir == "" {
 		saveDir = DefaultSaveDir()
 	}
+	return stageBackup(saveDir, workDir, inst, nil)
+}
+
+// stageBackup is StageBackup reporting the unpack on p, when not nil.
+func stageBackup(saveDir, workDir string, inst InstanceRestore, p *portReport) (StagedBackup, error) {
+	if saveDir == "" {
+		saveDir = DefaultSaveDir()
+	}
 	files, err := resolveFiles(saveDir, inst)
 	if err != nil {
 		return StagedBackup{}, err
 	}
-	cpu, err := unpackBackup(files, workDir)
+	cpu, err := unpackPort(p, files, workDir)
 	if err != nil {
 		return StagedBackup{UnpackCPU: cpu}, err
 	}
@@ -414,29 +440,30 @@ func PlaceDataFile(log portLog, dataDir string, staged StagedBackup) error {
 }
 
 // WaitLoaded connects to the restored instance and blocks until it has finished loading its data
-// file, returning its resident memory when known. Redis accepts connections while loading but
-// rejects data commands, so LOADING is not success.
-func WaitLoaded(log portLog, addr, password string, deadline time.Duration) (int64, error) {
+// file, returning its dbsize and its resident memory when known. Redis accepts connections while
+// loading but rejects data commands, so LOADING is not success. onLoading, when not nil, gets the
+// loaded percentage and the instance's eta at each poll.
+func WaitLoaded(addr, password string, deadline time.Duration,
+	onLoading func(perc float64, eta time.Duration)) (int64, int64, error) {
 	start := time.Now()
 	cli, err := connectWithin(addr, password, consts.TendisTypeRedisInstance, deadline)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 	defer cli.Close()
 
-	if err := waitLoaded(cli, log, addr, deadline-time.Since(start), loadPollInterval); err != nil {
-		return 0, err
+	if err := waitLoaded(cli, onLoading, addr, deadline-time.Since(start), loadPollInterval); err != nil {
+		return 0, 0, err
 	}
 	dbSize, err := cli.DbSize()
 	if err != nil {
-		return 0, fmt.Errorf("rollback redis %s dbsize failed: %v", addr, err)
+		return 0, 0, fmt.Errorf("rollback redis %s dbsize failed: %v", addr, err)
 	}
 	var rss int64
 	if info, err := cli.Info("memory"); err == nil {
 		rss, _ = strconv.ParseInt(info["used_memory_rss"], 10, 64)
 	}
-	log.Info("restore from full backup success, dbsize=%d rss=%s", dbSize, humanBytes(rss))
-	return rss, nil
+	return dbSize, rss, nil
 }
 
 // connectWithin retries connecting until deadline; a freshly started instance may not listen yet.
@@ -458,25 +485,30 @@ type loadProber interface {
 	Info(section string) (map[string]string, error)
 }
 
-func waitLoaded(p loadProber, log portLog, addr string, deadline, interval time.Duration) error {
+// waitLoaded polls until loading is over. Progress goes to onLoading for the host's snapshots
+// rather than a line of its own per port.
+func waitLoaded(p loadProber, onLoading func(perc float64, eta time.Duration), addr string,
+	deadline, interval time.Duration) error {
 	end := time.Now().Add(deadline)
-	var lastLog time.Time
-	perc, eta := "", ""
+	perc := ""
 	for {
 		info, err := p.Info("persistence")
 		if err == nil {
 			if info["loading"] == "0" {
 				return nil
 			}
-			perc, eta = info["loading_loaded_perc"], info["loading_eta_seconds"]
+			perc = info["loading_loaded_perc"]
+			if onLoading != nil {
+				f, ferr := strconv.ParseFloat(strings.TrimSpace(perc), 64)
+				eta, _ := strconv.ParseInt(strings.TrimSpace(info["loading_eta_seconds"]), 10, 64)
+				if ferr == nil {
+					onLoading(f, time.Duration(eta)*time.Second)
+				}
+			}
 		}
 		if !time.Now().Before(end) {
 			return fmt.Errorf("rollback redis %s still loading after %v (loaded %s%%, last err: %v)",
 				addr, deadline, perc, err)
-		}
-		if time.Since(lastLog) >= loadLogInterval {
-			log.Info("loading, loaded %s%%, eta %ss", perc, eta)
-			lastLog = time.Now()
 		}
 		time.Sleep(interval)
 	}
