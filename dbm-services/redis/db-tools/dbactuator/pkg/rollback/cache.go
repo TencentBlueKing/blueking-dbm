@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"dbm-services/redis/db-tools/dbactuator/models/myredis"
-	"dbm-services/redis/db-tools/dbactuator/mylog"
 	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 )
@@ -79,7 +78,7 @@ func (r *cacheRestorer) DoRollback() error {
 		return err
 	}
 	if len(redo) == 0 && len(resume) == 0 {
-		mylog.Logger.Info("RedisRollback %s: all ports already rolled back, nothing to do", r.DestIP)
+		logInfo("RedisRollback %s: all ports already rolled back, nothing to do", r.DestIP)
 		return nil
 	}
 	report.logPlan(limits, r.portPlans(append(append([]InstanceRestore{}, redo...), resume...)), r.UnpackDir)
@@ -101,12 +100,12 @@ func (r *cacheRestorer) DoRollback() error {
 	if len(redo) > 0 {
 		// zstd and lzop live in dbtools; Prepare installs it too late for unpacking.
 		if err = r.Host.InstallTools(); err != nil {
-			mylog.Logger.Error("RedisRollback install dbtools failed: %v", err)
+			logError("RedisRollback install dbtools failed: %v", err)
 			wg.Wait()
 			return err
 		}
 		if err = r.Host.Prepare(portsOf(redo)); err != nil {
-			mylog.Logger.Error("RedisRollback prepare instances failed: %v", err)
+			logError("RedisRollback prepare instances failed: %v", err)
 			wg.Wait()
 			return err
 		}
@@ -169,7 +168,7 @@ func (r *cacheRestorer) resolvePending(report *hostReport) (redo, resume []Insta
 	for _, inst := range r.Instances {
 		instDir := r.Host.InstanceDir(inst.DestPort)
 		fingerprint := inst.Fingerprint()
-		log := newPortLog(r.DestIP, inst)
+		log := newPortLog(inst.DestPort)
 		inUse, err := util.CheckPortIsInUse(r.DestIP, strconv.Itoa(inst.DestPort))
 		if err != nil {
 			return nil, nil, err
@@ -198,7 +197,7 @@ func (r *cacheRestorer) resolvePending(report *hostReport) (redo, resume []Insta
 // stage unpacks inst's backup onto the data disk and puts it in place, returning the memory the
 // instance will take. Placeholders without backup files start empty.
 func (r *cacheRestorer) stage(inst InstanceRestore, p *portReport) (int64, error) {
-	log := newPortLog(r.DestIP, inst)
+	log := newPortLog(inst.DestPort)
 	instDir := r.Host.InstanceDir(inst.DestPort)
 	var need int64
 	if len(inst.FullFiles) > 0 {
@@ -234,7 +233,7 @@ func (r *cacheRestorer) stage(inst InstanceRestore, p *portReport) (int64, error
 
 // startAndWait starts inst once its memory fits, then waits for the load.
 func (r *cacheRestorer) startAndWait(inst InstanceRestore, need int64, window *memWindow, p *portReport) error {
-	log := newPortLog(r.DestIP, inst)
+	log := newPortLog(inst.DestPort)
 	if err := window.acquire(need); err != nil {
 		err = fmt.Errorf("start %s:%d: %v", r.DestIP, inst.DestPort, err)
 		log.Error("%v", err)
@@ -254,7 +253,7 @@ func (r *cacheRestorer) startAndWait(inst InstanceRestore, need int64, window *m
 // waitAndMark waits for inst to finish loading, marks it done and frees its staged files.
 // A failed port keeps its downloads for the next retry.
 func (r *cacheRestorer) waitAndMark(inst InstanceRestore, need int64, window *memWindow, p *portReport) error {
-	log := newPortLog(r.DestIP, inst)
+	log := newPortLog(inst.DestPort)
 	err := r.waitLoaded(inst, log, p, window, need)
 	// Assign slots to the temp instance.
 	if err == nil && r.cluster {
@@ -280,7 +279,7 @@ func (r *cacheRestorer) waitLoaded(inst InstanceRestore, log portLog, p *portRep
 	start := time.Now()
 	defer func() { p.add(stageStart, time.Since(start)) }()
 	instDir := r.Host.InstanceDir(inst.DestPort)
-	password, err := myredis.GetRedisPasswdFromConfFile(inst.DestPort)
+	password, err := portPassword(inst.DestPort)
 	if err != nil {
 		window.release(need)
 		return err

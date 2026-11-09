@@ -1,9 +1,11 @@
 package myredis
 
 import (
+	"bytes"
 	"fmt"
 	"testing"
 
+	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/redis/db-tools/dbactuator/mylog"
 
 	"github.com/smartystreets/goconvey/convey"
@@ -57,6 +59,23 @@ ff29e2e2782916a0451d5f4064cb55483f4b2a97 127.0.0.5:45002@55002 master - 0 166001
 		}
 		fmt.Printf("%s\n", selfNode.String())
 		convey.So(IsMasterWithSlot(selfNode), convey.ShouldBeTrue)
+	})
+
+	convey.Convey("blank lines are skipped silently", t, func() {
+		var buf bytes.Buffer
+		mylog.SetDefaultLogger(logger.New(&buf, true, logger.InfoLevel, map[string]string{}))
+		defer mylog.UnitTestInitLog()
+		nodes, err := DecodeClusterNodes("\n" +
+			"ff29e2e2782916a0451d5f4064cb55483f4b2a97 127.0.0.5:45002@55002 myself,master - 0 0 0 connected 0-16383\n" +
+			"   \n\n")
+		convey.So(err, convey.ShouldBeNil)
+		convey.So(len(nodes), convey.ShouldEqual, 1)
+		mylog.Logger.Sync()
+		convey.So(buf.String(), convey.ShouldNotContainSubstring, "not enough values")
+
+		_, _ = DecodeClusterNodes("bad line\n")
+		mylog.Logger.Sync()
+		convey.So(buf.String(), convey.ShouldContainSubstring, "not enough values in line split, ignoring line: 'bad line'")
 	})
 
 	convey.Convey("decode slots from string", t, func() {

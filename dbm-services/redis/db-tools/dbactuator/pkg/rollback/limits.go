@@ -16,8 +16,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-
-	"dbm-services/redis/db-tools/dbactuator/mylog"
 )
 
 // Limits are the per-stage concurrency of one host, sized from its CPUs and available memory.
@@ -38,7 +36,7 @@ func HostLimits(maxConcurrency int) Limits {
 	if mem, err := readMemAvailable(); err == nil {
 		l.MemAvailable = mem
 	} else {
-		mylog.Logger.Warn("read MemAvailable failed, memory window disabled: %v", err)
+		logWarn("read MemAvailable failed, memory window disabled: %v", err)
 	}
 	l.Unpack = l.capped(l.CPU / 2)
 	return l

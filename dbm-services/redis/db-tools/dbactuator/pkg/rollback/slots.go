@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"dbm-services/redis/db-tools/dbactuator/models/myredis"
-	"dbm-services/redis/db-tools/dbactuator/mylog"
 	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 )
@@ -263,7 +262,7 @@ func assignPortSlots(log portLog, destIP string, inst InstanceRestore) error {
 	if len(planned) == 0 {
 		return fmt.Errorf("no slots planned for port %d", inst.DestPort)
 	}
-	password, err := myredis.GetRedisPasswdFromConfFile(inst.DestPort)
+	password, err := portPassword(inst.DestPort)
 	if err != nil {
 		return err
 	}
@@ -398,7 +397,7 @@ func meetAll(nodes []formingNode) error {
 		if seen[n.Addr()] {
 			continue
 		}
-		mylog.Logger.Info("RedisRollback form cluster: %s meet %s", nodes[0].Addr(), n.Addr())
+		logInfo("RedisRollback form cluster: %s meet %s", nodes[0].Addr(), n.Addr())
 		if err = nodes[0].conn.Meet(n.IP, n.Port); err != nil {
 			return err
 		}
@@ -421,7 +420,7 @@ func waitClusterOK(nodes []formingNode, timeout, poll time.Duration) error {
 			}
 		}
 		if len(pending) == 0 {
-			mylog.Logger.Info("RedisRollback form cluster: %d nodes, state ok", len(nodes))
+			logInfo("RedisRollback form cluster: %d nodes, state ok", len(nodes))
 			return nil
 		}
 		if !time.Now().Before(deadline) {

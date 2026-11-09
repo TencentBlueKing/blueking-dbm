@@ -17,32 +17,7 @@ import (
 	"sync"
 	"syscall"
 	"time"
-
-	"dbm-services/redis/db-tools/dbactuator/mylog"
 )
-
-// portLog prefixes every line with the port it is about, so concurrent ports stay apart in the
-// node log, which all of them share.
-type portLog struct {
-	prefix string
-}
-
-func newPortLog(destIP string, inst InstanceRestore) portLog {
-	return portLog{prefix: fmt.Sprintf("[dest=%s:%d shard=%s src=%s:%d] ",
-		destIP, inst.DestPort, inst.ShardValue, inst.SourceIP, inst.SourcePort)}
-}
-
-func (l portLog) Info(format string, args ...interface{}) {
-	mylog.Logger.Info(l.prefix+format, args...)
-}
-
-func (l portLog) Warn(format string, args ...interface{}) {
-	mylog.Logger.Warn(l.prefix+format, args...)
-}
-
-func (l portLog) Error(format string, args ...interface{}) {
-	mylog.Logger.Error(l.prefix+format, args...)
-}
 
 // Stages timed per port in the end-of-node summary. Download time is the download node's: the
 // backup system lands a host's files together, not port by port. A Tendisplus binlog streams
@@ -271,7 +246,7 @@ func (h *hostReport) logPlan(limits Limits, plans map[int]portPlan, unpackDir st
 		}
 		lines = append(lines, line)
 	}
-	mylog.Logger.Info("RedisRollback plan dest=%s engine=%s ports=%d to restore=%d skipped (already done)=%v\n"+
+	logInfo("RedisRollback plan dest=%s engine=%s ports=%d to restore=%d skipped (already done)=%v\n"+
 		"  limits: %s\n  memory~%s, downloaded %s, unpacking %s of full backups (more once decompressed) into %s\n%s",
 		h.destIP, h.engine, len(h.ports), len(lines), skipped, limits, humanBytes(memory), humanBytes(download),
 		humanBytes(unpack), unpackDir, strings.Join(lines, "\n"))
@@ -279,7 +254,7 @@ func (h *hostReport) logPlan(limits Limits, plans map[int]portPlan, unpackDir st
 
 // logResult prints the closing summary, on success and failure alike.
 func (h *hostReport) logResult() {
-	mylog.Logger.Info("%s", h.resultText())
+	logInfo("%s", h.resultText())
 }
 
 // resultText lists each port's outcome and stage times. Ports whose replay got replies needing

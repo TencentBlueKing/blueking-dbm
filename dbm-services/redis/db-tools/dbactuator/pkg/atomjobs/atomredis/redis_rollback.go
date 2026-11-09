@@ -165,10 +165,12 @@ func (h *rollbackHost) Start(port int) error {
 		binDir = filepath.Join(consts.UsrLocal, "redis", "bin")
 	}
 	startScript := filepath.Join(binDir, "start-redis.sh")
-	h.runtime.Logger.Info("su %s -c \"%s\"", consts.MysqlAaccount, startScript+"  "+strconv.Itoa(port))
 	_, err := util.RunLocalCmd("su", []string{consts.MysqlAaccount, "-c",
 		startScript + "  " + strconv.Itoa(port)}, "", nil, 20*time.Minute)
-	return err
+	if err != nil {
+		return fmt.Errorf("su %s -c \"%s %d\": %v", consts.MysqlAaccount, startScript, port, err)
+	}
+	return nil
 }
 
 func (h *rollbackHost) Stop(port int) error {
