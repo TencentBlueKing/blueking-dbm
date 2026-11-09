@@ -35,6 +35,7 @@ from backend.flow.plugins.components.collections.common.create_ticket import Cre
 from backend.flow.plugins.components.collections.common.display_semantic_check_info import (
     DisplaySemanticCheckInfoComponent,
 )
+from backend.flow.plugins.components.collections.mysql.check_sqlfile_md5 import build_md5_check_acts
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script_with_bk_job_record import (
     ExecuteDBActuatorScriptWithBkJobRecordComponent,
@@ -99,6 +100,7 @@ class ImportSQLFlow(object):
 
         # 合并下发需要变更的文件，不同的bk_cloud_id需要分组处理
         act_lists = []
+        targets_by_cloud = {}
         cluster_bk_cloud_id_map_list = {}
         for cluster in clusters:
             cluster_bk_cloud_id_map_list.setdefault(cluster.bk_cloud_id, []).append(
@@ -108,6 +110,7 @@ class ImportSQLFlow(object):
         for bk_cloud_id, ip_list in cluster_bk_cloud_id_map_list.items():
             # Remove duplicate IPs and filter out None values
             dest_ip_list = list(filter(None, set(ip_list)))
+            targets_by_cloud[bk_cloud_id] = dest_ip_list
 
             # 使用通用方法添加db-actuator下载动作
             add_db_actuator_download_act(act_lists, bk_cloud_id, dest_ip_list)
@@ -130,6 +133,15 @@ class ImportSQLFlow(object):
             )
 
         p.add_parallel_acts(acts_list=act_lists)
+        md5_check_acts = build_md5_check_acts(
+            sql_files_md5=self.data.get("sql_files_md5"),
+            ticket_type=self.data.get("ticket_type"),
+            sql_path=self.sql_path,
+            targets_by_cloud=targets_by_cloud,
+            repo_path=self.data["path"],
+        )
+        if md5_check_acts:
+            p.add_parallel_acts(acts_list=md5_check_acts)
 
         # 根据集群下发执行sql文件
         for cluster_id in self.data["cluster_ids"]:

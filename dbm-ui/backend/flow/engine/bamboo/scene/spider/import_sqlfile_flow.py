@@ -36,6 +36,7 @@ from backend.flow.plugins.components.collections.common.create_ticket import Cre
 from backend.flow.plugins.components.collections.common.display_semantic_check_info import (
     DisplaySemanticCheckInfoComponent,
 )
+from backend.flow.plugins.components.collections.mysql.check_sqlfile_md5 import build_md5_check_acts
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script_with_bk_job_record import (
     ExecuteDBActuatorScriptWithBkJobRecordComponent,
@@ -110,6 +111,7 @@ class ImportSQLFlow(object):
 
         # 合并下发需要变更的文件，不同的bk_cloud_id需要分组处理
         act_lists = []
+        targets_by_cloud = {}
         cluster_bk_cloud_id_map_list = {}
         for cluster in clusters:
             master_ctl_addr = cluster.tendbcluster_ctl_primary_address()
@@ -121,6 +123,7 @@ class ImportSQLFlow(object):
             # 使用通用方法添加db-actuator下载动作
             # Remove duplicate IPs and filter out None values
             dest_ip_list = list(filter(None, set(ip_list)))
+            targets_by_cloud[bk_cloud_id] = dest_ip_list
             add_db_actuator_download_act(act_lists, bk_cloud_id, dest_ip_list)
             act_lists.append(
                 {
@@ -140,6 +143,15 @@ class ImportSQLFlow(object):
             )
 
         p.add_parallel_acts(acts_list=act_lists)
+        md5_check_acts = build_md5_check_acts(
+            sql_files_md5=self.data.get("sql_files_md5"),
+            ticket_type=self.data.get("ticket_type"),
+            sql_path=self.sql_path,
+            targets_by_cloud=targets_by_cloud,
+            repo_path=self.data["path"],
+        )
+        if md5_check_acts:
+            p.add_parallel_acts(acts_list=md5_check_acts)
 
         for cluster_id in self.data["cluster_ids"]:
             # 这样获取顺便可以验证是否传入非法的集群id

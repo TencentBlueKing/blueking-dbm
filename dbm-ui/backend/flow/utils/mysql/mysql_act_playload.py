@@ -56,6 +56,7 @@ from backend.flow.utils.mysql.mysql_bk_config import (
     get_system_time_zone_in_bk_config,
 )
 from backend.flow.utils.mysql.proxy_act_payload import ProxyActPayload
+from backend.flow.utils.mysql.sqlfile_md5_check import actuator_sql_files_md5
 from backend.flow.utils.tbinlogdumper.tbinlogdumper_act_payload import TBinlogDumperActPayload
 from backend.ticket.constants import TicketType
 
@@ -694,20 +695,24 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         """
         return import sqlfile payload
         """
+        extend = {
+            "host": kwargs["ip"],
+            "ports": [self.cluster["port"]],
+            "file_path": self.ticket_data["sql_path"],
+            "file_path_suffix": self.ticket_data["file_path_suffix"],
+            "file_base_dir": self.ticket_data["file_base_dir"],
+            "charset": self.ticket_data["charset"],
+            "execute_objects": self.ticket_data["execute_objects"],
+        }
+        sql_files_md5 = actuator_sql_files_md5(self.ticket_data)
+        if sql_files_md5:
+            extend["sql_files_md5"] = sql_files_md5
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.ImportSQLFile.value,
             "payload": {
                 "general": {"runtime_account": self.account},
-                "extend": {
-                    "host": kwargs["ip"],
-                    "ports": [self.cluster["port"]],
-                    "file_path": self.ticket_data["sql_path"],
-                    "file_path_suffix": self.ticket_data["file_path_suffix"],
-                    "file_base_dir": self.ticket_data["file_base_dir"],
-                    "charset": self.ticket_data["charset"],
-                    "execute_objects": self.ticket_data["execute_objects"],
-                },
+                "extend": extend,
             },
         }
 
