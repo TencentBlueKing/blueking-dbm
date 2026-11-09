@@ -40,8 +40,14 @@ export function useBatchCreateTicket<T>(ticketType: TicketTypes) {
           },
         });
       }
-    } catch (e: any) {
-      const { code, data, message } = e;
+    } catch (e: unknown) {
+      const { code, data, message } = e as {
+        code: number;
+        data: {
+          duplicate_ticket_id: number;
+        };
+        message: string;
+      };
       const duplicateCode = 8704005;
       if (code === duplicateCode) {
         const id = data.duplicate_ticket_id;
@@ -91,8 +97,8 @@ export function useBatchCreateTicket<T>(ticketType: TicketTypes) {
                 ignore_duplication: true,
               }));
               await doRequest(ignoreTickets);
-            } catch (e: any) {
-              messageError(e?.message);
+            } catch (e: unknown) {
+              messageError((e as { message?: string } | undefined)?.message);
             }
           },
           title: t('是否继续提交单据'),
