@@ -211,6 +211,8 @@ class ActionEnum:
         type="edit",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS, ResourceEnum.DBTYPE],
+        group=_("业务"),
+        subgroup=_("业务配置"),
         # V4只能关联一个资源，业务与DB类型合成为业务DB类型
         related_resource_type_v4=ResourceEnum.BIZ_DBTYPE,
     )

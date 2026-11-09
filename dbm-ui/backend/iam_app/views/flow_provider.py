@@ -14,7 +14,7 @@ import logging
 from django.db import models
 
 from backend.flow.models import FlowTree
-from backend.iam_app.constans import COMMON_DB_TYPE
+from backend.iam_app.constans import COMMON_DB_TYPE, TICKET_GROUP_OTHER
 from backend.iam_app.dataclass.resources import ResourceEnum, TaskFlowResourceMeta
 from backend.iam_app.handlers.converter import MoreLevelIamPathConverter
 from backend.iam_app.views.iam_provider import BaseModelResourceProvider
@@ -38,8 +38,8 @@ class FlowResourceProvider(BaseModelResourceProvider):
         }
 
     def _list_instance(self, data_source: models.Model, condition, value_list, page):
-        # 无DB类型的流程落库存的是空串，需转换为权限侧的兜底分类通用（单据落库存的就是common，无需转换）
-        if condition.get("db_type") == COMMON_DB_TYPE:
+        # 无DB类型的流程落库存的是空串，需把权限侧的兜底分类转换回来：V3为单据分类的其他，V4为通用
+        if condition.get("db_type") in [TICKET_GROUP_OTHER, COMMON_DB_TYPE]:
             condition["db_type"] = ""
         return super()._list_instance(data_source, condition, value_list, page)
 

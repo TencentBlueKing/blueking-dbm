@@ -13,6 +13,7 @@ import logging
 
 from django.db import models
 
+from backend.iam_app.constans import TICKET_GROUP_OTHER
 from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta
 from backend.iam_app.handlers.converter import MoreLevelIamPathConverter
 from backend.iam_app.views.iam_provider import BaseModelResourceProvider
@@ -43,8 +44,10 @@ class TicketResourceProvider(BaseModelResourceProvider):
         return super().list_instance(filter, page, **options)
 
     def _list_instance(self, data_source: models.Model, condition, value_list, page):
-        # ticket的db_type字段是group，无DB类型的单据落库存的就是common，与权限侧的兜底分类一致，无需转换
+        # ticket的db_type字段是group。V3单据分类的兜底实例"其他"对应落库的空值；V4的通用与落库的common一致，无需转换
         if "db_type" in condition:
+            if condition["db_type"] == TICKET_GROUP_OTHER:
+                condition["db_type"] = ""
             condition["group"] = condition.pop("db_type")
         return super()._list_instance(data_source, condition, value_list, page)
 

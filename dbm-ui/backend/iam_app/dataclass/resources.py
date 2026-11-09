@@ -22,7 +22,7 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import AppCache
 from backend.env import BK_IAM_SYSTEM_ID, ENABLE_IAM_V4
-from backend.iam_app.constans import COMMON_DB_TYPE, GLOBAL_BIZ_ID_V4
+from backend.iam_app.constans import COMMON_DB_TYPE, GLOBAL_BIZ_ID_V4, TICKET_GROUP_OTHER
 from backend.iam_app.exceptions import ResourceNotExistError
 
 
@@ -270,6 +270,26 @@ class DBTypeResourceMeta(ResourceMeta):
 
 
 @dataclass
+class TicketGroupResourceMeta(DBTypeResourceMeta):
+    """单据分类的resource 属性定义，与dbtype的唯一区别是多了个'其他'分类
+
+    仅V3使用：作为V3单据与任务流程的拓扑中间层，保持与现网存量策略兼容。V4改用业务DB类型
+    """
+
+    id: str = "ticket_group"
+    name: str = _("单据分类")
+
+    iamv4_disable: bool = True
+
+    def create_instance(self, instance_id: str, attr=None) -> Resource:
+        resource = self._create_simple_instance(instance_id, attr)
+        resource.attribute = {"id": str(instance_id), "name": DBType.get_choice_label(instance_id)}
+        if instance_id == TICKET_GROUP_OTHER:
+            resource.attribute["name"] = _("其他")
+        return resource
+
+
+@dataclass
 class BizDBTypeResourceMeta(ResourceMeta):
     """业务DB类型resource 属性定义
 
@@ -359,7 +379,7 @@ class TaskFlowResourceMeta(ResourceMeta):
     def resource_type_chain(self):
         return [
             {"system_id": BusinessResourceMeta.system_id, "id": BusinessResourceMeta.id},
-            {"system_id": DBTypeResourceMeta.system_id, "id": DBTypeResourceMeta.id},
+            {"system_id": TicketGroupResourceMeta.system_id, "id": TicketGroupResourceMeta.id},
             {"system_id": self.system_id, "id": self.id},
         ]
 
@@ -398,16 +418,14 @@ class TicketResourceMeta(ResourceMeta):
     @staticmethod
     def make_iam_path(bk_biz_id: Union[int, str], db_type: str) -> str:
         """
-        单据与任务流程的拓扑路径，无DB类型的归入通用。
-        V3挂在全局的DB类型下，V4挂在业务DB类型下
+        单据与任务流程的拓扑路径。
+        V3挂在单据分类下，无DB类型的归入其他；V4挂在业务DB类型下，无DB类型的归入通用
         """
-        db_type = db_type or COMMON_DB_TYPE
         if ENABLE_IAM_V4:
-            child_topo = "{},{}".format(
-                BizDBTypeResourceMeta.id, BizDBTypeResourceMeta.make_instance_id(bk_biz_id, db_type)
-            )
+            instance_id = BizDBTypeResourceMeta.make_instance_id(bk_biz_id, db_type or COMMON_DB_TYPE)
+            child_topo = "{},{}".format(BizDBTypeResourceMeta.id, instance_id)
         else:
-            child_topo = "{},{}".format(DBTypeResourceMeta.id, db_type)
+            child_topo = "{},{}".format(TicketGroupResourceMeta.id, db_type or TICKET_GROUP_OTHER)
         return "/{},{}/{}/".format(BusinessResourceMeta.id, bk_biz_id, child_topo)
 
     def get_bk_iam_path(self, instance):
@@ -416,7 +434,7 @@ class TicketResourceMeta(ResourceMeta):
     def resource_type_chain(self):
         return [
             {"system_id": BusinessResourceMeta.system_id, "id": BusinessResourceMeta.id},
-            {"system_id": DBTypeResourceMeta.system_id, "id": DBTypeResourceMeta.id},
+            {"system_id": TicketGroupResourceMeta.system_id, "id": TicketGroupResourceMeta.id},
             {"system_id": self.system_id, "id": self.id},
         ]
 
@@ -903,6 +921,7 @@ class ResourceEnum:
     SQLSERVER = SQLServerResourceMeta()
     ORACLE = OracleResourceMeta()
     DBTYPE = DBTypeResourceMeta()
+    TICKET_GROUP = TicketGroupResourceMeta()
     MONITOR_POLICY = MonitorPolicyResourceMeta()
     GLOBAL_MONITOR_POLICY = GlobalMonitorPolicyResourceMeta()
     NOTIFY_GROUP = NotifyGroupResourceMeta()
