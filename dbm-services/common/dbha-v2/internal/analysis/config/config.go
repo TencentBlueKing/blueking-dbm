@@ -68,11 +68,11 @@ var Cfg = Configuration{
 				ClusterLevelSwitchMaxInstanceNum: 64,
 				DbmApiMaxConcurrentRequests:      8,
 				SwitchLogWriteTimeout:            1 * time.Second,
-				DbConnectTimeout:                 3 * time.Second,
+				DbConnectTimeout:                 10 * time.Second,
 				ClusterLockTimeout:               60 * time.Second,
 			},
 			Mysql: SwitchFlowMysqlConfig{
-				ExecSqlTimeout:                6 * time.Second,
+				ExecSqlTimeout:                30 * time.Second,
 				AllowedIgnoreCheckSum:         false,
 				AllowedIgnoreSlaveDelay:       false,
 				AllowedSlowBytes:              0,

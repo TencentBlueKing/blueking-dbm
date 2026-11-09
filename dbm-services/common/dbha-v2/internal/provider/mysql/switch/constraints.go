@@ -34,7 +34,7 @@ import (
 	"gorm.io/gorm"
 )
 
-const defaultExecSqlTimeout = 6 * time.Second
+const defaultExecSqlTimeout = 30 * time.Second
 
 // ExecSqlTimeout returns workflow.switchflow.mysql.execSqlTimeout, or default when unset.
 func ExecSqlTimeout() time.Duration {

@@ -43,7 +43,7 @@ const (
 
 	DbmApiDefaultMaxConcurrentRequests = 8
 
-	defaultDbConnectTimeout   = 3 * time.Second
+	defaultDbConnectTimeout   = 10 * time.Second
 	defaultClusterLockTimeout = 60 * time.Second
 )
 
