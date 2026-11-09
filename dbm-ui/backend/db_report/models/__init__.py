@@ -26,6 +26,7 @@ from .flow_node_duration_baseline import DistributionType, FlowNodeDurationBasel
 from .flow_node_name_alias import FlowNodeNameAlias, NameMatchSource
 from .flow_node_sample_reject import FlowNodeSampleReject, RejectReason
 from .kafka_affinity_report import KafkaBrokerAffinityReport, KafkaZookeeperAffinityReport
+from .kafka_disk_growth_report import KafkaDiskGrowthReport
 from .meta_check_report import MetaCheckReport
 from .monogdb_check_report import MongodbBackupCheckReport
 from .mysql_backup_progress import MysqlBackupProgress
