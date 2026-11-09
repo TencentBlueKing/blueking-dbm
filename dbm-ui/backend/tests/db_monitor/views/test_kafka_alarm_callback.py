@@ -108,6 +108,11 @@ class TestKafkaAlarmMatch:
             ("Kafka 消费组延迟", 1, True),
             ("Kafka 消费组延迟", 2, True),
             ("Kafka 消费组延迟", 3, True),
+            # 磁盘增长预警：提醒(3)、预警(2)触发，致命(1)不触发；策略名里没有“磁盘空间使用率”
+            ("Kafka 磁盘增长预警", 2, True),
+            ("Kafka 磁盘增长预警", 3, True),
+            ("Kafka 磁盘增长预警", 1, False),
+            ("DBM#test Kafka 磁盘增长预警", 3, True),
             # 本次不分析的策略
             ("Kafka OfflinePartitions", 2, False),
             ("Kafka AbnormalControllerState", 2, False),
@@ -200,6 +205,21 @@ class TestKafkaAlarmMatch:
             objects.filter.return_value.first.return_value = MagicMock(cluster_type="kafka", bk_biz_id=5)
             KafkaAlarm.callback(data)
         assert mock_handler.delay.call_args[0][1]["bk_biz_id"] == 5
+
+
+class TestDiskGrowthKeyword:
+    """磁盘增长预警与 90% 磁盘告警的关键字互不匹配，避免同一条告警被两个条件重复命中"""
+
+    @staticmethod
+    def matched_keywords(strategy_name, level):
+        conditions = KafkaAlarm.STRATEGY_HANDLERS["call_kafka_alarm_analyzer"]
+        return [c["keyword"] for c in conditions if KafkaAlarm._is_match(c, strategy_name, level, "kafka")]
+
+    def test_growth_policy_only_matches_growth_keyword(self):
+        assert self.matched_keywords("Kafka 磁盘增长预警", 2) == ["磁盘增长预警"]
+
+    def test_disk_usage_policy_does_not_match_growth_keyword(self):
+        assert self.matched_keywords("Kafka 主机磁盘空间使用率", 2) == ["磁盘空间使用率"]
 
 
 class TestKafkaRealTemplateNames:

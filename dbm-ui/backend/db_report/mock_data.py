@@ -165,7 +165,7 @@ REPORT_OVERVIEW_DATA = {
         "status_abnormal_check",
     ],
     "mysql": ["full_backup_check", "binlog_backup_check", "meta_check", "checksum"],
-    "kafka": ["kafka_zookeeper_affinity_check", "kafka_broker_affinity_check"],
+    "kafka": ["kafka_zookeeper_affinity_check", "kafka_broker_affinity_check", "kafka_disk_growth_check"],
 }
 
 REPORT_COUNT_DATA = {
@@ -178,6 +178,7 @@ REPORT_COUNT_DATA = {
     "kafka": {
         "kafka_zookeeper_affinity_check": {"manage_count": 15, "assist_count": 3},
         "kafka_broker_affinity_check": {"manage_count": 15, "assist_count": 3},
+        "kafka_disk_growth_check": {"manage_count": 2, "assist_count": 0},
     },
 }
 
@@ -724,5 +725,50 @@ KAFKA_BROKER_AFFINITY_CHECK_DATA = {
         {"name": "broker_node_count", "display_name": "Broker节点数量", "format": "text"},
         {"name": "broker_rack_affinity", "display_name": "Broker机架亲和度", "format": "text"},
         {"name": "broker_rack_distribution", "display_name": "Broker机架分布", "format": "text"},
+    ],
+}
+
+
+# Kafka 磁盘持续增长巡检报告
+KAFKA_DISK_GROWTH_CHECK_DATA = {
+    "count": 1,
+    "next": None,
+    "previous": None,
+    "results": [
+        {
+            "bk_biz_id": 1,
+            "app": "kafka_prod",
+            "domain": "aa1.bb.cc",
+            "dba": ["admin", "dba_user"],
+            "create_at": "2024-04-01T16:25:00Z",
+            "cluster_type": "kafka",
+            "msg": "日峰值 66.0%，比此前7天最高值高 7.3 个点，近3天日均涨 4.1 个点",
+            "state": "warning",
+            "failed_days": 2,
+            "ip": "127.0.0.1",
+            "mount_point": "/data",
+            "check_day": "2024-04-01",
+            "rule": "持续创新高",
+            "peak": 66.0,
+            "excess": 7.3,
+            "daily_growth": 4.1,
+            "peaks": "51.0 → 56.0 → 59.0 → 57.0 → 66.0",
+            "retention_hours": 4,
+            "ai_status": "已完成",
+            "ai_analysis": "原因分类: 流量驱动\n主要topic: topic_a\n建议: 与业务确认流量是否继续增长",
+        },
+    ],
+    "name": "Kafka磁盘持续增长巡检",
+    "title": [
+        {"name": "bk_biz_id", "display_name": "业务", "format": "text"},
+        {"name": "app", "display_name": "业务名", "format": "text"},
+        {"name": "domain", "display_name": "集群域名", "format": "text"},
+        {"name": "ip", "display_name": "Broker IP", "format": "text"},
+        {"name": "mount_point", "display_name": "挂载点", "format": "text"},
+        {"name": "rule", "display_name": "触发规则", "format": "text"},
+        {"name": "peak", "display_name": "当天峰值(%)", "format": "text"},
+        {"name": "excess", "display_name": "比此前7天最高值高(点)", "format": "text"},
+        {"name": "peaks", "display_name": "最近8天日峰值(%)", "format": "text"},
+        {"name": "ai_analysis", "display_name": "AI分析", "format": "text"},
     ],
 }
