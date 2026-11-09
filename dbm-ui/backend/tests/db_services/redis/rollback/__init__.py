@@ -8,3 +8,12 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
+
+def shard_errors(result):
+    """Full per-shard messages of a precheck result, read from ``error_groups``, keyed by shard_value."""
+    errors = {shard["shard_value"]: [] for shard in result["shards"]}
+    for group in result["error_groups"]:
+        for shard in group["shards"]:
+            errors.setdefault(shard["shard_value"], []).append(shard["message"])
+    return errors

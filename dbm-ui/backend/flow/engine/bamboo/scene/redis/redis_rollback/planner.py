@@ -54,6 +54,14 @@ from backend.db_services.redis.rollback.constants import (
     infer_select_mode,
 )
 from backend.db_services.redis.rollback.exceptions import RollbackPlanError
+from backend.db_services.redis.rollback.issues import (
+    ISSUE_BEFORE_FULL,
+    ISSUE_FULL_MISSING,
+    ISSUE_UNROUTABLE,
+    IssueSummary,
+    ShardIssue,
+    issue_of,
+)
 from backend.db_services.redis.rollback.locator import BackupLocator
 from backend.db_services.redis.rollback.shards import (
     ShardRef,
@@ -160,7 +168,7 @@ def host_count_error(host_count: int, restore_count: int) -> Optional[str]:
 
 @dataclass
 class ShardEval:
-    """One shard's evaluation. Empty ``errors`` means it can be built."""
+    """One shard's evaluation. Empty ``issues`` means it can be built."""
 
     shard_value: str
     ref: ShardRef
@@ -172,11 +180,18 @@ class ShardEval:
     is_placeholder: bool = False
     binlogs: List[dict] = field(default_factory=list)
     binlog_gaps: Optional[Dict[str, Any]] = None
-    errors: List[str] = field(default_factory=list)
+    issues: List[ShardIssue] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
-        return not self.errors
+        return not self.issues
+
+    @property
+    def errors(self) -> List[str]:
+        return [issue.message for issue in self.issues]
+
+    def fail(self, code: str, message, **data) -> None:
+        self.issues.append(ShardIssue(code, str(message), data))
 
     @property
     def task_ids(self) -> List[str]:
@@ -213,8 +228,16 @@ class PlanEval:
         return not self.errors and all(shard.ok for shard in self.shards)
 
     @property
+    def any_shard_failed(self) -> bool:
+        return any(not shard.ok for shard in self.shards)
+
+    def summary(self) -> IssueSummary:
+        return IssueSummary.of(self.shards, self.recover_at)
+
+    @property
     def messages(self) -> List[str]:
-        return list(self.errors) + [message for shard in self.shards for message in shard.errors]
+        """Shard failures summarized first, as only the first line reaches the user; then request-level errors."""
+        return self.summary().lines() + list(self.errors)
 
     @property
     def restore_count(self) -> int:
@@ -251,7 +274,11 @@ class RollbackPlanner:
         """Assemble the plan, or raise with every problem found."""
         evaluation = self._evaluate()
         if not evaluation.ok:
-            raise RollbackPlanError(context={"message": "; ".join(evaluation.messages)})
+            message = "; ".join(evaluation.messages)
+            details = [issue.message for shard in evaluation.shards for issue in shard.issues]
+            if details:
+                message += str(_("。明细: {}")).format("; ".join(details))
+            raise RollbackPlanError(context={"message": message})
 
         items = [self._to_item(shard) for shard in evaluation.shards]
         items.extend(self._to_item(shard) for shard in evaluation.placeholders)
@@ -296,11 +323,14 @@ class RollbackPlanner:
     def precheck(self, pack: bool = False) -> Dict[str, Any]:
         """Report every failing shard instead of stopping at the first one.
 
-        Never raises: business problems go into ``errors``, unexpected failures are logged.
+        Never raises: business problems go into ``errors``, unexpected failures are logged. The UI
+        shows only ``errors[0]``, so shard failures lead it as a summary; ``error_groups`` holds
+        each shard's full message and data.
         """
         result: Dict[str, Any] = {
             "exist": False,
             "errors": [],
+            "error_groups": [],
             "warnings": [],
             "shards": [],
             "binlog_nonconsecutive": False,
@@ -314,7 +344,8 @@ class RollbackPlanner:
             result["errors"].append(str(_("回档预检失败，请联系管理员")))
             return result
 
-        result["errors"] = list(evaluation.errors)
+        result["errors"] = evaluation.messages
+        result["error_groups"] = evaluation.summary().error_groups()
         result["warnings"] = list(evaluation.warnings)
         if capacity:
             result["estimate"]["capacity"] = capacity
@@ -349,7 +380,6 @@ class RollbackPlanner:
         return {
             "shard_value": shard.shard_value,
             "ok": shard.ok,
-            "errors": list(shard.errors),
             "file_names": [f.get("file_name") or "" for f in shard.round_files],
             "size": sum(int(f.get("size") or 0) for f in shard.round_files),
             "source_ip": shard.source_ip,
@@ -489,29 +519,45 @@ class RollbackPlanner:
         )
         shard_records = by_shard.get(shard_value) or []
         if not shard_records:
-            shard.errors.append(str(_("该批次内分片 {} 没有成功全备").format(shard_value)))
+            shard.fail(ISSUE_FULL_MISSING, _("该批次内分片 {} 没有成功全备").format(shard_value), reason=_("批次内没有成功全备"))
             return shard
 
         if locked:
             round_key = locked.get(shard_value, "")
             round_files = [r for r in shard_records if (r.get("round_key") or r.get("file_name")) == round_key]
             if not round_files:
-                shard.errors.append(str(_("分片 {} 提单时选定的全备 {} 已找不到").format(shard_value, round_key or "-")))
+                shard.fail(
+                    ISSUE_FULL_MISSING,
+                    _("分片 {} 提单时选定的全备 {} 已找不到").format(shard_value, round_key or "-"),
+                    reason=_("提单时选定的全备已找不到"),
+                )
                 return shard
         else:
             round_files = latest_round_per_shard(shard_records)[shard_value]
 
         shard.round_files = round_files
         if not is_split_round_complete(round_files):
-            shard.errors.append(str(_("分片 {} 分卷不齐全").format(shard_value)))
+            shard.fail(ISSUE_FULL_MISSING, _("分片 {} 分卷不齐全").format(shard_value), reason=_("全备分卷不齐全"))
         identifies = {f.get("backup_identify") for f in round_files if f.get("backup_identify")}
         if len(identifies) > 1:
-            shard.errors.append(str(_("分片 {} 一轮全备跨 identify: {}").format(shard_value, sorted(identifies))))
+            shard.fail(
+                ISSUE_FULL_MISSING,
+                _("分片 {} 一轮全备跨 identify: {}").format(shard_value, sorted(identifies)),
+                reason=_("一轮全备跨批次"),
+            )
         if needs_routing and not parse_shard_value(shard_value).parseable:
             if self._slotted:
-                shard.errors.append(str(_("分片 {} 的 shard_value 无法解析为 slot，无法恢复临时集群的 slot").format(shard_value)))
+                shard.fail(
+                    ISSUE_UNROUTABLE,
+                    _("分片 {} 的 shard_value 无法解析为 slot，无法恢复临时集群的 slot").format(shard_value),
+                    reason=_("shard_value 无法解析为 slot"),
+                )
             else:
-                shard.errors.append(str(_("分片 {} 的 shard_value 无法解析，无法生成临时 Proxy 路由").format(shard_value)))
+                shard.fail(
+                    ISSUE_UNROUTABLE,
+                    _("分片 {} 的 shard_value 无法解析，无法生成临时 Proxy 路由").format(shard_value),
+                    reason=_("shard_value 无法解析，无法生成临时 Proxy 路由"),
+                )
 
         shard.source_ip = round_files[0].get("source_ip") or ""
         shard.source_port = int(round_files[0].get("server_port") or 0)
@@ -562,7 +608,7 @@ class RollbackPlanner:
             starts = [_parse_dt(f.get("backup_begin_time") or f.get("file_last_mtime")) for f in shard.round_files]
             starts = [start for start in starts if start]
             if not starts:
-                shard.errors.append(str(_("分片 {} 无法确定全备开始时间").format(shard.shard_value)))
+                shard.fail(ISSUE_FULL_MISSING, _("分片 {} 无法确定全备开始时间").format(shard.shard_value), reason=_("无法确定全备开始时间"))
                 continue
             # A snapshot already holds every write up to its end, so it cannot be wound back to an earlier time.
             ends = [
@@ -572,12 +618,12 @@ class RollbackPlanner:
             ]
             full_end = max(end for end in ends if end)
             if recover_at < full_end:
-                shard.errors.append(
-                    str(
-                        _("分片 {} 回档时刻 {} 早于该分片全备完成时间 {}，请选择不早于全备完成时间的时刻").format(
-                            shard.shard_value, datetime2str(recover_at), datetime2str(full_end)
-                        )
-                    )
+                shard.fail(
+                    ISSUE_BEFORE_FULL,
+                    _("分片 {} 回档时刻 {} 早于该分片全备完成时间 {}，请选择不早于全备完成时间的时刻").format(
+                        shard.shard_value, datetime2str(recover_at), datetime2str(full_end)
+                    ),
+                    full_end=full_end,
                 )
                 continue
             pending.append((shard, min(starts)))
@@ -614,12 +660,13 @@ class RollbackPlanner:
                         binlogs, full_start, recover_at, self.allow_binlog_nonconsecutive
                     )
                 except RollbackPlanError as exc:
-                    problems = [_message_of(exc)]
+                    problems = [issue_of(exc)]
             if problems:
-                shard.errors.extend(
-                    str(_("分片 {} ({}:{}): {}").format(shard.shard_value, shard.source_ip, shard.source_port, problem))
-                    for problem in problems
-                )
+                for problem in problems:
+                    problem.message = str(
+                        _("分片 {} ({}:{}): {}").format(shard.shard_value, shard.source_ip, shard.source_port, problem)
+                    )
+                shard.issues.extend(problems)
                 continue
             shard.binlogs, shard.binlog_gaps = chain, gaps
             if gaps:
@@ -647,14 +694,10 @@ class RollbackPlanner:
         try:
             problems = confirm_backup_tasks(task_ids_by_shard)
         except RollbackPlanError as exc:
-            message = _message_of(exc, str(_("无法向备份系统确认文件仍在")))
-            evaluation.errors.append(message)
-            for shard in evaluation.shards:
-                if shard.ok:
-                    shard.errors.append(message)
+            evaluation.errors.append(_message_of(exc, str(_("无法向备份系统确认文件仍在"))))
             return
         for shard in evaluation.shards:
-            shard.errors.extend(problems.get(shard.shard_value) or [])
+            shard.issues.extend(problems.get(shard.shard_value) or [])
 
     def _check_layout(self, evaluation: PlanEval, needs_routing: bool) -> None:
         """Overlap is fatal; partial coverage only warns, except for cluster protocol.
@@ -683,7 +726,8 @@ class RollbackPlanner:
                     )
                 )
             return
-        if not needs_routing:
+        # Coverage of the remaining shards says nothing once a selected one failed.
+        if not needs_routing or evaluation.any_shard_failed:
             return
         gaps = coverage_gaps(covered)
         if gaps:
@@ -691,8 +735,9 @@ class RollbackPlanner:
 
     def _check_host_count(self, evaluation: PlanEval) -> None:
         host_count = self._host_count([])
-        if not host_count:
-            # precheck may run before a resource spec exists; packing enforces it later
+        # precheck may run before a resource spec exists; packing enforces it later. A failed shard
+        # lowers restore_count, so the comparison would only restate that failure.
+        if not host_count or evaluation.any_shard_failed:
             return
         message = host_count_error(host_count, evaluation.restore_count)
         if message:
@@ -725,7 +770,11 @@ class RollbackPlanner:
         The spec's lower memory bound is the only one the resource pool guarantees; a spec matched
         by device class may differ, which the precheck on the real host settles.
         """
-        if self.cluster.cluster_type not in IN_MEMORY_CLUSTER_TYPES or evaluation.errors:
+        if (
+            self.cluster.cluster_type not in IN_MEMORY_CLUSTER_TYPES
+            or evaluation.errors
+            or evaluation.any_shard_failed
+        ):
             return
         host_count = self._host_count([])
         spec = self._spec()

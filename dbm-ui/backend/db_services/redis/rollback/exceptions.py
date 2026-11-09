@@ -19,3 +19,10 @@ class RollbackPlanError(AppBaseException):
     ERROR_CODE = "901"
     MESSAGE = _("Redis 回档计划校验失败")
     MESSAGE_TPL = "{message}"
+
+    def __init__(self, context=None, data=None, **kwargs):
+        context = dict(context or {})
+        # ``code`` here classifies the failure for the precheck summary; AppBaseException.code stays the API code.
+        self.issue_code = context.pop("code", "")
+        self.issue_data = context.pop("data", None) or {}
+        super().__init__(context=context, data=data, **kwargs)
