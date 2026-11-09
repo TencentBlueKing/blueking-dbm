@@ -3,6 +3,8 @@ package checker
 
 import (
 	"context"
+	"database/sql/driver"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -101,10 +103,33 @@ func (r *Checker) connect() (err error) {
 		return err
 	}
 
+	// 一轮只有十几条 SQL, 池化没有收益;
+	// 关掉 idle 复用, 避免长耗时操作(pt 跑几小时)之后从池里捞到已被 wait_timeout 断开的连接
+	r.db.SetMaxIdleConns(0)
+
 	return nil
 }
 
+// acquireConn 取一条可用连接并重放 session 级设置。
+// 连接池可能返回已被 wait_timeout 断开的空闲连接, 这时第一条 SQL 会返回 driver.ErrBadConn,
+// 重试即可: database/sql 会把坏连接丢弃, 下一次循环拿到的是另一条连接。
 func (r *Checker) acquireConn(ctx context.Context) (*sqlx.Conn, error) {
+	var lastErr error
+	for i := 0; i < 3; i++ {
+		conn, err := r.acquireConnOnce(ctx)
+		if err == nil {
+			return conn, nil
+		}
+		lastErr = err
+		if !errors.Is(err, driver.ErrBadConn) {
+			return nil, err
+		}
+		slog.Warn("bad connection from pool, retry", slog.Int("attempt", i+1))
+	}
+	return nil, lastErr
+}
+
+func (r *Checker) acquireConnOnce(ctx context.Context) (*sqlx.Conn, error) {
 	conn, err := r.db.Connx(ctx)
 	if err != nil {
 		slog.Error("get conn from sqlx.db", slog.String("error", err.Error()))
