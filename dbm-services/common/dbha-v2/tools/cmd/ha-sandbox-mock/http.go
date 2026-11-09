@@ -32,8 +32,12 @@ import (
 	"time"
 )
 
-func startHTTPHealth(addr, etcdAddr, mysqlAddr string) (net.Listener, error) {
+// startHTTPHealth serves /health and, when ctl is not nil, the dependency control endpoints.
+func startHTTPHealth(addr, etcdAddr, mysqlAddr string, ctl *depControl) (net.Listener, error) {
 	mux := http.NewServeMux()
+	if ctl != nil {
+		ctl.registerControlHandlers(mux)
+	}
 	mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]string{

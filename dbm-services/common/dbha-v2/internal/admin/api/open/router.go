@@ -34,6 +34,16 @@ import (
 	"dbm-services/common/dbha-v2/pkg/storage/hamysql"
 )
 
+const (
+	// MetaAPIGroup is the route group of non-business metadata APIs.
+	MetaAPIGroup = "/api/admin/meta"
+
+	// MetaHaServersPath is the full path of the HA server list API.
+	MetaHaServersPath = MetaAPIGroup + metaHaServersSubPath
+
+	metaHaServersSubPath = "/ha-servers"
+)
+
 // RegisterOpenAPI register open api
 func RegisterOpenAPI(dbProvider func(context.Context) *hamysql.GormDB, server *hanet.GinHTTPServer) {
 	// Register strategy api
@@ -44,6 +54,18 @@ func RegisterOpenAPI(dbProvider func(context.Context) *hamysql.GormDB, server *h
 	// Register switch log api
 	switchLogHandler := handler.NewSwitchLogHandler(&switchlog.SwitchLog{DBProvider: dbProvider})
 	RegisterSwitchLogApi(switchLogHandler, server)
+}
+
+// RegisterMetaAPI registers non-business metadata APIs under MetaAPIGroup.
+// lister is called on every request, so it should resolve the current discovery resource lazily.
+func RegisterMetaAPI(lister handler.HaServerLister, server *hanet.GinHTTPServer) {
+	haServerHandler := handler.NewHaServerHandler(lister)
+	server.RegisterAPI(&hanet.ResetAPI{
+		Group:   MetaAPIGroup,
+		Method:  hanet.HttpMethodGet,
+		Path:    metaHaServersSubPath,
+		Handler: haServerHandler.List,
+	})
 }
 
 // RegisterStrategyApi register strategy api

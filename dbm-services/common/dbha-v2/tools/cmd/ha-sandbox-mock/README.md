@@ -4,8 +4,9 @@
 
 - etcd v3 gRPC：`KV` / `Lease`（含 KeepAlive）/ `Watch` / `Cluster.MemberList` / `Maintenance.Status`
 - MySQL 协议：握手、任意账号认证成功、`COM_PING` / `COM_INIT_DB` / `COM_QUIT`；`SELECT VERSION()` 回版本字符串；其它 `SELECT`/`SHOW` 回空结果集；`COM_STMT_PREPARE`/`EXECUTE` 回错误包（避免 GORM 预处理挂死）；其它 `COM_QUERY` 回 OK
-- HTTP：`GET /health`
+- HTTP：`GET /health`；测试控制接口 `PUT/DELETE /control/etcd/kv?key=<key>`（PUT 的 body 为原始 value）、`POST /control/etcd/stop|start`、`POST /control/mysql/stop|start`（同地址重启，etcd 数据保留）
 - Admin gRPC 客户端（一次性）：`--admin-grpc-addr 127.0.0.1:15051` 调用 `Heartbeat` 与 `GetProbeConfig` 后退出，用于核对 Admin APM `grpc_*` 指标
+- HA server 列表客户端（一次性）：`--list-ha-servers --admin-grpc-addr 127.0.0.1:15051 --admin-web-addr 127.0.0.1:18080` 调用 `ListHaServers` 与 `GET /api/admin/meta/ha-servers`，向 stdout 输出一行对比 JSON 后退出
 
 **不随 server 安装，不进入 `make toolkits`。** 不启动真实 etcd / mysqld。
 

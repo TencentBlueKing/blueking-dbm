@@ -62,7 +62,33 @@ message ProbeConfigResponse {
     string          payload = 3;
 }
 
+// HaServerInfo one live HA server instance registered in etcd
+message HaServerInfo {
+    string          role      = 1;  // admin | analysis | receiver
+    string          id        = 2;
+    repeated string ips       = 3;
+    string          startTime = 4;  // 2006-01-02T15:04:05-07:00, Asia/Shanghai
+    string          updatedAt = 5;  // 2006-01-02T15:04:05-07:00, Asia/Shanghai
+    string          uptime    = 6;
+}
+
+message ListHaServersRequest {}
+
+// HaServerListCode result code for ListHaServers: success / failure
+enum HaServerListCode {
+    HA_SERVER_LIST_SUCCESS = 0;  // success
+    HA_SERVER_LIST_FAIL    = 1;  // failure
+}
+
+message ListHaServersResponse {
+    HaServerListCode      code    = 1;
+    string                errmsg  = 2;
+    repeated HaServerInfo servers = 3;
+    repeated string       ips     = 4;
+}
+
 service AdminService {
     rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse) {};
     rpc GetProbeConfig(ProbeConfigRequest) returns (ProbeConfigResponse) {};
+    rpc ListHaServers(ListHaServersRequest) returns (ListHaServersResponse) {};
 }

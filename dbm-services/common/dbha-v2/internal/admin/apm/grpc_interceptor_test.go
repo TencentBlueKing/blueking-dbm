@@ -44,6 +44,7 @@ func TestGRPCMethodNameAllowlist(t *testing.T) {
 	}{
 		{in: "/dbha.v2.AdminService/Heartbeat", want: "Heartbeat"},
 		{in: "/dbha.v2.AdminService/GetProbeConfig", want: "GetProbeConfig"},
+		{in: "/AdminService/ListHaServers", want: "ListHaServers"},
 		{in: "Heartbeat", want: "Heartbeat"},
 		{in: "/dbha.v2.AdminService/Hack", want: metricLabelUnknown},
 		{in: "", want: metricLabelUnknown},
@@ -165,6 +166,32 @@ func TestUnaryInterceptorUnknownMethodLabel(t *testing.T) {
 	}
 	if got := testutil.ToFloat64(requests.WithLabelValues(metricLabelUnknown, codes.OK.String())); got != 1 {
 		t.Fatalf("unknown method requests: %v, want: 1", got)
+	}
+}
+
+func TestUnaryInterceptorListHaServersMethodLabel(t *testing.T) {
+	requests, errors, results := bindGRPCTestCollectors(t)
+	for i := 0; i < 2; i++ {
+		_, err := UnaryServerInterceptor()(
+			context.Background(),
+			&proto.ListHaServersRequest{},
+			&grpc.UnaryServerInfo{FullMethod: proto.AdminService_ListHaServers_FullMethodName},
+			func(context.Context, any) (any, error) {
+				return &proto.ListHaServersResponse{Code: proto.HaServerListCode_HA_SERVER_LIST_FAIL}, nil
+			},
+		)
+		if err != nil {
+			t.Fatalf("handler failed, errmsg: %s", err)
+		}
+	}
+	if got := testutil.ToFloat64(requests.WithLabelValues("ListHaServers", codes.OK.String())); got != 2 {
+		t.Fatalf("ListHaServers requests: %v, want: 2", got)
+	}
+	if got := testutil.ToFloat64(errors.WithLabelValues("ListHaServers")); got != 0 {
+		t.Fatalf("grpc_request_errors_total: %v, want: 0", got)
+	}
+	if got := testutil.ToFloat64(results.WithLabelValues("FAIL")); got != 0 {
+		t.Fatalf("probe result FAIL: %v, want: 0", got)
 	}
 }
 
