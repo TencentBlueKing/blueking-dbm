@@ -182,8 +182,11 @@ func DecodeClusterNodes(input string) ([]*ClusterNodeData, error) {
 	lines := strings.Split(input, "\n")
 	for _, line := range lines {
 		values := strings.Fields(line)
-		if len(values) < 8 {
+		if len(values) == 0 {
 			// last line is always empty
+			continue
+		}
+		if len(values) < 8 {
 			// not enough values in line split, skip line
 			mylog.Logger.Info(fmt.Sprintf("not enough values in line split, ignoring line: '%s'", line))
 			continue

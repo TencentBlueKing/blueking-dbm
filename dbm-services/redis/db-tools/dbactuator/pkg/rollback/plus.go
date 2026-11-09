@@ -29,7 +29,6 @@ import (
 	"time"
 
 	"dbm-services/redis/db-tools/dbactuator/models/myredis"
-	"dbm-services/redis/db-tools/dbactuator/mylog"
 	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 
@@ -86,7 +85,7 @@ func (r *plusRestorer) DoRollback() error {
 		return err
 	}
 	if len(redo) == 0 && len(resume) == 0 {
-		mylog.Logger.Info("RedisRollback %s: all ports already rolled back, nothing to do", r.DestIP)
+		logInfo("RedisRollback %s: all ports already rolled back, nothing to do", r.DestIP)
 		return nil
 	}
 
@@ -108,7 +107,7 @@ func (r *plusRestorer) DoRollback() error {
 		sort.Ints(gapped)
 		for _, kvstore := range gapped {
 			report.port(inst.DestPort).allowedGaps(fmt.Sprintf("kv%d ", kvstore), gaps[kvstore])
-			newPortLog(r.DestIP, inst).Warn("kvstore %d binlogs skip %s, allowed by the plan: the temp instance "+
+			newPortLog(inst.DestPort).Warn("kvstore %d binlogs skip %s, allowed by the plan: the temp instance "+
 				"misses their writes", kvstore, indexRanges(gaps[kvstore]))
 		}
 		var binlogs, full []string
@@ -148,7 +147,7 @@ func (r *plusRestorer) DoRollback() error {
 	}
 	report.logPlan(limits, plans, r.UnpackDir)
 	replaying := limits.KvstoreReplay(streams)
-	mylog.Logger.Info("RedisRollback(tendisplus) dest=%s recover_at=%s kvstores replaying=%d of %d",
+	logInfo("RedisRollback(tendisplus) dest=%s recover_at=%s kvstores replaying=%d of %d",
 		r.DestIP, r.RecoverAt, replaying, streams)
 
 	window := newMemWindow(limits.MemAvailable, len(all))
@@ -204,7 +203,7 @@ func (r *plusRestorer) resolvePending(report *hostReport) (redo, resume []Instan
 	for _, inst := range r.Instances {
 		instDir := r.Host.InstanceDir(inst.DestPort)
 		fingerprint := r.fingerprint(inst)
-		log := newPortLog(r.DestIP, inst)
+		log := newPortLog(inst.DestPort)
 		inUse, err := util.CheckPortIsInUse(r.DestIP, strconv.Itoa(inst.DestPort))
 		if err != nil {
 			return nil, nil, err
@@ -233,7 +232,7 @@ func (r *plusRestorer) resolvePending(report *hostReport) (redo, resume []Instan
 // restore unpacks inst's full backup onto the data disk, starts the instance empty and has it
 // restorebackup the unpacked copy. Placeholders start empty and stay so.
 func (r *plusRestorer) restore(inst InstanceRestore, p *portReport, window *memWindow) error {
-	log := newPortLog(r.DestIP, inst)
+	log := newPortLog(inst.DestPort)
 	instDir := r.Host.InstanceDir(inst.DestPort)
 	workDir := r.portWorkDir(inst.DestPort)
 	var root string
@@ -295,7 +294,7 @@ func (r *plusRestorer) restore(inst InstanceRestore, p *portReport, window *memW
 func (r *plusRestorer) restoreBackup(log portLog, p *portReport, inst InstanceRestore, instDir, root string,
 	metas map[int]plusBackupMeta) error {
 	addr := fmt.Sprintf("%s:%d", r.DestIP, inst.DestPort)
-	password, err := myredis.GetRedisPasswdFromConfFile(inst.DestPort)
+	password, err := portPassword(inst.DestPort)
 	if err != nil {
 		return err
 	}
@@ -464,7 +463,7 @@ func readPlusBackupMetas(root string) (map[int]plusBackupMeta, error) {
 // frees its downloads. Slots come after the replay so that the instance owns nothing while data goes in.
 func (r *plusRestorer) replayAndMark(inst InstanceRestore, p *portReport, chains map[int][]string,
 	recoverAt time.Time, slots chan struct{}) error {
-	log := newPortLog(r.DestIP, inst)
+	log := newPortLog(inst.DestPort)
 	sample := r.sampleInstanceCPU(log, inst.DestPort, len(chains) > 0)
 	err := r.replay(log, p, inst, chains, recoverAt, slots)
 	sample(p)
@@ -659,7 +658,7 @@ func (r *plusRestorer) replayOnConn(log portLog, p *portReport, port, kvstore in
 var dialPlusFn = dialPlus
 
 func dialPlus(ip string, port int) (plusReplayer, func(), error) {
-	password, err := myredis.GetRedisPasswdFromConfFile(port)
+	password, err := portPassword(port)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -678,7 +677,7 @@ var restoreEndFn = restoreEnd
 // brings in whatever the backup held, including chunks of slots this instance does not own;
 // restoreend drops those, so it must run after addslots. A non-cluster instance ignores it.
 func restoreEnd(log portLog, destIP string, inst InstanceRestore) error {
-	password, err := myredis.GetRedisPasswdFromConfFile(inst.DestPort)
+	password, err := portPassword(inst.DestPort)
 	if err != nil {
 		return err
 	}

@@ -19,8 +19,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-
-	"dbm-services/redis/db-tools/dbactuator/mylog"
 )
 
 // manifestNoMD5 stands for an unknown md5; the backup system reports none yet.
@@ -118,7 +116,7 @@ func VerifyDownloads(saveDir, manifestFile, fingerprint string) error {
 		return fmt.Errorf("downloaded backups differ from the plan in %s: %d of %d files missing %v, "+
 			"%d mismatched %v", saveDir, len(missing), len(entries), head(missing), len(mismatched), head(mismatched))
 	}
-	mylog.Logger.Info("verified %d downloaded files (%s) in %s against %s", len(entries), humanBytes(total),
+	logInfo("verified %d downloaded files (%s) in %s against %s", len(entries), humanBytes(total),
 		saveDir, manifestFile)
 	return nil
 }

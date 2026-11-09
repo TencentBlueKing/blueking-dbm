@@ -166,9 +166,8 @@ func TestPortsWithMoreBinlogsGoFirst(t *testing.T) {
 
 // --- 9.5 / 9.7 logs and summaries -----------------------------------------------------
 
-func TestPortLogNamesPortShardAndSource(t *testing.T) {
-	inst := InstanceRestore{ShardValue: "0-104999", SourceIP: "1.1.1.1", SourcePort: 30000, DestPort: 30001}
-	if got := newPortLog("2.2.2.2", inst).prefix; got != "[dest=2.2.2.2:30001 shard=0-104999 src=1.1.1.1:30000] " {
+func TestPortLogNamesOnlyThePort(t *testing.T) {
+	if got := newPortLog(30001).prefix; got != "[30001] " {
 		t.Fatalf("got %q", got)
 	}
 }

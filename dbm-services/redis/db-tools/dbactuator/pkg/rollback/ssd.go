@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"dbm-services/redis/db-tools/dbactuator/models/myredis"
-	"dbm-services/redis/db-tools/dbactuator/mylog"
 	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 	"dbm-services/redis/db-tools/dbactuator/pkg/util"
 )
@@ -62,7 +61,7 @@ func (r *ssdRestorer) DoRollback() error {
 		return err
 	}
 	if len(redo) == 0 {
-		mylog.Logger.Info("RedisRollback %s: all ports already rolled back, nothing to do", r.DestIP)
+		logInfo("RedisRollback %s: all ports already rolled back, nothing to do", r.DestIP)
 		return nil
 	}
 
@@ -76,7 +75,7 @@ func (r *ssdRestorer) DoRollback() error {
 		}
 		if len(gaps) > 0 {
 			report.port(inst.DestPort).allowedGaps("", gaps)
-			newPortLog(r.DestIP, inst).Warn("binlogs skip %s, allowed by the plan: the temp instance misses "+
+			newPortLog(inst.DestPort).Warn("binlogs skip %s, allowed by the plan: the temp instance misses "+
 				"their writes", indexRanges(gaps))
 		}
 		var full []string
@@ -104,7 +103,7 @@ func (r *ssdRestorer) DoRollback() error {
 	}
 	replaying := limits.Replay(len(redo))
 	report.logPlan(limits, plans, r.UnpackDir)
-	mylog.Logger.Info("RedisRollback(ssd) dest=%s recover_at=%s replay=%d order=%v",
+	logInfo("RedisRollback(ssd) dest=%s recover_at=%s replay=%d order=%v",
 		r.DestIP, r.RecoverAt, replaying, portsOf(redo))
 
 	window := newMemWindow(limits.MemAvailable, len(redo))
@@ -156,7 +155,7 @@ func (r *ssdRestorer) resolvePending(report *hostReport) ([]InstanceRestore, err
 		}
 		if inUse {
 			if IsDone(instDir, r.fingerprint(inst)) {
-				newPortLog(r.DestIP, inst).Info("already rolled back to the same point, skip")
+				newPortLog(inst.DestPort).Info("already rolled back to the same point, skip")
 				report.skipped(inst.DestPort)
 				continue
 			}
@@ -174,7 +173,7 @@ func (r *ssdRestorer) resolvePending(report *hostReport) ([]InstanceRestore, err
 // The unpacked backup goes as soon as rocksdb is rebuilt, so only the ports unpacking hold both
 // on the data disk. Placeholders without backup files start empty.
 func (r *ssdRestorer) prepare(inst InstanceRestore, p *portReport, window *memWindow) error {
-	log := newPortLog(r.DestIP, inst)
+	log := newPortLog(inst.DestPort)
 	instDir := r.Host.InstanceDir(inst.DestPort)
 	workDir := r.portWorkDir(inst.DestPort)
 	if len(inst.FullFiles) > 0 {
@@ -225,7 +224,7 @@ func (r *ssdRestorer) prepare(inst InstanceRestore, p *portReport, window *memWi
 // replayAndMark replays inst's binlogs, then marks it done and frees its downloads.
 func (r *ssdRestorer) replayAndMark(inst InstanceRestore, p *portReport, binlogs []string,
 	recoverAt time.Time) error {
-	log := newPortLog(r.DestIP, inst)
+	log := newPortLog(inst.DestPort)
 	// Earlier attempts on older media kept the decompressed binlog and its commands here.
 	_ = os.RemoveAll(filepath.Join(r.SaveDir, fmt.Sprintf("binlog_replay_%d", inst.DestPort)))
 	if len(binlogs) > 0 {
@@ -255,7 +254,7 @@ func (r *ssdRestorer) replay(log portLog, p *portReport, inst InstanceRestore, r
 	binlogs []string) error {
 	port := inst.DestPort
 	addr := fmt.Sprintf("%s:%d", r.DestIP, port)
-	password, err := myredis.GetRedisPasswdFromConfFile(port)
+	password, err := portPassword(port)
 	if err != nil {
 		return err
 	}
