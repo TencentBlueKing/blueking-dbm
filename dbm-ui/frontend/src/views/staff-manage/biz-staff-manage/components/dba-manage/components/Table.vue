@@ -37,6 +37,7 @@
           row-key="db_type">
           <TableColumn
             col-key="db_type_display"
+            fixed="left"
             :title="t('组件类型')"
             :width="160">
             <template #default="{ row }: { row: IRowData }">
@@ -286,6 +287,7 @@
           <TableColumn
             v-if="!isBatchEdit"
             col-key="row-operation"
+            fixed="right"
             :title="t('操作')"
             width="100">
             <template #default="{ row, rowIndex }: { row: IRowData; rowIndex: number }">
@@ -700,6 +702,10 @@
         font-size: 16px;
 
         &.db-icon-mysql {
+          color: #3a84ff;
+        }
+
+        &.db-icon-tendbcluster {
           color: #3a84ff;
         }
 
