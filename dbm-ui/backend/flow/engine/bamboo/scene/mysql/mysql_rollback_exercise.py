@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 import copy
 import logging
 import pathlib
@@ -45,6 +46,7 @@ from backend.flow.plugins.components.collections.common.add_alarm_shield import 
 from backend.flow.plugins.components.collections.common.delay import DelayComponent
 from backend.flow.plugins.components.collections.common.external_service import ExternalServiceComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
+from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
 from backend.flow.plugins.components.collections.common.transfer_host_service import TransferHostServiceComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.exec_switch_for_source_act import (
@@ -419,21 +421,19 @@ class MySQLRollbackExerciseFlow(object):
                 "delay_seconds": 100,
             },
         )
-        # 退还资源到资源池
-        import_data = {
-            "resource_type": "mysql",
-            "for_biz": self.rollback_to_bk_biz_id,
-            "bk_biz_id": get_resource_biz(),
-            "hosts": [
-                {
-                    "ip": self.rollback_host["ip"],
-                    "host_id": self.rollback_host["bk_host_id"],
+
+        # 清理前先通过标准运维确认临时主机已空闲
+        if env.SA_CHECK_TEMPLATE_ID:
+            sub_pipeline.add_act(
+                act_name=_("sa空闲检查[{}]").format(self.rollback_host["ip"]),
+                act_component_code=CheckMachineIdleComponent.code,
+                kwargs={
+                    "ips": [self.rollback_host["ip"]],
                     "bk_cloud_id": self.rollback_host["bk_cloud_id"],
-                }
-            ],
-            "labels": self.labels,
-            "operator": "system",
-        }
+                    "bk_biz_id": get_resource_biz(),
+                },
+            )
+
         # 清理数据备份目录
         sub_pipeline.add_act(
             act_name=_("清理数据备份目录"),
@@ -456,6 +456,20 @@ class MySQLRollbackExerciseFlow(object):
             },
         )
         # 机器归还到资源池
+        import_data = {
+            "resource_type": "mysql",
+            "for_biz": self.rollback_to_bk_biz_id,
+            "bk_biz_id": get_resource_biz(),
+            "hosts": [
+                {
+                    "ip": self.rollback_host["ip"],
+                    "host_id": self.rollback_host["bk_host_id"],
+                    "bk_cloud_id": self.rollback_host["bk_cloud_id"],
+                }
+            ],
+            "labels": self.labels,
+            "operator": "system",
+        }
         sub_pipeline.add_act(
             act_name=_("机器归还到资源池"),
             act_component_code=ExternalServiceComponent.code,
