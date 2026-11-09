@@ -35,17 +35,12 @@ saas:
     maxRequestsJitter: 500
     resources: {}
     ingress:
+      # Add AI routes to the SaaS Ingress, sharing its class/hostname/TLS/annotations.
       enabled: true
-      # Empty values inherit the SaaS Ingress class/hostname/TLS.
-      className: ""
-      hosts: []
-      tls: []
-      # Set to "" when the external URL has no subpath.
-      pathPrefix: /bkdbm
-      annotations:
-        nginx.ingress.kubernetes.io/proxy-buffering: "off"
-        nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
-        nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+      # Forward the original request path without controller-specific rewrites.
+      paths:
+        - path: /apis/ai/
+          pathType: Prefix
   api:
     enabled: true
     resources: {}
