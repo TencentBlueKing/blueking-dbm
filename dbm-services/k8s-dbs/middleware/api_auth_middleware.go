@@ -133,7 +133,8 @@ func checkIAMPermission(
 		return false, nil, newResolverError("未知的集群类型: %s", result.ClusterType)
 	}
 
-	actionID := strings.Replace(actionTemplate, "{type}", iamPrefix, 1)
+	// 由统一函数处理例外命名，如 VM 启停注册的是缩写 id k8s_vm_enable_disable
+	actionID := constant.ResolveIAMActionID(iamPrefix, actionTemplate)
 
 	var bkBizID int
 	var resourceID string

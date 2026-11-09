@@ -20,7 +20,6 @@ limitations under the License.
 package constant
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -73,16 +72,19 @@ func TestClusterTypeToIAMPrefix_AllTypes(t *testing.T) {
 	}
 }
 
-// TestAPIToIAMAction_ActionIDFormat 验证替换后的 action_id 不含 {type} 占位符
+// TestAPIToIAMAction_ActionIDFormat 验证生成的 action_id 合法且符合 IAM 长度限制
 func TestAPIToIAMAction_ActionIDFormat(t *testing.T) {
 	for apiName, template := range APIToIAMAction {
 		for clusterType, prefix := range ClusterTypeToIAMPrefix {
-			actionID := strings.Replace(template, "{type}", prefix, 1)
+			actionID := ResolveIAMActionID(prefix, template)
 			assert.NotContains(t, actionID, "{type}",
-				"after replacing, action_id should not contain {type}: api=%s, cluster=%s, result=%s",
+				"after resolving, action_id should not contain {type}: api=%s, cluster=%s, result=%s",
 				apiName, clusterType, actionID)
 			assert.NotEmpty(t, actionID,
 				"action_id should not be empty: api=%s, cluster=%s", apiName, clusterType)
+			assert.True(t, len(actionID) <= 32,
+				"IAM action_id 不得超过 32 字符: api=%s, cluster=%s, action=%s",
+				apiName, clusterType, actionID)
 		}
 	}
 }
@@ -102,5 +104,37 @@ func TestAddonManageAPIs_UseFixedActionID(t *testing.T) {
 			"addon API %s should map to fixed 'k8s_addon_manage', not per-type template", apiName)
 		assert.NotContains(t, actionID, "{type}",
 			"addon action_id should not contain {type} placeholder")
+	}
+}
+
+// TestResolveIAMActionID_VictoriaMetricsEnableDisable 验证 VM 启停命中例外命名
+func TestResolveIAMActionID_VictoriaMetricsEnableDisable(t *testing.T) {
+	for _, clusterType := range []string{"k8s_victoriametrics_cluster", "k8s_victoriametrics_select"} {
+		prefix := ClusterTypeToIAMPrefix[clusterType]
+		for _, apiName := range []string{APIClusterStart, APIClusterStop} {
+			assert.Equal(t, "k8s_vm_enable_disable", ResolveIAMActionID(prefix, APIToIAMAction[apiName]),
+				"cluster=%s, api=%s should use abbreviated action_id", clusterType, apiName)
+		}
+	}
+}
+
+// TestResolveIAMActionID_OtherActions 验证例外命名不影响其它操作与其它存储
+func TestResolveIAMActionID_OtherActions(t *testing.T) {
+	vmPrefix := ClusterTypeToIAMPrefix["k8s_victoriametrics_cluster"]
+	for apiName, expected := range map[string]string{
+		APIClusterCreate: "k8s_victoriametrics_apply",
+		APIClusterDelete: "k8s_victoriametrics_destroy",
+		APIClusterUpdate: "k8s_victoriametrics_manage",
+		APIAddonInstall:  "k8s_addon_manage",
+	} {
+		assert.Equal(t, expected, ResolveIAMActionID(vmPrefix, APIToIAMAction[apiName]), "api=%s", apiName)
+	}
+
+	for clusterType, prefix := range ClusterTypeToIAMPrefix {
+		if prefix == "k8s_victoriametrics" {
+			continue
+		}
+		assert.Equal(t, prefix+"_enable_disable", ResolveIAMActionID(prefix, APIToIAMAction[APIClusterStart]),
+			"cluster=%s should keep the default action_id", clusterType)
 	}
 }
