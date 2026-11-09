@@ -24,7 +24,7 @@ export const mysql: DbInfoType = {
     routeIndexName: 'MysqlManage',
   },
   [DBTypes.TENDBCLUSTER]: {
-    icon: 'mysql',
+    icon: 'tendbcluster',
     id: DBTypes.TENDBCLUSTER,
     machineList: [
       {
