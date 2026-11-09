@@ -16,6 +16,8 @@ import { Message } from 'bkui-vue';
 import { t } from '@locales/index';
 
 function copy(value: string) {
+  // 记下复制前的焦点，复制完还回去，避免焦点停在临时 textarea 上影响弹层的键盘操作
+  const prevActiveElement = document.activeElement as HTMLElement | null;
   const textArea = document.createElement('textarea');
   textArea.value = value;
 
@@ -41,6 +43,10 @@ function copy(value: string) {
       message: t('复制失败'),
       theme: 'error',
     });
+  } finally {
+    // 每次复制都会新建 textarea，用完即移除，避免 DOM 累积
+    document.body.removeChild(textArea);
+    prevActiveElement?.focus?.();
   }
 }
 

@@ -18,4 +18,5 @@ interface FormItem {
   validate: () => boolean;
 }
 
-export const useFormItem = () => inject<FormItem>('DBMFormItem', undefined as any);
+// 不在表单项内时注入不到，返回 undefined
+export const useFormItem = () => inject<FormItem | undefined>('DBMFormItem', undefined);

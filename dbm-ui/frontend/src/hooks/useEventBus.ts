@@ -31,7 +31,8 @@ export const useEventBus = () => {
   });
 
   return {
-    clearAll: emitter.all.clear,
+    // Map 原型方法单独取出会丢失 this，包一层调用
+    clearAll: () => emitter.all.clear(),
     emit: emitter.emit,
     off: emitter.off,
     on,
