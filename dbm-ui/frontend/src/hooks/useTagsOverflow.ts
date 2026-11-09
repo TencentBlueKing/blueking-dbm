@@ -25,6 +25,10 @@ export const useTagsOverflow = (tagInputRef: Ref<HTMLDivElement>, tagList: Ref<s
   const calcOverflow = () => {
     overflowTagIndex.value = 0;
     setTimeout(() => {
+      // 定时回调执行前组件可能已卸载
+      if (!tagInputRef.value) {
+        return;
+      }
       const tags: HTMLElement[] = Array.from(tagInputRef.value.querySelectorAll('.tag-item'));
       const tagIndexInSecondRow = tags.findIndex((currentTag, index) => {
         if (!index) {
