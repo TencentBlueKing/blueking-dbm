@@ -8,11 +8,15 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import ipaddress
+import logging
 from typing import List, Optional, Tuple
 
 from backend.components.hadb.client import HADBApi
 from backend.components.hadbv2.client import HADBApiV2
 from backend.db_periodic_task.constants import FailoverDrillVersion
+
+logger = logging.getLogger("flow")
 
 
 def query_switch_queue(
@@ -57,10 +61,78 @@ def query_switch_queue(
     return resp.get("code"), msg, resp.get("data") or []
 
 
+def _extract_service_ips(data: object) -> List[str]:
+    if not isinstance(data, dict):
+        return []
+    candidates = data.get("ips")
+    if not isinstance(candidates, list) or not candidates:
+        candidates = []
+        servers = data.get("servers")
+        if isinstance(servers, list):
+            for server in servers:
+                if isinstance(server, dict) and isinstance(server.get("ips"), list):
+                    candidates.extend(server["ips"])
+    ips: List[str] = []
+    for raw_ip in candidates:
+        ip = str(raw_ip or "").strip()
+        if not ip:
+            continue
+        try:
+            normalized_ip = str(ipaddress.ip_address(ip))
+        except ValueError:
+            logger.warning("discard invalid dbha-v2 service ip from ha-servers: %r", raw_ip)
+            continue
+        if normalized_ip not in ips:
+            ips.append(normalized_ip)
+    return ips
+
+
 def get_dbha_v2_service_ips(bk_cloud_id: int, logical_city_id: int) -> List[str]:
     """
-    获取需要在演练主机上屏蔽的 dbha-v2 服务 IP
-    TODO(kevn): 待 dbha-v2 服务列表 API 确定后实现，
-    目前返回空列表，调用方必须将空列表视为"无法演练"
+    获取需要在演练主机上屏蔽的 dbha-v2 服务 IP。
+    meta/ha-servers 返回当前注册中心里的全局 dbha-v2 服务节点列表（admin/analysis/receiver），
+    接口本身不支持按云区域或逻辑城市过滤，演练也需要屏蔽全部服务节点 IP；
+    bk_cloud_id 与 logical_city_id 仅用于日志排障上下文。
+    服务不可用、返回非 0 或无有效 IP 时记录原因并返回空列表；调用方将空列表视为"无法演练"。
     """
-    return []
+    try:
+        resp = HADBApiV2.ha_servers(params={}, raw=True)
+    except Exception as e:  # pylint: disable=broad-except
+        logger.warning(
+            "query dbha-v2 ha-servers failed, bk_cloud_id=%s logical_city_id=%s err=%s",
+            bk_cloud_id,
+            logical_city_id,
+            e,
+        )
+        return []
+
+    if not isinstance(resp, dict):
+        logger.warning(
+            "dbha-v2 ha-servers returned non-dict response, bk_cloud_id=%s logical_city_id=%s resp=%r",
+            bk_cloud_id,
+            logical_city_id,
+            resp,
+        )
+        return []
+
+    code = resp.get("code")
+    msg = resp.get("msg") or resp.get("message") or ""
+    if code != 0:
+        logger.warning(
+            "dbha-v2 ha-servers returned error, bk_cloud_id=%s logical_city_id=%s code=%s message=%s",
+            bk_cloud_id,
+            logical_city_id,
+            code,
+            msg,
+        )
+        return []
+
+    ips = _extract_service_ips(resp.get("data"))
+    if not ips:
+        logger.warning(
+            "dbha-v2 ha-servers returned empty ips, bk_cloud_id=%s logical_city_id=%s data=%r",
+            bk_cloud_id,
+            logical_city_id,
+            resp.get("data"),
+        )
+    return ips

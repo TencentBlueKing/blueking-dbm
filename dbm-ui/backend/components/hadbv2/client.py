@@ -30,6 +30,11 @@ class _HADBApiV2(BaseApi):
             url="switchlogs/",
             description=_("查询切换详情"),
         )
+        self.ha_servers = self.generate_data_api(
+            method="GET",
+            url="meta/ha-servers",
+            description=_("查询 dbha-v2 服务节点列表"),
+        )
 
 
 HADBApiV2 = _HADBApiV2()

@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import shlex
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 
@@ -188,8 +189,8 @@ class FailoverDrillFlow:
         - stop-probe.sh 只清理当前用户 crontab 中的保活任务，必须以 mysql 执行
         - 停探针失败时回滚本次添加的 iptables 规则
         """
-        rollback = "; ".join(["iptables -D INPUT -s {} -j DROP || true".format(ip) for ip in service_ips])
-        block = "\n".join(["iptables -I INPUT -s {} -j DROP".format(ip) for ip in service_ips])
+        rollback = "; ".join(["iptables -D INPUT -s {} -j DROP || true".format(shlex.quote(ip)) for ip in service_ips])
+        block = "\n".join(["iptables -I INPUT -s {} -j DROP".format(shlex.quote(ip)) for ip in service_ips])
         return f"""#!/bin/bash
 set -e
 trap '{rollback}' ERR
@@ -255,7 +256,7 @@ su - mysql -c "cd {PROBE_DIR} && ./stop-probe.sh"
                 # 规则可能已被 trigger 脚本回滚或重跑时删除，清理失败会阻断后续拉起探针
                 "cluster": {
                     "shell_command": "; ".join(
-                        ["iptables -D INPUT -s {} -j DROP || true".format(ip) for ip in service_ips]
+                        ["iptables -D INPUT -s {} -j DROP || true".format(shlex.quote(ip)) for ip in service_ips]
                     )
                 },
             },
