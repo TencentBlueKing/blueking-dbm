@@ -59,6 +59,14 @@ Discovery、APM 指标服务、Storage、gRPC 和 Web 服务。单个资源更�
 | [admin 指标](observability/admin-metrics.md) | HTTP、gRPC、元数据回退与配置热重载指标，含 Grafana 配置 |
 | [receiver 指标](observability/receiver-metrics.md) | Probe / Kafka 接收、MySQL 写入与 Sink 延迟丢弃指标，含 Grafana 配置 |
 
+## 6. 接口
+
+| 文档 | 说明 |
+| --- | --- |
+| [接口文档索引](api/README.md) | Admin HTTP 与 gRPC 接口清单、服务地址、公共约定和文档模板 |
+| [HA Server 列表（HTTP）](api/http/meta-ha-servers.md) | `GET /api/admin/meta/ha-servers`，列出存活的 HA Server 实例及其 IP |
+| [HA Server 列表（gRPC）](api/grpc/list-ha-servers.md) | `AdminService/ListHaServers`，与 HTTP 接口返回相同数据 |
+
 ---
 
 返回：[项目 README](../README.md)
