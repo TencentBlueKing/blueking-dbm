@@ -18,6 +18,7 @@ from pipeline.component_framework.component import Component
 
 from backend import env
 from backend.components import DBPrivManagerApi, JobApi
+from backend.db_meta.models import Machine
 from backend.db_proxy.reverse_api.common.impl import list_nginx_addrs
 from backend.flow.consts import DBA_ROOT_USER, DEFAULT_INSTANCE, MySQLPrivComponent, UserName
 from backend.flow.plugins.components.collections.common.base_service import BkJobService
@@ -430,8 +431,48 @@ class GetOsSysParamComponent(Component):
 
 
 class CleanDataBakDirSvr(BkJobService):
+    def _check_no_registered_instance(self, exec_ips, bk_cloud_id):
+        """
+        下发清理作业前校验目标机器在 DBMeta 中已无关联实例。
+        仅 Machine 表残留而无实例记录时，视为下架遗留的脏数据，不拦截。
+        """
+        for ip in exec_ips:
+            machine = (
+                Machine.objects.filter(ip=ip, bk_cloud_id=bk_cloud_id)
+                .prefetch_related("proxyinstance_set", "storageinstance_set")
+                .first()
+            )
+            if machine is None:
+                continue
+
+            storage_instances = list(machine.storageinstance_set.all())
+            proxy_instances = list(machine.proxyinstance_set.all())
+            if not storage_instances and not proxy_instances:
+                continue
+
+            instance_desc = []
+            for ins in storage_instances[:10]:
+                instance_desc.append(_("存储实例端口 {}").format(ins.port))
+            for ins in proxy_instances[:10]:
+                instance_desc.append(_("接入实例端口 {}").format(ins.port))
+            raise Exception(
+                _("机器 {}（云区域 {}）仍存在关联实例，拒绝执行备份目录清理，实例信息：{}").format(ip, bk_cloud_id, ",".join(instance_desc))
+            )
+
+        self.log_info(_("已确认目标机器在 DBMeta 中无关联实例，允许清理：{}").format(",".join(exec_ips)))
+
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
+        exec_ips = self.splice_exec_ips_list(ticket_ips=kwargs["exec_ip"])
+        self._check_no_registered_instance(exec_ips, kwargs["bk_cloud_id"])
+
+        clean_root_id_dir = ""
+        root_id = str(kwargs.get("root_id", ""))
+        if re.fullmatch(r"[0-9a-zA-Z_-]{1,64}", root_id):
+            clean_root_id_dir = "rmdir /data/mysqldata/{0} /data1/mysqldata/{0} 2>/dev/null || true".format(root_id)
+        else:
+            self.log_info(_("root_id 格式不合法，跳过本次演练目录清理：{}").format(root_id))
+
         script_content = r"""
         echo "clean mysqllog bak dir"
         if pgrep -x mysqld >/dev/null 2>&1; then
@@ -457,11 +498,13 @@ class CleanDataBakDirSvr(BkJobService):
                 rm -rf "${export_install_path}" || true
             fi
         done
+        __CLEAN_ROOT_ID_DIR__
         """.replace(
             "__MYSQLD_RUNNING_REFUSE_CLEAN__",
             _("检测到 mysqld 进程，拒绝清理备份目录"),
+        ).replace(
+            "__CLEAN_ROOT_ID_DIR__", clean_root_id_dir
         )
-        exec_ips = self.splice_exec_ips_list(ticket_ips=kwargs["exec_ip"])
         target_ip_info = [{"bk_cloud_id": kwargs["bk_cloud_id"], "ip": ip} for ip in exec_ips]
         body = {
             "bk_scope_type": "biz_set",
