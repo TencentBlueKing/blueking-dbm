@@ -120,7 +120,7 @@ class RedisRollbackFlow:
         )
         if problems:
             raise RollbackPlanError(
-                context={"message": "; ".join(m for messages in problems.values() for m in messages)}
+                context={"message": "; ".join(str(m) for messages in problems.values() for m in messages)}
             )
         RollbackPlanner.pack_dest_hosts(plan, dest_ips, len(dest_ips))
         # The ledger is keyed by (dest_ip, batch index). A flow-level retry re-packs the plan, so

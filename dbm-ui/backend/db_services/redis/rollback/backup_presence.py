@@ -15,19 +15,20 @@ from django.utils.translation import gettext as _
 
 from backend.components.mysql_backup.client import RedisBackupApi
 from backend.db_services.redis.rollback.exceptions import RollbackPlanError
+from backend.db_services.redis.rollback.issues import ISSUE_FULL_UNAVAILABLE, ShardIssue
 
 BACKUP_QUERY_BATCH_SIZE = 100
 BACKUP_TASK_SUCCESS = 4
 _NOT_EXPIRED = {None, "", 0, "0", False, "false", "False"}
 
 
-def confirm_backup_tasks(task_ids_by_shard: Dict[str, Sequence[str]]) -> Dict[str, List[str]]:
+def confirm_backup_tasks(task_ids_by_shard: Dict[str, Sequence[str]]) -> Dict[str, List[ShardIssue]]:
     """Ask the backup system whether each planned task_id is still downloadable.
 
     Empty shard lists are skipped (placeholder instances). An API failure raises
     ``RollbackPlanError`` so callers fail the whole plan instead of continuing to download.
     """
-    problems: Dict[str, List[str]] = {}
+    problems: Dict[str, List[ShardIssue]] = {}
     wanted: Dict[str, List[str]] = {}
     query_ids: List[str] = []
     for shard, raw_ids in task_ids_by_shard.items():
@@ -35,7 +36,7 @@ def confirm_backup_tasks(task_ids_by_shard: Dict[str, Sequence[str]]) -> Dict[st
         for raw in raw_ids or []:
             task_id = str(raw or "").strip()
             if not task_id:
-                problems.setdefault(shard, []).append(_("分片 {} 缺少 backup_taskid").format(shard))
+                problems.setdefault(shard, []).append(_unavailable(_("分片 {} 缺少 backup_taskid").format(shard), ""))
                 continue
             ids.append(task_id)
             query_ids.append(task_id)
@@ -61,14 +62,19 @@ def confirm_backup_tasks(task_ids_by_shard: Dict[str, Sequence[str]]) -> Dict[st
         for task_id in ids:
             row = by_id.get(task_id)
             if row is None:
-                problems.setdefault(shard, []).append(_("分片 {} 的备份 {} 在备份系统中不存在或已过期").format(shard, task_id))
+                message = _("分片 {} 的备份 {} 在备份系统中不存在或已过期")
+            elif _marked_expired(row):
+                message = _("分片 {} 的备份 {} 已过期")
+            elif not _status_ok(row.get("status")):
+                message = _("分片 {} 的备份 {} 上传状态不是成功")
+            else:
                 continue
-            if _marked_expired(row):
-                problems.setdefault(shard, []).append(_("分片 {} 的备份 {} 已过期").format(shard, task_id))
-                continue
-            if not _status_ok(row.get("status")):
-                problems.setdefault(shard, []).append(_("分片 {} 的备份 {} 上传状态不是成功").format(shard, task_id))
+            problems.setdefault(shard, []).append(_unavailable(message.format(shard, task_id), task_id))
     return problems
+
+
+def _unavailable(message, task_id: str) -> ShardIssue:
+    return ShardIssue(ISSUE_FULL_UNAVAILABLE, str(message), {"task_id": task_id})
 
 
 def _query_task_ids(task_ids: Sequence[str]) -> List[dict]:

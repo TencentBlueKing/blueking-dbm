@@ -17,6 +17,7 @@ from backend.db_services.redis.rollback.locator import BackupLocator, binlog_rec
 from backend.db_services.redis.rollback.shards import round_key_from_filename
 from backend.flow.engine.bamboo.scene.redis.redis_rollback.plan import RollbackPlan
 from backend.flow.engine.bamboo.scene.redis.redis_rollback.planner import RollbackPlanner
+from backend.tests.db_services.redis.rollback import shard_errors
 
 T0 = datetime(2026, 1, 1, 1, 0, tzinfo=timezone.utc)
 RECOVER_AT = T0 + timedelta(minutes=60)
@@ -35,6 +36,10 @@ def _chain(*pairs):
 
 
 FULL_CHAIN = ((1, -40), (2, -20), (3, 10), (4, 40), (5, 70), (6, 100))
+
+
+def _first_error(result):
+    return shard_errors(result)[result["shards"][0]["shard_value"]][0]
 
 
 def _indexes(chain):
@@ -271,7 +276,7 @@ def test_ssd_broken_chain_blocks_precheck_and_build(backup_files_still_present):
     planner = _ssd_planner(_chain((1, -40), (2, -20), (3, 10)), **REPLAY)
     result = planner.precheck()
     assert result["exist"] is False
-    assert "0-419999" in result["shards"][0]["errors"][0] and "断裂" in result["shards"][0]["errors"][0]
+    assert "0-419999" in _first_error(result) and "断裂" in _first_error(result)
     with pytest.raises(RollbackPlanError):
         planner.build(pack=False)
 
@@ -283,7 +288,7 @@ def test_gap_blocks_precheck_unless_allowed(backup_files_still_present):
     result = _ssd_planner(_chain(*GAPPED_CHAIN), **REPLAY).precheck()
     assert result["exist"] is False
     assert result["binlog_nonconsecutive"] is False
-    assert "allow_binlog_nonconsecutive" in result["shards"][0]["errors"][0]
+    assert "allow_binlog_nonconsecutive" in _first_error(result)
 
 
 def test_allowed_gap_passes_precheck_with_warning(backup_files_still_present):
@@ -354,7 +359,7 @@ def test_ssd_explicit_time_still_checks_the_right_boundary(backup_files_still_pr
     result = planner.precheck()
 
     assert result["exist"] is False
-    assert "断裂" in result["shards"][0]["errors"][0]
+    assert "断裂" in _first_error(result)
     planner.locator.locate_binlogs.assert_called_once()
 
 
@@ -374,7 +379,7 @@ def test_ssd_time_before_full_end_fails_without_binlog_lookup(backup_files_still
     result = planner.precheck()
 
     assert result["exist"] is False
-    error = result["shards"][0]["errors"][0]
+    error = _first_error(result)
     assert "0-419999" in error and "早于" in error and "少于 2" not in error
     planner.locator.locate_binlogs.assert_not_called()
     with pytest.raises(RollbackPlanError):
@@ -388,7 +393,7 @@ def test_ssd_full_without_end_time_is_bounded_by_its_begin_time(backup_files_sti
 
     planner = _ssd_planner(_chain(*FULL_CHAIN), recovery_time_point=(T0 - timedelta(minutes=5)).isoformat())
     planner.locator.locate_full_by_identify.return_value[0]["backup_end_time"] = ""
-    assert "早于" in planner.precheck()["shards"][0]["errors"][0]
+    assert "早于" in _first_error(planner.precheck())
 
 
 def test_cache_identify_ignores_recovery_time_point(backup_files_still_present):
@@ -484,7 +489,8 @@ def test_binlog_chain_errors_keep_shard_order(backup_files_still_present):
     with patch("backend.flow.engine.bamboo.scene.redis.redis_rollback.planner.connections"):
         result = _ssd_multi_planner(6, locate).precheck()
     assert result["exist"] is False
-    assert [s["errors"][0].split(" ")[1] for s in result["shards"]] == [s["shard_value"] for s in result["shards"]]
+    messages = [s["message"] for s in result["error_groups"][0]["shards"]]
+    assert [m.split(" ")[1] for m in messages] == [s["shard_value"] for s in result["shards"]]
 
 
 def test_binlog_lookup_failure_still_closes_the_worker_connection(backup_files_still_present):

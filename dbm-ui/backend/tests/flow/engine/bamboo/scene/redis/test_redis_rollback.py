@@ -8,6 +8,7 @@ from backend.db_services.redis.rollback.constants import SINGLE_INSTANCE_SHARD_V
 from backend.db_services.redis.rollback.exceptions import RollbackPlanError
 from backend.db_services.redis.rollback.shards import ShardRef, round_key_from_filename
 from backend.flow.engine.bamboo.scene.redis.redis_rollback.planner import RollbackPlanner
+from backend.tests.db_services.redis.rollback import shard_errors
 
 
 @pytest.fixture(autouse=True)
@@ -470,7 +471,8 @@ def test_precheck_reports_every_shard_not_just_the_first():
 
     assert [s["shard_value"] for s in result["shards"]] == ["0-104999", "105000-209999"]
     assert result["shards"][0]["ok"] is False
-    assert "分卷不齐全" in result["shards"][0]["errors"][0]
+    assert "分卷不齐全" in shard_errors(result)["0-104999"][0]
+    assert result["errors"] == ["分片 0-104999：全备分卷不齐全"]
     assert result["shards"][1]["ok"] is True
     assert result["exist"] is False
 

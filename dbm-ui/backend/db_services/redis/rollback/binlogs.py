@@ -18,6 +18,17 @@ from typing import Dict, List, Optional, Sequence, Tuple
 from django.utils.translation import gettext as _
 
 from backend.db_services.redis.rollback.exceptions import RollbackPlanError
+from backend.db_services.redis.rollback.issues import (
+    ISSUE_BINLOG_DUPLICATE,
+    ISSUE_BINLOG_GAP,
+    ISSUE_BINLOG_HEAD_MISSING,
+    ISSUE_BINLOG_NOT_UPLOADED,
+    ISSUE_BINLOG_TOO_FEW,
+    ISSUE_KVSTORE_MISMATCH,
+    ShardIssue,
+    chain_data,
+    issue_of,
+)
 
 GAP_SAMPLE_SIZE = 10
 
@@ -75,13 +86,21 @@ def select_binlog_chain(
     heads = [b for b in unique if b["begin_time"] <= full_start]
     tails = [b for b in unique if b["begin_time"] >= recover_at]
     if not heads:
-        raise RollbackPlanError(context={"message": _("左边界缺失：全备开始前没有 binlog，现有 {}").format(_chain_ends(unique))})
+        raise RollbackPlanError(
+            context={
+                "message": _("左边界缺失：全备开始前没有 binlog，现有 {}").format(_chain_ends(unique)),
+                "code": ISSUE_BINLOG_HEAD_MISSING,
+                "data": dict(chain_data(unique), full_start=full_start),
+            }
+        )
     if not tails:
         raise RollbackPlanError(
             context={
                 "message": _("右边界缺失：回档时刻之后没有 binlog，binlog 链断裂（实例可能已替换，或尚未上传），请选更早的时间或上传后重提，现有 {}").format(
                     _chain_ends(unique)
-                )
+                ),
+                "code": ISSUE_BINLOG_NOT_UPLOADED,
+                "data": chain_data(unique),
             }
         )
 
@@ -91,12 +110,20 @@ def select_binlog_chain(
         (b for b in unique if head_time <= b["begin_time"] <= tail_time), key=lambda b: (b["index"], b["file_name"])
     )
     if len(chain) < 2:
-        raise RollbackPlanError(context={"message": _("binlog 数少于 2")})
+        raise RollbackPlanError(
+            context={"message": _("binlog 数少于 2"), "code": ISSUE_BINLOG_TOO_FEW, "data": chain_data(chain)}
+        )
 
     counts = Counter(b["index"] for b in chain)
     duplicated = sorted(index for index, count in counts.items() if count > 1)
     if duplicated:
-        raise RollbackPlanError(context={"message": _("binlog 序号重复: {}").format(duplicated)})
+        raise RollbackPlanError(
+            context={
+                "message": _("binlog 序号重复: {}").format(duplicated),
+                "code": ISSUE_BINLOG_DUPLICATE,
+                "data": dict(chain_data(chain), duplicated=duplicated),
+            }
+        )
     missing = sorted(set(range(chain[0]["index"], chain[-1]["index"] + 1)) - set(counts))
     if not missing:
         return chain, None
@@ -104,12 +131,23 @@ def select_binlog_chain(
     shown = (
         missing if len(missing) <= GAP_SAMPLE_SIZE else missing[:GAP_SAMPLE_SIZE] + ["...({})".format(len(missing))]
     )
+    gap_data = dict(chain_data(chain), missing=missing, missing_count=len(missing))
     by_time = [b["index"] for b in sorted(chain, key=lambda b: (b["begin_time"], b["index"]))]
     if by_time != [b["index"] for b in chain]:
-        raise RollbackPlanError(context={"message": _("binlog 序号不连续且随时间回退（实例可能重启过），缺失: {}").format(shown)})
+        raise RollbackPlanError(
+            context={
+                "message": _("binlog 序号不连续且随时间回退（实例可能重启过），缺失: {}").format(shown),
+                "code": ISSUE_BINLOG_GAP,
+                "data": dict(gap_data, restarted=True),
+            }
+        )
     if not allow_nonconsecutive:
         raise RollbackPlanError(
-            context={"message": _("binlog 序号不连续，缺失: {}；如可接受缺失这段写入，可开启 allow_binlog_nonconsecutive").format(shown)}
+            context={
+                "message": _("binlog 序号不连续，缺失: {}；如可接受缺失这段写入，可开启 allow_binlog_nonconsecutive").format(shown),
+                "code": ISSUE_BINLOG_GAP,
+                "data": gap_data,
+            }
         )
     return chain, {"missing_count": len(missing), "missing": missing[:GAP_SAMPLE_SIZE]}
 
@@ -127,21 +165,27 @@ def select_kvstore_chains(
     full_start: datetime,
     recover_at: datetime,
     allow_nonconsecutive: bool = False,
-) -> Tuple[List[Dict], Optional[Dict], List[str]]:
+) -> Tuple[List[Dict], Optional[Dict], List[ShardIssue]]:
     """Gate C for Tendisplus: a chain for every kvstore ``0..kvstore_count-1`` of the source.
 
     Returns the chains in ``(kvstore, index)`` order, gaps let through per kvstore as
-    ``{missing_count, kvstores: {kvstore: {missing_count, missing}}}`` and one error per broken
+    ``{missing_count, kvstores: {kvstore: {missing_count, missing}}}`` and one issue per broken
     kvstore. Binlogs of a kvstore the temp instance does not have mean the source had more
     kvstores, so they are an error rather than ignored.
     """
     by_kvstore: Dict[int, List[Dict]] = {}
     for binlog in binlogs:
         by_kvstore.setdefault(binlog["kvstore"], []).append(binlog)
-    errors: List[str] = []
+    errors: List[ShardIssue] = []
     extra = sorted(kvstore for kvstore in by_kvstore if kvstore >= kvstore_count)
     if extra:
-        errors.append(str(_("源实例有 kvstore {}，多于临时实例的 {} 个 kvstore").format(extra, kvstore_count)))
+        errors.append(
+            ShardIssue(
+                ISSUE_KVSTORE_MISMATCH,
+                str(_("源实例有 kvstore {}，多于临时实例的 {} 个 kvstore").format(extra, kvstore_count)),
+                {"extra": extra, "kvstore_count": kvstore_count},
+            )
+        )
 
     chain: List[Dict] = []
     gaps: Dict[str, Dict] = {}
@@ -151,7 +195,10 @@ def select_kvstore_chains(
                 by_kvstore.get(kvstore) or [], full_start, recover_at, allow_nonconsecutive
             )
         except RollbackPlanError as exc:
-            errors.append(str(_("kvstore {}: {}").format(kvstore, exc.message)))
+            issue = issue_of(exc)
+            issue.message = str(_("kvstore {}: {}").format(kvstore, issue.message))
+            issue.data["kvstore"] = kvstore
+            errors.append(issue)
             continue
         chain.extend(selected)
         if kvstore_gaps:

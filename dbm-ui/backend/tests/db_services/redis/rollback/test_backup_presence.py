@@ -6,9 +6,11 @@ import pytest
 from backend.db_meta.enums import ClusterType
 from backend.db_services.redis.rollback.backup_presence import BACKUP_QUERY_BATCH_SIZE, confirm_backup_tasks
 from backend.db_services.redis.rollback.exceptions import RollbackPlanError
+from backend.db_services.redis.rollback.issues import ISSUE_FULL_UNAVAILABLE
 from backend.db_services.redis.rollback.locator import binlog_record
 from backend.db_services.redis.rollback.shards import round_key_from_filename
 from backend.flow.engine.bamboo.scene.redis.redis_rollback.planner import RollbackPlanner
+from backend.tests.db_services.redis.rollback import shard_errors
 
 _PATCH = "backend.db_services.redis.rollback.backup_presence.RedisBackupApi.query_for_task_ids"
 
@@ -22,21 +24,22 @@ def _ok(task_id, status=4, **extra):
 def test_missing_task_is_a_shard_error():
     with patch(_PATCH, return_value=[_ok("t1")]):
         problems = confirm_backup_tasks({"0-1": ["t1", "t2"]})
-    assert "t2" in problems["0-1"][0]
-    assert "0-1" in problems["0-1"][0]
+    assert "t2" in problems["0-1"][0].message
+    assert "0-1" in problems["0-1"][0].message
+    assert problems["0-1"][0].code == ISSUE_FULL_UNAVAILABLE and problems["0-1"][0].data == {"task_id": "t2"}
     assert "t1" not in problems
 
 
 def test_status_other_than_success_fails():
     with patch(_PATCH, return_value=[_ok("t1", status=1)]):
         problems = confirm_backup_tasks({"0-1": ["t1"]})
-    assert "上传状态" in problems["0-1"][0]
+    assert "上传状态" in problems["0-1"][0].message
 
 
 def test_expired_flag_fails_even_when_status_is_success():
     with patch(_PATCH, return_value=[_ok("t1", expired="1")]):
         problems = confirm_backup_tasks({"0-1": ["t1"]})
-    assert "已过期" in problems["0-1"][0]
+    assert "已过期" in problems["0-1"][0].message
 
 
 def test_api_failure_does_not_pass():
@@ -106,7 +109,9 @@ def test_precheck_marks_missing_file_and_blocks_the_plan():
         result = planner.precheck()
     assert result["exist"] is False
     assert result["shards"][0]["ok"] is False
-    assert "task-a.aof.zst" in result["shards"][0]["errors"][0]
+    assert "task-a.aof.zst" in shard_errors(result)["0-104999"][0]
+    assert result["errors"] == ["分片 0-104999：全备已过期或不可下载"]
+    assert result["error_groups"][0]["code"] == ISSUE_FULL_UNAVAILABLE
 
 
 def test_precheck_api_failure_fails_the_whole_plan():
