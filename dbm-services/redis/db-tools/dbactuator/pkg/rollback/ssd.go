@@ -54,6 +54,7 @@ func (r *ssdRestorer) DoRollback() error {
 	}
 	limits := HostLimits(r.MaxConcurrency)
 	report := newHostReport(r.DestIP, "tendisssd", r.Instances)
+	report.recoverAt = r.RecoverAt
 	defer report.logResult()
 
 	redo, err := r.resolvePending(report)
@@ -102,9 +103,8 @@ func (r *ssdRestorer) DoRollback() error {
 		plans[inst.DestPort] = plan
 	}
 	replaying := limits.Replay(len(redo))
-	report.logPlan(limits, plans, r.UnpackDir)
-	logInfo("RedisRollback(ssd) dest=%s recover_at=%s replay=%d order=%v",
-		r.DestIP, r.RecoverAt, replaying, portsOf(redo))
+	report.logPlan(limits, plans, r.UnpackDir, fmt.Sprintf("%d ports at once, most binlog bytes first", replaying))
+	defer report.trackProgress()()
 
 	window := newMemWindow(limits.MemAvailable, len(redo))
 	replaySlots := make(chan struct{}, replaying)
@@ -121,6 +121,7 @@ func (r *ssdRestorer) DoRollback() error {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			p.waiting("replay slots")
 			replaySlots <- struct{}{}
 			err := r.replayAndMark(inst, p, binlogs[inst.DestPort], recoverAt)
 			<-replaySlots
@@ -178,13 +179,14 @@ func (r *ssdRestorer) prepare(inst InstanceRestore, p *portReport, window *memWi
 	workDir := r.portWorkDir(inst.DestPort)
 	if len(inst.FullFiles) > 0 {
 		var root string
+		var size int64
 		err := p.timed(stageUnpack, func() error {
 			files, err := resolveFiles(r.SaveDir, inst)
 			if err != nil {
 				return err
 			}
-			log.Info("unpack files=%v into %s", inst.FullFiles, workDir)
-			cpu, err := unpackBackup(files, workDir)
+			size = totalSize(files)
+			cpu, err := unpackPort(p, files, workDir)
 			p.addCPU(stageUnpack, cpu)
 			if err != nil {
 				return err
@@ -196,6 +198,8 @@ func (r *ssdRestorer) prepare(inst InstanceRestore, p *portReport, window *memWi
 			log.Error("unpack failed: %v", err)
 			return err
 		}
+		log.Info("unpacked %s in %s", shortBytes(size), shortDuration(p.duration(stageUnpack)))
+		p.enter(phaseRestore, 0, "")
 		err = p.timed(stageRestore, func() error {
 			return restoreRocksdb(log, r.Host.MediaName(), root, ssdDataDir(instDir), workDir)
 		})
@@ -203,6 +207,7 @@ func (r *ssdRestorer) prepare(inst InstanceRestore, p *portReport, window *memWi
 			log.Error("%v", err)
 			return err
 		}
+		log.Info("restored rocksdb in %s", shortDuration(p.duration(stageRestore)))
 		// rocksdb now holds a copy; a retry unpacks again from the downloads.
 		if err = os.RemoveAll(workDir); err != nil {
 			log.Warn("remove unpacked backup %s failed: %v", workDir, err)
@@ -214,10 +219,12 @@ func (r *ssdRestorer) prepare(inst InstanceRestore, p *portReport, window *memWi
 		log.Error("%v", err)
 		return err
 	}
+	p.enter(phaseStart, 0, "")
 	if err := p.timed(stageStart, func() error { return r.Host.Start(inst.DestPort) }); err != nil {
 		window.unreserve(need)
 		return err
 	}
+	log.Info("started, memory~%s", shortBytes(need))
 	return nil
 }
 
@@ -278,6 +285,13 @@ func (r *ssdRestorer) replay(log portLog, p *portReport, inst InstanceRestore, r
 	defer applyCli.Close()
 
 	endMs := replayEndMs(recoverAt)
+	var bytes int64
+	for _, file := range binlogs {
+		bytes += totalSize([]string{file})
+	}
+	p.enterReplay(len(binlogs), bytes, nil)
+	log.Info("replay %d binlogs (%s)", len(binlogs), shortBytes(bytes))
+	began := time.Now()
 	var total replyStats
 	var seen bool
 	var firstSeq, lastSeq int64
@@ -318,7 +332,7 @@ func (r *ssdRestorer) replay(log portLog, p *portReport, inst InstanceRestore, r
 		if err != nil {
 			return fmt.Errorf("binlog %s: %w", base, err)
 		}
-		log.Info("applied %s: %s", base, fileStats.summary())
+		p.binlogReplayed(totalSize([]string{file}))
 		if fileStats.Lines > 0 && fileStats.Errors == fileStats.Lines {
 			return fmt.Errorf("binlog %s: all %d replies are errors, samples %q",
 				base, fileStats.Lines, fileStats.samples())
@@ -333,10 +347,11 @@ func (r *ssdRestorer) replay(log portLog, p *portReport, inst InstanceRestore, r
 	}
 	p.replayed(len(binlogs), total)
 	if total.Errors > total.Expected {
-		log.Warn("replayed %d binlogs, seq %d -> %d, writes behind unexpected errors may be missing: %s",
-			len(binlogs), firstSeq, lastSeq, total.summary())
+		log.Warn("replayed in %s: seq %d -> %d, writes behind unexpected errors may be missing: %s",
+			shortDuration(time.Since(began)), firstSeq, lastSeq, total.summary())
 	} else {
-		log.Info("replayed %d binlogs, seq %d -> %d: %s", len(binlogs), firstSeq, lastSeq, total.summary())
+		log.Info("replayed in %s: seq %d -> %d, %s cmds", shortDuration(time.Since(began)), firstSeq, lastSeq,
+			shortCount(total.Lines))
 	}
 	return nil
 }

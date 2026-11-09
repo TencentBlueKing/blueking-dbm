@@ -12,6 +12,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -58,20 +59,30 @@ const stageCmdTimeout = 1800 * time.Second
 // runStageCmd runs cmd under bash and returns the CPU time bash and the children it waited for
 // used. Anything on stderr fails it.
 func runStageCmd(cmd string) (time.Duration, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), stageCmdTimeout)
+	return runStage(cmd, nil)
+}
+
+func runStage(cmd string, stdin io.Reader) (time.Duration, error) {
+	_, cpu, err := runStageOutput(cmd, stdin, stageCmdTimeout)
+	return cpu, err
+}
+
+// runStageOutput is runStage that also returns stdout, on failure too, within timeout.
+func runStageOutput(cmd string, stdin io.Reader, timeout time.Duration) (string, time.Duration, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 	c := exec.CommandContext(ctx, "bash", "-c", cmd)
 	var stdout, stderr bytes.Buffer
-	c.Stdout, c.Stderr = &stdout, &stderr
+	c.Stdin, c.Stdout, c.Stderr = stdin, &stdout, &stderr
 	err := c.Run()
 	if err == nil && strings.TrimSpace(stderr.String()) != "" {
 		err = fmt.Errorf("stderr not empty")
 	}
 	if err != nil {
-		return cpuTime(c), fmt.Errorf("%v %s %s", err, strings.TrimSpace(stderr.String()),
+		return stdout.String(), cpuTime(c), fmt.Errorf("%v %s %s", err, strings.TrimSpace(stderr.String()),
 			strings.TrimSpace(stdout.String()))
 	}
-	return cpuTime(c), nil
+	return stdout.String(), cpuTime(c), nil
 }
 
 // cpuTime is the user and system time of a finished command, its waited-for children included.
@@ -91,6 +102,21 @@ func corrupted(name string, err error) error {
 // picks up a previous attempt's leftovers. The downloads stay in place for retries. It returns
 // the CPU time the unpacking took.
 func unpackBackup(files []string, workDir string) (time.Duration, error) {
+	return unpackBackupRead(files, workDir, nil)
+}
+
+// unpackPort unpacks files for p, whose progress is the bytes read from them.
+func unpackPort(p *portReport, files []string, workDir string) (time.Duration, error) {
+	if p == nil {
+		return unpackBackup(files, workDir)
+	}
+	p.enter(phaseUnpack, totalSize(files), unitBytes)
+	return unpackBackupRead(files, workDir, p.progressed)
+}
+
+// unpackBackupRead is unpackBackup telling onRead, when not nil, each run of bytes read from the
+// downloads: they are fed to tar or the decompressor through its stdin.
+func unpackBackupRead(files []string, workDir string, onRead func(int64)) (time.Duration, error) {
 	sort.Strings(files)
 	first := filepath.Base(files[0])
 	if err := os.RemoveAll(workDir); err != nil {
@@ -103,22 +129,17 @@ func unpackBackup(files []string, workDir string) (time.Duration, error) {
 	if err := requireTools(first); err != nil {
 		return 0, err
 	}
-	src := files[0]
 	var cpu time.Duration
 	var err error
 	switch {
 	case strings.Contains(first, ".split."):
-		quoted := make([]string, len(files))
-		for i, f := range files {
-			quoted[i] = "'" + f + "'"
-		}
-		cpu, err = runStageCmd(fmt.Sprintf("cat %s | tar x -C %s", strings.Join(quoted, " "), workDir))
+		cpu, err = runStageInput(fmt.Sprintf("tar -xf - -C %s", shellQuote(workDir)), files, onRead)
 	case strings.HasSuffix(first, ".tar.gz") || strings.HasSuffix(first, ".tgz"):
-		cpu, err = runStageCmd(fmt.Sprintf("tar -xzf %s -C %s", src, workDir))
+		cpu, err = runStageInput(fmt.Sprintf("tar -xzf - -C %s", shellQuote(workDir)), files[:1], onRead)
 	case strings.HasSuffix(first, ".tar"):
-		cpu, err = runStageCmd(fmt.Sprintf("tar -xf %s -C %s", src, workDir))
+		cpu, err = runStageInput(fmt.Sprintf("tar -xf - -C %s", shellQuote(workDir)), files[:1], onRead)
 	default:
-		cpu, err = decompressFile(src, filepath.Join(workDir, first))
+		cpu, err = decompressFile(files[0], filepath.Join(workDir, first), onRead)
 	}
 	if err != nil {
 		return cpu, corrupted(first, err)
@@ -130,27 +151,65 @@ func unpackBackup(files []string, workDir string) (time.Duration, error) {
 // returns the CPU time it took. Uncompressed files are hard linked when on the same filesystem,
 // otherwise copied. Only full backups go through it; Tendisplus binlogs are decompressed straight
 // into binlog_tool (runBinlogToolStream) and SSD binlogs are read by the native decoder.
-func decompressFile(src, dst string) (time.Duration, error) {
+func decompressFile(src, dst string, onRead func(int64)) (time.Duration, error) {
+	var bin string
 	switch {
 	case strings.HasSuffix(dst, ".zst"):
 		if _, err := os.Stat(consts.ZstdBin); err != nil {
 			return 0, fmt.Errorf("zstd not found: %s", consts.ZstdBin)
 		}
-		return runStageCmd(fmt.Sprintf("%s -d -f %s -o %s", consts.ZstdBin, src, strings.TrimSuffix(dst, ".zst")))
+		bin = consts.ZstdBin
 	case strings.HasSuffix(dst, ".gz"):
-		return runStageCmd(fmt.Sprintf("gzip -dc %s > %s", src, strings.TrimSuffix(dst, ".gz")))
+		bin = "gzip"
 	case strings.HasSuffix(dst, ".lzo"):
 		if _, err := os.Stat(consts.LzopBin); err != nil {
 			return 0, fmt.Errorf("lzop not found: %s", consts.LzopBin)
 		}
-		return runStageCmd(fmt.Sprintf("%s -d -f %s -o %s", consts.LzopBin, src, strings.TrimSuffix(dst, ".lzo")))
+		bin = consts.LzopBin
 	default:
 		_ = os.Remove(dst)
 		if os.Link(src, dst) != nil {
-			return runStageCmd(fmt.Sprintf("cp -f %s %s", src, dst))
+			return runStageInput("cat > "+shellQuote(dst), []string{src}, onRead)
+		}
+		if onRead != nil {
+			onRead(totalSize([]string{src}))
 		}
 		return 0, nil
 	}
+	out := strings.TrimSuffix(dst, filepath.Ext(dst))
+	return runStageInput(fmt.Sprintf("%s -dc > %s", bin, shellQuote(out)), []string{src}, onRead)
+}
+
+func shellQuote(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'"
+}
+
+// runStageInput is runStageCmd with files fed one after another to cmd's stdin.
+func runStageInput(cmd string, files []string, onRead func(int64)) (time.Duration, error) {
+	readers := make([]io.Reader, 0, len(files))
+	for _, f := range files {
+		fh, err := os.Open(f)
+		if err != nil {
+			return 0, err
+		}
+		defer fh.Close()
+		readers = append(readers, fh)
+	}
+	return runStage(cmd, &countingReader{r: io.MultiReader(readers...), onRead: onRead})
+}
+
+// countingReader tells onRead what goes through it.
+type countingReader struct {
+	r      io.Reader
+	onRead func(int64)
+}
+
+func (c *countingReader) Read(b []byte) (int, error) {
+	n, err := c.r.Read(b)
+	if n > 0 && c.onRead != nil {
+		c.onRead(int64(n))
+	}
+	return n, err
 }
 
 // requireTools fails on a missing decompressor before unpacking, so it is not blamed on the backup.

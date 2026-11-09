@@ -78,6 +78,7 @@ func (r *plusRestorer) DoRollback() error {
 	}
 	limits := HostLimits(r.MaxConcurrency)
 	report := newHostReport(r.DestIP, "tendisplus", r.Instances)
+	report.recoverAt = r.RecoverAt
 	defer report.logResult()
 
 	redo, resume, err := r.resolvePending(report)
@@ -145,10 +146,10 @@ func (r *plusRestorer) DoRollback() error {
 		plans[inst.DestPort] = plan
 		report.port(inst.DestPort).setTuning(tuning)
 	}
-	report.logPlan(limits, plans, r.UnpackDir)
+	report.tuning = tuning
 	replaying := limits.KvstoreReplay(streams)
-	logInfo("RedisRollback(tendisplus) dest=%s recover_at=%s kvstores replaying=%d of %d",
-		r.DestIP, r.RecoverAt, replaying, streams)
+	report.logPlan(limits, plans, r.UnpackDir, fmt.Sprintf("%d of %d kvstores at once", replaying, streams))
+	defer report.trackProgress()()
 
 	window := newMemWindow(limits.MemAvailable, len(all))
 	replaySlots := make(chan struct{}, replaying)
@@ -238,13 +239,14 @@ func (r *plusRestorer) restore(inst InstanceRestore, p *portReport, window *memW
 	var root string
 	var metas map[int]plusBackupMeta
 	if len(inst.FullFiles) > 0 {
+		var size int64
 		err := p.timed(stageUnpack, func() error {
 			files, err := resolveFiles(r.SaveDir, inst)
 			if err != nil {
 				return err
 			}
-			log.Info("unpack files=%v into %s", inst.FullFiles, workDir)
-			cpu, err := unpackBackup(files, workDir)
+			size = totalSize(files)
+			cpu, err := unpackPort(p, files, workDir)
 			p.addCPU(stageUnpack, cpu)
 			if err != nil {
 				return err
@@ -262,6 +264,7 @@ func (r *plusRestorer) restore(inst InstanceRestore, p *portReport, window *memW
 			log.Error("unpack failed: %v", err)
 			return err
 		}
+		log.Info("unpacked %s in %s", shortBytes(size), shortDuration(p.duration(stageUnpack)))
 	}
 	need := PlusMemory(confFile(instDir))
 	if err := window.reserve(need); err != nil {
@@ -269,15 +272,18 @@ func (r *plusRestorer) restore(inst InstanceRestore, p *portReport, window *memW
 		log.Error("%v", err)
 		return err
 	}
+	p.enter(phaseStart, 0, "")
 	if err := p.timed(stageStart, func() error { return r.Host.Start(inst.DestPort) }); err != nil {
 		window.unreserve(need)
 		log.Error("start failed: %v", err)
 		return err
 	}
+	log.Info("started, memory~%s", shortBytes(need))
 	if len(inst.FullFiles) == 0 {
 		log.Info("no full files, keep it empty")
 		return MarkPending(instDir, r.fingerprint(inst))
 	}
+	p.enter(phaseRestore, 0, "")
 	err := p.timed(stageRestore, func() error {
 		return r.restoreBackup(log, p, inst, instDir, root, metas)
 	})
@@ -285,6 +291,7 @@ func (r *plusRestorer) restore(inst InstanceRestore, p *portReport, window *memW
 		log.Error("%v", err)
 		return err
 	}
+	log.Info("restored in %s", shortDuration(p.duration(stageRestore)))
 	if err = os.RemoveAll(workDir); err != nil {
 		log.Warn("remove unpacked backup %s failed: %v", workDir, err)
 	}
@@ -596,6 +603,10 @@ func (r *plusRestorer) replay(log portLog, p *portReport, inst InstanceRestore, 
 		files += len(chain)
 	}
 	sort.Ints(kvstores)
+	var bytes int64
+	for _, chain := range chains {
+		bytes += totalSize(chain)
+	}
 
 	var wg sync.WaitGroup
 	var errs errCollector
@@ -603,7 +614,9 @@ func (r *plusRestorer) replay(log portLog, p *portReport, inst InstanceRestore, 
 	applied := 0
 	redo := false
 	stop := make(chan struct{})
-	var stopOnce sync.Once
+	var stopOnce, startOnce sync.Once
+	begin := time.Now()
+	p.waiting("replay slots")
 	for _, kvstore := range kvstores {
 		wg.Add(1)
 		go func(kvstore int) {
@@ -618,6 +631,10 @@ func (r *plusRestorer) replay(log portLog, p *portReport, inst InstanceRestore, 
 			if stopped(stop) {
 				return
 			}
+			startOnce.Do(func() {
+				p.enterReplay(files, bytes, kvProgressOf(chains))
+				log.Info("replay %d binlogs (%s), %d kvstores", files, shortBytes(bytes), len(kvstores))
+			})
 			n, err := r.replayOnConn(log, p, inst.DestPort, kvstore, chains[kvstore], endMs, stop)
 			if errors.Is(err, errReplayStopped) {
 				err = nil
@@ -634,6 +651,9 @@ func (r *plusRestorer) replay(log portLog, p *portReport, inst InstanceRestore, 
 	}
 	wg.Wait()
 	p.replayed(files, replyStats{Lines: applied})
+	if errs.err == nil {
+		log.Info("replayed in %s: %s cmds", shortDuration(time.Since(begin)), shortCount(applied))
+	}
 	if redo && !failedInFlight(errs.err) {
 		return &inFlightError{errs.err}
 	}
@@ -814,6 +834,7 @@ func replayKvstore(log portLog, p *portReport, cli plusReplayer, kvstore int, fi
 	if err != nil {
 		return 0, err
 	}
+	p.kvstoreStarted(kvstore)
 	last, applied, first, replayed := start, 0, true, 0
 	defer func() { p.kvstoreReplayed(kvstore, replayed, applied, start, last) }()
 	var batches time.Duration
@@ -864,6 +885,7 @@ func replayKvstore(log portLog, p *portReport, cli plusReplayer, kvstore int, fi
 		if err != nil {
 			return applied, fmt.Errorf("kvstore %d binlog %s: %w", kvstore, base, err)
 		}
+		p.kvstoreBinlogReplayed(kvstore, totalSize([]string{file}))
 		replayed++
 	}
 	pos, err := cli.BinlogPos(kvstore)
@@ -874,8 +896,7 @@ func replayKvstore(log portLog, p *portReport, cli plusReplayer, kvstore int, fi
 		return applied, &inFlightError{fmt.Errorf("kvstore %d binlogpos is %d after replay, want %d, the last "+
 			"binlog id replayed", kvstore, pos, last)}
 	}
-	log.Info("kvstore %d replayed %d binlogs, %d writes, binlogpos %d -> %d", kvstore, len(files), applied, start,
-		last)
+	p.kvstoreFinished(kvstore)
 	return applied, nil
 }
 

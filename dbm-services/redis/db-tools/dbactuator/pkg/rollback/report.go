@@ -64,6 +64,10 @@ type portReport struct {
 	restored string
 	// gaps lists the binlog indexes the plan let the replay skip, e.g. "kv3 #31-33".
 	gaps []string
+	// now is the host clock, so every port's progress sample shares one time.
+	now func() time.Time
+	// prog is the phase the progress snapshots read.
+	prog portProgress
 }
 
 // kvstoreReport is one kvstore's binlog replay.
@@ -150,6 +154,12 @@ func (p *portReport) add(stage string, d time.Duration) {
 	p.mu.Unlock()
 }
 
+func (p *portReport) duration(stage string) time.Duration {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.durations[stage]
+}
+
 func (p *portReport) addCPU(stage string, d time.Duration) {
 	if d <= 0 {
 		return
@@ -179,26 +189,40 @@ func (p *portReport) finish(err error) {
 	defer p.mu.Unlock()
 	if err != nil {
 		p.status, p.err = portFailed, err
+		p.prog.phase = phaseFailed
 		return
 	}
 	p.status = portDone
+	p.prog.phase = phaseDone
 }
 
 // hostReport collects one node's ports for the summaries printed when it starts and ends.
 type hostReport struct {
-	destIP string
-	engine string
-	ports  []*portReport
-	byPort map[int]*portReport
+	destIP    string
+	engine    string
+	recoverAt string
+	ports     []*portReport
+	byPort    map[int]*portReport
 	// selfCPU is the actuator's own CPU when the node started, its client side of every stage.
 	selfCPU time.Duration
+	// tuning is the temp instance directives written for the replay, shown once in the plan.
+	tuning string
+	// workload sizes the snapshot cadence: the planned binlog bytes, or a quarter of the full
+	// backups when there are none.
+	workload int64
+	started  time.Time
+	// now is replaced in tests, which drive the progress snapshots on a fake clock.
+	now func() time.Time
 }
 
 func newHostReport(destIP, engine string, instances []InstanceRestore) *hostReport {
-	h := &hostReport{destIP: destIP, engine: engine, byPort: map[int]*portReport{}, selfCPU: selfCPU()}
+	h := &hostReport{destIP: destIP, engine: engine, byPort: map[int]*portReport{}, selfCPU: selfCPU(),
+		now: time.Now}
+	h.started = h.now()
 	for _, inst := range instances {
 		p := &portReport{inst: inst, status: portPending, durations: map[string]time.Duration{},
-			cpu: map[string]time.Duration{}, instanceCPU: -1}
+			cpu: map[string]time.Duration{}, instanceCPU: -1,
+			now: func() time.Time { return h.now() }}
 		h.ports = append(h.ports, p)
 		h.byPort[inst.DestPort] = p
 	}
@@ -211,7 +235,10 @@ func (h *hostReport) port(destPort int) *portReport {
 }
 
 func (h *hostReport) skipped(destPort int) {
-	h.port(destPort).status = portSkipped
+	p := h.port(destPort)
+	p.mu.Lock()
+	p.status, p.prog.phase = portSkipped, phaseSkipped
+	p.mu.Unlock()
 }
 
 // portPlan is what the opening summary shows for one port.
@@ -223,11 +250,24 @@ type portPlan struct {
 	tuning      string
 }
 
-// logPlan prints the opening summary: what each port restores, the limits it runs under and the
-// memory and disk it is expected to take.
-func (h *hostReport) logPlan(limits Limits, plans map[int]portPlan, unpackDir string) {
-	var memory, download, unpack int64
-	var lines []string
+// Engines as the summaries name them.
+const (
+	enginePlus  = "tendisplus"
+	engineSSD   = "tendisssd"
+	engineCache = "cache"
+)
+
+// logPlan prints the opening summary: which shard and source each port restores and how much, the
+// limits it runs under, the tuning and the memory and disk it is expected to take. replay tells
+// how many replay at once.
+//
+//	RedisRollback plan tendisplus: 6 ports, 1 skipped
+//	 port  shard          source                  full binlogs         memory
+//	30000  0-104999       1.1.1.1:30000           4.8G  360 (6.5G)       3.1G
+//	 limits: cpu=16 unpack=8 loading=16 mem_available=120.5GiB max_concurrency=0
+func (h *hostReport) logPlan(limits Limits, plans map[int]portPlan, unpackDir, replay string) {
+	var memory, download, unpack, binlogBytes int64
+	var rows []string
 	var skipped []int
 	for _, p := range h.ports {
 		if p.status == portSkipped {
@@ -238,18 +278,40 @@ func (h *hostReport) logPlan(limits Limits, plans map[int]portPlan, unpackDir st
 		memory += plan.memory
 		download += plan.fullBytes + plan.binlogBytes
 		unpack += plan.fullBytes
-		line := fmt.Sprintf("  port %d shard=%s src=%s:%d full=%s binlogs=%d (%s) memory~%s",
-			p.inst.DestPort, p.inst.ShardValue, p.inst.SourceIP, p.inst.SourcePort, humanBytes(plan.fullBytes),
-			plan.binlogs, humanBytes(plan.binlogBytes), humanBytes(plan.memory))
-		if plan.tuning != "" {
-			line += " tuning: " + plan.tuning
+		binlogBytes += plan.binlogBytes
+		binlogs := "-"
+		if plan.binlogs > 0 {
+			binlogs = fmt.Sprintf("%d (%s)", plan.binlogs, shortBytes(plan.binlogBytes))
 		}
-		lines = append(lines, line)
+		rows = append(rows, fmt.Sprintf("%5d  %-13s  %-21s %6s %-12s %7s", p.inst.DestPort,
+			clip(p.inst.ShardValue, 13), clip(fmt.Sprintf("%s:%d", p.inst.SourceIP, p.inst.SourcePort), 21),
+			shortBytes(plan.fullBytes), binlogs, shortBytes(plan.memory)))
 	}
-	logInfo("RedisRollback plan dest=%s engine=%s ports=%d to restore=%d skipped (already done)=%v\n"+
-		"  limits: %s\n  memory~%s, downloaded %s, unpacking %s of full backups (more once decompressed) into %s\n%s",
-		h.destIP, h.engine, len(h.ports), len(lines), skipped, limits, humanBytes(memory), humanBytes(download),
-		humanBytes(unpack), unpackDir, strings.Join(lines, "\n"))
+	h.workload = binlogBytes
+	if binlogBytes == 0 {
+		h.workload = unpack / 4
+	}
+	lines := []string{
+		fmt.Sprintf("RedisRollback plan %s: %d ports, %d skipped", h.engine, len(h.ports), len(skipped)),
+		fmt.Sprintf("%5s  %-13s  %-21s %6s %-12s %7s", "port", "shard", "source", "full", "binlogs", "memory"),
+	}
+	lines = append(lines, rows...)
+	if h.recoverAt != "" {
+		lines = append(lines, " recover_at: "+h.recoverAt)
+	}
+	lines = append(lines, " limits: "+limits.String())
+	if replay != "" {
+		lines = append(lines, " replay: "+replay)
+	}
+	if h.tuning != "" {
+		lines = append(lines, " tuning: "+h.tuning)
+	}
+	if len(skipped) > 0 {
+		lines = append(lines, " skipped (already done): "+portRanges(skipped))
+	}
+	lines = append(lines, fmt.Sprintf(" memory~%s, download %s, unpack %s+ into %s", shortBytes(memory),
+		shortBytes(download), shortBytes(unpack), unpackDir))
+	logInfo("%s", strings.Join(lines, "\n"))
 }
 
 // logResult prints the closing summary, on success and failure alike.
@@ -379,4 +441,13 @@ func keepOutput(dir, name string, out []byte) string {
 		tail = tail[len(tail)-tailBytes:]
 	}
 	return fmt.Sprintf("%s (full output in %s)", strings.TrimSpace(string(tail)), path)
+}
+
+// clip cuts s to n characters, the last one marking the cut.
+func clip(s string, n int) string {
+	r := []rune(s)
+	if len(r) <= n {
+		return s
+	}
+	return string(r[:n-1]) + "~"
 }

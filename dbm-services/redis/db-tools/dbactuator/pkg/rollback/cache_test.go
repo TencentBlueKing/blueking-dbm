@@ -125,23 +125,70 @@ func (f *fakeProber) Info(string) (map[string]string, error) {
 
 func TestWaitLoadedReturnsOnceLoadingFinishes(t *testing.T) {
 	p := &fakeProber{replies: []map[string]string{
-		{"loading": "1", "loading_loaded_perc": "10.00"},
-		{"loading": "1", "loading_loaded_perc": "80.00"},
+		{"loading": "1", "loading_loaded_perc": "10.00", "loading_eta_seconds": "45"},
+		{"loading": "1", "loading_loaded_perc": "80.00", "loading_eta_seconds": "9"},
 		{"loading": "0"},
 	}}
+	var percs []float64
+	var etas []time.Duration
+	onLoading := func(perc float64, eta time.Duration) {
+		percs = append(percs, perc)
+		etas = append(etas, eta)
+	}
 
-	if err := waitLoaded(p, portLog{}, "2.2.2.2:30000", time.Second, time.Millisecond); err != nil {
+	if err := waitLoaded(p, onLoading, "2.2.2.2:30000", time.Second, time.Millisecond); err != nil {
 		t.Fatalf("waitLoaded: %v", err)
 	}
-	if p.calls != 3 {
-		t.Fatalf("expected 3 probes, got %d", p.calls)
+	if p.calls != 3 || len(percs) != 2 || percs[0] != 10 || percs[1] != 80 ||
+		etas[0] != 45*time.Second || etas[1] != 9*time.Second {
+		t.Fatalf("calls=%d percs=%v etas=%v", p.calls, percs, etas)
 	}
+}
+
+func TestCacheWaitLoadedFeedsProgressSnapshot(t *testing.T) {
+	root := passwordRoot(t)
+	writeConf(t, root, 30000, "redis.conf", "requirepass s3cret\n")
+	inst := InstanceRestore{DestPort: 30000}
+	r := &cacheRestorer{Job: Job{DestIP: "2.2.2.2", Instances: []InstanceRestore{inst}, Host: dirHost{root: root}}}
+	h, now := clockedHost(30000)
+	port := h.port(30000)
+	port.enter(phaseLoad, 0, "")
+	s := newSnapshotter(h, *now)
+	var snap string
+	orig := waitLoadedFn
+	waitLoadedFn = func(addr, password string, deadline time.Duration,
+		onLoading func(perc float64, eta time.Duration)) (int64, int64, error) {
+		if addr != "2.2.2.2:30000" || password != "s3cret" {
+			t.Fatalf("addr=%q password=%q", addr, password)
+		}
+		onLoading(62.5, 40*time.Second)
+		// A repeat at the same percentage only refreshes the engine's ETA, not changed.
+		changed := port.prog.changed
+		*now = now.Add(time.Minute)
+		onLoading(62.5, 35*time.Second)
+		if !port.prog.changed.Equal(changed) {
+			t.Fatalf("changed moved without progress: %v -> %v", changed, port.prog.changed)
+		}
+		snap, _ = s.step(*now)
+		return 1234, 64 << 20, nil
+	}
+	t.Cleanup(func() { waitLoadedFn = orig })
+
+	window := newMemWindow(1<<30, 1)
+	if err := window.acquire(100 << 20); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.waitLoaded(inst, newPortLog(30000), port, window, 100<<20); err != nil {
+		t.Fatalf("waitLoaded: %v", err)
+	}
+	assertNodeLogWidths(t, []logEntry{{levelProgress, snap}})
+	containsAll(t, snap, "30000  load     ██████░░░░  62%                             35s")
 }
 
 func TestWaitLoadedTimesOutWhileStillLoading(t *testing.T) {
 	p := &fakeProber{replies: []map[string]string{{"loading": "1", "loading_loaded_perc": "42.00"}}}
 
-	err := waitLoaded(p, portLog{}, "2.2.2.2:30000", 20*time.Millisecond, time.Millisecond)
+	err := waitLoaded(p, nil, "2.2.2.2:30000", 20*time.Millisecond, time.Millisecond)
 	if err == nil || !strings.Contains(err.Error(), "42.00") {
 		t.Fatalf("expected a timeout reporting progress, got %v", err)
 	}
