@@ -24,6 +24,9 @@ DEPRECATED_ACTION_GROUP = _("已废弃")
 # DB类型的兜底实例，不属于任何真实DB的配置、单据与任务流程都归入此类
 COMMON_DB_TYPE = "common"
 
+# V3单据分类的兜底实例，无DB类型的单据与任务流程归入此类，与现网存量策略保持一致
+TICKET_GROUP_OTHER = "other"
+
 
 class CommonActionLabel(StrStructuredEnum):
     BIZ_READ_ONLY = EnumField("biz_read_only", _("业务只读"))
