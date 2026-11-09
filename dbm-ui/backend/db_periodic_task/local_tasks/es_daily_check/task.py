@@ -13,6 +13,7 @@ from celery.schedules import crontab
 
 from backend.db_periodic_task.local_tasks import register_periodic_task
 from backend.db_periodic_task.local_tasks.es_daily_check.es_cluster_status import check_es_status
+from backend.db_periodic_task.local_tasks.es_daily_check.es_datanode_attr_check import check_es_datanode_attr
 from backend.db_periodic_task.local_tasks.es_daily_check.es_datanode_check import check_es_datanode
 from backend.db_periodic_task.local_tasks.es_daily_check.es_domain_check import check_es_domain
 from backend.db_periodic_task.local_tasks.es_daily_check.es_master_check import check_es_master
@@ -57,3 +58,11 @@ def es_domain_task():
     es域名巡检
     """
     check_es_domain()
+
+
+@register_periodic_task(run_every=crontab(hour="8", minute="58"))
+def es_datanode_attr_task():
+    """
+    es数据节点拓扑属性巡检
+    """
+    check_es_datanode_attr()

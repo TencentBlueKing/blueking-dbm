@@ -458,6 +458,53 @@ ES_DATANODE_CHECK_DATA = {
     ],
 }
 
+# ES集群数据节点拓扑属性巡检报告
+ES_DATANODE_ATTR_CHECK_DATA = {
+    "count": 1,
+    "next": None,
+    "previous": None,
+    "results": [
+        {
+            "bk_biz_id": 1,
+            "app": "dba",
+            "domain": "aa.bb.cc",
+            "cluster_type": "es",
+            "dba": ["admin"],
+            "create_at": "2026-10-20T08:58:00Z",
+            "ip": "1.1.1.1",
+            "node_name": "hot-1.1.1.1_1",
+            "node_role": "hot",
+            "es_idc_id": "2",
+            "meta_idc_id": 3,
+            "es_rack_id": "11",
+            "meta_rack_id": 12,
+            "es_sub_zone_id": "21",
+            "meta_sub_zone_id": 21,
+            "msg": "配置与元数据不一致: idc_id(es=2, meta=3), rack_id(es=11, meta=12)",
+            "state": "abnormal",
+        }
+    ],
+    "title": [
+        {"name": "bk_biz_id", "display_name": "业务", "format": "text"},
+        {"name": "app", "display_name": "业务名", "format": "text"},
+        {"name": "domain", "display_name": "集群域名", "format": "text"},
+        {"name": "cluster_type", "display_name": "集群类型", "format": "text"},
+        {"name": "dba", "display_name": "业务所属dba", "format": "text"},
+        {"name": "create_at", "display_name": "巡检时间", "format": "text"},
+        {"name": "ip", "display_name": "节点IP", "format": "text"},
+        {"name": "node_name", "display_name": "节点名称", "format": "text"},
+        {"name": "node_role", "display_name": "节点角色", "format": "text"},
+        {"name": "es_idc_id", "display_name": "ES配置机房ID", "format": "text"},
+        {"name": "meta_idc_id", "display_name": "元数据机房ID", "format": "text"},
+        {"name": "es_rack_id", "display_name": "ES配置机架ID", "format": "text"},
+        {"name": "meta_rack_id", "display_name": "元数据机架ID", "format": "text"},
+        {"name": "es_sub_zone_id", "display_name": "ES配置园区ID", "format": "text"},
+        {"name": "meta_sub_zone_id", "display_name": "元数据园区ID", "format": "text"},
+        {"name": "msg", "display_name": "检查结果", "format": "text"},
+        {"name": "state", "display_name": "检查状态", "format": "status"},
+    ],
+}
+
 # ES集群ADMIN账号巡检报告
 ES_ACCOUNT_CHECK_DATA = {
     "count": 1,
