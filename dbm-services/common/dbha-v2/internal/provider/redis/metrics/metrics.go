@@ -24,30 +24,3 @@
 
 // Package redismetrics owns Redis switching APM metrics and self-registers them.
 package redismetrics
-
-import (
-	"dbm-services/common/dbha-v2/internal/analysis/apm"
-	"dbm-services/common/dbha-v2/pkg/haapm"
-	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
-)
-
-var (
-	SwitchingSuccessTotal *haapm.HaCounter
-	SwitchingErrorTotal   *haapm.HaCounter
-)
-
-func init() {
-	SwitchingSuccessTotal = haapm.NewHaCounter(
-		"redis_switching_success_total",
-		"Total number of Redis switching success",
-		apm.MetricLabelActionScope, apm.MetricLabelDbType,
-	)
-
-	SwitchingErrorTotal = haapm.NewHaCounter(
-		"redis_switching_error_total",
-		"Total number of Redis switching error",
-		apm.MetricLabelActionScope, apm.MetricLabelDbType,
-	)
-
-	apm.RegisterDbMetrics(haprobe.DbTypeRedis, SwitchingSuccessTotal, SwitchingErrorTotal)
-}

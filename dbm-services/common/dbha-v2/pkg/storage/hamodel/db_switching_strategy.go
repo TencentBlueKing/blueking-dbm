@@ -54,6 +54,7 @@ const (
 	ActionScopeTypeCluster    ActionScopeType = "cluster"
 	ActionScopeTypeHost       ActionScopeType = "host"
 	ActionScopeTypeDbInstance ActionScopeType = "db_instance"
+	ActionScopeTypeUnknown    ActionScopeType = "unknown"
 	// ActionScopeTypeNone is used for notify actions that do not perform a switch.
 	ActionScopeTypeNone ActionScopeType = "none"
 )
@@ -66,6 +67,20 @@ var ActionScopeTypeMap = map[ActionScopeType]ActionScopeType{
 	ActionScopeTypeCluster:    ActionScopeTypeCluster,
 	ActionScopeTypeHost:       ActionScopeTypeHost,
 	ActionScopeTypeDbInstance: ActionScopeTypeDbInstance,
+}
+
+// IsKnown reports whether a is a scope that can actually perform a switch.
+func (a ActionScopeType) IsKnown() bool {
+	_, ok := ActionScopeTypeMap[a]
+	return ok
+}
+
+// Normalize maps an unsupported or missing scope to ActionScopeTypeUnknown.
+func (a ActionScopeType) Normalize() ActionScopeType {
+	if a.IsKnown() {
+		return a
+	}
+	return ActionScopeTypeUnknown
 }
 
 // StatusType enabled, disabled, deleted.

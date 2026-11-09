@@ -52,7 +52,7 @@ func frameworkMetrics() []interface{} {
 		ScanBusinessTotal,
 		SlidingWindowSize,
 		AmBusinessTotal,
-		TriggerSwitchingInstanceTotal,
+		SwitchingRequestedInstanceTotal,
 		SwitchingInstanceErrorTotal,
 		SwitchingInstanceSuccessTotal,
 		SwitchingTimeConsumingMs,

@@ -312,29 +312,28 @@ func (e *SwitchExecutor) TriggerSwitching(
 func (e *SwitchExecutor) reportSwitchingMetrics(start time.Time, req *switcher.Request,
 	rsp *switcher.Response, dbType haprobe.DbType) {
 
-	// Report the switching time consuming
-	if err := apm.SwitchingTimeConsumingMs.ObserveWithLabels(map[string]string{
-		apm.MetricLabelDbType:        dbType.String(),
+	labels := map[string]string{
+		apm.MetricLabelDbType:        dbType.Normalize().String(),
+		apm.MetricLabelActionScope:   req.ActionScope.Normalize().String(),
 		haapm.MetricLabelServiceID:   e.myServiceID,
 		haapm.MetricLabelServiceName: apm.MetricServerName,
-	}, float64(time.Since(start).Milliseconds())); err != nil {
+	}
+
+	// Report the switching time consuming
+	if err := apm.SwitchingTimeConsumingMs.ObserveWithLabels(labels,
+		float64(time.Since(start).Milliseconds())); err != nil {
 		logger.Warn("failed to update switching time consuming metric, errmsg: %s", err)
 	}
 
 	// Report the switching instance success total and error total
 	successCount := float64(len(req.InstData) - rsp.FailureInstCount())
-	if err := apm.SwitchingInstanceSuccessTotal.AddWithLabels(map[string]string{
-		haapm.MetricLabelServiceID:   e.myServiceID,
-		haapm.MetricLabelServiceName: apm.MetricServerName,
-	}, successCount); err != nil {
+	if err := apm.SwitchingInstanceSuccessTotal.AddWithLabels(labels, successCount); err != nil {
 		logger.Error("failed to update switching instance success total metric, errmsg: %s", err)
 	}
 
 	// Report the switching instance error total
-	if err := apm.SwitchingInstanceErrorTotal.AddWithLabels(map[string]string{
-		haapm.MetricLabelServiceID:   e.myServiceID,
-		haapm.MetricLabelServiceName: apm.MetricServerName,
-	}, float64(rsp.FailureInstCount())); err != nil {
+	if err := apm.SwitchingInstanceErrorTotal.AddWithLabels(labels,
+		float64(rsp.FailureInstCount())); err != nil {
 		logger.Error("failed to update switching instance error total metric, errmsg: %s", err)
 	}
 }
