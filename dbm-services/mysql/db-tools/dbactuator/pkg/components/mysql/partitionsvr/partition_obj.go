@@ -23,32 +23,34 @@ const DiffOneDay = 1
 // 5分钟
 const ExecTimeout = 300 * time.Second
 
-// 锁等待超时时间 单位：秒
-const LockWaitTimeout = 20
+// LockWaitTimeout 收尾 FLUSH TABLES 的锁等待超时，单位：秒。
+const LockWaitTimeout = 10
 
-// partitionStmtMaxAttempts 添加/删除分区，以及初始化 DDL 的总执行次数（含首次）。
-// 超时或其他错误都会重试，两次尝试间隔 partitionStmtRetryInterval。
-const partitionStmtMaxAttempts = 3
+// partitionLockWaitTimeouts 分区 DDL 每次尝试的锁等待秒数，先短后长，最长 20 秒。
+// 长度就是总执行次数（含首次）。短等用来抓空档，少堵住后面的查询；后面拉长，等穿已经在跑的慢查询。
+var partitionLockWaitTimeouts = []int{3, 5, 8, 12, 16, 20}
 
-// partitionStmtRetryInterval 添加/删除分区、初始化 DDL 失败后的重试间隔
-const partitionStmtRetryInterval = 40 * time.Second
+// partitionStmtRetryInterval 添加/删除分区、清理未来分区、初始化 DDL 失败后的重试间隔
+const partitionStmtRetryInterval = 10 * time.Second
 
-// execPartitionStmtWithRetry 执行分区语句。任意错误都重试，一共 partitionStmtMaxAttempts 次，
-// 两次尝试间隔 partitionStmtRetryInterval。action 写入重试日志，例如 add partition `db`.`tb`。
-// 返回最后一次执行的错误。
-func execPartitionStmtWithRetry(action string, execFn func() error) error {
+// execPartitionStmtWithRetry 执行分区语句。任意错误都重试，次数和每次锁等待见 partitionLockWaitTimeouts，
+// 两次尝试间隔 partitionStmtRetryInterval。execFn 收到本次的 lock_wait_timeout 秒数。
+// action 写入重试日志，例如 add partition `db`.`tb`。返回最后一次执行的错误。
+func execPartitionStmtWithRetry(action string, execFn func(lockWaitTimeout int) error) error {
 	var err error
-	for attempt := 1; attempt <= partitionStmtMaxAttempts; attempt++ {
-		err = execFn()
+	attempts := len(partitionLockWaitTimeouts)
+	for attempt := 1; attempt <= attempts; attempt++ {
+		lockWait := partitionLockWaitTimeouts[attempt-1]
+		err = execFn(lockWait)
 		if err == nil {
 			return nil
 		}
-		if attempt == partitionStmtMaxAttempts {
+		if attempt == attempts {
 			return err
 		}
 		logger.Warn(
-			"%s failed (attempt %d/%d), retry after %s: %s",
-			action, attempt, partitionStmtMaxAttempts, partitionStmtRetryInterval, err.Error(),
+			"%s failed (attempt %d/%d, lock_wait_timeout=%ds), retry after %s: %s",
+			action, attempt, attempts, lockWait, partitionStmtRetryInterval, err.Error(),
 		)
 		time.Sleep(partitionStmtRetryInterval)
 	}

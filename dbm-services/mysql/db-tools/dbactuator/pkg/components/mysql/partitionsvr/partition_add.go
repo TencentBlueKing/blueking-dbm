@@ -45,6 +45,12 @@ type addStmtContext struct {
 }
 
 func (pc *PartitionConfig) ExecuteAddStatement(pd *PartitionDetail, conn *native.DbWorker) (partitionStepInfo *PartitionStepInfo) {
+	if pc.PartitionType == monthPartitionType {
+		return pc.executeMonthAddStatement(pd, conn)
+	}
+	if pc.PartitionType == timestampMonthPartitionType {
+		return pc.executeTimestampMonthAddStatement(pd, conn)
+	}
 
 	partitionStepInfo = &PartitionStepInfo{
 		Step:      "add",
@@ -78,9 +84,9 @@ func (pc *PartitionConfig) ExecuteAddStatement(pd *PartitionDetail, conn *native
 	// 记录执行的SQL语句
 	partitionStepInfo.Statement = addStatement
 
-	// 只设置锁等待超时时间。超时或其他错误由 execPartitionStmtWithRetry 重试。
-	addSQL := fmt.Sprintf("set session lock_wait_timeout=%d; %s", LockWaitTimeout, addStatement)
-	err = execPartitionStmtWithRetry(fmt.Sprintf("add partition `%s`.`%s`", pd.DbName, pd.TbName), func() error {
+	// 锁等待按次数递增。超时或其他错误由 execPartitionStmtWithRetry 重试。
+	err = execPartitionStmtWithRetry(fmt.Sprintf("add partition `%s`.`%s`", pd.DbName, pd.TbName), func(lockWaitTimeout int) error {
+		addSQL := fmt.Sprintf("set session lock_wait_timeout=%d; %s", lockWaitTimeout, addStatement)
 		_, execErr := conn.ExecWithTimeout(ExecTimeout, addSQL)
 		return execErr
 	})
@@ -346,10 +352,14 @@ func (pc *PartitionConfig) CleanupFuturePartitions(
 		"ALTER TABLE `%s`.`%s` DROP PARTITION %s",
 		dbName, tbName, strings.Join(quoted, ","),
 	)
-	_, err := conn.ExecWithTimeout(
-		ExecTimeout,
-		fmt.Sprintf("set session lock_wait_timeout=%d; %s", LockWaitTimeout, dropSQL),
-	)
+	// 锁等待按次数递增。超时或其他错误由 execPartitionStmtWithRetry 重试。
+	err := execPartitionStmtWithRetry(fmt.Sprintf("cleanup future partition `%s`.`%s`", pd.DbName, pd.TbName), func(lockWaitTimeout int) error {
+		_, execErr := conn.ExecWithTimeout(
+			ExecTimeout,
+			fmt.Sprintf("set session lock_wait_timeout=%d; %s", lockWaitTimeout, dropSQL),
+		)
+		return execErr
+	})
 	return err
 }
 
