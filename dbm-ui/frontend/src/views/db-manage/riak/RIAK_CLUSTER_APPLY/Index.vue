@@ -58,7 +58,6 @@
             v-model="formData.details.db_version"
             class="item-input"
             disabled
-            :input-search="false"
             style="width: 185px">
             <DbOption
               v-for="item in dbVersionList"

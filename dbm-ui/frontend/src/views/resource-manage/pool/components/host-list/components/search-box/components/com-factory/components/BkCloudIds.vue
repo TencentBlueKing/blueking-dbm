@@ -15,7 +15,6 @@
   <DbSelect
     collapse-tags
     filterable
-    :input-search="false"
     :loading="isLoading"
     :model-value="defaultValue"
     multiple

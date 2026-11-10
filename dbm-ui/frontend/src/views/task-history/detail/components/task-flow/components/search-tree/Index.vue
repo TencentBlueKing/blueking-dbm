@@ -20,7 +20,6 @@
         class="select-box"
         :clearable="false"
         :filterable="false"
-        :input-search="false"
         @change="handleSelectChange"
         @toggle="handleSelectToggle">
         <DbOption

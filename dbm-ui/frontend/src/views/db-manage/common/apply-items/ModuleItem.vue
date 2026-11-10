@@ -13,7 +13,6 @@
       :clearable="false"
       :disabled="isAdjustApply"
       filterable
-      :input-search="false"
       :loading="moduleLoading"
       :no-data-text="t('当前业务下暂无可用模块，请联系 DBA 创建')"
       style="display: inline-block">

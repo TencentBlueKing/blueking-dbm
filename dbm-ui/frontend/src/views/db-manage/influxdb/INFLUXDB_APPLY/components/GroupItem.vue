@@ -21,7 +21,6 @@
       :clearable="false"
       :disabled="isAdjustApply"
       filterable
-      :input-search="false"
       :loading="isLoading"
       :model-value="localGroupId"
       @change="handleChangeId"

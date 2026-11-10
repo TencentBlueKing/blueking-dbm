@@ -14,7 +14,6 @@
 <template>
   <DbSelect
     filterable
-    :input-search="false"
     :loading="isLoading"
     :model-value="modelValue"
     multiple
