@@ -53,7 +53,7 @@ from backend.ticket.builders.common.base import ParamValidateSerializerMixin
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, DBTableField
 from backend.ticket.constants import FlowType, TicketType
 from backend.ticket.exceptions import TicketResourceApplyException
-from backend.ticket.models import Ticket
+from backend.ticket.models import Flow, Ticket
 
 logger = logging.getLogger("root")
 
@@ -1293,6 +1293,17 @@ def _maybe_create_destroy_after_migrate(ticket) -> None:
         logger.error(gettext_runtime("迁移单据 {} 串联销毁 DTS 失败: {}").format(getattr(ticket, "id", None), str(e)))
 
 
+class DtsMigratePrecheckFlowParamBuilder(builders.FlowParamBuilder):
+    controller = MySQLController.mysql_dts_precheck_scene
+
+    def format_ticket_data(self):
+        rows = self.ticket_data.get("infos") or [self.ticket_data]
+        self.ticket_data = {
+            "bk_biz_id": self.ticket.bk_biz_id,
+            "infos": [{"migrate": row["migrate"]} for row in rows],
+        }
+
+
 class DtsMigrateFlowParamBuilder(builders.FlowParamBuilder):
     """三种 DTS 迁移单据共用：写入 ticket_id；可选整单 migrate_type。
 
@@ -1310,6 +1321,30 @@ class DtsMigrateFlowParamBuilder(builders.FlowParamBuilder):
 
 class DtsMigrateFlowBuilder(BaseMySQLTicketFlowBuilder):
     """三种 DTS 迁移单据共用 patch_ticket_detail。"""
+
+    precheck_flow_builder = None
+
+    def build_flows_after_itsm(self):
+        flows = []
+        if self.precheck_flow_builder:
+            flows.append(
+                Flow(
+                    ticket=self.ticket,
+                    flow_type=FlowType.INNER_FLOW.value,
+                    details=self.precheck_flow_builder(self.ticket).get_params(),
+                    flow_alias=_("MySQL DTS 迁移预检查"),
+                    retry_type=self.retry_type,
+                )
+            )
+        return flows + super().build_flows_after_itsm()
+
+    @classmethod
+    def describe_ticket_flows(cls, flow_config_map):
+        flow_desc = super().describe_ticket_flows(flow_config_map)
+        if cls.precheck_flow_builder:
+            index = int(bool(flow_config_map[cls.ticket_type]["need_itsm"]))
+            flow_desc.insert(index, _("MySQL DTS 迁移预检查"))
+        return flow_desc
 
     @property
     def need_resource_pool(self):
@@ -1424,6 +1459,7 @@ class MysqlToMysqlMigrateFlowParamBuilder(DtsMigrateFlowParamBuilder):
 )
 class MysqlToMysqlMigrateFlowBuilder(DtsMigrateFlowBuilder):
     serializer = MysqlToMysqlMigrateDetailSerializer
+    precheck_flow_builder = DtsMigratePrecheckFlowParamBuilder
     inner_flow_builder = MysqlToMysqlMigrateFlowParamBuilder
     inner_flow_name = _("MySQL 数据迁移")
     resource_batch_apply_builder = DtsMigrateResourceParamBuilder
@@ -1463,6 +1499,7 @@ class MysqlRenameMigrateFlowParamBuilder(DtsMigrateFlowParamBuilder):
 )
 class MysqlRenameMigrateFlowBuilder(DtsMigrateFlowBuilder):
     serializer = MysqlRenameMigrateDetailSerializer
+    precheck_flow_builder = DtsMigratePrecheckFlowParamBuilder
     inner_flow_builder = MysqlRenameMigrateFlowParamBuilder
     inner_flow_name = _("MySQL 重命名迁移")
     resource_batch_apply_builder = DtsMigrateResourceParamBuilder
