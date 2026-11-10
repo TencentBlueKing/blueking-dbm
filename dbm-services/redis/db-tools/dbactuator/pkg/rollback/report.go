@@ -34,16 +34,37 @@ const (
 
 var stageOrder = []string{stageUnpack, stageRestore, stageStart, stageParse, stageDecode, stageApply}
 
-// Port outcomes in the summary.
+// resultStages are the stage columns of an engine's result table. A Cache port's start includes
+// loading its data file.
+func resultStages(engine string) []string {
+	if engine == engineCache {
+		return []string{stageUnpack, stageRestore, stageStart}
+	}
+	return []string{stageUnpack, stageRestore, stageParse, stageDecode, stageApply}
+}
+
+// Engines as the summaries name them.
 const (
-	portPending = "not run"
+	enginePlus  = "tendisplus"
+	engineSSD   = "tendisssd"
+	engineCache = "cache"
+)
+
+// Port outcomes in the result table.
+const (
+	portPending = "notrun"
 	portDone    = "done"
-	portSkipped = "skipped (already done)"
+	portSkipped = "skip"
 	portFailed  = "failed"
 )
 
+// detailFileName is the per-port file, beside the downloads, that holds what the node log leaves
+// out: a line per binlog and each kvstore's stage CPU. It outlives the port.
+const detailFileName = "rollback_detail_%d.log"
+
 type portReport struct {
 	inst InstanceRestore
+	now  func() time.Time
 
 	mu        sync.Mutex
 	status    string
@@ -54,20 +75,32 @@ type portReport struct {
 	cpu     map[string]time.Duration
 	binlogs int
 	replies replyStats
+	// seenKinds are the kinds of error reply already logged; later ones are only counted.
+	seenKinds map[string]bool
 	// kvstores holds each Tendisplus kvstore's replay; port totals above include them.
 	kvstores map[int]*kvstoreReport
 	// instanceCPU is the instance process's CPU over the replay, -1 when it could not be read.
 	instanceCPU time.Duration
-	// tuning is the temp instance directives written for the replay, e.g. rocks.write_buffer_size=...
-	tuning string
 	// restored tells how restorebackup placed the unpacked backup: moved or copied.
 	restored string
 	// gaps lists the binlog indexes the plan let the replay skip, e.g. "kv3 #31-33".
 	gaps []string
-	// now is the host clock, so every port's progress sample shares one time.
-	now func() time.Time
-	// prog is the phase the progress snapshots read.
-	prog portProgress
+	// heartbeat is a TendisSSD port's source heartbeat after the restore, zero when none was read;
+	// beatDBSize is the source dbsize dbmon wrote beside it, -1 without one.
+	heartbeat  time.Time
+	beatDBSize int64
+	// beatWarn tells why the source heartbeat is off recover_at or was not read; it never fails
+	// the port.
+	beatWarn string
+	prog     portProgress
+	ssd      *ssdReplayReport
+	cache    *cacheLoadReport
+
+	detailMu   sync.Mutex
+	detailPath string
+	detailFile *os.File
+	// detailReplies counts the error replies offered to the detail file, written or not.
+	detailReplies int
 }
 
 // kvstoreReport is one kvstore's binlog replay.
@@ -75,11 +108,38 @@ type kvstoreReport struct {
 	files     int
 	writes    int
 	posBefore uint64
-	posAfter  uint64
+	// lastSent is the last binlog id the planned binlogs held up to recover_at, where binlogpos
+	// must end; posAfter is the binlogpos read after the replay, when posRead.
+	lastSent uint64
+	posAfter uint64
+	posRead  bool
 	// heartbeat is the source heartbeat the kvstore held after the replay, zero when none was read.
 	heartbeat time.Time
 	durations map[string]time.Duration
 	cpu       map[string]time.Duration
+}
+
+// ssdReplayReport is where a TendisSSD port's replay started and how far it went.
+type ssdReplayReport struct {
+	// restoredSeq is the restored instance's end seq, 0 when binlogsize could not tell; nameSeq is
+	// the one in the full backup's name, 0 when the name holds none.
+	restoredSeq uint64
+	nameSeq     uint64
+	startSeq    uint64
+	// from is what the start follows: the restored end seq or the backup name's.
+	from     string
+	endMs    int64
+	firstSeq int64
+	lastSeq  int64
+	lastFile string
+}
+
+// cacheLoadReport is a Cache port's instance once loaded.
+type cacheLoadReport struct {
+	aof    bool
+	empty  bool
+	dbsize int64
+	rss    int64
 }
 
 // addKvstore books wall and CPU time of a kvstore's stage, on the kvstore and its port.
@@ -97,18 +157,40 @@ func (p *portReport) addKvstore(kvstore int, stage string, wall, cpu time.Durati
 	}
 }
 
-// kvstoreReplayed records a kvstore's outcome; posAfter is where it stopped, on failure too.
-func (p *portReport) kvstoreReplayed(kvstore, files, writes int, posBefore, posAfter uint64) {
+// kvstoreReplayed records a kvstore's outcome; lastSent is where it stopped, on failure too.
+func (p *portReport) kvstoreReplayed(kvstore, files, writes int, posBefore, lastSent uint64) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	k := p.kvstoreLocked(kvstore)
-	k.files, k.writes, k.posBefore, k.posAfter = files, writes, posBefore, posAfter
+	k.files, k.writes, k.posBefore, k.lastSent = files, writes, posBefore, lastSent
+}
+
+func (p *portReport) kvstoreAfter(kvstore int, pos uint64) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	k := p.kvstoreLocked(kvstore)
+	k.posAfter, k.posRead = pos, true
 }
 
 func (p *portReport) kvstoreHeartbeat(kvstore int, beat time.Time) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.kvstoreLocked(kvstore).heartbeat = beat
+}
+
+func (p *portReport) setHeartbeat(beat time.Time, dbsize int64) {
+	p.mu.Lock()
+	p.heartbeat, p.beatDBSize = beat, dbsize
+	p.mu.Unlock()
+}
+
+// heartbeatOff logs a heartbeat warning and keeps it for the port's diag.
+func (p *portReport) heartbeatOff(log portLog, format string, args ...interface{}) {
+	msg := fmt.Sprintf(format, args...)
+	log.Warn("%s", msg)
+	p.mu.Lock()
+	p.beatWarn = msg
+	p.mu.Unlock()
 }
 
 // allowedGaps records binlog indexes skipped as the plan allowed; label tells the chain apart.
@@ -130,21 +212,87 @@ func (p *portReport) kvstoreLocked(kvstore int) *kvstoreReport {
 	return k
 }
 
+func (p *portReport) sortedKvstores() []int {
+	kvstores := make([]int, 0, len(p.kvstores))
+	for kvstore := range p.kvstores {
+		kvstores = append(kvstores, kvstore)
+	}
+	sort.Ints(kvstores)
+	return kvstores
+}
+
+// slowKvstores names the kvstores whose replay took over twice the port's median and a minute
+// more, the only kvstores the node log tells about when nothing failed.
+func (p *portReport) slowKvstores() []string {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if len(p.kvstores) < 3 {
+		return nil
+	}
+	walls := map[int]time.Duration{}
+	var sorted []time.Duration
+	for kvstore, k := range p.kvstores {
+		for _, d := range k.durations {
+			walls[kvstore] += d
+		}
+		sorted = append(sorted, walls[kvstore])
+	}
+	sort.Slice(sorted, func(i, j int) bool { return sorted[i] < sorted[j] })
+	median := sorted[len(sorted)/2]
+	var slow []string
+	for _, kvstore := range p.sortedKvstores() {
+		if w := walls[kvstore]; w > 2*median && w-median > time.Minute {
+			slow = append(slow, fmt.Sprintf("kv%d %s", kvstore, shortDuration(w)))
+		}
+	}
+	if len(slow) > 0 {
+		slow = append(slow, "median "+shortDuration(median))
+	}
+	return slow
+}
+
+// firstReply tells whether this is the port's first error reply of its kind, the only one the
+// node log shows; the rest are counted in the summary.
+func (p *portReport) firstReply(kind string) bool {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.seenKinds[kind] {
+		return false
+	}
+	if p.seenKinds == nil {
+		p.seenKinds = map[string]bool{}
+	}
+	p.seenKinds[kind] = true
+	return true
+}
+
 func (p *portReport) setInstanceCPU(d time.Duration) {
 	p.mu.Lock()
 	p.instanceCPU = d
 	p.mu.Unlock()
 }
 
-func (p *portReport) setTuning(tuning string) {
-	p.mu.Lock()
-	p.tuning = tuning
-	p.mu.Unlock()
-}
-
 func (p *portReport) setRestored(how string) {
 	p.mu.Lock()
 	p.restored = how
+	p.mu.Unlock()
+}
+
+func (p *portReport) restoredHow() string {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.restored
+}
+
+func (p *portReport) setSSD(s ssdReplayReport) {
+	p.mu.Lock()
+	p.ssd = &s
+	p.mu.Unlock()
+}
+
+func (p *portReport) setCacheLoaded(c cacheLoadReport) {
+	p.mu.Lock()
+	p.cache = &c
 	p.mu.Unlock()
 }
 
@@ -196,17 +344,75 @@ func (p *portReport) finish(err error) {
 	p.prog.phase = phaseDone
 }
 
+// detail appends a line to the port's detail file, opened on the first line of this attempt.
+// The file is a convenience: failing to write it fails nothing.
+func (p *portReport) detail(format string, args ...interface{}) {
+	p.detailMu.Lock()
+	defer p.detailMu.Unlock()
+	if p.detailPath == "" {
+		return
+	}
+	if p.detailFile == nil {
+		f, err := os.OpenFile(p.detailPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+		if err != nil {
+			logWarn("[%d] detail file %s not written: %v", p.inst.DestPort, p.detailPath, err)
+			p.detailPath = ""
+			return
+		}
+		p.detailFile = f
+		_, _ = fmt.Fprintf(f, "# attempt %s\n", p.now().Format(time.RFC3339))
+	}
+	_, _ = fmt.Fprintf(p.detailFile, format+"\n", args...)
+}
+
+// detailMaxReplies caps the error replies a port writes to its detail file, so a replay answering
+// millions of commands with errors cannot fill the disk; the summary still counts every one.
+const detailMaxReplies = 1000
+
+// detailReply writes an error reply to the detail file, the port's first detailMaxReplies only.
+func (p *portReport) detailReply(format string, args ...interface{}) {
+	p.detailMu.Lock()
+	p.detailReplies++
+	n := p.detailReplies
+	p.detailMu.Unlock()
+	if n <= detailMaxReplies {
+		p.detail(format, args...)
+	}
+}
+
+// noteOmittedReplies tells in the detail file how many error replies detailReply left out.
+func (p *portReport) noteOmittedReplies() {
+	p.detailMu.Lock()
+	n := p.detailReplies - detailMaxReplies
+	p.detailMu.Unlock()
+	if n > 0 {
+		p.detail("... (%d more error replies omitted)", n)
+	}
+}
+
+// closeDetail closes the detail file and returns its path, empty when nothing was written.
+func (p *portReport) closeDetail() string {
+	p.detailMu.Lock()
+	defer p.detailMu.Unlock()
+	if p.detailFile == nil {
+		return ""
+	}
+	_ = p.detailFile.Close()
+	p.detailFile = nil
+	return p.detailPath
+}
+
 // hostReport collects one node's ports for the summaries printed when it starts and ends.
 type hostReport struct {
 	destIP    string
 	engine    string
 	recoverAt string
-	ports     []*portReport
-	byPort    map[int]*portReport
+	// tuning is the temp instance directives written for the replay, e.g. rocks.write_buffer_size=...
+	tuning string
+	ports  []*portReport
+	byPort map[int]*portReport
 	// selfCPU is the actuator's own CPU when the node started, its client side of every stage.
 	selfCPU time.Duration
-	// tuning is the temp instance directives written for the replay, shown once in the plan.
-	tuning string
 	// workload sizes the snapshot cadence: the planned binlog bytes, or a quarter of the full
 	// backups when there are none.
 	workload int64
@@ -221,12 +427,24 @@ func newHostReport(destIP, engine string, instances []InstanceRestore) *hostRepo
 	h.started = h.now()
 	for _, inst := range instances {
 		p := &portReport{inst: inst, status: portPending, durations: map[string]time.Duration{},
-			cpu: map[string]time.Duration{}, instanceCPU: -1,
+			cpu: map[string]time.Duration{}, instanceCPU: -1, beatDBSize: -1,
 			now: func() time.Time { return h.now() }}
 		h.ports = append(h.ports, p)
 		h.byPort[inst.DestPort] = p
 	}
 	sort.Slice(h.ports, func(i, j int) bool { return h.ports[i].inst.DestPort < h.ports[j].inst.DestPort })
+	return h
+}
+
+// newReport is the job's host report, keeping each port's detail file beside the downloads.
+func (j Job) newReport(engine string) *hostReport {
+	h := newHostReport(j.DestIP, engine, j.Instances)
+	h.recoverAt = j.RecoverAt
+	if j.SaveDir != "" {
+		for _, p := range h.ports {
+			p.detailPath = filepath.Join(j.SaveDir, fmt.Sprintf(detailFileName, p.inst.DestPort))
+		}
+	}
 	return h
 }
 
@@ -247,15 +465,7 @@ type portPlan struct {
 	binlogs     int
 	binlogBytes int64
 	memory      int64
-	tuning      string
 }
-
-// Engines as the summaries name them.
-const (
-	enginePlus  = "tendisplus"
-	engineSSD   = "tendisssd"
-	engineCache = "cache"
-)
 
 // logPlan prints the opening summary: which shard and source each port restores and how much, the
 // limits it runs under, the tuning and the memory and disk it is expected to take. replay tells
@@ -314,81 +524,279 @@ func (h *hostReport) logPlan(limits Limits, plans map[int]portPlan, unpackDir, r
 	logInfo("%s", strings.Join(lines, "\n"))
 }
 
-// logResult prints the closing summary, on success and failure alike.
+// logResult prints the result table and then one diagnosis per port, on success and failure alike.
+// Each port's kvstore CPU goes to its detail file first, which is then closed.
 func (h *hostReport) logResult() {
-	logInfo("%s", h.resultText())
-}
-
-// resultText lists each port's outcome and stage times. Ports whose replay got replies needing
-// attention are listed apart: their temp instance may be missing writes. A Tendisplus port reads:
-//
-//	port 30000 shard= src=1.1.1.1:30000 done restore=40s parse(cpu 3s) decode=4s(cpu 5s) apply=6s
-//	  full backup copied tuning: rocks.write_buffer_size=134217728 instance cpu=1m30s
-//	  binlog gaps allowed: kv3 #31-33
-//	  kvstore 0 binlogs=36 writes=1000 binlogpos 391911 -> 392911 heartbeat 10-30 16:04:56 parse(cpu 3s) ...
-//
-// "full backup" is whether restorebackup moved or copied the unpacked checkpoint, tuning is what
-// the temp instance ran with, and instance cpu is what it used during the replay, left out when
-// its process could not be read. "binlog gaps allowed" are indexes the plan let the replay skip,
-// whose writes the temp instance lacks. A kvstore's heartbeat is the source's it held after the
-// replay, left out when there was none. The header's actuator cpu is this process's own.
-func (h *hostReport) resultText() string {
-	var lines []string
-	var failed []int
-	var attention []string
-	counts := map[string]int{}
+	paths := map[int]string{}
 	for _, p := range h.ports {
 		p.mu.Lock()
-		counts[p.status]++
-		line := fmt.Sprintf("  port %d shard=%s src=%s:%d %s %s", p.inst.DestPort, p.inst.ShardValue,
-			p.inst.SourceIP, p.inst.SourcePort, p.status, stageText(p.durations, p.cpu))
-		if p.restored != "" {
-			line += " full backup " + p.restored
+		var lines []string
+		for _, kvstore := range p.sortedKvstores() {
+			k := p.kvstores[kvstore]
+			lines = append(lines, fmt.Sprintf("kv=%d binlogs=%d writes=%d %s", kvstore, k.files, k.writes,
+				stageText(k.durations, k.cpu)))
 		}
-		if p.tuning != "" {
-			line += " tuning: " + p.tuning
+		p.mu.Unlock()
+		for _, line := range lines {
+			p.detail("%s", line)
+		}
+		paths[p.inst.DestPort] = p.closeDetail()
+	}
+	logInfo("%s", h.resultText())
+	for _, p := range h.ports {
+		level := levelInfo
+		p.mu.Lock()
+		if p.err != nil {
+			level = levelError
+		} else if p.replies.Errors > p.replies.Expected || p.beatWarn != "" {
+			level = levelWarn
+		}
+		p.mu.Unlock()
+		logRecord(level, "%s", h.diagText(p, paths[p.inst.DestPort]))
+	}
+}
+
+// resultText is one row per port with its status, stage wall times and replay counts; a row
+// below it gives each stage's CPU: its child processes', the instance's while it restores or
+// applies, and the actuator's own while it decodes or sends batches. err counts the error
+// replies needing attention: that port's temp instance may be missing writes.
+//
+//	RedisRollback result tendisplus: 6/6 done
+//	 port  status  unpack restore   parse  decode   apply binlogs   cmds  err
+//	30000  done       10s     19s       -      4s   7m46s     360  1.24M    0
+//	         cpu       8s     15s     25s      5s  44m10s
+//	 wall 9m40s; cpu: actuator 3m30s, instances 45m
+func (h *hostReport) resultText() string {
+	stages := resultStages(h.engine)
+	binlogs := h.engine != engineCache
+	cells := func(first, second string, values []string, tail string) string {
+		row := fmt.Sprintf("%5s  %-6s", first, second)
+		for _, v := range values {
+			row += fmt.Sprintf(" %7s", v)
+		}
+		return strings.TrimRight(row+tail, " ")
+	}
+	tail := ""
+	if binlogs {
+		tail = fmt.Sprintf(" %7s %6s %4s", "binlogs", "cmds", "err")
+	}
+	lines := []string{"", cells("port", "status", stages, tail)}
+	byStatus := map[string][]int{}
+	var attention []string
+	var instanceCPU time.Duration
+	sampled := false
+	for _, p := range h.ports {
+		p.mu.Lock()
+		port := p.inst.DestPort
+		byStatus[p.status] = append(byStatus[p.status], port)
+		walls, cpus := make([]string, len(stages)), make([]string, len(stages))
+		hasCPU := false
+		for i, s := range stages {
+			walls[i], cpus[i] = "-", "-"
+			if d, ok := p.durations[s]; ok && d > 0 {
+				walls[i] = shortDuration(d)
+			}
+			if c := p.cpu[s]; c > 0 {
+				cpus[i], hasCPU = shortDuration(c), true
+			}
+		}
+		tail = ""
+		if binlogs {
+			errs := p.replies.Errors - p.replies.Expected
+			tail = fmt.Sprintf(" %7d %6s %4d", p.binlogs, shortCount(p.replies.Lines), errs)
+			if errs > 0 {
+				attention = append(attention, fmt.Sprintf("%d(%d)", port, errs))
+			}
+		}
+		lines = append(lines, cells(fmt.Sprint(port), p.status, walls, tail))
+		if hasCPU {
+			lines = append(lines, cells("", "  cpu", cpus, ""))
 		}
 		if p.instanceCPU >= 0 {
-			line += fmt.Sprintf(" instance cpu=%s", p.instanceCPU.Round(time.Second))
-		}
-		if p.binlogs > 0 {
-			line += fmt.Sprintf(" binlogs=%d %s", p.binlogs, p.replies.summary())
-			if n := p.replies.Errors - p.replies.Expected; n > 0 {
-				attention = append(attention, fmt.Sprintf("%d(%d)", p.inst.DestPort, n))
-			}
-		}
-		if p.err != nil {
-			line += fmt.Sprintf(" error: %v", p.err)
-			failed = append(failed, p.inst.DestPort)
-		}
-		lines = append(lines, line)
-		if len(p.gaps) > 0 {
-			lines = append(lines, "    binlog gaps allowed: "+strings.Join(p.gaps, ", "))
-		}
-		kvstores := make([]int, 0, len(p.kvstores))
-		for kvstore := range p.kvstores {
-			kvstores = append(kvstores, kvstore)
-		}
-		sort.Ints(kvstores)
-		for _, kvstore := range kvstores {
-			k := p.kvstores[kvstore]
-			beat := ""
-			if !k.heartbeat.IsZero() {
-				beat = " heartbeat " + k.heartbeat.Local().Format("01-02 15:04:05")
-			}
-			lines = append(lines, fmt.Sprintf("    kvstore %d binlogs=%d writes=%d binlogpos %d -> %d%s %s",
-				kvstore, k.files, k.writes, k.posBefore, k.posAfter, beat, stageText(k.durations, k.cpu)))
+			instanceCPU += p.instanceCPU
+			sampled = true
 		}
 		p.mu.Unlock()
 	}
-	return fmt.Sprintf("RedisRollback result dest=%s engine=%s ports=%d done=%d skipped=%d failed=%d not run=%d "+
-		"actuator cpu=%s\n%s\n  failed ports: %v\n  ports with replay errors needing attention, port(errors): %v",
-		h.destIP, h.engine, len(h.ports), counts[portDone], counts[portSkipped], counts[portFailed],
-		counts[portPending], (selfCPU() - h.selfCPU).Round(time.Second), strings.Join(lines, "\n"), failed, attention)
+	lines[0] = fmt.Sprintf("RedisRollback result %s: %d/%d done", h.engine,
+		len(byStatus[portDone])+len(byStatus[portSkipped]), len(h.ports))
+	footer := fmt.Sprintf(" wall %s; cpu: actuator %s", shortDuration(h.now().Sub(h.started)),
+		shortDuration(selfCPU()-h.selfCPU))
+	if sampled {
+		footer += ", instances " + shortDuration(instanceCPU)
+	}
+	lines = append(lines, footer)
+	if h.tuning != "" {
+		lines = append(lines, " tuning: "+h.tuning)
+	}
+	for _, s := range []struct{ status, label string }{
+		{portFailed, "failed"}, {portSkipped, "skipped (already done)"}, {portPending, "not run"},
+	} {
+		if ports := byStatus[s.status]; len(ports) > 0 {
+			lines = append(lines, fmt.Sprintf(" %s: %s", s.label, portRanges(ports)))
+		}
+	}
+	if len(attention) > 0 {
+		lines = append(lines, " replay errors, port(errors): "+strings.Join(attention, " "))
+	}
+	return strings.Join(lines, "\n")
 }
 
-// stageText lists stage times in stageOrder; a stage with CPU only, like a decompressor running
-// alongside the replay, shows just its CPU.
+// diagText is everything needed to tell what a port's temp instance holds, without the
+// exercise analysis having to read anything but the node log. A Tendisplus port has a row per
+// kvstore, a TendisSSD port one for its only stream:
+//
+//	[30000] diag recover_at 11-05 16:05:00
+//	 full backup copied; instance cpu 1m30s
+//	  kv   bl       before -> after        heartbeat  parse decode  apply
+//	   0   36       391911 -> 392911         16:04:56     3s     4s     6s
+//	 detail: /data/dbbak/recover_redis/rollback_detail_30000.log
+//
+// before and after are binlogpos around the replay; after is ? when it was not read. The replay
+// already fails the port when after is not the last binlog id sent, so that id is not shown.
+// Error reply samples are cut to one line each.
+func (h *hostReport) diagText(p *portReport, detail string) string {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	port := p.inst.DestPort
+	switch p.status {
+	case portSkipped:
+		return fmt.Sprintf("[%d] diag: skipped, already rolled back", port)
+	case portPending:
+		return fmt.Sprintf("[%d] diag: not run", port)
+	}
+	lines := []string{fmt.Sprintf("[%d] diag recover_at %s", port, shortTime(h.recoverAt))}
+	var about []string
+	if p.restored != "" {
+		about = append(about, "full backup "+p.restored)
+	}
+	if p.instanceCPU >= 0 {
+		about = append(about, "instance cpu "+shortDuration(p.instanceCPU))
+	}
+	if c := p.cache; c != nil {
+		if c.empty {
+			about = append(about, "no full backup, left empty")
+		} else {
+			kind := "RDB"
+			if c.aof {
+				kind = "AOF"
+			}
+			about = append(about, fmt.Sprintf("backup %s, dbsize %d, rss %s", kind, c.dbsize, shortBytes(c.rss)))
+		}
+	}
+	ssdStream := p.ssd != nil && p.binlogs > 0
+	if !p.heartbeat.IsZero() && !ssdStream {
+		about = append(about, "heartbeat "+p.heartbeat.Local().Format("15:04:05"))
+	}
+	if !p.heartbeat.IsZero() && p.beatDBSize >= 0 {
+		about = append(about, fmt.Sprintf("source dbsize %d", p.beatDBSize))
+	}
+	if len(about) > 0 {
+		lines = append(lines, " "+strings.Join(about, "; "))
+	}
+	if s := p.ssd; s != nil {
+		lines = append(lines, fmt.Sprintf(" start after seq %d (%s): restored %s, backup name %s",
+			s.startSeq-1, s.from, seqText(s.restoredSeq), seqText(s.nameSeq)),
+			fmt.Sprintf(" replay end %dms", s.endMs))
+	}
+	if len(p.gaps) > 0 {
+		lines = append(lines, " binlog gaps allowed: "+strings.Join(p.gaps, ", "))
+	}
+	if len(p.kvstores) > 0 {
+		lines = append(lines, fmt.Sprintf("  %3s %4s %12s -> %-12s %9s %6s %6s %6s", "kv", "bl", "before",
+			"after", "heartbeat", "parse", "decode", "apply"))
+		for _, kvstore := range p.sortedKvstores() {
+			k := p.kvstores[kvstore]
+			after, beat := "?", "-"
+			if k.posRead {
+				after = fmt.Sprint(k.posAfter)
+			}
+			if !k.heartbeat.IsZero() {
+				beat = k.heartbeat.Local().Format("15:04:05")
+			}
+			lines = append(lines, fmt.Sprintf("  %3d %4d %12d -> %-12s %9s %6s %6s %6s", kvstore, k.files,
+				k.posBefore, after, beat, stageCell(k, stageParse), stageCell(k, stageDecode),
+				stageCell(k, stageApply)))
+		}
+	}
+	if s := p.ssd; ssdStream {
+		k := &kvstoreReport{durations: p.durations, cpu: p.cpu}
+		beat := "-"
+		if !p.heartbeat.IsZero() {
+			beat = p.heartbeat.Local().Format("15:04:05")
+		}
+		lines = append(lines, fmt.Sprintf("  %4s %10s -> %-10s %8s %6s %6s %6s", "bl", "first", "last",
+			"heartbeat", "parse", "decode", "apply"),
+			fmt.Sprintf("  %4d %10d -> %-10d %8s %6s %6s %6s", p.binlogs, s.firstSeq, s.lastSeq, beat,
+				stageCell(k, stageParse), stageCell(k, stageDecode), stageCell(k, stageApply)),
+			" last binlog "+s.lastFile)
+	}
+	if p.beatWarn != "" {
+		lines = append(lines, " heartbeat warn: "+p.beatWarn)
+	}
+	if r := p.replies; r.Errors > 0 {
+		kinds := make([]string, 0, len(r.Kinds))
+		for kind, n := range r.Kinds {
+			kinds = append(kinds, fmt.Sprintf("%s %d", kind, n))
+		}
+		sort.Strings(kinds)
+		lines = append(lines, fmt.Sprintf(" error replies %d of %d (%d expected): %s", r.Errors, r.Lines, r.Expected,
+			strings.Join(kinds, ", ")))
+		for _, sample := range r.samples() {
+			lines = append(lines, clip("  "+strings.ReplaceAll(sample, "\n", " "), lineWidth))
+		}
+	}
+	if p.err != nil {
+		lines = append(lines, " failed: "+p.err.Error())
+	}
+	if detail != "" {
+		lines = append(lines, " detail: "+detail)
+	}
+	return strings.Join(lines, "\n")
+}
+
+// stageCell is a stage's wall time, or its CPU for a stage with CPU only, like the decompressor
+// running alongside the replay.
+func stageCell(k *kvstoreReport, stage string) string {
+	if d := k.durations[stage]; d > 0 {
+		return shortDuration(d)
+	}
+	if c := k.cpu[stage]; c > 0 {
+		return shortDuration(c)
+	}
+	return "-"
+}
+
+func seqText(seq uint64) string {
+	if seq == 0 {
+		return "?"
+	}
+	return fmt.Sprint(seq)
+}
+
+// shortTime is recover_at as month, day and time of day, or as given when it does not parse.
+func shortTime(recoverAt string) string {
+	if recoverAt == "" {
+		return "-"
+	}
+	t, err := time.Parse(time.RFC3339, recoverAt)
+	if err != nil {
+		return recoverAt
+	}
+	return t.Local().Format("01-02 15:04:05")
+}
+
+// clip cuts s to n characters, the last one marking the cut.
+func clip(s string, n int) string {
+	r := []rune(s)
+	if len(r) <= n {
+		return s
+	}
+	return string(r[:n-1]) + "~"
+}
+
+// stageText lists stage times in stageOrder for the detail file; a stage with CPU only, like a
+// decompressor running alongside the replay, shows just its CPU.
 func stageText(durations, cpu map[string]time.Duration) string {
 	var stages []string
 	for _, s := range stageOrder {
@@ -441,13 +849,4 @@ func keepOutput(dir, name string, out []byte) string {
 		tail = tail[len(tail)-tailBytes:]
 	}
 	return fmt.Sprintf("%s (full output in %s)", strings.TrimSpace(string(tail)), path)
-}
-
-// clip cuts s to n characters, the last one marking the cut.
-func clip(s string, n int) string {
-	r := []rune(s)
-	if len(r) <= n {
-		return s
-	}
-	return string(r[:n-1]) + "~"
 }

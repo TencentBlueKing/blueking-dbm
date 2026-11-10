@@ -181,19 +181,22 @@ func TestResultListsFailedPortsAndReplayErrors(t *testing.T) {
 	h.port(30001).finish(errors.New("apply binlog x failed"))
 	text := h.resultText()
 	for _, want := range []string{
-		"done=1 skipped=0 failed=1 not run=1",
-		"port 30000 shard= src=:0 done unpack=2s binlogs=3",
-		"failed ports: [30001]",
-		"port(errors): [30000(3)]",
-		"error: apply binlog x failed",
+		"RedisRollback result tendisssd: 1/3 done",
+		"30000  done        2s       -       -       -       -       3     10    3",
+		" failed: 30001",
+		" not run: 30002",
+		"replay errors, port(errors): 30000(3)",
 	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("summary misses %q:\n%s", want, text)
 		}
 	}
+	if diag := h.diagText(h.port(30001), ""); !strings.Contains(diag, " failed: apply binlog x failed") {
+		t.Fatalf("diag:\n%s", diag)
+	}
 }
 
-func TestResultShowsChildCPUNextToWallTime(t *testing.T) {
+func TestResultShowsChildCPUBelowWallTime(t *testing.T) {
 	h := newHostReport("2.2.2.2", "tendisssd", []InstanceRestore{{DestPort: 30000}})
 	p := h.port(30000)
 	p.add(stageParse, 17*time.Minute)
@@ -201,7 +204,9 @@ func TestResultShowsChildCPUNextToWallTime(t *testing.T) {
 	p.add(stageApply, 3*time.Minute)
 	p.finish(nil)
 	text := h.resultText()
-	if !strings.Contains(text, "parse=17m0s(cpu 9m0s) apply=3m0s") || strings.Contains(text, "download") {
+	wall := "30000  done         -       -  17m00s       -   3m00s       0      0    0"
+	cpu := "         cpu        -       -   9m00s       -       -"
+	if !strings.Contains(text, wall+"\n"+cpu+"\n") || strings.Contains(text, "download") {
 		t.Fatalf("got:\n%s", text)
 	}
 }

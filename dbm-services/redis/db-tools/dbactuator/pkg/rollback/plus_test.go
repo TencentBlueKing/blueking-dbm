@@ -4,6 +4,7 @@ import (
 	"compress/gzip"
 	"encoding/base64"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -205,9 +206,10 @@ func TestReplayKvstoreBooksEachStageApart(t *testing.T) {
 	if _, err := replayKvstore(portLog{}, p, slow, 2, files, 0, t.TempDir(), nil); err != nil {
 		t.Fatal(err)
 	}
-	// Two files: the decompressor's CPU is parse, binlog_tool's is decode, and apply has no CPU of
-	// its own: it is the time batches were out, which decode no longer counts.
-	if p.cpu[stageParse] != 2*time.Second || p.cpu[stageDecode] != 4*time.Second || p.cpu[stageApply] != 0 {
+	// Two files: the decompressor's CPU is parse, binlog_tool's is decode, and apply only gets the
+	// actuator's CPU sending batches, never the tools': its wall is the time batches were out, which
+	// decode no longer counts.
+	if p.cpu[stageParse] != 2*time.Second || p.cpu[stageDecode] != 4*time.Second || p.cpu[stageApply] >= time.Second {
 		t.Fatalf("cpu %v", p.cpu)
 	}
 	if apply := p.durations[stageApply]; apply < 2*slow.delay || p.durations[stageDecode] >= apply {
@@ -229,6 +231,61 @@ type slowReplayer struct {
 func (s slowReplayer) execBatch(cmds [][]string) ([]error, error) {
 	time.Sleep(s.delay)
 	return s.fakeReplayer.execBatch(cmds)
+}
+
+// spinReplayer burns delay of the caller's CPU per batch, like a client encoding a large batch.
+type spinReplayer struct {
+	*fakeReplayer
+	delay time.Duration
+}
+
+func (s spinReplayer) execBatch(cmds [][]string) ([]error, error) {
+	for begin := time.Now(); time.Since(begin) < s.delay; {
+	}
+	return s.fakeReplayer.execBatch(cmds)
+}
+
+func TestReplayKvstoreBooksBatchCPUAsApply(t *testing.T) {
+	files, ids, p := replayFixture(t)
+	defer fakeBinlogTool(t, ids, false)()
+	spin := spinReplayer{fakeReplayer: &fakeReplayer{pos: 100}, delay: 20 * time.Millisecond}
+	if _, err := replayKvstore(portLog{}, p, spin, 2, files, 0, t.TempDir(), nil); err != nil {
+		t.Fatal(err)
+	}
+	k := p.kvstores[2]
+	if apply := p.cpu[stageApply]; apply < 10*time.Millisecond || k.cpu[stageApply] != apply {
+		t.Fatalf("apply cpu %v, kvstore %v: the batches' client CPU is apply's", apply, k.cpu[stageApply])
+	}
+	if p.cpu[stageDecode] != 4*time.Second {
+		t.Fatalf("decode cpu %v: binlog_tool's alone", p.cpu[stageDecode])
+	}
+}
+
+func TestReplayKvstoreErrorsGoToTheDetailFile(t *testing.T) {
+	files, ids, p := replayFixture(t)
+	p.detailPath = filepath.Join(t.TempDir(), "rollback_detail_30000.log")
+	defer fakeBinlogTool(t, ids, false)()
+	if _, err := replayKvstore(portLog{}, p, &fakeReplayer{pos: 100, fail: 102}, 2, files, 0, t.TempDir(),
+		nil); err == nil {
+		t.Fatal("want the error reply to fail the kvstore")
+	}
+	stop := make(chan struct{})
+	close(stop)
+	if _, err := replayKvstore(portLog{}, p, &fakeReplayer{pos: 100}, 3, files, 0, t.TempDir(),
+		stop); !errors.Is(err, errReplayStopped) {
+		t.Fatalf("err=%v", err)
+	}
+	_ = p.closeDetail()
+	raw, _ := os.ReadFile(p.detailPath)
+	detail := string(raw)
+	if !strings.Contains(detail, "ERROR kv=2: kvstore 2 binlog binlog-a.log.gz: restorebinlogv2 of binlog id "+
+		"102 failed: ERR apply failed") {
+		t.Fatalf("detail:\n%s", detail)
+	}
+	// a kvstore stopped because another failed has no error of its own
+	if strings.Contains(detail, "kv=3") {
+		t.Fatalf("stopped kvstore logged:\n%s", detail)
+	}
 }
 
 func TestReplayKvstoreRejectsIdsAtOrBelowTheStart(t *testing.T) {
@@ -445,11 +502,12 @@ func TestPlusClusterStepsFollowTheClusterFlag(t *testing.T) {
 
 // portReplayer is one port's instance, shared by the connections of its kvstores.
 type portReplayer struct {
-	mu    sync.Mutex
-	pos   map[int]uint64
-	fail  uint64
-	drop  uint64
-	beats map[int]time.Time
+	mu      sync.Mutex
+	pos     map[int]uint64
+	fail    uint64
+	drop    uint64
+	beats   map[int]time.Time
+	beatErr error
 	// beatKey is the key Heartbeat was last asked for.
 	beatKey string
 }
@@ -464,7 +522,7 @@ func (f *portReplayer) Heartbeat(key string) (map[int]time.Time, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.beatKey = key
-	return f.beats, nil
+	return f.beats, f.beatErr
 }
 
 func (f *portReplayer) execBatch(cmds [][]string) ([]error, error) {
@@ -597,6 +655,44 @@ func TestPlusReplayFailureStopsOnlyItsPort(t *testing.T) {
 	}
 }
 
+func TestPlusReplayTracksEachKvstoresProgress(t *testing.T) {
+	r, chains, restore := plusPorts(t, map[int]int{30000: 3}, map[int]*portReplayer{})
+	defer restore()
+	inst := InstanceRestore{DestPort: 30000}
+	p := newHostReport(r.DestIP, enginePlus, []InstanceRestore{inst}).port(30000)
+	states := func() string {
+		p.mu.Lock()
+		defer p.mu.Unlock()
+		var s []string
+		for _, k := range p.prog.kvstores {
+			s = append(s, fmt.Sprintf("kv%d %s %d/%d", k.kvstore, k.state, k.files, k.filesTotal))
+		}
+		return strings.Join(s, ", ")
+	}
+	var during []string
+	defer scriptTool(t, func(_, kvstore int, start uint64, onLine func(string) error) error {
+		during = append(during, states())
+		return onLine(restoreLine(kvstore, start))
+	})()
+	// One slot replays the kvstores one at a time, so the others are still waiting.
+	if err := r.replayAndMark(inst, p, chains[30000], time.Time{}, make(chan struct{}, 1)); err != nil {
+		t.Fatal(err)
+	}
+	if len(during) != 3 || strings.Count(during[0], "replay 0/1") != 1 || strings.Count(during[0], "waiting 0/1") != 2 {
+		t.Fatalf("states during replay %q", during)
+	}
+	if got := states(); got != "kv0 done 1/1, kv1 done 1/1, kv2 done 1/1" {
+		t.Fatalf("states after replay %q", got)
+	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for _, k := range p.prog.kvstores {
+		if k.total <= 0 || k.done != k.total {
+			t.Fatalf("kv%d replayed %d of %d bytes", k.kvstore, k.done, k.total)
+		}
+	}
+}
+
 func TestPlusReplayWaitingKvstoresNeverStartAfterAFailure(t *testing.T) {
 	r, chains, restore := plusPorts(t, map[int]int{30000: 3}, map[int]*portReplayer{})
 	defer restore()
@@ -693,20 +789,23 @@ func TestParseHeartbeatReadsAdmingetPairs(t *testing.T) {
 	}
 }
 
-func TestPlusHeartbeatCheckFollowsV1(t *testing.T) {
+func TestPlusHeartbeatCheckOnlyWarns(t *testing.T) {
 	recoverAt := time.Date(2026, 10, 30, 16, 5, 0, 0, time.Local)
 	cases := map[string]struct {
-		beats map[int]time.Time
-		want  string
+		beats   map[int]time.Time
+		beatErr error
+		warn    string
 	}{
-		"within":  {map[int]time.Time{0: recoverAt.Add(-4 * time.Second), 1: recoverAt.Add(9 * time.Minute)}, ""},
-		"outside": {map[int]time.Time{0: recoverAt, 1: recoverAt.Add(-11 * time.Minute)}, "kvstore 1 at"},
-		"none":    {nil, ""},
+		"within":  {beats: map[int]time.Time{0: recoverAt.Add(-4 * time.Second), 1: recoverAt.Add(9 * time.Minute)}},
+		"outside": {beats: map[int]time.Time{0: recoverAt, 1: recoverAt.Add(-11 * time.Minute)}, warn: "kvstore 1 at"},
+		"none":    {},
 		// a kvstore without one is not checked; the others still are
-		"partial": {map[int]time.Time{1: recoverAt.Add(-time.Minute)}, ""},
+		"partial":    {beats: map[int]time.Time{1: recoverAt.Add(-time.Minute)}},
+		"read error": {beatErr: fmt.Errorf("adminget failed"), warn: "not read: adminget failed"},
 	}
 	for name, tc := range cases {
-		fake := map[int]*portReplayer{30000: {beats: tc.beats}}
+		logs := captureLogs(t)
+		fake := map[int]*portReplayer{30000: {beats: tc.beats, beatErr: tc.beatErr}}
 		r, chains, restore := plusPorts(t, map[int]int{30000: 2}, fake)
 		resetTool := scriptTool(t, func(_, kvstore int, start uint64, onLine func(string) error) error {
 			return onLine(restoreLine(kvstore, start))
@@ -720,34 +819,60 @@ func TestPlusHeartbeatCheckFollowsV1(t *testing.T) {
 		if fake[30000].beatKey != "1.1.1.1_30000:heartbeat" {
 			t.Fatalf("%s: asked for %q", name, fake[30000].beatKey)
 		}
-		if tc.want == "" {
-			if err != nil {
-				t.Fatalf("%s: %v", name, err)
+		if err != nil || !IsDone(r.Host.InstanceDir(30000), r.fingerprint(inst)) {
+			t.Fatalf("%s: a heartbeat must never fail the port: err=%v", name, err)
+		}
+		text := report.diagText(report.port(30000), "")
+		warned := false
+		for _, e := range logs() {
+			msg := strings.ReplaceAll(e.msg, "\n"+wrapIndent, " ")
+			warned = warned || e.level == levelWarn && strings.Contains(msg, tc.warn)
+		}
+		if tc.warn == "" {
+			if strings.Contains(text, "heartbeat warn") {
+				t.Fatalf("%s: unexpected warning:\n%s", name, text)
 			}
-		} else if err == nil || !strings.Contains(err.Error(), tc.want) || failedInFlight(err) {
-			t.Fatalf("%s: err=%v, want %q", name, err, tc.want)
+		} else if !warned || !strings.Contains(text, " heartbeat warn: ") || !strings.Contains(text, tc.warn) {
+			t.Fatalf("%s: want warning %q, logged=%v, diag:\n%s", name, tc.warn, warned, text)
 		}
-		done := IsDone(r.Host.InstanceDir(30000), r.fingerprint(inst))
-		if done != (tc.want == "") {
-			t.Fatalf("%s: marked done=%v", name, done)
-		}
-		text := report.resultText()
 		for kvstore, beat := range tc.beats {
-			line := fmt.Sprintf("kvstore %d binlogs=1 writes=1 binlogpos 100 -> 101 heartbeat %s", kvstore,
-				beat.Format("01-02 15:04:05"))
+			line := fmt.Sprintf("  %3d %4d %12d -> %-12d %9s", kvstore, 1, 100, 101, beat.Format("15:04:05"))
 			if !strings.Contains(text, line) {
-				t.Fatalf("%s: summary lacks %q:\n%s", name, line, text)
+				t.Fatalf("%s: diag lacks %q:\n%s", name, line, text)
 			}
 		}
 	}
 }
 
-func TestResultListsAllowedGaps(t *testing.T) {
+func TestPlusHeartbeatCheckedWithoutBinlogs(t *testing.T) {
+	recoverAt := time.Date(2026, 10, 30, 16, 5, 0, 0, time.Local)
+	beat := recoverAt.Add(-30 * time.Minute)
+	fake := map[int]*portReplayer{30000: {beats: map[int]time.Time{0: beat, 1: beat}}}
+	r, _, restore := plusPorts(t, map[int]int{30000: 0}, fake)
+	defer restore()
+	inst := InstanceRestore{SourceIP: "1.1.1.1", SourcePort: 30000, DestPort: 30000, FullFiles: []string{"full.tar"}}
+	report := newHostReport(r.DestIP, "tendisplus", []InstanceRestore{inst})
+	if err := r.replayAndMark(inst, report.port(30000), nil, recoverAt, make(chan struct{}, 1)); err != nil {
+		t.Fatal(err)
+	}
+	if fake[30000].beatKey != "1.1.1.1_30000:heartbeat" {
+		t.Fatalf("full backup only: heartbeat not read, asked for %q", fake[30000].beatKey)
+	}
+	text := report.diagText(report.port(30000), "")
+	if !strings.Contains(text, "heartbeat warn: ") || !strings.Contains(text, "kvstore 0 at") ||
+		!strings.Contains(text, "kvstore 1 at") {
+		t.Fatalf("diag:\n%s", text)
+	}
+}
+
+func TestDiagListsAllowedGaps(t *testing.T) {
 	report := newHostReport("2.2.2.2", "tendisplus", []InstanceRestore{{DestPort: 30000}})
 	report.port(30000).allowedGaps("kv3 ", []int64{31, 32, 33})
 	report.port(30000).allowedGaps("kv5 ", []int64{40})
-	if text := report.resultText(); !strings.Contains(text, "binlog gaps allowed: kv3 #31-33, kv5 #40") {
-		t.Fatalf("summary:\n%s", text)
+	report.port(30000).finish(nil)
+	if text := report.diagText(report.port(30000), ""); !strings.Contains(text,
+		"binlog gaps allowed: kv3 #31-33, kv5 #40") {
+		t.Fatalf("diag:\n%s", text)
 	}
 }
 

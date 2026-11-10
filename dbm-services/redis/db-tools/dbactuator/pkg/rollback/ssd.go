@@ -9,12 +9,14 @@
 package rollback
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -53,8 +55,7 @@ func (r *ssdRestorer) DoRollback() error {
 		return fmt.Errorf("invalid recover_at %q: %v", r.RecoverAt, err)
 	}
 	limits := HostLimits(r.MaxConcurrency)
-	report := newHostReport(r.DestIP, "tendisssd", r.Instances)
-	report.recoverAt = r.RecoverAt
+	report := r.newReport(engineSSD)
 	defer report.logResult()
 
 	redo, err := r.resolvePending(report)
@@ -62,7 +63,7 @@ func (r *ssdRestorer) DoRollback() error {
 		return err
 	}
 	if len(redo) == 0 {
-		logInfo("RedisRollback %s: all ports already rolled back, nothing to do", r.DestIP)
+		logInfo("RedisRollback: all ports already rolled back")
 		return nil
 	}
 
@@ -76,7 +77,7 @@ func (r *ssdRestorer) DoRollback() error {
 		}
 		if len(gaps) > 0 {
 			report.port(inst.DestPort).allowedGaps("", gaps)
-			newPortLog(inst.DestPort).Warn("binlogs skip %s, allowed by the plan: the temp instance misses "+
+			newPortLog(inst.DestPort).Warn("binlogs skip %s, as the plan allows: the temp instance misses "+
 				"their writes", indexRanges(gaps))
 		}
 		var full []string
@@ -103,6 +104,7 @@ func (r *ssdRestorer) DoRollback() error {
 		plans[inst.DestPort] = plan
 	}
 	replaying := limits.Replay(len(redo))
+	report.tuning = r.tuningSummary()
 	report.logPlan(limits, plans, r.UnpackDir, fmt.Sprintf("%d ports at once, most binlog bytes first", replaying))
 	defer report.trackProgress()()
 
@@ -156,7 +158,7 @@ func (r *ssdRestorer) resolvePending(report *hostReport) ([]InstanceRestore, err
 		}
 		if inUse {
 			if IsDone(instDir, r.fingerprint(inst)) {
-				newPortLog(inst.DestPort).Info("already rolled back to the same point, skip")
+				newPortLog(inst.DestPort).Info("skip: already rolled back to this point")
 				report.skipped(inst.DestPort)
 				continue
 			}
@@ -201,10 +203,13 @@ func (r *ssdRestorer) prepare(inst InstanceRestore, p *portReport, window *memWi
 		log.Info("unpacked %s in %s", shortBytes(size), shortDuration(p.duration(stageUnpack)))
 		p.enter(phaseRestore, 0, "")
 		err = p.timed(stageRestore, func() error {
-			return restoreRocksdb(log, r.Host.MediaName(), root, ssdDataDir(instDir), workDir)
+			cpu, err := restoreRocksdb(r.Host.MediaName(), root, ssdDataDir(instDir), workDir)
+			p.addCPU(stageRestore, cpu)
+			return err
 		})
 		if err != nil {
-			log.Error("%v", err)
+			log.Error("restore failed: %v", err)
+			p.detail("ERROR restore: %v", err)
 			return err
 		}
 		log.Info("restored rocksdb in %s", shortDuration(p.duration(stageRestore)))
@@ -222,26 +227,38 @@ func (r *ssdRestorer) prepare(inst InstanceRestore, p *portReport, window *memWi
 	p.enter(phaseStart, 0, "")
 	if err := p.timed(stageStart, func() error { return r.Host.Start(inst.DestPort) }); err != nil {
 		window.unreserve(need)
+		log.Error("start failed: %v", err)
 		return err
 	}
 	log.Info("started, memory~%s", shortBytes(need))
 	return nil
 }
 
-// replayAndMark replays inst's binlogs, then marks it done and frees its downloads.
+// ssdReplayFn is replaced in tests, which have no instance to replay into.
+var ssdReplayFn = (*ssdRestorer).replay
+
+// replayAndMark replays inst's binlogs, then marks it done and frees its downloads. The
+// instance's CPU over the replay is booked on p when its process can be read.
 func (r *ssdRestorer) replayAndMark(inst InstanceRestore, p *portReport, binlogs []string,
 	recoverAt time.Time) error {
 	log := newPortLog(inst.DestPort)
 	// Earlier attempts on older media kept the decompressed binlog and its commands here.
 	_ = os.RemoveAll(filepath.Join(r.SaveDir, fmt.Sprintf("binlog_replay_%d", inst.DestPort)))
 	if len(binlogs) > 0 {
-		if err := r.replay(log, p, inst, recoverAt, binlogs); err != nil {
-			log.Error("%v", err)
+		sample := r.sampleInstanceCPU(log, inst.DestPort, true)
+		err := ssdReplayFn(r, log, p, inst, recoverAt, binlogs)
+		sample(p)
+		if err != nil {
+			log.Error("failed: %v", err)
 			return err
 		}
 	}
+	if len(inst.FullFiles) > 0 || len(binlogs) > 0 {
+		r.checkHeartbeat(log, p, inst, recoverAt)
+	}
 	instDir := r.Host.InstanceDir(inst.DestPort)
 	if err := MarkDone(instDir, r.fingerprint(inst)); err != nil {
+		log.Error("failed: %v", err)
 		return err
 	}
 	if err := CleanupStaged(r.SaveDir, r.portWorkDir(inst.DestPort), inst); err != nil {
@@ -250,13 +267,105 @@ func (r *ssdRestorer) replayAndMark(inst InstanceRestore, p *portReport, binlogs
 	for _, f := range binlogs {
 		_ = os.Remove(f)
 	}
+	log.Info("done")
 	return nil
 }
 
-// replay decodes binlogs in index order and sends their commands over one connection. Like v1,
-// error replies are counted and logged rather than failing the port, unless every reply of a
-// file is an error. Each file is streamed straight into the connection, so nothing is written
-// to disk between decoding and sending.
+// checkHeartbeat compares the source heartbeat the restored instance holds with recoverAt, as v1
+// does: dbmon writes <ip>:<port>:time and <ip>:<port>:0:dbsize on the source, in db 0 where
+// TendisSSD keeps every key. Like Tendisplus, a heartbeat out of the tolerance, or one that
+// cannot be read, is a warning on the port and never fails it; a source that wrote none is
+// logged and not checked.
+func (r *ssdRestorer) checkHeartbeat(log portLog, p *portReport, inst InstanceRestore, recoverAt time.Time) {
+	src := fmt.Sprintf("%s:%d", inst.SourceIP, inst.SourcePort)
+	timeKey, dbsizeKey := src+":time", src+":0:dbsize"
+	beat, dbsize, err := ssdHeartbeatFn(r.DestIP, inst.DestPort, timeKey, dbsizeKey)
+	if err != nil {
+		p.heartbeatOff(log, "heartbeat %s not read: %v", timeKey, err)
+		return
+	}
+	if beat.IsZero() {
+		log.Info("no heartbeat under %s, heartbeat check skipped", timeKey)
+		return
+	}
+	p.setHeartbeat(beat, dbsize)
+	tolerance := r.heartbeatTolerance()
+	if beatOff(beat, recoverAt, tolerance) {
+		p.heartbeatOff(log, "heartbeat %s at %s is more than %s from recover_at %s", timeKey,
+			beat.Local().Format(time.RFC3339), tolerance, recoverAt.Local().Format(time.RFC3339))
+		return
+	}
+	log.Info("heartbeat %s within %s of recover_at (dbsize %d)", timeKey, tolerance, dbsize)
+}
+
+// ssdHeartbeatFn is replaced in tests, which have no instance to read from.
+var ssdHeartbeatFn = readSSDHeartbeat
+
+// readSSDHeartbeat reads the source heartbeat and dbsize keys from the instance's db 0. A port
+// with no binlogs is read right after its start, while rocksdb may still be loading.
+func readSSDHeartbeat(ip string, port int, timeKey, dbsizeKey string) (time.Time, int64, error) {
+	addr := fmt.Sprintf("%s:%d", ip, port)
+	password, err := portPassword(port)
+	if err != nil {
+		return time.Time{}, -1, err
+	}
+	end := time.Now().Add(minLoadDeadline)
+	cli, err := connectWithin(addr, password, consts.TendisTypeTendisSSDInsance, minLoadDeadline)
+	if err != nil {
+		return time.Time{}, -1, err
+	}
+	defer cli.Close()
+	vals, err := retryWhileLoading(func() ([]interface{}, error) {
+		return cli.InstanceClient.MGet(context.TODO(), timeKey, dbsizeKey).Result()
+	}, end, loadPollInterval)
+	if err != nil {
+		return time.Time{}, -1, fmt.Errorf("mget %s %s on %s failed: %v", timeKey, dbsizeKey, addr, err)
+	}
+	return parseSSDHeartbeat(timeKey, vals)
+}
+
+// retryWhileLoading calls mget until it stops failing with LOADING or end passes. Redis accepts
+// connections while loading but rejects data commands.
+func retryWhileLoading(mget func() ([]interface{}, error), end time.Time,
+	interval time.Duration) ([]interface{}, error) {
+	for {
+		vals, err := mget()
+		if err == nil || !strings.Contains(err.Error(), "LOADING") || !time.Now().Add(interval).Before(end) {
+			return vals, err
+		}
+		time.Sleep(interval)
+	}
+}
+
+// parseSSDHeartbeat reads an MGET of the time and dbsize keys. The time is unix seconds, or
+// milliseconds when it is that large; a missing time is zero and a missing dbsize -1.
+func parseSSDHeartbeat(timeKey string, vals []interface{}) (time.Time, int64, error) {
+	if len(vals) != 2 {
+		return time.Time{}, -1, fmt.Errorf("mget %s returned %v, want time and dbsize", timeKey, vals)
+	}
+	var beat time.Time
+	if vals[0] != nil {
+		n, err := strconv.ParseInt(strings.TrimSpace(fmt.Sprint(vals[0])), 10, 64)
+		if err != nil {
+			return time.Time{}, -1, fmt.Errorf("%s holds %q, not a unix time", timeKey, fmt.Sprint(vals[0]))
+		}
+		if n > 1e12 {
+			beat = time.UnixMilli(n)
+		} else {
+			beat = time.Unix(n, 0)
+		}
+	}
+	dbsize := int64(-1)
+	if vals[1] != nil {
+		if n, err := strconv.ParseInt(strings.TrimSpace(fmt.Sprint(vals[1])), 10, 64); err == nil {
+			dbsize = n
+		}
+	}
+	return beat, dbsize, nil
+}
+
+// replay finds where the restored instance's binlog ends and replays binlogs from there over
+// one connection (see replayFiles).
 func (r *ssdRestorer) replay(log portLog, p *portReport, inst InstanceRestore, recoverAt time.Time,
 	binlogs []string) error {
 	port := inst.DestPort
@@ -269,7 +378,7 @@ func (r *ssdRestorer) replay(log portLog, p *portReport, inst InstanceRestore, r
 	if err != nil {
 		return err
 	}
-	startPos, err := replayStartPos(log, func() (uint64, error) {
+	start, err := replayStart(log, func() (uint64, error) {
 		size, err := cli.TendisSSDBinlogSize()
 		return size.EndSeq, err
 	}, inst.FullFiles)
@@ -283,37 +392,67 @@ func (r *ssdRestorer) replay(log portLog, p *portReport, inst InstanceRestore, r
 		return err
 	}
 	defer applyCli.Close()
+	start.endMs = replayEndMs(recoverAt)
+	return replayFiles(log, p, redisPipe{cli: applyCli.InstanceClient}, binlogs, start)
+}
 
-	endMs := replayEndMs(recoverAt)
-	var bytes int64
-	for _, file := range binlogs {
-		bytes += totalSize([]string{file})
-	}
+// replayFiles decodes binlogs in index order and sends their commands through exec, from
+// start.startSeq up to start.endMs. Like v1, error replies are counted rather than failing the
+// port, unless every reply of a file is an error; the node log shows the first reply of each kind
+// and the summary counts them, while each binlog gets a line in the detail file, as do the error
+// replies (up to detailMaxReplies) and a failing binlog's error. Each file is streamed straight
+// into the connection, so nothing is written to disk between decoding and sending. The Go
+// decoder's CPU is booked as decode and the client side of the batches as apply.
+func replayFiles(log portLog, p *portReport, exec pipeExecer, binlogs []string, start ssdReplayReport) error {
+	// Decoding and sending run on this goroutine alone; locked to its thread, the thread's CPU is
+	// this port's.
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	bytes := totalSize(binlogs)
 	p.enterReplay(len(binlogs), bytes, nil)
-	log.Info("replay %d binlogs (%s)", len(binlogs), shortBytes(bytes))
+	log.Info("replay %d binlogs (%s) after seq %d", len(binlogs), shortBytes(bytes), start.startSeq-1)
 	began := time.Now()
 	var total replyStats
 	var seen bool
-	var firstSeq, lastSeq int64
+	defer func() {
+		p.replayed(len(binlogs), total)
+		p.setSSD(start)
+		p.noteOmittedReplies()
+	}()
 	for _, file := range binlogs {
 		base := filepath.Base(file)
 		begin := time.Now()
-		var applyWall time.Duration
+		var applyWall, applyCPU time.Duration
 		var fileStats replyStats
 		pipe := &commandPipe{
-			exec: timedExec{exec: redisPipe{cli: applyCli.InstanceClient}, onBatch: func(d time.Duration) {
-				applyWall += d
-				p.add(stageApply, d)
+			exec: timedExec{exec: exec, onBatch: func(wall, cpu time.Duration) {
+				applyWall += wall
+				applyCPU += cpu
+				p.add(stageApply, wall)
+				p.addCPU(stageApply, cpu)
 			}},
-			onReply: func(args []string, reply error) error {
+			onReply: func(args []string, from cmdOrigin, reply error) error {
 				fileStats.Lines++
 				if reply != nil {
-					fileStats.record(reply.Error(), commandPreview(args))
+					preview := commandPreview(args)
+					fileStats.record(reply.Error(), preview)
+					p.detailReply("  error [%s] seq=%d ts=%s (error) %s <- %s", base, from.seq,
+						recordTime(from.ts), reply.Error(), preview)
+					if kind := errorKind(reply.Error()); p.firstReply(kind) {
+						line := fmt.Sprintf("first %q reply in %s: (error) %s <- %s", kind, base,
+							previewLine(reply.Error()), preview)
+						if kind == expectedReplyError {
+							log.Info("%s", line)
+						} else {
+							log.Warn("%s", line)
+						}
+					}
 				}
 				return nil
 			},
 		}
-		stats, cpu, err := decodeSSDFile(file, startPos, endMs, func(rec *ssdBinlogRecord) error {
+		decodeCPU := threadCPU()
+		stats, cpu, err := decodeSSDFile(file, start.startSeq, start.endMs, func(rec *ssdBinlogRecord) error {
 			args, skip, err := rec.command(time.Now().UnixMilli())
 			if err != nil {
 				return fmt.Errorf("seq %d: %v", rec.seq, err)
@@ -321,75 +460,97 @@ func (r *ssdRestorer) replay(log portLog, p *portReport, inst InstanceRestore, r
 			if skip {
 				return nil
 			}
-			return pipe.add(args)
+			return pipe.addFrom(args, cmdOrigin{seq: rec.seq, ts: rec.ts})
 		})
-		p.addCPU(stageParse, cpu)
-		p.add(stageParse, stats.readTime)
-		p.add(stageDecode, time.Since(begin)-stats.readTime-applyWall)
 		if err == nil {
 			err = pipe.flush()
 		}
-		if err != nil {
-			return fmt.Errorf("binlog %s: %w", base, err)
-		}
-		p.binlogReplayed(totalSize([]string{file}))
-		if fileStats.Lines > 0 && fileStats.Errors == fileStats.Lines {
-			return fmt.Errorf("binlog %s: all %d replies are errors, samples %q",
-				base, fileStats.Lines, fileStats.samples())
-		}
+		p.addCPU(stageDecode, threadCPU()-decodeCPU-applyCPU)
+		p.addCPU(stageParse, cpu)
+		p.add(stageParse, stats.readTime)
+		p.add(stageDecode, time.Since(begin)-stats.readTime-applyWall)
+		p.detail("%s records=%d cmds=%d errors=%d wall=%s", base, stats.records, fileStats.Lines,
+			fileStats.Errors, time.Since(begin).Round(time.Millisecond))
 		total.add(fileStats)
 		if stats.records > 0 {
 			if !seen {
-				firstSeq, seen = stats.firstSeq, true
+				start.firstSeq, seen = stats.firstSeq, true
 			}
-			lastSeq = stats.lastSeq
+			start.lastSeq, start.lastFile = stats.lastSeq, base
 		}
+		if err == nil && fileStats.Lines > 0 && fileStats.Errors == fileStats.Lines {
+			err = fmt.Errorf("all %d replies are errors, samples %q", fileStats.Lines, fileStats.samples())
+		}
+		if err != nil {
+			p.detail("ERROR %s: %v", base, err)
+			return fmt.Errorf("binlog %s: %w", base, err)
+		}
+		p.binlogReplayed(totalSize([]string{file}))
 	}
-	p.replayed(len(binlogs), total)
-	if total.Errors > total.Expected {
-		log.Warn("replayed in %s: seq %d -> %d, writes behind unexpected errors may be missing: %s",
-			shortDuration(time.Since(began)), firstSeq, lastSeq, total.summary())
+	if n := total.Errors - total.Expected; n > 0 {
+		log.Warn("replayed in %s: seq %d -> %d, %d error replies, writes may be missing",
+			shortDuration(time.Since(began)), start.firstSeq, start.lastSeq, n)
 	} else {
-		log.Info("replayed in %s: seq %d -> %d, %s cmds", shortDuration(time.Since(began)), firstSeq, lastSeq,
-			shortCount(total.Lines))
+		log.Info("replayed in %s: seq %d -> %d, %s cmds", shortDuration(time.Since(began)), start.firstSeq,
+			start.lastSeq, shortCount(total.Lines))
 	}
 	return nil
 }
 
-// replayStartPos is the first binlog seq not yet in the restored snapshot. The seq in the full
-// backup name is the last one already written when the backup began, so replay starts after it.
-// The restored instance's own end seq is preferred; both are logged when they differ.
+// replayStartPos is the first binlog seq not yet in the restored snapshot (see replayStart).
 func replayStartPos(log portLog, endSeq func() (uint64, error), fullFiles []string) (uint64, error) {
+	start, err := replayStart(log, endSeq, fullFiles)
+	return start.startSeq, err
+}
+
+// replayStart is where the replay starts: after the last seq already in the restored snapshot.
+// The seq in the full backup name is the last one already written when the backup began, so
+// replay starts after it. The restored instance's own end seq is preferred; a reason is logged
+// when it is not used or the two differ.
+func replayStart(log portLog, endSeq func() (uint64, error), fullFiles []string) (ssdReplayReport, error) {
 	nameSeq, nameErr := fullStartPos(fullFiles)
 	seq, err := endSeq()
 	if err == nil && seq == 0 {
 		err = fmt.Errorf("binlogsize returned end seq 0")
 	}
+	start := ssdReplayReport{nameSeq: nameSeq}
+	if err == nil {
+		start.restoredSeq = seq
+	}
 	switch {
 	case err != nil && nameErr != nil:
-		return 0, fmt.Errorf("no replay start position, binlogsize: %v; %v", err, nameErr)
+		return start, fmt.Errorf("no replay start position, binlogsize: %v; %v", err, nameErr)
 	case err != nil:
-		log.Warn("binlogsize unavailable (%v), start replay after full backup seq %d", err, nameSeq)
-		return nameSeq + 1, nil
+		log.Warn("start after backup name seq %d: binlogsize unavailable: %v", nameSeq, err)
+		start.startSeq, start.from = nameSeq+1, "backup name"
 	case nameErr != nil:
-		log.Warn("%v, start replay after restored end seq %d", nameErr, seq)
-		return seq + 1, nil
+		log.Warn("start after restored end seq %d: %v", seq, nameErr)
+		start.startSeq, start.from = seq+1, "restored"
 	case seq < nameSeq:
 		// Everything up to nameSeq is in the snapshot; starting earlier would replay it again.
-		log.Warn("restored end seq %d is behind full backup seq %d, start replay after %d", seq, nameSeq, nameSeq)
-		return nameSeq + 1, nil
+		log.Warn("start after backup name seq %d: restored end seq %d is behind it", nameSeq, seq)
+		start.startSeq, start.from = nameSeq+1, "backup name"
 	case seq > nameSeq:
-		log.Warn("restored end seq %d is ahead of full backup seq %d, start replay after %d", seq, nameSeq, seq)
+		log.Warn("start after restored end seq %d: ahead of backup name seq %d", seq, nameSeq)
+		start.startSeq, start.from = seq+1, "restored"
 	default:
-		log.Info("restored end seq %d matches full backup, start replay after it", seq)
+		start.startSeq, start.from = seq+1, "restored"
 	}
-	return seq + 1, nil
+	return start, nil
 }
 
 // replayEndMs is the exclusive end of the replay window: one second after recoverAt keeps the
 // writes made within the recoverAt second, as v1 does.
 func replayEndMs(recoverAt time.Time) int64 {
 	return recoverAt.Add(time.Second).UnixMilli()
+}
+
+// recordTime is a binlog record's write time in ms, in local time; "-" when unknown.
+func recordTime(ms int64) string {
+	if ms <= 0 {
+		return "-"
+	}
+	return time.UnixMilli(ms).Format("2006-01-02 15:04:05.000")
 }
 
 const previewBytes = 64
@@ -624,9 +785,12 @@ func confDir(instDir, fallback string) string {
 	return fallback
 }
 
+// ssdBinDir holds the media's tools; tests point it at scripts.
+var ssdBinDir = filepath.Join(consts.UsrLocal, "redis", "bin")
+
 // ssdRestoreTool picks the rocksdb restore command for the media: v1.2 and v1.3 ship different tools.
 func ssdRestoreTool(media string) (string, error) {
-	bin := filepath.Join(consts.UsrLocal, "redis", "bin")
+	bin := ssdBinDir
 	switch {
 	case strings.Contains(media, "-v1.2."):
 		return filepath.Join(bin, "rr_restore_backup") + " %s %s 1", nil
@@ -644,31 +808,31 @@ func ssdToolEnv() []string {
 	}
 }
 
-// restoreRocksdb replaces dataDir/rocksdb with the one rebuilt from backupRoot. The tool's output
-// is kept in workDir.
-func restoreRocksdb(log portLog, media, backupRoot, dataDir, workDir string) error {
+// restoreRocksdb replaces dataDir/rocksdb with the one rebuilt from backupRoot and returns the
+// CPU the restore tool used, on failure too. The tool's output is kept in workDir, and its command
+// line is in the error when it fails.
+func restoreRocksdb(media, backupRoot, dataDir, workDir string) (time.Duration, error) {
 	tool, err := ssdRestoreTool(media)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	rocksdbDir := filepath.Join(dataDir, "rocksdb")
 	if err = os.RemoveAll(rocksdbDir); err != nil {
-		return err
+		return 0, err
 	}
 	cmd := strings.Join(ssdToolEnv(), " ") + " " + fmt.Sprintf(tool, backupRoot, rocksdbDir)
-	log.Info("restore rocksdb: %s", cmd)
-	out, err := util.RunBashCmd(cmd, "", nil, ssdCmdTimeout)
+	out, cpu, err := runStageOutput(cmd, nil, ssdCmdTimeout)
 	if err != nil || strings.Contains(out, "ERR:") {
-		return fmt.Errorf("restore rocksdb from %s failed: %v %s", backupRoot, err,
-			keepOutput(workDir, "restore.out", []byte(out)))
+		return cpu, fmt.Errorf("restore rocksdb from %s failed: %v %s; command: %s", backupRoot, err,
+			keepOutput(workDir, "restore.out", []byte(out)), cmd)
 	}
 	if !util.FileExists(rocksdbDir) {
-		return fmt.Errorf("restore rocksdb from %s produced no %s", backupRoot, rocksdbDir)
+		return cpu, fmt.Errorf("restore rocksdb from %s produced no %s", backupRoot, rocksdbDir)
 	}
-	return util.LocalDirChownMysql(dataDir)
+	return cpu, util.LocalDirChownMysql(dataDir)
 }
 
-const replyErrorSamples = 5
+const replyErrorSamples = 2
 
 // expectedReplyError marks keys that expired between recover_at and the replay: tredisbinlog
 // turns their absolute expiry into a TTL relative to now, which is no longer positive.

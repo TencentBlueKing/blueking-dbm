@@ -22,6 +22,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -40,9 +41,7 @@ const (
 	plusRestoreTimeout = 6 * time.Hour
 	plusCommandTimeout = 10 * time.Minute
 	plusToolTimeout    = 2 * time.Hour
-	// plusHeartbeatTolerance is v1's: how far a kvstore's source heartbeat may be from recover_at.
-	plusHeartbeatTolerance = 10 * time.Minute
-	restoreBinlogCmd       = "restorebinlogv2"
+	restoreBinlogCmd   = "restorebinlogv2"
 	// A ReplLogKeyV2 is a RecordKey whose primary key is the binlog id as 8 big-endian bytes, after
 	// a 4-byte chunk id, a type byte and a 4-byte db id.
 	binlogIDOffset = 4 + 1 + 4
@@ -77,8 +76,7 @@ func (r *plusRestorer) DoRollback() error {
 		return fmt.Errorf("invalid recover_at %q: %v", r.RecoverAt, err)
 	}
 	limits := HostLimits(r.MaxConcurrency)
-	report := newHostReport(r.DestIP, "tendisplus", r.Instances)
-	report.recoverAt = r.RecoverAt
+	report := r.newReport(enginePlus)
 	defer report.logResult()
 
 	redo, resume, err := r.resolvePending(report)
@@ -86,7 +84,7 @@ func (r *plusRestorer) DoRollback() error {
 		return err
 	}
 	if len(redo) == 0 && len(resume) == 0 {
-		logInfo("RedisRollback %s: all ports already rolled back, nothing to do", r.DestIP)
+		logInfo("RedisRollback: all ports already rolled back")
 		return nil
 	}
 
@@ -108,7 +106,7 @@ func (r *plusRestorer) DoRollback() error {
 		sort.Ints(gapped)
 		for _, kvstore := range gapped {
 			report.port(inst.DestPort).allowedGaps(fmt.Sprintf("kv%d ", kvstore), gaps[kvstore])
-			newPortLog(inst.DestPort).Warn("kvstore %d binlogs skip %s, allowed by the plan: the temp instance "+
+			newPortLog(inst.DestPort).Warn("kv%d binlogs skip %s, as the plan allows: the temp instance "+
 				"misses their writes", kvstore, indexRanges(gaps[kvstore]))
 		}
 		var binlogs, full []string
@@ -138,15 +136,12 @@ func (r *plusRestorer) DoRollback() error {
 		}
 	}
 	// A resumed port was tuned by the attempt that restored it; memory is read from its conf as is.
-	tuning := r.tuningSummary()
+	report.tuning = r.tuningSummary()
 	for _, inst := range all {
 		plan := plans[inst.DestPort]
 		plan.memory = PlusMemory(confFile(r.Host.InstanceDir(inst.DestPort)))
-		plan.tuning = tuning
 		plans[inst.DestPort] = plan
-		report.port(inst.DestPort).setTuning(tuning)
 	}
-	report.tuning = tuning
 	replaying := limits.KvstoreReplay(streams)
 	report.logPlan(limits, plans, r.UnpackDir, fmt.Sprintf("%d of %d kvstores at once", replaying, streams))
 	defer report.trackProgress()()
@@ -211,15 +206,15 @@ func (r *plusRestorer) resolvePending(report *hostReport) (redo, resume []Instan
 		}
 		switch {
 		case inUse && IsDone(instDir, fingerprint):
-			log.Info("already rolled back to the same point, skip")
+			log.Info("skip: already rolled back to this point")
 			report.skipped(inst.DestPort)
 			continue
 		case inUse && IsPending(instDir, fingerprint):
-			log.Info("full backup already restored, resume replaying binlogs")
+			log.Info("resume: full backup restored, replay on")
 			resume = append(resume, inst)
 			continue
 		case inUse:
-			log.Info("in use without a matching marker, stop it and redo")
+			log.Info("redo: in use without a matching marker")
 			if err = r.Host.Stop(inst.DestPort); err != nil {
 				return nil, nil, err
 			}
@@ -280,18 +275,19 @@ func (r *plusRestorer) restore(inst InstanceRestore, p *portReport, window *memW
 	}
 	log.Info("started, memory~%s", shortBytes(need))
 	if len(inst.FullFiles) == 0 {
-		log.Info("no full files, keep it empty")
+		log.Info("no full files, left empty")
 		return MarkPending(instDir, r.fingerprint(inst))
 	}
 	p.enter(phaseRestore, 0, "")
-	err := p.timed(stageRestore, func() error {
+	err := r.timedOnInstance(log, p, inst.DestPort, stageRestore, func() error {
 		return r.restoreBackup(log, p, inst, instDir, root, metas)
 	})
 	if err != nil {
-		log.Error("%v", err)
+		log.Error("restore failed: %v", err)
+		p.detail("ERROR restore: %v", err)
 		return err
 	}
-	log.Info("restored in %s", shortDuration(p.duration(stageRestore)))
+	log.Info("restored (%s) in %s", p.restoredHow(), shortDuration(p.duration(stageRestore)))
 	if err = os.RemoveAll(workDir); err != nil {
 		log.Warn("remove unpacked backup %s failed: %v", workDir, err)
 	}
@@ -325,23 +321,18 @@ func (r *plusRestorer) restoreBackup(log portLog, p *portReport, inst InstanceRe
 	same, derr := sameDeviceFn(root, dbDir)
 	switch {
 	case derr != nil:
-		log.Warn("cannot compare filesystems of %s and %s (%v), restorebackup copies the backup", root, dbDir, derr)
+		log.Warn("restorebackup copies: cannot compare filesystems of %s and %s: %v", root, dbDir, derr)
 	case !same:
-		log.Warn("%s and %s are on different filesystems, restorebackup copies the backup", root, dbDir)
+		log.Warn("restorebackup copies: %s and %s are on different filesystems", root, dbDir)
 	default:
 		if _, err = cli.ConfigSet("move-dir-when-restore-ckpt", "yes"); err != nil {
-			log.Warn("set move-dir-when-restore-ckpt failed (%v), restorebackup copies the backup", err)
-		} else {
-			log.Info("%s shares a filesystem with %s, asked restorebackup to move a checkpoint backup", root, dbDir)
+			log.Warn("restorebackup copies: set move-dir-when-restore-ckpt failed: %v", err)
 		}
 	}
-	log.Info("restorebackup all %s force", root)
 	if err = cli.InstanceClient.Do(context.TODO(), "restorebackup", "all", root, "force").Err(); err != nil {
 		return fmt.Errorf("restorebackup all %s failed: %v", root, err)
 	}
-	how := restoredHow(root, len(metas))
-	p.setRestored(how)
-	log.Info("restorebackup %s the backup in %s", how, root)
+	p.setRestored(restoredHow(root, len(metas)))
 	// Each kvstore restarts at the binlogpos of its backup, and the replay goes on from there.
 	replayer := redisReplayer{cli: cli}
 	for kvstore := 0; kvstore < len(metas); kvstore++ {
@@ -354,7 +345,6 @@ func (r *plusRestorer) restoreBackup(log portLog, p *portReport, inst InstanceRe
 				kvstore, pos, metas[kvstore].BinlogPos)
 		}
 	}
-	log.Info("restorebackup done, %d kvstores at their backup's binlogpos", len(metas))
 	return nil
 }
 
@@ -486,14 +476,14 @@ func (r *plusRestorer) replayAndMark(inst InstanceRestore, p *portReport, chains
 			err = restoreEndFn(log, r.DestIP, inst)
 		}
 	}
-	if err == nil && len(chains) > 0 {
-		err = r.checkHeartbeat(log, p, inst, chains, recoverAt)
+	if err == nil && (len(inst.FullFiles) > 0 || len(chains) > 0) {
+		r.checkHeartbeat(log, p, inst, chains, recoverAt)
 	}
 	if err == nil {
 		err = MarkDone(r.Host.InstanceDir(inst.DestPort), r.fingerprint(inst))
 	}
 	if err != nil {
-		log.Error("%v", err)
+		log.Error("failed: %v", err)
 		p.finish(err)
 		return err
 	}
@@ -506,35 +496,44 @@ func (r *plusRestorer) replayAndMark(inst InstanceRestore, p *portReport, chains
 		}
 	}
 	p.finish(nil)
+	log.Info("done")
 	return nil
 }
 
-// checkHeartbeat compares the source heartbeat each replayed kvstore holds with recoverAt, as v1
-// does. dbmon writes it to every kvstore of the source, so once the replay reaches recoverAt it
-// must be within the tolerance of it. A source that wrote none, or a kvstore without one, is
-// logged and not checked; a heartbeat out of the tolerance fails the port.
+// checkHeartbeat compares the source heartbeat each kvstore holds with recoverAt, as v1 does.
+// dbmon writes it to every kvstore of the source, so once the restore reaches recoverAt it should
+// be within the tolerance of it. A quiet source or a paused dbmon leaves it stale even when every
+// planned binlog went in, so a heartbeat out of the tolerance, or one that cannot be read, is a
+// warning on the port and never fails it. A source that wrote none, or a replayed kvstore without
+// one, is logged and not checked.
 func (r *plusRestorer) checkHeartbeat(log portLog, p *portReport, inst InstanceRestore, chains map[int][]string,
-	recoverAt time.Time) error {
+	recoverAt time.Time) {
+	key := fmt.Sprintf("%s_%d:heartbeat", inst.SourceIP, inst.SourcePort)
 	cli, closeFn, err := dialPlusFn(r.DestIP, inst.DestPort)
 	if err != nil {
-		return err
+		p.heartbeatOff(log, "heartbeat %s not read: %v", key, err)
+		return
 	}
 	defer closeFn()
-	key := fmt.Sprintf("%s_%d:heartbeat", inst.SourceIP, inst.SourcePort)
 	beats, err := cli.Heartbeat(key)
 	if err != nil {
-		return err
+		p.heartbeatOff(log, "heartbeat %s not read: %v", key, err)
+		return
 	}
 	if len(beats) == 0 {
 		log.Info("no heartbeat under %s, heartbeat check skipped", key)
-		return nil
+		return
 	}
-	tolerance := r.HeartbeatTolerance
-	if tolerance <= 0 {
-		tolerance = plusHeartbeatTolerance
-	}
-	kvstores := make([]int, 0, len(chains))
+	tolerance := r.heartbeatTolerance()
+	seen := map[int]bool{}
 	for kvstore := range chains {
+		seen[kvstore] = true
+	}
+	for kvstore := range beats {
+		seen[kvstore] = true
+	}
+	kvstores := make([]int, 0, len(seen))
+	for kvstore := range seen {
 		kvstores = append(kvstores, kvstore)
 	}
 	sort.Ints(kvstores)
@@ -547,7 +546,7 @@ func (r *plusRestorer) checkHeartbeat(log portLog, p *portReport, inst InstanceR
 			continue
 		}
 		p.kvstoreHeartbeat(kvstore, beat)
-		if d := beat.Sub(recoverAt); d > tolerance || d < -tolerance {
+		if beatOff(beat, recoverAt, tolerance) {
 			off = append(off, fmt.Sprintf("kvstore %d at %s", kvstore, beat.Local().Format(time.RFC3339)))
 		}
 	}
@@ -555,36 +554,60 @@ func (r *plusRestorer) checkHeartbeat(log portLog, p *portReport, inst InstanceR
 		log.Warn("kvstores %v hold no heartbeat under %s, not checked", missing, key)
 	}
 	if len(off) > 0 {
-		return fmt.Errorf("heartbeat %s is more than %s from recover_at %s: %s", key, tolerance,
+		p.heartbeatOff(log, "heartbeat %s is more than %s from recover_at %s: %s", key, tolerance,
 			recoverAt.Local().Format(time.RFC3339), strings.Join(off, ", "))
+		return
 	}
 	log.Info("heartbeat of %d kvstores within %s of recover_at", len(kvstores)-len(missing), tolerance)
-	return nil
 }
 
-// sampleInstanceCPU reads the instance's CPU now and returns what books its use since on p. The
-// summary leaves it out when the process cannot be read or was restarted in between.
-func (r *plusRestorer) sampleInstanceCPU(log portLog, port int, replaying bool) func(*portReport) {
-	if !replaying {
-		return func(*portReport) {}
-	}
-	pid, start, err := r.Host.ProcessID(port)
+// instanceCPUSince reads the instance's CPU now and returns what reads its use since. ok is false
+// when the process cannot be read or was restarted in between, which is logged and fails nothing.
+func (j Job) instanceCPUSince(log portLog, port int) func() (d time.Duration, ok bool) {
+	pid, start, err := j.Host.ProcessID(port)
 	var before time.Duration
 	if err == nil {
 		before, err = processCPU(pid, start)
 	}
 	if err != nil {
 		log.Warn("instance cpu not sampled: %v", err)
-		return func(*portReport) {}
+		return func() (time.Duration, bool) { return 0, false }
 	}
-	return func(p *portReport) {
+	return func() (time.Duration, bool) {
 		after, err := processCPU(pid, start)
 		if err != nil {
 			log.Warn("instance cpu not sampled: %v", err)
-			return
+			return 0, false
 		}
-		p.setInstanceCPU(after - before)
+		return after - before, true
 	}
+}
+
+// sampleInstanceCPU reads the instance's CPU now and returns what books its use since on p, as the
+// instance's CPU over the replay and as apply CPU. The summary leaves it out when the process
+// cannot be read or was restarted in between; the port goes on either way.
+func (j Job) sampleInstanceCPU(log portLog, port int, replaying bool) func(*portReport) {
+	if !replaying {
+		return func(*portReport) {}
+	}
+	since := j.instanceCPUSince(log, port)
+	return func(p *portReport) {
+		if d, ok := since(); ok {
+			p.setInstanceCPU(d)
+			p.addCPU(stageApply, d)
+		}
+	}
+}
+
+// timedOnInstance runs fn as stage and books the instance's CPU over it as that stage's: the
+// running instance does the work, not a child process.
+func (j Job) timedOnInstance(log portLog, p *portReport, port int, stage string, fn func() error) error {
+	since := j.instanceCPUSince(log, port)
+	err := p.timed(stage, fn)
+	if d, ok := since(); ok {
+		p.addCPU(stage, d)
+	}
+	return err
 }
 
 // replay runs the kvstores of inst on the host's replay slots, each kvstore on its own connection.
@@ -598,15 +621,13 @@ func (r *plusRestorer) replay(log portLog, p *portReport, inst InstanceRestore, 
 	endMs := replayEndMs(recoverAt)
 	kvstores := make([]int, 0, len(chains))
 	files := 0
+	var bytes int64
 	for kvstore, chain := range chains {
 		kvstores = append(kvstores, kvstore)
 		files += len(chain)
-	}
-	sort.Ints(kvstores)
-	var bytes int64
-	for _, chain := range chains {
 		bytes += totalSize(chain)
 	}
+	sort.Ints(kvstores)
 
 	var wg sync.WaitGroup
 	var errs errCollector
@@ -651,11 +672,14 @@ func (r *plusRestorer) replay(log portLog, p *portReport, inst InstanceRestore, 
 	}
 	wg.Wait()
 	p.replayed(files, replyStats{Lines: applied})
-	if errs.err == nil {
-		log.Info("replayed in %s: %s cmds", shortDuration(time.Since(begin)), shortCount(applied))
+	if slow := p.slowKvstores(); len(slow) > 0 {
+		log.Warn("slow kvstores: %s", strings.Join(slow, ", "))
 	}
 	if redo && !failedInFlight(errs.err) {
 		return &inFlightError{errs.err}
+	}
+	if errs.err == nil {
+		log.Info("replayed in %s: %s cmds", shortDuration(time.Since(begin)), shortCount(applied))
 	}
 	return errs.err
 }
@@ -824,22 +848,35 @@ var binlogToolFn = runBinlogToolStream
 // Commands go in batches flushed at the end of each file. The server does not refuse a gap in
 // ids, so once a batch fails while out, or binlog ids and binlogpos disagree, the error is an
 // inFlightError and binlogpos cannot be resumed from; failing between batches drops the unsent
-// part and leaves binlogpos exact. A closed stop ends it that way with errReplayStopped.
+// part and leaves binlogpos exact. A closed stop ends it that way with errReplayStopped. Its
+// errors go to the detail file too, all but errReplayStopped.
 func replayKvstore(log portLog, p *portReport, cli plusReplayer, kvstore int, files []string, endMs int64,
-	workDir string, stop <-chan struct{}) (int, error) {
-	if err := os.MkdirAll(workDir, 0755); err != nil {
+	workDir string, stop <-chan struct{}) (applied int, err error) {
+	defer func() {
+		if err != nil && !errors.Is(err, errReplayStopped) {
+			p.detail("ERROR kv=%d: %v", kvstore, err)
+		}
+	}()
+	// Sending batches runs on this goroutine alone; locked to its thread, the thread's CPU is this
+	// kvstore's.
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	if err = os.MkdirAll(workDir, 0755); err != nil {
 		return 0, err
 	}
+	p.kvstoreStarted(kvstore)
 	start, err := cli.BinlogPos(kvstore)
 	if err != nil {
 		return 0, err
 	}
-	p.kvstoreStarted(kvstore)
-	last, applied, first, replayed := start, 0, true, 0
+	last, first, replayed := start, true, 0
 	defer func() { p.kvstoreReplayed(kvstore, replayed, applied, start, last) }()
-	var batches time.Duration
-	exec := timedExec{exec: cli, onBatch: func(d time.Duration) { batches += d }}
-	pipe := &commandPipe{exec: exec, onReply: func(args []string, reply error) error {
+	var batches, batchCPU time.Duration
+	exec := timedExec{exec: cli, onBatch: func(wall, cpu time.Duration) {
+		batches += wall
+		batchCPU += cpu
+	}}
+	pipe := &commandPipe{exec: exec, onReply: func(args []string, _ cmdOrigin, reply error) error {
 		if reply != nil {
 			id, _ := binlogIDFromKey(args[2])
 			return fmt.Errorf("%s of binlog id %d failed: %v", restoreBinlogCmd, id, reply)
@@ -852,7 +889,7 @@ func replayKvstore(log portLog, p *portReport, cli plusReplayer, kvstore int, fi
 			return applied, errReplayStopped
 		}
 		base := filepath.Base(file)
-		begin, batchesBefore := time.Now(), batches
+		begin, batchesBefore, batchCPUBefore, appliedBefore := time.Now(), batches, batchCPU, applied
 		cpu, err := binlogToolFn(file, workDir, last+1, endMs, func(line string) error {
 			args, id, err := parseRestoreLine(line, kvstore)
 			if err != nil || args == nil {
@@ -866,7 +903,7 @@ func replayKvstore(log portLog, p *portReport, cli plusReplayer, kvstore int, fi
 				return errReplayStopped
 			}
 			if first && id != start+1 {
-				log.Warn("kvstore %d resumes at binlog id %d, its binlogpos was %d", kvstore, id, start)
+				log.Warn("kv%d resumes at binlog id %d, binlogpos was %d", kvstore, id, start)
 			}
 			first = false
 			last = id
@@ -881,7 +918,13 @@ func replayKvstore(log portLog, p *portReport, cli plusReplayer, kvstore int, fi
 		apply := batches - batchesBefore
 		p.addKvstore(kvstore, stageParse, 0, cpu.parse)
 		p.addKvstore(kvstore, stageDecode, time.Since(begin)-apply, cpu.decode)
-		p.addKvstore(kvstore, stageApply, apply, 0)
+		p.addKvstore(kvstore, stageApply, apply, batchCPU-batchCPUBefore)
+		failed := 0
+		if err != nil {
+			failed = 1
+		}
+		p.detail("kv=%d %s cmds=%d errors=%d wall=%s", kvstore, base, applied-appliedBefore, failed,
+			time.Since(begin).Round(time.Millisecond))
 		if err != nil {
 			return applied, fmt.Errorf("kvstore %d binlog %s: %w", kvstore, base, err)
 		}
@@ -892,6 +935,7 @@ func replayKvstore(log portLog, p *portReport, cli plusReplayer, kvstore int, fi
 	if err != nil {
 		return applied, err
 	}
+	p.kvstoreAfter(kvstore, pos)
 	if pos != last {
 		return applied, &inFlightError{fmt.Errorf("kvstore %d binlogpos is %d after replay, want %d, the last "+
 			"binlog id replayed", kvstore, pos, last)}

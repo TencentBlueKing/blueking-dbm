@@ -81,30 +81,44 @@ func failedInFlight(err error) bool {
 }
 
 // timedExec reports how long each batch took, telling the time spent waiting on the instance
-// apart from the decoding that feeds the pipe.
+// apart from the decoding that feeds the pipe, and the CPU this thread spent sending the batch
+// and reading its replies (see threadCPU).
 type timedExec struct {
 	exec    pipeExecer
-	onBatch func(time.Duration)
+	onBatch func(wall, cpu time.Duration)
 }
 
 func (t timedExec) execBatch(cmds [][]string) ([]error, error) {
-	start := time.Now()
+	start, cpu := time.Now(), threadCPU()
 	replies, err := t.exec.execBatch(cmds)
-	t.onBatch(time.Since(start))
+	t.onBatch(time.Since(start), threadCPU()-cpu)
 	return replies, err
 }
 
+// cmdOrigin is the binlog record a command was decoded from; zero when the caller does not track
+// it. ts is the record's write time in ms.
+type cmdOrigin struct {
+	seq int64
+	ts  int64
+}
+
 // commandPipe sends commands in order, a batch at a time. onReply sees each command with its
-// error reply once the batch is back; returning an error stops the pipe.
+// origin and error reply once the batch is back; returning an error stops the pipe.
 type commandPipe struct {
 	exec    pipeExecer
-	onReply func(args []string, reply error) error
+	onReply func(args []string, from cmdOrigin, reply error) error
 	cmds    [][]string
+	origins []cmdOrigin
 	bytes   int
 }
 
 func (p *commandPipe) add(args []string) error {
+	return p.addFrom(args, cmdOrigin{})
+}
+
+func (p *commandPipe) addFrom(args []string, from cmdOrigin) error {
 	p.cmds = append(p.cmds, args)
+	p.origins = append(p.origins, from)
 	for _, arg := range args {
 		p.bytes += len(arg)
 	}
@@ -119,14 +133,14 @@ func (p *commandPipe) flush() error {
 	if len(p.cmds) == 0 {
 		return nil
 	}
-	cmds := p.cmds
-	p.cmds, p.bytes = nil, 0
+	cmds, origins := p.cmds, p.origins
+	p.cmds, p.origins, p.bytes = nil, nil, 0
 	replies, err := p.exec.execBatch(cmds)
 	if err != nil {
 		return &inFlightError{fmt.Errorf("batch of %d commands broke off: %v", len(cmds), err)}
 	}
 	for i, args := range cmds {
-		if err = p.onReply(args, replies[i]); err != nil {
+		if err = p.onReply(args, origins[i], replies[i]); err != nil {
 			return &inFlightError{err}
 		}
 	}

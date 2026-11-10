@@ -9,6 +9,7 @@
 package rollback
 
 import (
+	"compress/gzip"
 	"errors"
 	"fmt"
 	"os"
@@ -408,3 +409,226 @@ func TestSnapshotMarksAStalledPortAndWarnsOnce(t *testing.T) {
 }
 
 // plusLines replays one kvstore of n binlogs and returns the node log and the detail file.
+
+func plusLines(t *testing.T, n int) ([]logEntry, string) {
+	t.Helper()
+	logs := captureLogs(t)
+	fake := map[int]*portReplayer{}
+	r, _, restore := plusPorts(t, map[int]int{30000: 1}, fake)
+	defer restore()
+	names := make([]string, n)
+	for i := range names {
+		names[i] = fmt.Sprintf("binlog-1.1.1.1-30000-0-%07d-20261105000000.log", i+1)
+	}
+	defer scriptTool(t, func(_, kvstore int, start uint64, onLine func(string) error) error {
+		return onLine(restoreLine(kvstore, start))
+	})()
+	inst := InstanceRestore{DestPort: 30000}
+	r.Instances = []InstanceRestore{inst}
+	report := r.newReport(enginePlus)
+	chains := map[int][]string{0: gzipBinlogs(t, t.TempDir(), names...)}
+	if err := r.replayAndMark(inst, report.port(30000), chains, time.Time{}, make(chan struct{}, 1)); err != nil {
+		t.Fatal(err)
+	}
+	report.logResult()
+	raw, err := os.ReadFile(filepath.Join(r.SaveDir, "rollback_detail_30000.log"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return logs(), string(raw)
+}
+
+func TestPlusNodeLogDoesNotGrowWithBinlogs(t *testing.T) {
+	few, _ := plusLines(t, 2)
+	many, detail := plusLines(t, 4)
+	if len(few) != len(many) {
+		t.Fatalf("%d records for 2 binlogs, %d for 4", len(few), len(many))
+	}
+	assertNodeLogWidths(t, many)
+	if strings.Count(detail, ".log.gz cmds=1 errors=0 wall=") != 4 || !strings.Contains(detail, "kv=0 binlogs=4 writes=4") {
+		t.Fatalf("detail:\n%s", detail)
+	}
+	containsAll(t, many[len(many)-1].msg, " detail: ", "100 -> 104")
+}
+
+func ssdBinlogs(t *testing.T, n int) []string {
+	t.Helper()
+	dir := t.TempDir()
+	var files []string
+	for i := 0; i < n; i++ {
+		path := filepath.Join(dir, fmt.Sprintf("binlog-1.1.1.1-30000-%07d-20260101000000.log.gz", i+1))
+		f, err := os.Create(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		w := gzip.NewWriter(f)
+		for _, seq := range []int64{int64(2*i + 100), int64(2*i + 101)} {
+			_, _ = w.Write(ssdRecordBytes(seq, logKSET, 0, 0, 1000, ssdPlainKey(fmt.Sprintf("k%d", seq)), []byte("v"), nil))
+		}
+		_ = w.Close()
+		_ = f.Close()
+		files = append(files, path)
+	}
+	return files
+}
+
+// ssdReplay replays n binlogs, answering every other command with WRONGTYPE.
+func ssdReplay(t *testing.T, n int) ([]logEntry, *hostReport, string) {
+	t.Helper()
+	logs := captureLogs(t)
+	j := Job{DestIP: "2.2.2.2", SaveDir: t.TempDir(), RecoverAt: "2026-11-05T16:05:00+08:00",
+		Instances: []InstanceRestore{{DestPort: 30000}}}
+	h := j.newReport(engineSSD)
+	p := h.port(30000)
+	calls := 0
+	exec := &fakeExec{reply: func([]string) error {
+		calls++
+		if calls%2 == 0 {
+			return errors.New("WRONGTYPE Operation against a key holding the wrong kind of value")
+		}
+		return nil
+	}}
+	err := replayFiles(newPortLog(30000), p, exec, ssdBinlogs(t, n),
+		ssdReplayReport{restoredSeq: 99, nameSeq: 99, startSeq: 100, from: "restored", endMs: 1 << 62})
+	p.finish(err)
+	h.logResult()
+	raw, _ := os.ReadFile(filepath.Join(j.SaveDir, "rollback_detail_30000.log"))
+	return logs(), h, string(raw)
+}
+
+func TestSSDNodeLogShowsEachErrorKindOnceAndKeepsBinlogsInTheDetailFile(t *testing.T) {
+	few, _, _ := ssdReplay(t, 2)
+	many, h, detail := ssdReplay(t, 4)
+	if len(few) != len(many) {
+		t.Fatalf("%d records for 2 binlogs, %d for 4", len(few), len(many))
+	}
+	assertNodeLogWidths(t, many)
+	first := 0
+	for _, e := range many {
+		if strings.Contains(e.msg, `first "WRONGTYPE" reply`) {
+			first++
+		}
+	}
+	if first != 1 || strings.Count(detail, "records=2 cmds=2 errors=1 wall=") != 4 ||
+		strings.Count(detail, " (error) WRONGTYPE Operation against a key holding the wrong kind of value <- ") != 4 {
+		t.Fatalf("%d first-reply events, detail:\n%s\nlogs:\n%v", first, detail, many)
+	}
+	containsAll(t, detail, "  error [binlog-1.1.1.1-30000-0000001-20260101000000.log.gz] seq=101 ts="+
+		time.UnixMilli(1000).Format("2006-01-02 15:04:05.000")+` (error) WRONGTYPE Operation`+
+		` against a key holding the wrong kind of value <- "set" "k101"`)
+	containsAll(t, h.diagText(h.port(30000), ""),
+		"[30000] diag recover_at 11-05 16:05:00",
+		" start after seq 99 (restored): restored 99, backup name 99",
+		"4        100 -> 107",
+		" last binlog binlog-1.1.1.1-30000-0000004-20260101000000.log.gz",
+		" error replies 4 of 8 (0 expected): WRONGTYPE 4",
+		"  (error) WRONGTYPE Operation",
+	)
+	containsAll(t, h.resultText(), "       4      8    4", "port(errors): 30000(4)")
+}
+
+func TestDiagHasARowPerKvstoreAndOneForCache(t *testing.T) {
+	plus := newHostReport("2.2.2.2", enginePlus, []InstanceRestore{{DestPort: 30000}})
+	p := plus.port(30000)
+	for kvstore := 0; kvstore < 2; kvstore++ {
+		p.kvstoreReplayed(kvstore, 36, 1000, 100, 1100)
+		p.kvstoreAfter(kvstore, 1100)
+	}
+	p.finish(nil)
+	if rows := strings.Count(plus.diagText(p, ""), "100 -> 1100"); rows != 2 {
+		t.Fatalf("%d kvstore rows:\n%s", rows, plus.diagText(p, ""))
+	}
+
+	cache := newHostReport("2.2.2.2", engineCache, []InstanceRestore{{DestPort: 30002}, {DestPort: 30003}})
+	cache.port(30002).setCacheLoaded(cacheLoadReport{aof: true, dbsize: 12345, rss: 3 << 30})
+	cache.port(30002).finish(nil)
+	cache.skipped(30003)
+	loaded := cache.diagText(cache.port(30002), "")
+	if !strings.Contains(loaded, " backup AOF, dbsize 12345, rss 3.0G") || strings.Contains(loaded, " kv ") {
+		t.Fatalf("diag:\n%s", loaded)
+	}
+	if diag := cache.diagText(cache.port(30003), ""); diag != "[30003] diag: skipped, already rolled back" {
+		t.Fatalf("diag %q", diag)
+	}
+}
+
+func TestPlusDiagRowsFitWithTwelveDigitBinlogpos(t *testing.T) {
+	h := newHostReport("2.2.2.2", enginePlus, []InstanceRestore{{DestPort: 30000}})
+	p := h.port(30000)
+	p.addKvstore(0, stageParse, 0, 2*time.Minute+22*time.Second)
+	p.addKvstore(0, stageDecode, 7*time.Minute+23*time.Second, 0)
+	p.addKvstore(0, stageApply, time.Hour+time.Minute, 0)
+	p.kvstoreReplayed(0, 158, 1000, 168165290464, 168374509300)
+	p.kvstoreAfter(0, 168374509300)
+	p.kvstoreHeartbeat(0, time.Date(2026, 11, 5, 21, 59, 58, 0, time.Local))
+	p.finish(nil)
+	text := h.diagText(p, "/data/dbbak/recover_redis/rollback_detail_30000.log")
+	if wrapRecord(text) != text {
+		t.Fatalf("diag wraps:\n%s", wrapRecord(text))
+	}
+	containsAll(t, text,
+		"   kv   bl       before -> after        heartbeat  parse decode  apply",
+		"    0  158 168165290464 -> 168374509300  21:59:58  2m22s  7m23s  1h01m",
+	)
+	if strings.Contains(text, "plan") {
+		t.Fatalf("plan column left:\n%s", text)
+	}
+}
+
+func TestSlowKvstoresAreNamed(t *testing.T) {
+	h := newHostReport("2.2.2.2", enginePlus, []InstanceRestore{{DestPort: 30000}})
+	p := h.port(30000)
+	for kvstore, wall := range []time.Duration{time.Minute, time.Minute, 5 * time.Minute} {
+		p.addKvstore(kvstore, stageApply, wall, 0)
+	}
+	if got := strings.Join(p.slowKvstores(), ", "); got != "kv2 5m00s, median 1m00s" {
+		t.Fatalf("got %q", got)
+	}
+}
+
+func ssdRestorerFor(t *testing.T, host Host) *ssdRestorer {
+	t.Helper()
+	r := &ssdRestorer{Job: Job{DestIP: "2.2.2.2", SaveDir: t.TempDir(), UnpackDir: t.TempDir(), Host: host}}
+	_ = os.MkdirAll(host.InstanceDir(30000), 0755)
+	ssdHeartbeatFn = func(string, int, string, string) (time.Time, int64, error) { return time.Time{}, -1, nil }
+	t.Cleanup(func() { ssdHeartbeatFn = readSSDHeartbeat })
+	return r
+}
+
+func TestSSDReplayInstanceCPU(t *testing.T) {
+	root := t.TempDir()
+	procRoot = root
+	defer func() {
+		procRoot = "/proc"
+		ssdReplayFn = (*ssdRestorer).replay
+	}()
+	inst := InstanceRestore{DestPort: 30000}
+	fakeProc(t, root, 300, []string{"redis-server"}, 100, 0, 9)
+	r := ssdRestorerFor(t, procHost{dirHost: dirHost{root: t.TempDir()}, pid: 300})
+	ssdReplayFn = func(*ssdRestorer, portLog, *portReport, InstanceRestore, time.Time, []string) error {
+		fakeProc(t, root, 300, []string{"redis-server"}, 400, 100, 9)
+		return nil
+	}
+	h := newHostReport(r.DestIP, engineSSD, []InstanceRestore{inst})
+	if err := r.replayAndMark(inst, h.port(30000), []string{"binlog"}, time.Time{}); err != nil {
+		t.Fatal(err)
+	}
+	h.port(30000).finish(nil)
+	if h.port(30000).instanceCPU != 4*time.Second {
+		t.Fatalf("instance cpu %v", h.port(30000).instanceCPU)
+	}
+	if text := h.resultText(); !strings.Contains(text, ", instances 4s") {
+		t.Fatalf("result:\n%s", text)
+	}
+
+	r = ssdRestorerFor(t, dirHost{root: t.TempDir()})
+	ssdReplayFn = func(*ssdRestorer, portLog, *portReport, InstanceRestore, time.Time, []string) error { return nil }
+	h = newHostReport(r.DestIP, engineSSD, []InstanceRestore{inst})
+	if err := r.replayAndMark(inst, h.port(30000), []string{"binlog"}, time.Time{}); err != nil {
+		t.Fatal(err)
+	}
+	h.port(30000).finish(nil)
+	if text := h.resultText() + h.diagText(h.port(30000), ""); strings.Contains(text, "instance") {
+		t.Fatalf("unsampled cpu shown:\n%s", text)
+	}
+}

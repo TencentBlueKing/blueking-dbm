@@ -186,27 +186,58 @@ func TestPlusReplayBooksTheInstanceCPU(t *testing.T) {
 	if p.instanceCPU != 4*time.Second {
 		t.Fatalf("instance cpu %v", p.instanceCPU)
 	}
+	// apply is the instance's CPU over the replay plus the actuator's sending the batches
+	if apply := p.cpu[stageApply]; apply < 4*time.Second || apply >= 5*time.Second {
+		t.Fatalf("apply cpu %v", apply)
+	}
 }
 
-func TestResultTextShowsKvstoresTuningAndRestore(t *testing.T) {
+func TestRestoreBooksTheInstanceCPU(t *testing.T) {
+	root := t.TempDir()
+	procRoot = root
+	defer func() { procRoot = "/proc" }()
+	fakeProc(t, root, 300, []string{"tendisplus"}, 100, 0, 9)
+	j := Job{Host: procHost{dirHost: dirHost{root: t.TempDir()}, pid: 300}}
+	p := newHostReport("2.2.2.2", enginePlus, []InstanceRestore{{DestPort: 30000}}).port(30000)
+	err := j.timedOnInstance(portLog{}, p, 30000, stageRestore, func() error {
+		// restorebackup runs inside the instance
+		fakeProc(t, root, 300, []string{"tendisplus"}, 400, 100, 9)
+		return nil
+	})
+	if err != nil || p.cpu[stageRestore] != 4*time.Second || p.durations[stageRestore] <= 0 {
+		t.Fatalf("err=%v cpu=%v durations=%v", err, p.cpu, p.durations)
+	}
+
+	// an instance that cannot be read books no CPU and still fails as fn does
+	j.Host = dirHost{root: t.TempDir()}
+	p = newHostReport("2.2.2.2", enginePlus, []InstanceRestore{{DestPort: 30000}}).port(30000)
+	err = j.timedOnInstance(newPortLog(30000), p, 30000, stageRestore, func() error { return fmt.Errorf("boom") })
+	if err == nil || p.cpu[stageRestore] != 0 {
+		t.Fatalf("err=%v cpu=%v", err, p.cpu)
+	}
+}
+
+func TestSummariesShowKvstoresTuningAndRestore(t *testing.T) {
 	h := newHostReport("2.2.2.2", "tendisplus", []InstanceRestore{{DestPort: 30000, SourceIP: "1.1.1.1", SourcePort: 30000}})
+	h.tuning = "rocks.write_buffer_size=134217728"
 	p := h.port(30000)
-	p.setTuning("rocks.write_buffer_size=134217728")
 	p.setRestored(restoredCopied)
 	p.setInstanceCPU(90 * time.Second)
 	p.addKvstore(0, stageParse, 0, 3*time.Second)
 	p.addKvstore(0, stageDecode, 4*time.Second, 5*time.Second)
 	p.addKvstore(0, stageApply, 6*time.Second, 0)
 	p.kvstoreReplayed(0, 36, 1000, 391911, 392911)
+	p.kvstoreAfter(0, 392911)
 	p.finish(nil)
-	text := h.resultText()
+	text := h.resultText() + "\n" + h.diagText(p, "")
 	for _, want := range []string{
-		"actuator cpu=",
-		"full backup copied",
+		"cpu: actuator ",
+		", instances 1m30s",
 		"tuning: rocks.write_buffer_size=134217728",
-		"instance cpu=1m30s",
-		"parse(cpu 3s) decode=4s(cpu 5s) apply=6s",
-		"kvstore 0 binlogs=36 writes=1000 binlogpos 391911 -> 392911",
+		"30000  done         -       -       -      4s      6s",
+		"         cpu        -       -      3s      5s       -",
+		" full backup copied; instance cpu 1m30s",
+		"    0   36       391911 -> 392911               -     3s     4s     6s",
 	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("missing %q in:\n%s", want, text)
@@ -214,7 +245,8 @@ func TestResultTextShowsKvstoresTuningAndRestore(t *testing.T) {
 	}
 	// a port whose instance CPU was never read leaves it out
 	h = newHostReport("2.2.2.2", "tendisplus", []InstanceRestore{{DestPort: 30000}})
-	if strings.Contains(h.resultText(), "instance cpu") {
-		t.Fatal("unsampled instance cpu shown")
+	h.port(30000).finish(nil)
+	if text := h.resultText() + h.diagText(h.port(30000), ""); strings.Contains(text, "instance") {
+		t.Fatalf("unsampled instance cpu shown:\n%s", text)
 	}
 }
