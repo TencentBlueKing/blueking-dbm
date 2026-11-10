@@ -35,16 +35,22 @@ def _ids_match(report_id: str, share_url: str) -> bool:
 
 
 def _from_dict(data: dict) -> Optional[dict]:
+    if not isinstance(data, dict):
+        return None
     report_id = str(data.get("report_id") or "").strip()
     share_url = _normalize_share_url(str(data.get("share_url") or ""))
     if not report_id or not share_url or not _ids_match(report_id, share_url):
         return None
     summary = data.get("summary")
-    return {
+    result = {
         "report_id": report_id,
         "share_url": share_url,
         "summary": "" if summary is None else str(summary),
     }
+    for key in ("checks", "findings"):
+        if key in data:
+            result[key] = data[key]
+    return result
 
 
 def parse_config_ai_inspect_res(res: str) -> Optional[dict]:
