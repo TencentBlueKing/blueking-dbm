@@ -28,6 +28,7 @@ package discovery_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -265,5 +266,48 @@ func TestClose(t *testing.T) {
 		}
 	case <-ctx.Done():
 		t.Errorf("wait for watch channel close timeout")
+	}
+}
+
+// TestCloseWithUnconsumedEvents verifies that Close returns even when the watch buffer is
+// full because nobody reads the returned channel.
+func TestCloseWithUnconsumedEvents(t *testing.T) {
+	newdis, err := client.CreateDiscovery()
+	if err != nil {
+		t.Fatalf("failed to create discovery instance, errmsg: %s", err)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	prefix := "/discovery/test/close/unconsumed/"
+	defer func() {
+		if _, err := etcdClient.Delete(context.Background(), prefix, clientv3.WithPrefix()); err != nil {
+			t.Errorf("failed to delete test data, errmsg: %s", err)
+		}
+	}()
+
+	if _, err := newdis.WatchWithPrefix(ctx, prefix); err != nil {
+		t.Fatalf("failed to start watch, errmsg: %s", err)
+	}
+
+	const eventCount = 1100
+	for i := 0; i < eventCount; i++ {
+		if _, err := etcdClient.Put(ctx, fmt.Sprintf("%skey-%d", prefix, i), "v"); err != nil {
+			t.Fatalf("failed to put key, index: %d, errmsg: %s", i, err)
+		}
+	}
+	time.Sleep(500 * time.Millisecond)
+
+	closed := make(chan struct{})
+	go func() {
+		defer close(closed)
+		newdis.Close()
+	}()
+
+	select {
+	case <-closed:
+	case <-time.After(2 * time.Second):
+		t.Fatal("close blocked over 2s with unconsumed watch events")
 	}
 }

@@ -131,10 +131,29 @@ func (d *InstanceDiscovery) RunWatch(ctx context.Context) {
 		return
 	}
 
-	watchChan, err := d.discovery.WatchWithPrefix(ctx, d.registryPrefix)
+	// WatchWithPrefix blocks until etcd is reachable; quit must be able to interrupt it,
+	// otherwise Workflow.Close waits forever while etcd is down. watchCtx must stay alive
+	// until RunWatch returns, or the established watch is cancelled.
+	watchCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	go func() {
+		select {
+		case <-d.quit:
+			cancel()
+		case <-watchCtx.Done():
+		}
+	}()
+
+	watchChan, err := d.discovery.WatchWithPrefix(watchCtx, d.registryPrefix)
 	if err != nil {
 		logger.Warn("failed to watch analysis instances, errmsg: %s", err)
 		return
+	}
+
+	select {
+	case <-d.quit:
+		return
+	default:
 	}
 
 	d.RefreshList(ctx)
