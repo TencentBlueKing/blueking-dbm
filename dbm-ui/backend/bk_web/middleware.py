@@ -16,9 +16,11 @@ import wrapt
 from apigw_manager.apigw.authentication import UserModelBackend
 from blueapps.account.middlewares import LoginRequiredMiddleware
 from blueapps.account.models import User
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 from django.http import JsonResponse
+from django.middleware.csrf import get_token
 from django.urls import resolve
 from django.utils.deprecation import MiddlewareMixin
 from django.utils.translation import gettext as _
@@ -49,6 +51,18 @@ class DisableCSRFCheckMiddleware:
 
         response = self.get_response(request)
         return response
+
+
+class CsrfCookieRefreshMiddleware(MiddlewareMixin):
+    """
+    带登录态的请求每次都回写 CSRF cookie，需放在 CsrfViewMiddleware 之后。
+    CSRF cookie 默认只在登录时下发一次，被浏览器淘汰后 session 仍有效，写请求却会一直因缺少 CSRF cookie 被拒绝。
+    """
+
+    def process_view(self, request, view, args, kwargs):
+        if settings.SESSION_COOKIE_NAME in request.COOKIES:
+            get_token(request)
+        return None
 
 
 class RequestProviderMiddleware:
