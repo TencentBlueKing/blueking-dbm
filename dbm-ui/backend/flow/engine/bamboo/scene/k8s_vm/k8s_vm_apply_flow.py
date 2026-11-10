@@ -26,6 +26,9 @@ from backend.flow.plugins.components.collections.k8s_vm.expose_k8s_vm_vminsert_s
 from backend.flow.plugins.components.collections.k8s_vm.expose_k8s_vm_vmselect_service import (
     ExposeK8sVmVmselectServiceComponent,
 )
+from backend.flow.plugins.components.collections.k8s_vm.expose_k8s_vm_vmstorage_service import (
+    ExposeK8sVmVmstorageServiceComponent,
+)
 from backend.flow.plugins.components.collections.k8s_vm.get_k8s_vm_clb_detail import GetK8sVmClbDetailComponent
 from backend.flow.plugins.components.collections.k8s_vm.k8s_vm_sync_ticket_id import K8sVmSyncTicketIdComponent
 from backend.flow.plugins.components.collections.k8s_vm.vm_db_meta import VmDBMetaComponent
@@ -114,6 +117,14 @@ class K8sVmApplyFlow(K8sVmBaseFlow):
             act_component_code=ExposeK8sVmVmselectServiceComponent.code,
             kwargs=asdict(act_kwargs),
         )
+
+        # 调用dbs实例级暴露接口为每个vmstorage实例暴露服务（查询版集群无vmstorage组件，跳过；依赖回写的集群ID）
+        if not is_query_cluster:
+            vm_pipeline.add_act(
+                act_name=_("暴露vmstorage实例服务"),
+                act_component_code=ExposeK8sVmVmstorageServiceComponent.code,
+                kwargs=asdict(act_kwargs),
+            )
 
         # 同步ticket_id给dbs
         vm_pipeline.add_act(
