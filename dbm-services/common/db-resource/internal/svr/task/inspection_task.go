@@ -28,6 +28,38 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 )
 
+// importInTransitGrace 是导入写库与挪模块之间的宽限窗口。
+// SaaS 导入先落 Unused，再调 CC 转移；转移失败时主机仍在 pending/dirty，
+// 窗口内不把这种中间态判成 UsedByOther。
+const importInTransitGrace = 12 * time.Hour
+
+// isImportInTransitModule 判断主机是否还停在导入中转模块。
+// pending/dirty 是资源独立业务里的暂存模块，不是「被别人占用」。
+// 模块 ID 未配置（0）时不当成中转，避免误宽限。
+func isImportInTransitModule(moduleID int, env dbmapi.DbmEnvData) bool {
+	pendingID := env.CC_MANAGE_TOPO.PendingModuleId
+	dirtyID := env.CC_MANAGE_TOPO.DirtyModuleId
+	if pendingID > 0 && moduleID == pendingID {
+		return true
+	}
+	if dirtyID > 0 && moduleID == dirtyID {
+		return true
+	}
+	return false
+}
+
+// shouldSkipImportInTransit 判断是否处于「刚导入、模块还没迁完」的中间态。
+// 避免巡检把导入流程尚未挪到 resource.idle.module 的主机误标 UsedByOther。
+func shouldSkipImportInTransit(createTime time.Time, moduleID int, env dbmapi.DbmEnvData) bool {
+	if createTime.IsZero() {
+		return false
+	}
+	if time.Since(createTime) >= importInTransitGrace {
+		return false
+	}
+	return isImportInTransitModule(moduleID, env)
+}
+
 // InspectCheckResource inspection resource
 // nolint
 func InspectCheckResource() (err error) {
@@ -168,6 +200,15 @@ func InspectCheckResource() (err error) {
 			if err != nil {
 				logger.Error("query machine detail failed %s", err.Error())
 				return err
+			}
+
+			// SaaS 导入先把主机写成 Unused，下一节点才把 CC 挪到 resource.idle.module。
+			// 挪模块失败或未跑完时，主机还停在 pending/dirty。
+			// 这时若按「非资源空闲模块」打 UsedByOther，会把导入中的机器误判成被别人占用。
+			if shouldSkipImportInTransit(machineDetail.CreateTime, m.BKModuleId, allowCCModuleInfo) {
+				logger.Info("skip used-by-other, recent import still in transit module, host=%d module=%d create_time=%s",
+					m.BKHostId, m.BKModuleId, machineDetail.CreateTime)
+				continue
 			}
 
 			// 更新状态
