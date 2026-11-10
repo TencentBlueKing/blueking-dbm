@@ -23,7 +23,7 @@ import os
 import re
 import zlib
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple
 
 CONFCHK_ERR_PREFIX = "#CONFCHK_ERR"
 REPLICATION_DIRECTIVES = ("replicaof", "slaveof")
@@ -227,7 +227,6 @@ EXCLUDED_DIRECTIVES = frozenset(
 DYNAMIC_DIRECTIVES = frozenset(
     {
         "maxmemory",
-        "appendonly",
         "rocks.blockcachemb",
         "rocks.write_buffer_size",
         "netiothreadnum",
@@ -274,6 +273,131 @@ CONF_NAME_ALIASES = {
     "server_cpulist": "server-cpulist",
 }
 _ALIAS_INDEX = {**CONF_NAME_ALIASES, **{v: k for k, v in CONF_NAME_ALIASES.items()}}
+
+# ---------------------------------------------------------------------------
+# storage_conf check scope: item whitelist + declarative per-directive rules
+# ---------------------------------------------------------------------------
+
+WHITELIST_WILDCARD = "*"
+SUBCHECK_ROLE = "role"
+SUBCHECK_LOADMODULE = "loadmodule"
+DBCONFIG_REF = "$dbconfig"
+B2_MODULE_MARK = "libB2RedisModule"
+
+# Common misspellings operators put in SystemSettings, normalized before matching.
+CONF_INPUT_ALIASES = {"slowlog-log-lower-than": "slowlog-log-slower-than"}
+_ROLE_ALIASES = {"redis_master": "master", "redis_slave": "slave"}
+
+# Stored ClusterType values (this module stays Django-free). Rules in SystemSettings may also
+# use the ClusterType attribute names, which differ from the stored values for most types.
+CACHE_REDIS_CLUSTER_TYPES = ("PredixyRedisCluster", "TwemproxyRedisInstance", "RedisInstance")
+_CLUSTER_TYPE_ALIASES = {
+    "TendisPredixyRedisCluster": "PredixyRedisCluster",
+    "TendisPredixyTendisplusCluster": "PredixyTendisplusCluster",
+    "TendisTwemproxyRedisInstance": "TwemproxyRedisInstance",
+    "TendisRedisInstance": "RedisInstance",
+}
+
+DEFAULT_STORAGE_CONF_WHITELIST = (
+    SUBCHECK_ROLE,
+    "maxmemory-policy",
+    "databases",
+    "slowlog-log-slower-than",
+    "slowlog-max-len",
+    "appendonly",
+    "save",
+)
+# Rule keys: cluster_types / exclude_cluster_types restrict where the directive applies;
+# by_role {"master"|"slave": literal or "$dbconfig"} and expected (literal or "$dbconfig")
+# override the dbconfig value. A missing rule means "compare against dbconfig everywhere".
+DEFAULT_DIRECTIVE_RULES: Dict[str, Dict] = {
+    "maxmemory-policy": {"exclude_cluster_types": ["TwemproxyTendisSSDInstance"]},
+    "databases": {"cluster_types": ["RedisInstance"]},
+    "slowlog-log-slower-than": {},
+    "slowlog-max-len": {},
+    # cache masters run without persistence; slaves carry AOF and the dbconfig save policy
+    "appendonly": {"cluster_types": list(CACHE_REDIS_CLUSTER_TYPES), "by_role": {"master": "no", "slave": "yes"}},
+    "save": {"cluster_types": list(CACHE_REDIS_CLUSTER_TYPES), "by_role": {"master": "", "slave": DBCONFIG_REF}},
+}
+
+
+def normalize_directive_name(name) -> str:
+    name = str(name or "").strip().lower()
+    return CONF_INPUT_ALIASES.get(name, name)
+
+
+def normalize_whitelist(whitelist) -> frozenset:
+    """Accept a list (or comma-separated string) of check items / directive names."""
+    if isinstance(whitelist, str):
+        whitelist = whitelist.split(",")
+    return frozenset(name for name in (normalize_directive_name(item) for item in whitelist or ()) if name)
+
+
+def in_whitelist(name: str, whitelist: frozenset) -> bool:
+    """``name`` or its version alias (slowlog-* / commandlog-*, slave-* / replica-*) is enabled."""
+    return WHITELIST_WILDCARD in whitelist or name in whitelist or _ALIAS_INDEX.get(name) in whitelist
+
+
+def merge_directive_rules(custom: Optional[Dict[str, Dict]] = None) -> Dict[str, Dict]:
+    """
+    Overlay per-directive custom rules on DEFAULT_DIRECTIVE_RULES.
+
+    Keys merge per directive and ``by_role`` merges per role, so overriding one role keeps the
+    other role's default. A custom key spelled as a version alias (commandlog-* / replica-*)
+    lands on the existing rule for that directive instead of being shadowed by it.
+    """
+    rules = {name: _normalize_by_role(dict(rule)) for name, rule in DEFAULT_DIRECTIVE_RULES.items()}
+    for raw_name, rule in (custom or {}).items():
+        name = normalize_directive_name(raw_name)
+        if not name:
+            continue
+        if name not in rules and _ALIAS_INDEX.get(name) in rules:
+            name = _ALIAS_INDEX[name]
+        base = rules.get(name, {})
+        merged = {**base, **_normalize_by_role(dict(rule or {}))}
+        if isinstance(base.get("by_role"), dict) and isinstance(merged.get("by_role"), dict):
+            merged["by_role"] = {**base["by_role"], **merged["by_role"]}
+        rules[name] = merged
+    for rule in rules.values():
+        for key in ("cluster_types", "exclude_cluster_types"):
+            if rule.get(key):
+                rule[key] = [_CLUSTER_TYPE_ALIASES.get(ctype, ctype) for ctype in rule[key]]
+    return rules
+
+
+def _normalize_by_role(rule: Dict) -> Dict:
+    if isinstance(rule.get("by_role"), dict):
+        rule["by_role"] = {_ROLE_ALIASES.get(role, role): value for role, value in rule["by_role"].items()}
+    return rule
+
+
+def loads_b2_module(*module_groups) -> bool:
+    return any(B2_MODULE_MARK in str(module) for group in module_groups for module in group or ())
+
+
+def _rule_applies(rule: Dict, cluster_type: str) -> bool:
+    if not cluster_type:
+        return True
+    cluster_types = rule.get("cluster_types") or []
+    if cluster_types and cluster_type not in cluster_types:
+        return False
+    return cluster_type not in (rule.get("exclude_cluster_types") or [])
+
+
+def _rule_raw_value(name: str, rule: Dict, dbconfig_value: Optional[str], role: str, has_b2_module: bool):
+    """Expected raw value for one directive, or None when it cannot be resolved."""
+    if name == "appendonly" and has_b2_module:
+        # dbactuator forces appendonly no whenever libB2RedisModule is loaded, on both roles
+        return "no"
+    by_role = rule.get("by_role")
+    if isinstance(by_role, dict) and role in by_role:
+        target = by_role[role]
+    else:
+        target = rule.get("expected", DBCONFIG_REF)
+    if target is None or target == DBCONFIG_REF:
+        return dbconfig_value
+    return str(target)
+
 
 # Values CONFIG REWRITE canonicalizes, scoped by directive name.
 # Redis 5.0+ rewrites the client-output-buffer-limit class "slave" to "replica"
@@ -422,13 +546,22 @@ def resolve_expected_conf(
     ip: str,
     port: int,
     cluster_enabled: bool,
-    check_databases: bool,
+    check_databases: bool = False,
+    cluster_type: str = "",
+    role: str = "",
+    has_b2_module: bool = False,
+    whitelist: Optional[Iterable[str]] = None,
+    directive_rules: Optional[Dict[str, Dict]] = None,
 ) -> Dict[str, List[str]]:
     """
     Turn a cluster dbconfig map into expected directive entries for one instance.
 
-    Placeholders that are instance facts are substituted; directives that are excluded,
-    dynamically overwritten, or still hold an unresolved placeholder are dropped.
+    Only directives in ``whitelist`` (None = all) are kept, then ``directive_rules`` (merged
+    over DEFAULT_DIRECTIVE_RULES) drop directives not applicable to ``cluster_type`` and may
+    replace the dbconfig value per ``role`` ("master" / "slave"). Without ``cluster_type``,
+    ``databases`` falls back to ``check_databases``. Placeholders that are instance facts are
+    substituted; directives that are excluded, dynamically overwritten, unresolved or still
+    hold a placeholder are dropped.
     """
     replacements = (
         ("{{port}}", str(port)),
@@ -436,14 +569,32 @@ def resolve_expected_conf(
         ("{{redis_data_dir}}", "/data/redis/{}".format(port)),
         ("{{cluster_enabled}}", "yes" if cluster_enabled else "no"),
     )
-    expected: Dict[str, List[str]] = {}
+    allowed = frozenset({WHITELIST_WILDCARD}) if whitelist is None else normalize_whitelist(whitelist)
+    rules = merge_directive_rules(directive_rules)
+    role = _ROLE_ALIASES.get(role, role)
+
+    dbconfig_values: Dict[str, str] = {}
     for raw_name, raw_value in (dbconfig or {}).items():
         name = str(raw_name).strip().lower()
-        if not name or name in EXCLUDED_DIRECTIVES or name in DYNAMIC_DIRECTIVES:
+        if name:
+            dbconfig_values[name] = "" if raw_value is None else str(raw_value)
+    # rules may expect a literal value for a directive dbconfig does not define
+    names = list(dbconfig_values) + [
+        name for name in rules if name not in dbconfig_values and _ALIAS_INDEX.get(name) not in dbconfig_values
+    ]
+
+    expected: Dict[str, List[str]] = {}
+    for name in names:
+        if name in EXCLUDED_DIRECTIVES or name in DYNAMIC_DIRECTIVES or not in_whitelist(name, allowed):
             continue
-        if name == "databases" and not check_databases:
+        if name == "databases" and not cluster_type and not check_databases:
             continue
-        value = "" if raw_value is None else str(raw_value)
+        rule = _lookup_with_alias(rules, name) or {}
+        if not _rule_applies(rule, cluster_type):
+            continue
+        value = _rule_raw_value(name, rule, dbconfig_values.get(name), role, has_b2_module)
+        if value is None:
+            continue
         for placeholder, replacement in replacements:
             value = value.replace(placeholder, replacement)
         if _PLACEHOLDER.search(value):

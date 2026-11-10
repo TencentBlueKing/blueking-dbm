@@ -57,8 +57,16 @@ from backend.flow.plugins.components.collections.redis.conf_check.storage_conf_c
     load_cluster_contexts,
 )
 from backend.flow.plugins.components.collections.redis.conf_check.storage_conf_parse import (
+    CACHE_REDIS_CLUSTER_TYPES,
+    DEFAULT_DIRECTIVE_RULES,
+    DEFAULT_STORAGE_CONF_WHITELIST,
     compare_directives,
+    in_whitelist,
     join_directive_values,
+    loads_b2_module,
+    merge_directive_rules,
+    normalize_directive_name,
+    normalize_whitelist,
     parse_config_pairs,
     parse_disk_conf,
     parse_info,
@@ -744,6 +752,56 @@ _COMPARE_CASES = [
     ("multi_entry_save_drift", _COBL_DB, _COBL_DISK, _COBL_MEM_SAVE, [_SAVE_DRIFT]),
 ]
 
+_TWEM_TYPE = ClusterType.TendisTwemproxyRedisInstance.value
+_SSD_TYPE = ClusterType.TwemproxyTendisSSDInstance.value
+_PLUS_TYPE = ClusterType.TendisPredixyTendisplusCluster.value
+_SINGLE_TYPE = ClusterType.TendisRedisInstance.value
+_FULL_DB = {
+    "maxmemory-policy": "noeviction",
+    "databases": "16",
+    "slowlog-log-slower-than": "10000",
+    "slowlog-max-len": "256",
+    "appendonly": "yes",
+    "save": "900 1\nsave 300 10",
+    "timeout": "300",
+    "tcp-keepalive": "60",
+}
+_SLOWLOG = {"slowlog-log-slower-than": ["10000"], "slowlog-max-len": ["256"]}
+_POLICY = {"maxmemory-policy": ["noeviction"]}
+_SAVE_ENTRIES = ["900 1", "300 10"]
+# id, cluster_type, role, has_b2_module, dbconfig, expected (default whitelist + default rules)
+_RULE_CASES = [
+    (
+        "twem_master",
+        _TWEM_TYPE,
+        "master",
+        False,
+        _FULL_DB,
+        dict(_POLICY, **_SLOWLOG, appendonly=["no"], save=[""]),
+    ),
+    (
+        "twem_slave",
+        _TWEM_TYPE,
+        "slave",
+        False,
+        dict(_FULL_DB, appendonly="no"),
+        dict(_POLICY, **_SLOWLOG, appendonly=["yes"], save=_SAVE_ENTRIES),
+    ),
+    ("twem_slave_b2", _TWEM_TYPE, "slave", True, {"appendonly": "yes"}, {"appendonly": ["no"]}),
+    ("twem_master_literal_without_dbconfig", _TWEM_TYPE, "master", False, {}, {"appendonly": ["no"], "save": [""]}),
+    ("twem_slave_save_missing_in_dbconfig", _TWEM_TYPE, "slave", False, {}, {"appendonly": ["yes"]}),
+    (
+        "single_checks_databases",
+        _SINGLE_TYPE,
+        "master",
+        False,
+        {"databases": "16"},
+        {"databases": ["16"], "appendonly": ["no"], "save": [""]},
+    ),
+    ("ssd_skips_policy_and_persistence", _SSD_TYPE, "master", False, _FULL_DB, _SLOWLOG),
+    ("plus_skips_persistence", _PLUS_TYPE, "slave", False, _FULL_DB, dict(_POLICY, **_SLOWLOG)),
+]
+
 
 class TestStorageConfCompare:
     # ported from dbactuator pkg/redisconf runtime_test.go TestSameConfRuntimeValue
@@ -825,7 +883,6 @@ class TestStorageConfCompare:
                 "primaryuser": "def",
                 "rename-command": "config confxx \nrename-command flushdb cleandb",
                 "maxmemory": "1gb",
-                "appendonly": "yes",
                 "databases": "16",
                 "netiothreadnum": "4",
                 "daemonize": "yes",
@@ -834,6 +891,112 @@ class TestStorageConfCompare:
         )
         assert expected == {"timeout": ["0"]}
         assert _expected({"databases": "16"}, check_databases=True) == {"databases": ["16"]}
+        # appendonly is no longer dynamic: it follows dbconfig unless a role rule applies
+        assert _expected({"appendonly": "yes"}) == {"appendonly": ["yes"]}
+
+    def test_scope_helpers_normalize_names(self):
+        assert normalize_directive_name(" Slowlog-Log-Lower-Than ") == "slowlog-log-slower-than"
+        assert normalize_whitelist(["ROLE", "slowlog-log-lower-than", " ", None]) == frozenset(
+            {"role", "slowlog-log-slower-than"}
+        )
+        assert normalize_whitelist("save, appendonly") == frozenset({"save", "appendonly"})
+        wl = normalize_whitelist(DEFAULT_STORAGE_CONF_WHITELIST)
+        assert in_whitelist("commandlog-execution-slower-than", wl)
+        assert not in_whitelist("timeout", wl) and not in_whitelist("loadmodule", wl)
+        assert in_whitelist("timeout", frozenset({"*"}))
+        assert loads_b2_module(["x.so"], ["libB2RedisModule_linux64_service30000.so"])
+        assert not loads_b2_module(["redisbloom-2.6.13.so"], [], None)
+
+    def test_merge_directive_rules_overlays_defaults(self):
+        rules = merge_directive_rules(
+            {
+                "slowlog-log-lower-than": {"expected": "20000"},
+                "appendonly": {"by_role": {"redis_slave": "no"}},
+                "timeout": {"by_role": {"master": "300", "slave": "$dbconfig"}},
+            }
+        )
+        assert rules["slowlog-log-slower-than"] == {"expected": "20000"}
+        assert "slowlog-log-lower-than" not in rules
+        # per-directive merge keeps default cluster_types; by_role merges per role
+        assert rules["appendonly"]["cluster_types"] == DEFAULT_DIRECTIVE_RULES["appendonly"]["cluster_types"]
+        assert rules["appendonly"]["by_role"] == {"master": "no", "slave": "no"}
+        assert rules["timeout"]["by_role"] == {"master": "300", "slave": "$dbconfig"}
+        assert DEFAULT_DIRECTIVE_RULES["appendonly"]["by_role"] == {"master": "no", "slave": "yes"}
+
+    def test_default_rules_use_stored_cluster_type_values(self):
+        assert set(CACHE_REDIS_CLUSTER_TYPES) == {
+            ClusterType.TendisPredixyRedisCluster.value,
+            ClusterType.TendisTwemproxyRedisInstance.value,
+            ClusterType.TendisRedisInstance.value,
+        }
+        assert DEFAULT_DIRECTIVE_RULES["databases"]["cluster_types"] == [ClusterType.TendisRedisInstance.value]
+        policy_excluded = DEFAULT_DIRECTIVE_RULES["maxmemory-policy"]["exclude_cluster_types"]
+        assert policy_excluded == [ClusterType.TwemproxyTendisSSDInstance.value]
+        # ClusterType attribute names in custom rules resolve to stored values
+        rules = merge_directive_rules({"timeout": {"cluster_types": ["TendisRedisInstance", "TendisCache"]}})
+        assert rules["timeout"]["cluster_types"] == [ClusterType.TendisRedisInstance.value, "TendisCache"]
+
+    @pytest.mark.parametrize("cluster_type,role,has_b2,dbconfig,expected", **_table(_RULE_CASES))
+    def test_resolve_expected_conf_rules(self, cluster_type, role, has_b2, dbconfig, expected):
+        result = resolve_expected_conf(
+            dbconfig,
+            ip="1.1.1.1",
+            port=30000,
+            cluster_enabled=False,
+            cluster_type=cluster_type,
+            role=role,
+            has_b2_module=has_b2,
+            whitelist=DEFAULT_STORAGE_CONF_WHITELIST,
+        )
+        assert result == expected
+
+    def test_resolve_expected_conf_custom_rule_and_whitelist(self):
+        dbconfig = {"timeout": "0", "maxmemory-policy": "noeviction", "tcp-keepalive": "300"}
+        kwargs = dict(ip="1.1.1.1", port=30000, cluster_enabled=False, cluster_type=_TWEM_TYPE)
+        custom = {"whitelist": ["timeout"], "directive_rules": {"timeout": {"by_role": {"master": "300"}}}}
+        master = resolve_expected_conf(dbconfig, role="master", **kwargs, **custom)
+        slave = resolve_expected_conf(dbconfig, role="redis_slave", **kwargs, **custom)
+        assert (master, slave) == ({"timeout": ["300"]}, {"timeout": ["0"]})
+
+    def test_custom_rule_with_version_alias_key_is_not_shadowed(self):
+        rules = merge_directive_rules({"commandlog-execution-slower-than": {"expected": "20000"}})
+        assert rules["slowlog-log-slower-than"] == {"expected": "20000"}
+        assert "commandlog-execution-slower-than" not in rules
+        for db_name in ("slowlog-log-slower-than", "commandlog-execution-slower-than"):
+            result = resolve_expected_conf(
+                {db_name: "10000"},
+                ip="1.1.1.1",
+                port=30000,
+                cluster_enabled=False,
+                cluster_type=_TWEM_TYPE,
+                whitelist=["slowlog-log-slower-than"],
+                directive_rules={"commandlog-execution-slower-than": {"expected": "20000"}},
+            )
+            assert result == {db_name: ["20000"]}
+
+    def test_partial_by_role_override_keeps_other_role_default(self):
+        kwargs = dict(
+            ip="1.1.1.1",
+            port=30000,
+            cluster_enabled=False,
+            cluster_type=_TWEM_TYPE,
+            whitelist=["appendonly"],
+            directive_rules={"appendonly": {"by_role": {"redis_slave": "no"}}},
+        )
+        master = resolve_expected_conf({"appendonly": "yes"}, role="master", **kwargs)
+        slave = resolve_expected_conf({"appendonly": "yes"}, role="slave", **kwargs)
+        assert (master, slave) == ({"appendonly": ["no"]}, {"appendonly": ["no"]})
+
+    def test_resolve_expected_conf_whitelist_misspelling_and_alias(self):
+        result = resolve_expected_conf(
+            {"commandlog-execution-slower-than": "10000", "slowlog-max-len": "{{x}}"},
+            ip="1.1.1.1",
+            port=30000,
+            cluster_enabled=False,
+            cluster_type=_TWEM_TYPE,
+            whitelist=["slowlog-log-lower-than", "slowlog-max-len"],
+        )
+        assert result == {"commandlog-execution-slower-than": ["10000"]}
 
 
 _GB1, _GB2, _OF2, _P = "maxmemory 1gb\n", "maxmemory 2gb\n", "slaveof 1.1.1.2 30000\n", "port 30000\n"
@@ -1003,26 +1166,152 @@ _CHECKER_CASES = [
 ]
 
 
+def _evaluate_storage(role, ctx, block, checker_config=None):
+    is_slave = role == "slave"
+    block = None if block is None else dict(block)
+    master = (block or {}).pop("master", "1.1.1.1:30000")
+    extra = {"meta_role": "redis_" + role, "expected_master": master if is_slave else ""}
+    if ctx != "missing":
+        extra[CLUSTER_CTX_KEY] = _cluster_ctx(**ctx)
+    target = CheckTarget(cluster_id=1, bk_cloud_id=0, ip="2.2.2.2" if is_slave else "1.1.1.1", port=30000, extra=extra)
+    if block is not None:
+        block.setdefault("mem", "port\n30000\n")
+        if is_slave:
+            block.setdefault("disk", _SLAVE_DISK)
+            block.setdefault("repl", REDIS_SLAVE_INFO)
+        block = _storage_block(**block)
+    return StorageConfChecker().evaluate(target, None, block, checker_config=checker_config)
+
+
+def _mem(**pairs) -> str:
+    """CONFIG GET * output; keyword underscores stand for dashes."""
+    return "port\n30000\n" + "".join("{}\n{}\n".format(k.replace("_", "-"), v) for k, v in pairs.items())
+
+
+_SSD = {"cluster_type": ClusterType.TwemproxyTendisSSDInstance.value}
+_SINGLE = {"cluster_type": ClusterType.TendisRedisInstance.value}
+_B2_SO = "libB2RedisModule_linux64_service30000.so"
+_B2_LOADMODULE = "loadmodule /home/mysql/redis_modules/" + _B2_SO + "\n"
+_SAVE_DB = {"port": "{{port}}", "save": "900 1\nsave 300 10"}
+_NOISE_CTX = {"dbconfig": {"port": "{{port}}", "timeout": "300", "tcp-keepalive": "60"}}
+_NOISE_BLOCK = {"disk": _P + "timeout 0\ntcp-keepalive 0\n", "mem": _mem(timeout=0, tcp_keepalive=0)}
+_DB_DRIFT_BLOCK = {"disk": _P + "databases 1\n", "mem": _mem(databases=1)}
+_DB16 = {"dbconfig": {"port": "{{port}}", "databases": "16"}}
+_AOF_YES_BLOCK = {"disk": _P + "appendonly yes\n", "mem": _mem(appendonly="yes")}
+_AOF_NO_SLAVE_BLOCK = {"disk": _SLAVE_DISK + "appendonly no\n", "mem": _mem(appendonly="no")}
+_AOF_DB = {"port": "{{port}}", "appendonly": "yes"}
+_B2_DB = {"port": "{{port}}", "appendonly": "yes", "loadmodule": "jlsy-b2"}
+_B2_SLAVE_BLOCK = {"disk": _SLAVE_DISK + "appendonly no\n" + _B2_LOADMODULE, "mem": _mem(appendonly="no")}
+_SAVE_MASTER_OK = {"disk": _P + 'save ""\n', "mem": _mem(save="")}
+_SAVE_MASTER_BAD = {"disk": _P + "save 900 1\n", "mem": _mem(save="900 1")}
+_SAVE_SLAVE_OK = {"disk": _SLAVE_DISK + "save 900 1\nsave 300 10\n", "mem": _mem(save="900 1 300 10")}
+_PERSIST_DB = {"port": "{{port}}", "appendonly": "yes", "save": "900 1"}
+_PERSIST_OFF_BLOCK = {"disk": _P + "appendonly no\nsave 3600 1\n", "mem": _mem(appendonly="no", save="3600 1")}
+_PLUS_PERSIST_BLOCK = dict(_PERSIST_OFF_BLOCK, repl=TENDISPLUS_SLAVE_INFO)
+_T0_CTX = {"dbconfig": {"port": "{{port}}", "timeout": "0"}}
+_T0_BLOCK = {"disk": _P + "timeout 0\n", "mem": _mem(timeout=0)}
+_T0_SLAVE_BLOCK = {"disk": _SLAVE_DISK + "timeout 0\n", "mem": _mem(timeout=0)}
+_TIMEOUT_RULE = {
+    "whitelist": ["timeout"],
+    "directive_rules": {"timeout": {"by_role": {"master": "300", "slave": "$dbconfig"}}},
+}
+_MODULE_MISMATCH = ({"modules": [_BLOOM_SO]}, {"disk": _CELL_DISK})
+_AS_SLAVE = {"repl": REDIS_SLAVE_INFO}
+
+# id, meta role, cluster context overrides, _storage_block overrides, checker_config, state, msg expectations
+_SCOPE_CASES = [
+    ("default_skips_non_whitelisted", "master", _NOISE_CTX, _NOISE_BLOCK, None, NORMAL, ["![conf]"]),
+    ("default_skips_loadmodule", "master", *_MODULE_MISMATCH, None, NORMAL, ["![module]"]),
+    ("default_checks_role", "master", {}, _AS_SLAVE, None, ABNORMAL, ["meta=redis_master, actual=slave"]),
+    ("policy_skipped_on_ssd", "master", dict(_SSD, **_POLICY_CTX), _POLICY_BLOCK, None, NORMAL, []),
+    ("policy_checked_on_twem", "master", dict(_TWEM, **_POLICY_CTX), _POLICY_BLOCK, None, ABNORMAL, [_POLICY_MSG]),
+    (
+        "databases_checked_on_single",
+        "master",
+        dict(_SINGLE, **_DB16),
+        _DB_DRIFT_BLOCK,
+        None,
+        ABNORMAL,
+        ["databases(dbconfig=16, memory=1, disk=1)"],
+    ),
+    ("databases_skipped_on_twem", "master", dict(_TWEM, **_DB16), _DB_DRIFT_BLOCK, None, NORMAL, []),
+    (
+        "cache_master_requires_aof_no",
+        "master",
+        dict(_TWEM, dbconfig=_AOF_DB),
+        _AOF_YES_BLOCK,
+        None,
+        ABNORMAL,
+        ["appendonly(dbconfig=no, memory=yes, disk=yes)"],
+    ),
+    (
+        "cache_slave_requires_aof_yes",
+        "slave",
+        dict(_TWEM, dbconfig=dict(_AOF_DB, appendonly="no")),
+        _AOF_NO_SLAVE_BLOCK,
+        None,
+        ABNORMAL,
+        ["appendonly(dbconfig=yes, memory=no, disk=no)"],
+    ),
+    (
+        "cache_slave_b2_aof_no",
+        "slave",
+        dict(_TWEM, dbconfig=_B2_DB, modules=[_B2_SO]),
+        _B2_SLAVE_BLOCK,
+        None,
+        NORMAL,
+        [],
+    ),
+    ("cache_slave_b2_from_disk", "slave", dict(_TWEM, dbconfig=_AOF_DB), _B2_SLAVE_BLOCK, None, NORMAL, ["![module]"]),
+    ("cache_master_save_empty", "master", dict(_TWEM, dbconfig=_SAVE_DB), _SAVE_MASTER_OK, None, NORMAL, []),
+    ("cache_slave_save_dbconfig", "slave", dict(_TWEM, dbconfig=_SAVE_DB), _SAVE_SLAVE_OK, None, NORMAL, []),
+    (
+        "cache_master_save_drift",
+        "master",
+        dict(_TWEM, dbconfig=_SAVE_DB),
+        _SAVE_MASTER_BAD,
+        None,
+        ABNORMAL,
+        ['save(dbconfig="", memory=900 1, disk=900 1)'],
+    ),
+    ("ssd_skips_persistence", "master", dict(_SSD, dbconfig=_PERSIST_DB), _PERSIST_OFF_BLOCK, None, NORMAL, []),
+    ("plus_skips_persistence", "slave", dict(_PLUS, dbconfig=_PERSIST_DB), _PLUS_PERSIST_BLOCK, None, NORMAL, []),
+    (
+        "custom_rule_master_literal",
+        "master",
+        _T0_CTX,
+        _T0_BLOCK,
+        _TIMEOUT_RULE,
+        ABNORMAL,
+        ["timeout(dbconfig=300, memory=0, disk=0)"],
+    ),
+    ("custom_rule_slave_dbconfig", "slave", _T0_CTX, _T0_SLAVE_BLOCK, _TIMEOUT_RULE, NORMAL, []),
+    ("custom_whitelist_without_role", "master", {}, _AS_SLAVE, _TIMEOUT_RULE, NORMAL, ["![role]"]),
+    ("check_role_false", "master", {}, _AS_SLAVE, {"check_role": False}, NORMAL, ["![role]"]),
+    ("check_loadmodule_true", "master", *_MODULE_MISMATCH, {"check_loadmodule": True}, ABNORMAL, _MODULE_MSGS),
+    (
+        "whitelisted_loadmodule",
+        "master",
+        *_MODULE_MISMATCH,
+        {"whitelist": ["role", "loadmodule"]},
+        ABNORMAL,
+        _MODULE_MSGS,
+    ),
+]
+
+
 class TestStorageConfChecker:
     @pytest.mark.parametrize("role,ctx,block,state,expectations", **_table(_CHECKER_CASES))
     def test_evaluate(self, role, ctx, block, state, expectations):
-        is_slave = role == "slave"
-        block = None if block is None else dict(block)
-        master = (block or {}).pop("master", "1.1.1.1:30000")
-        extra = {"meta_role": "redis_" + role, "expected_master": master if is_slave else ""}
-        if ctx != "missing":
-            extra[CLUSTER_CTX_KEY] = _cluster_ctx(**ctx)
-        target = CheckTarget(
-            cluster_id=1, bk_cloud_id=0, ip="2.2.2.2" if is_slave else "1.1.1.1", port=30000, extra=extra
-        )
-        if block is not None:
-            block.setdefault("mem", "port\n30000\n")
-            if is_slave:
-                block.setdefault("disk", _SLAVE_DISK)
-                block.setdefault("repl", REDIS_SLAVE_INFO)
-            block = _storage_block(**block)
+        # full scope: role, loadmodule and every dbconfig directive
+        results = _evaluate_storage(role, ctx, block, checker_config={"whitelist": ["*"]})
 
-        results = StorageConfChecker().evaluate(target, None, block)
+        assert [r.state for r in results] == [state]
+        _assert_msg(results[0].msg, expectations)
+
+    @pytest.mark.parametrize("role,ctx,block,checker_config,state,expectations", **_table(_SCOPE_CASES))
+    def test_evaluate_scope(self, role, ctx, block, checker_config, state, expectations):
+        results = _evaluate_storage(role, ctx, block, checker_config=checker_config)
 
         assert [r.state for r in results] == [state]
         _assert_msg(results[0].msg, expectations)
@@ -1948,3 +2237,94 @@ class TestConfCheckCustomizedConfig:
         assert (0, 1) in result
         assert (1, 2) in result
         assert len(result) == 2
+
+
+class _FakeClusterQuery:
+    """Minimal Cluster queryset over dict rows supporting the ``<field>__in`` / ``<field>`` lookups used."""
+
+    def __init__(self, rows):
+        self.rows = rows
+
+    @staticmethod
+    def _match(row, lookup, value):
+        field_name, _sep, op = lookup.partition("__")
+        return row[field_name] in value if op == "in" else row[field_name] == value
+
+    def filter(self, **kwargs):
+        return _FakeClusterQuery([r for r in self.rows if all(self._match(r, k, v) for k, v in kwargs.items())])
+
+    def exclude(self, **kwargs):
+        return _FakeClusterQuery([r for r in self.rows if not all(self._match(r, k, v) for k, v in kwargs.items())])
+
+    def values_list(self, *names):
+        return [tuple(r[n] for n in names) for r in self.rows]
+
+
+_STORAGE_TYPE = ClusterType.TendisTwemproxyRedisInstance.value
+_PROXY_TYPE = ClusterType.TendisPredixyRedisCluster.value
+_CANDIDATE_ROWS = [
+    {"id": cid, "bk_biz_id": biz, "bk_cloud_id": 0, "cluster_type": ctype, "phase": "online"}
+    for cid, biz, ctype in (
+        (10, 100, _STORAGE_TYPE),
+        (20, 100, _STORAGE_TYPE),
+        (30, 200, _STORAGE_TYPE),
+        (40, 300, _STORAGE_TYPE),
+        (50, 100, _PROXY_TYPE),
+        (60, 200, _PROXY_TYPE),
+    )
+] + [{"id": 70, "bk_biz_id": 100, "bk_cloud_id": 0, "cluster_type": _STORAGE_TYPE, "phase": "offline"}]
+
+
+def _candidate_config(**kwargs):
+    base = dict(cluster_types=None, bizs=[], clusters=[], bizs_ignored=[], clusters_ignored=[], bk_cloud_ids=[])
+    base["customized"] = kwargs.pop("customized", {})
+    base.update(kwargs)
+    return SimpleNamespace(**base)
+
+
+class TestConfCheckCandidateWhitelist:
+    @staticmethod
+    def _candidate_ids(config):
+        with patch(
+            "backend.flow.plugins.components.collections.redis.conf_check.candidate_selection.Cluster"
+        ) as model:
+            model.objects.filter.side_effect = lambda **kw: _FakeClusterQuery(_CANDIDATE_ROWS).filter(**kw)
+            return sorted(cluster_id for _cloud, cluster_id in get_candidate_cluster_tuples(config))
+
+    def test_candidate_filters_default_whitelists_to_empty(self):
+        filters = checker_query_filters(SimpleNamespace(customized={}, cluster_types=None), StorageConfChecker())
+        assert (filters["bizs"], filters["clusters"]) == ([], [])
+
+    def test_candidate_without_whitelists_selects_all_online(self):
+        assert self._candidate_ids(_candidate_config()) == [10, 20, 30, 40, 50, 60]
+
+    def test_candidate_global_bizs_and_clusters_whitelists(self):
+        config = _candidate_config(bizs=[100, 200], clusters=[10, 20, 30, 40, 60])
+        assert self._candidate_ids(config) == [10, 20, 30, 60]
+
+    def test_candidate_ignore_lists_take_precedence(self):
+        config = _candidate_config(bizs=[100, 200], clusters=[10, 20, 30], clusters_ignored=[20], bizs_ignored=[200])
+        assert self._candidate_ids(config) == [10]
+
+    def test_candidate_per_checker_whitelist_overrides_global(self):
+        config = _candidate_config(bizs=[100], customized={"storage_conf": {"bizs": [200]}})
+        storage_filters = checker_query_filters(config, StorageConfChecker())
+        predixy_filters = checker_query_filters(config, PredixyServersChecker())
+        assert (storage_filters["bizs"], predixy_filters["bizs"]) == ([200], [100])
+        # storage_conf picks biz 200 (30, 60); predixy_servers keeps biz 100 (50)
+        assert self._candidate_ids(config) == [30, 50, 60]
+
+    def test_candidate_per_checker_clusters_override(self):
+        config = _candidate_config(clusters=[10], customized={"predixy_servers": {"clusters": [60]}})
+        assert self._candidate_ids(config) == [10, 60]
+
+    def test_candidate_config_from_settings_defaults_whitelists(self):
+        from backend.db_periodic_task.local_tasks.redis_tasks.check_conf import RedisConfCheckConfig
+
+        target = "backend.db_periodic_task.local_tasks.redis_tasks.check_conf.SystemSettings.get_setting_value"
+        with patch(target, return_value={"enabled": True, "bizs_ignored": [3], "unknown_key": 1}):
+            config = RedisConfCheckConfig.from_settings()
+        assert (config.bizs, config.clusters, config.bizs_ignored) == ([], [], [3])
+        with patch(target, return_value={"bizs": [100], "clusters": [10, 20]}):
+            config = RedisConfCheckConfig.from_settings()
+        assert (config.bizs, config.clusters) == ([100], [10, 20])

@@ -48,6 +48,9 @@ class RedisConfCheckConfig:
     bk_biz_id: int = 5005578  # The bk_biz_id the generated flow belongs to
     # Defaults to the union of all registered checkers' cluster types.
     cluster_types: Optional[List[str]] = field(default_factory=get_candidate_cluster_types)
+    # Whitelists: empty list means all; ignore lists below still apply on top of them.
+    bizs: Optional[List[int]] = field(default_factory=list)
+    clusters: Optional[List[int]] = field(default_factory=list)
     bizs_ignored: Optional[List[int]] = field(default_factory=list)
     clusters_ignored: Optional[List[int]] = field(default_factory=list)
     # Empty list means all cloud areas; when set (e.g. [0]), only check matching bk_cloud_id.
@@ -63,6 +66,8 @@ class RedisConfCheckConfig:
     # Per-checker overrides of global fields, keyed by checker.name (e.g. "storage_conf", "predixy_servers").
     # A legacy "role" entry still applies to storage_conf when storage_conf has no entry of its own.
     # predixy_servers: {"ignore_question_ip_in_memory": false} skips memory servers with ip "?".
+    # storage_conf: {"whitelist": [...], "directive_rules": {...}, "check_role": bool, "check_loadmodule": bool}
+    # limits the inspected items; see storage_conf_parse.DEFAULT_STORAGE_CONF_WHITELIST / DEFAULT_DIRECTIVE_RULES.
     customized: Optional[Dict[str, Dict]] = field(default_factory=dict)
 
     @classmethod
