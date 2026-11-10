@@ -56,15 +56,19 @@
 | --- | --- | --- | --- | --- |
 | `role` | string | 是 | 角色，取值为 `admin`、`analysis` 或 `receiver` | `analysis` |
 | `id` | string | 是 | 注册信息的 `id` 字段，是进程启动时生成的 UUID。正常注册时与 etcd key 的最后一段相同，但接口不校验这一点 | `8a7b6c5d-4e3f-4a1b-9c0d-abcdef012345` |
-| `ips` | array of string | 是 | 实例上报的 IP，已去掉空串，按字符串升序排列，至少一个元素。实例内不去重 | `["127.0.0.1", "::1"]` |
+| `ips` | array of string | 是 | 实例上报的 IP，已去掉空串，按字符串升序排列，至少一个元素。实例内不去重。来源见表后说明 | `["127.0.0.1", "::1"]` |
 | `start_time` | string | 是 | 进程启动时间，按 Asia/Shanghai 时区格式化，格式为 `2006-01-02T15:04:05+08:00`。零值时为 `""` | `2026-11-04T14:00:00+08:00` |
 | `updated_at` | string | 是 | 注册信息最后一次刷新的时间，格式同上。各进程按自己配置的 `discovery.serviceTimerInterval` 刷新，默认 3 秒 | `2026-11-04T14:30:00+08:00` |
 | `uptime` | string | 是 | 实例自己上报的运行时长，原样透传。由 durafmt 生成，含多个单位并精确到微秒，只供人读，不要解析 | `6 seconds 8 milliseconds 437 microseconds` |
 
+`ips` 由各进程启动时调用 `machine.GetLocalIPs()` 探测一次，之后不再更新。
+只取物理网卡上的地址，并排除环回、链路本地、组播和未指定地址，所以真实结果中不会出现 `127.0.0.1` 或 `::1`。
+本文档表格和样例中的环回地址只是示意值。
+
 ### 返回 JSON 样例
 
 实际响应是单行紧凑 JSON，字段顺序固定为 `data`、`code`、`message`。下面的样例经过格式化，只为方便阅读。
-样例和第 5 节实测数据中的 `uptime` 为 `30 minutes`，是写入 mock etcd 的示意值；真实值的格式见 3.3 节。
+样例和第 5 节实测数据中的 `uptime` 为 `30 minutes`、IP 为环回地址，都是写入 mock etcd 的示意值；真实值见 3.3 节。
 
 成功，有数据（HTTP 200）。analysis 有两个 IP，体现实例内排序；多个实例共用 IP，体现顶层去重：
 
@@ -137,10 +141,10 @@
 | 非 GET 方法（POST、PUT、DELETE、PATCH、HEAD、OPTIONS），包括路径末尾带 `/` 时 | 404；storage 资源不可用时为 503 | 无 | 纯文本 `404 page not found`；503 时响应体为空 | 改用 GET |
 | 路径不精确匹配（如 `/api/admin/meta/ha-server`、`/api/admin/meta/HA-SERVERS`，路径区分大小写） | 404；storage 资源不可用时为 503 | 无 | 同上 | 检查路径 |
 
-- 失败时返回 400 而不是 503，是为了沿用 V1 兼容格式。
+- 失败时由 `V1ErrorJSONResponse` 返回 400（见 `internal/admin/ginx/response.go`），不会返回 503。
 - etcd 的原始错误只写进日志，不会出现在响应里。
-- etcd 恢复后接口会自动恢复，不需要重启 Admin。沙箱实测 mock etcd 重新启动约 7 秒后恢复，
-  沙箱回归脚本的验收窗口为 20 秒。这是实测结果，不是服务承诺。
+- etcd 恢复后接口会自动恢复，不需要重启 Admin。沙箱实测 mock etcd 重新启动约 7 秒后恢复。
+  这是实测结果，不是服务承诺。
 - 只有精确的 `GET /api/admin/meta/ha-servers` 跳过 storage 检查，所以其他方法和路径在 storage 资源不可用时返回 503。
   storage 资源不可用的含义见 [接口文档索引](../README.md#42-状态码)；Admin 运行中 MySQL 断开时本接口照常返回 200。
 
@@ -214,7 +218,6 @@ Content-Length: 631
 ```bash
 curl -s http://127.0.0.1:50060/api/admin/meta/ha-servers \
   | python3 -c 'import json,sys; print("\n".join(json.load(sys.stdin)["data"]["ips"]))'
-# 装有 jq 时等价于：curl -s http://127.0.0.1:50060/api/admin/meta/ha-servers | jq -r '.data.ips[]'
 ```
 
 ```text

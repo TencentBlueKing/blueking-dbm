@@ -59,18 +59,16 @@ APM 为 `127.0.0.1:50080`。
 只有 Web 留空。照搬这个示例部署时，gRPC 和 APM 监听 `127.0.0.1`，Web 监听本机 IPv4 的 50060 端口。
 所以三个服务的 host 要分别以 `admin.yaml` 为准。
 
-沙箱环境的端口不是默认端口：Web 为 `127.0.0.1:18080`，gRPC 为 `127.0.0.1:15051`，
-APM 为 `127.0.0.1:19090`，来自 [scripts/ha-sandbox-admin-reload.sh](../../scripts/ha-sandbox-admin-reload.sh)。
-沙箱端口只用于沙箱 mock 客户端的示例。
-
 ### 3.3 鉴权
 
 Admin Web 没有启用鉴权：`hanet` 提供了 `SetAuthHandler`，但 Admin 没有调用。gRPC 也没有鉴权。
 
 ### 3.4 平台接入
 
-dbm 平台通过 APIGW（`HADBV2_APIGW_DOMAIN`、`HADBApiV2`）访问 dbha-v2 的 HTTP 接口。
-HA Server 列表接口还没有在网关和 `HADBApiV2` 中注册，目前只能直连 Admin 的 Web 端口。
+dbm 平台通过 `HADBApiV2`（`dbm-ui/backend/components/hadbv2/client.py`）访问 dbha-v2 的 HTTP 接口，
+基地址为 `HADBV2_APIGW_DOMAIN`（默认 `http://bk-dbm-hadb-api`）。
+`HADBApiV2` 目前只注册了 `switchqueue/` 和 `switchlogs/`，没有 HA Server 列表接口，所以 dbm 平台还没有调用它的代码。
+网关的路由配置不在本仓库中，无法从仓库确认网关是否已转发该路径；需要调用时可以直连 Admin 的 Web 端口。
 
 ## 4. HTTP 公共约定（V1 兼容接口）
 
@@ -126,10 +124,15 @@ V1 兼容接口返回下面的结构，字段顺序固定为 `data`、`code`、`
 - dbha-v2 的 V1 兼容接口业务失败时返回 HTTP 400。dbm 其他 Go 服务（db-priv、db-partition、db-resource 等）
   固定返回 HTTP 200，并使用 `go-pubpkg/errno` 中的错误码，这与 dbha-v2 不同。
 - dbha-v2 的内部错误码（`pkg/gerrors`）只出现在进程内部和日志中，不会写进 HTTP 响应。
-- dbm 平台的 `BaseApi`（`dbm-ui/backend/components/base.py`）遇到非 200 状态码会直接抛
-  `DataAPIException`，不会把响应体当作 JSON 解析。异常信息是 `[状态码]` 加上响应体原文，
-  例如 `[400]{"data":"","code":1,"message":"service discovery unavailable"}`，调用方拿不到结构化的
-  `code` 和 `message`。平台现有的 `switchqueue/`、`switchlogs/` 调用同样如此。
+- dbm 平台的 `BaseApi`（`dbm-ui/backend/components/base.py`）遇到非 200 状态码时，不会把响应体当作 JSON 解析：
+  - `_send_request` 先抛出 `DataAPIException`，消息格式为
+    `[<模块名>]API请求异常：([<状态码>]<响应体原文>) path => <路径>`。
+    响应体为空时用状态码的原因短语代替，例如 503 时为 `Service Unavailable`。
+  - `__call__` 捕获后，再包装成 `ApiRequestError`（`ERROR_CODE` 为 `015`）抛给调用方。
+  - 例如本接口返回 400 时，消息中包含
+    `([400]{"data":"","code":1,"message":"service discovery unavailable"})`。
+    调用方拿不到结构化的 `code` 和 `message`，只能自己解析这段文本。
+  - 平台现有的 `switchqueue/`、`switchlogs/` 调用同样如此。
 - 调用方建议按以下顺序处理：
   1. 先看 HTTP 状态码。
   2. 200 时再看 `code`。
@@ -162,7 +165,7 @@ V1 兼容接口返回下面的结构，字段顺序固定为 `data`、`code`、`
 - 业务结果通过响应里的 `code` 字段表达。gRPC 状态为 OK 不代表业务成功，调用方必须检查 `code`。
 - 调试工具：
   - Admin 没有开启 reflection，用 grpcurl 调用时需要加 `-import-path pkg/proto/idl -proto admin.proto`。
-  - 输出完整字段需要加 `-emit-defaults`，这要求使用支持该参数的 grpcurl 版本。
+  - 加 `-emit-defaults` 可以输出值为默认值的字段。grpcurl 未在验证环境实测。
   - 沙箱里可以改用 mock 客户端 `build/dbha-ha-sandbox-mock`（用 `make ha-sandbox-mock` 构建）。
     同时传 `--admin-grpc-addr` 和 `--admin-web-addr` 时，它会分别调用 gRPC 和 HTTP 并比对结果；
     只传一个时只调用对应的协议。
@@ -222,8 +225,8 @@ gRPC 的表额外加一列“字段号”，并附 proto 消息定义原文。
 
 ## 5. 调用示例
 
-只放可直接执行的命令和实际的原始输出（HTTP 为单行紧凑 JSON），不重复第 2、3 节的结构样例。
-成功和失败各一组。
+只放可直接执行的命令和实测输出，不重复第 2、3 节的结构样例。成功和失败各一组。
+JSON 输出格式化后给出，并注明原始输出为单行紧凑 JSON。没有实测的命令要明确标注“未实测”，不写其输出。
 
 ## 6. 行为说明
 
