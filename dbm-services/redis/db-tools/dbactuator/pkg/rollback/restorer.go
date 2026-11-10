@@ -105,13 +105,29 @@ type Job struct {
 	// AllowBinlogNonconsecutive lets a binlog chain skip indexes, as the plan allowed. Nil, as older
 	// payloads send it, checks the chain against the plan's digest only, gaps the plan holds included.
 	AllowBinlogNonconsecutive *bool
-	// HeartbeatTolerance is how far a Tendisplus kvstore's source heartbeat may be from RecoverAt
-	// after the replay; 0 is plusHeartbeatTolerance.
+	// HeartbeatTolerance is how far a TendisSSD or Tendisplus source heartbeat may be from RecoverAt
+	// after the restore before it is warned about; 0 is defaultHeartbeatTolerance.
 	HeartbeatTolerance time.Duration
 	Instances          []InstanceRestore
 	Host               Host
 	// tuning is the engine's, chosen by New.
 	tuning Tuning
+}
+
+// defaultHeartbeatTolerance is v1's: how far a source heartbeat may be from recover_at.
+const defaultHeartbeatTolerance = 10 * time.Minute
+
+func (j Job) heartbeatTolerance() time.Duration {
+	if j.HeartbeatTolerance > 0 {
+		return j.HeartbeatTolerance
+	}
+	return defaultHeartbeatTolerance
+}
+
+// beatOff tells a heartbeat more than tolerance away from recoverAt, either way.
+func beatOff(beat, recoverAt time.Time, tolerance time.Duration) bool {
+	d := beat.Sub(recoverAt)
+	return d > tolerance || d < -tolerance
 }
 
 // Restorer restores every instance of a Job for one storage engine.

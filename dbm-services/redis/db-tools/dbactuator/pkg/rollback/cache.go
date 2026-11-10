@@ -69,7 +69,7 @@ func (c *errCollector) add(err error) {
 // wait for the load. A port starts as soon as it is unpacked and fits; none waits for a batch.
 func (r *cacheRestorer) DoRollback() error {
 	limits := HostLimits(r.MaxConcurrency)
-	report := newHostReport(r.DestIP, "cache", r.Instances)
+	report := r.newReport(engineCache)
 	defer report.logResult()
 
 	redo, resume, err := r.resolvePending(report)
@@ -236,6 +236,7 @@ func (r *cacheRestorer) stage(inst InstanceRestore, p *portReport) (int64, error
 		log.Info("restored: %s placed in %s", kind, shortDuration(p.duration(stageRestore)))
 	} else {
 		log.Info("no full files, left empty")
+		p.setCacheLoaded(cacheLoadReport{empty: true})
 	}
 	return need, MarkPending(instDir, inst.Fingerprint())
 }
@@ -304,6 +305,9 @@ func (r *cacheRestorer) waitLoaded(inst InstanceRestore, log portLog, p *portRep
 	if err != nil {
 		window.release(need)
 		return err
+	}
+	if size > 0 {
+		p.setCacheLoaded(cacheLoadReport{aof: aof, dbsize: dbsize, rss: rss})
 	}
 	log.Info("loaded in %s: dbsize %d, rss %s", shortDuration(time.Since(start)), dbsize, shortBytes(rss))
 	window.loaded(need, rss)

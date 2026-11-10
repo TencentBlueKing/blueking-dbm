@@ -1,12 +1,16 @@
 package rollback
 
 import (
+	"compress/gzip"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
+
+	"dbm-services/redis/db-tools/dbactuator/pkg/consts"
 )
 
 func touch(t *testing.T, dir string, names ...string) {
@@ -281,8 +285,7 @@ func TestReplyStatsClassifiesErrorsByPrefix(t *testing.T) {
 		t.Fatalf("kinds=%v, want %v", st.Kinds, wantKinds)
 	}
 	samples := st.samples()
-	if len(samples) != replyErrorSamples || !strings.Contains(samples[0], "WRONGTYPE") ||
-		!strings.Contains(samples[1], "failedset") || !strings.Contains(samples[2], expectedReplyError) {
+	if len(samples) != 2 || !strings.Contains(samples[0], "WRONGTYPE") || !strings.Contains(samples[1], "failedset") {
 		t.Fatalf("attention samples must come first: %q", samples)
 	}
 
@@ -347,6 +350,125 @@ func TestReplayEndIncludesRecoverAtSecond(t *testing.T) {
 	}
 }
 
+func TestParseSSDHeartbeat(t *testing.T) {
+	beat, dbsize, err := parseSSDHeartbeat("k", []interface{}{"1702415993", "1234"})
+	if err != nil || beat.Unix() != 1702415993 || dbsize != 1234 {
+		t.Fatalf("seconds: beat=%v dbsize=%d err=%v", beat, dbsize, err)
+	}
+	if beat, _, err = parseSSDHeartbeat("k", []interface{}{"1702415993123", nil}); err != nil ||
+		beat.UnixMilli() != 1702415993123 {
+		t.Fatalf("milliseconds: beat=%v err=%v", beat, err)
+	}
+	if beat, dbsize, err = parseSSDHeartbeat("k", []interface{}{nil, nil}); err != nil || !beat.IsZero() ||
+		dbsize != -1 {
+		t.Fatalf("none: beat=%v dbsize=%d err=%v", beat, dbsize, err)
+	}
+	for _, bad := range [][]interface{}{{"not a time", "1"}, {"1"}, nil} {
+		if _, _, err = parseSSDHeartbeat("k", bad); err == nil {
+			t.Fatalf("%v: want error", bad)
+		}
+	}
+}
+
+func TestSSDHeartbeatCheckOnlyWarns(t *testing.T) {
+	defer func() { ssdReplayFn = (*ssdRestorer).replay }()
+	recoverAt := time.Date(2026, 10, 30, 16, 5, 0, 0, time.Local)
+	cases := map[string]struct {
+		beat    time.Time
+		err     error
+		binlogs []string
+		warn    string
+	}{
+		"within":     {beat: recoverAt.Add(-9 * time.Minute), binlogs: []string{"binlog"}},
+		"outside":    {beat: recoverAt.Add(11 * time.Minute), binlogs: []string{"binlog"}, warn: "is more than 10m0s"},
+		"none":       {binlogs: []string{"binlog"}},
+		"read error": {err: fmt.Errorf("mget failed"), binlogs: []string{"binlog"}, warn: "not read: mget failed"},
+		"full only":  {beat: recoverAt.Add(-time.Hour), warn: "is more than 10m0s"},
+	}
+	for name, tc := range cases {
+		logs := captureLogs(t)
+		r := ssdRestorerFor(t, dirHost{root: t.TempDir()})
+		var keys []string
+		ssdHeartbeatFn = func(ip string, port int, timeKey, dbsizeKey string) (time.Time, int64, error) {
+			keys = []string{fmt.Sprintf("%s:%d", ip, port), timeKey, dbsizeKey}
+			return tc.beat, 42, tc.err
+		}
+		ssdReplayFn = func(_ *ssdRestorer, _ portLog, p *portReport, _ InstanceRestore, _ time.Time,
+			binlogs []string) error {
+			p.replayed(len(binlogs), replyStats{})
+			p.setSSD(ssdReplayReport{startSeq: 11, firstSeq: 11, lastSeq: 20, lastFile: "binlog"})
+			return nil
+		}
+		inst := InstanceRestore{SourceIP: "1.1.1.1", SourcePort: 30000, DestPort: 30000,
+			FullFiles: []string{"full.tar"}}
+		h := newHostReport(r.DestIP, engineSSD, []InstanceRestore{inst})
+		if err := r.replayAndMark(inst, h.port(30000), tc.binlogs, recoverAt); err != nil ||
+			!IsDone(r.Host.InstanceDir(30000), r.fingerprint(inst)) {
+			t.Fatalf("%s: a heartbeat must never fail the port: err=%v", name, err)
+		}
+		h.port(30000).finish(nil)
+		if want := "2.2.2.2:30000 1.1.1.1:30000:time 1.1.1.1:30000:0:dbsize"; strings.Join(keys, " ") != want {
+			t.Fatalf("%s: read %v, want %s", name, keys, want)
+		}
+
+		text := h.diagText(h.port(30000), "")
+		beat := "-"
+		if !tc.beat.IsZero() && tc.err == nil {
+			beat = tc.beat.Format("15:04:05")
+		}
+		if len(tc.binlogs) > 0 {
+			if row := fmt.Sprintf("  %4d %10d -> %-10d %8s", 1, 11, 20, beat); !strings.Contains(text, row) {
+				t.Fatalf("%s: diag lacks %q:\n%s", name, row, text)
+			}
+		} else if !strings.Contains(text, "heartbeat "+beat+"; source dbsize 42") {
+			t.Fatalf("%s: diag lacks the heartbeat:\n%s", name, text)
+		}
+		warned := false
+		for _, e := range logs() {
+			msg := strings.ReplaceAll(e.msg, "\n"+wrapIndent, " ")
+			warned = warned || e.level == levelWarn && strings.Contains(msg, tc.warn)
+		}
+		if tc.warn == "" {
+			if strings.Contains(text, "heartbeat warn") {
+				t.Fatalf("%s: unexpected warning:\n%s", name, text)
+			}
+		} else if !warned || !strings.Contains(text, " heartbeat warn: ") || !strings.Contains(text, tc.warn) {
+			t.Fatalf("%s: want warning %q, logged=%v, diag:\n%s", name, tc.warn, warned, text)
+		}
+	}
+}
+
+func TestRetryWhileLoading(t *testing.T) {
+	loading := errors.New(consts.REDISLOADDATAINFO)
+	wrong := errors.New("ERR wrong")
+	const interval = 10 * time.Millisecond
+	cases := map[string]struct {
+		errs  []error
+		end   time.Duration
+		calls int
+		err   error
+	}{
+		"loaded later":   {errs: []error{loading, loading, nil}, end: time.Second, calls: 3},
+		"loading to end": {errs: []error{loading, loading, loading}, end: 15 * time.Millisecond, calls: 2, err: loading},
+		"other error":    {errs: []error{wrong, nil}, end: time.Second, calls: 1, err: wrong},
+		"loaded":         {errs: []error{nil}, end: time.Second, calls: 1},
+	}
+	for name, tc := range cases {
+		calls := 0
+		vals, err := retryWhileLoading(func() ([]interface{}, error) {
+			e := tc.errs[calls]
+			calls++
+			if e != nil {
+				return nil, e
+			}
+			return []interface{}{"1", "2"}, nil
+		}, time.Now().Add(tc.end), interval)
+		if calls != tc.calls || err != tc.err || (err == nil && len(vals) != 2) {
+			t.Fatalf("%s: calls=%d vals=%v err=%v, want calls=%d err=%v", name, calls, vals, err, tc.calls, tc.err)
+		}
+	}
+}
+
 func TestNewDispatchesByClusterType(t *testing.T) {
 	cases := map[string]string{
 		"RedisInstance":              "*rollback.cacheRestorer",
@@ -392,5 +514,136 @@ func TestInstanceFingerprintCoversBinlogs(t *testing.T) {
 	withBinlog.BinlogFingerprint = "abc"
 	if withBinlog.Fingerprint() != "a.tar,b.tar|abc" {
 		t.Fatalf("got %s", withBinlog.Fingerprint())
+	}
+}
+
+// ssdBinlogOf writes one binlog holding records sets from seq 100 on.
+func ssdBinlogOf(t *testing.T, records int) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "binlog-1.1.1.1-30000-0000001-20260101000000.log.gz")
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w := gzip.NewWriter(f)
+	for i := 0; i < records; i++ {
+		seq := int64(100 + i)
+		_, _ = w.Write(ssdRecordBytes(seq, logKSET, 0, 0, 1000, ssdPlainKey(fmt.Sprintf("k%d", seq)), []byte("v"), nil))
+	}
+	_ = w.Close()
+	_ = f.Close()
+	return path
+}
+
+// spinExec burns delay of the caller's CPU per batch and answers every command normally.
+type spinExec struct{ delay time.Duration }
+
+func (s spinExec) execBatch(cmds [][]string) ([]error, error) {
+	for begin := time.Now(); time.Since(begin) < s.delay; {
+	}
+	return make([]error, len(cmds)), nil
+}
+
+func TestSSDReplayBooksDecodeAndBatchCPU(t *testing.T) {
+	p := newHostReport("2.2.2.2", engineSSD, []InstanceRestore{{DestPort: 30000}}).port(30000)
+	// 20 batches of pipeBatchCmds
+	err := replayFiles(newPortLog(30000), p, spinExec{delay: 10 * time.Millisecond},
+		[]string{ssdBinlogOf(t, 20*pipeBatchCmds)}, ssdReplayReport{startSeq: 100, endMs: 1 << 62})
+	if err != nil {
+		t.Fatal(err)
+	}
+	apply, decode := p.cpu[stageApply], p.cpu[stageDecode]
+	if apply < 100*time.Millisecond {
+		t.Fatalf("apply cpu %v: the batches' client CPU is apply's", apply)
+	}
+	if decode <= 0 || decode >= apply {
+		t.Fatalf("decode cpu %v, apply %v: decode is the Go decoder's alone", decode, apply)
+	}
+}
+
+func TestSSDReplayBooksTheLastFlushAsApply(t *testing.T) {
+	p := newHostReport("2.2.2.2", engineSSD, []InstanceRestore{{DestPort: 30000}}).port(30000)
+	delay := 100 * time.Millisecond
+	// Fewer records than a batch, so the only batch goes out in the flush after decoding.
+	err := replayFiles(newPortLog(30000), p, spinExec{delay: delay},
+		[]string{ssdBinlogOf(t, 10)}, ssdReplayReport{startSeq: 100, endMs: 1 << 62})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.durations[stageApply] < delay || p.cpu[stageApply] < delay/2 {
+		t.Fatalf("apply wall %v cpu %v: the last flush is apply's", p.durations[stageApply], p.cpu[stageApply])
+	}
+	if p.durations[stageDecode] >= delay/2 || p.cpu[stageDecode] >= delay/2 {
+		t.Fatalf("decode wall %v cpu %v took in the last flush", p.durations[stageDecode], p.cpu[stageDecode])
+	}
+}
+
+func TestRestoreRocksdbReportsTheToolsCPU(t *testing.T) {
+	ssdBinDir = t.TempDir()
+	defer func() { ssdBinDir = filepath.Join(consts.UsrLocal, "redis", "bin") }()
+	script := "#!/bin/bash\ni=0; while [ $i -lt 100000 ]; do i=$((i+1)); done\necho 'ERR: restore broke'\n"
+	if err := os.WriteFile(filepath.Join(ssdBinDir, "tredisrestore"), []byte(script), 0755); err != nil {
+		t.Fatal(err)
+	}
+	work := t.TempDir()
+	cpu, err := restoreRocksdb("redis-2.8.17-rocksdb-v1.3.10.tar.gz", t.TempDir(), t.TempDir(), work)
+	if err == nil || !strings.Contains(err.Error(), "ERR: restore broke") || cpu <= 0 {
+		t.Fatalf("cpu=%v err=%v", cpu, err)
+	}
+	if _, err = os.Stat(filepath.Join(work, "restore.out")); err != nil {
+		t.Fatalf("tool output not kept: %v", err)
+	}
+}
+
+func TestSSDFailingBinlogGoesToTheDetailFile(t *testing.T) {
+	p := newHostReport("2.2.2.2", engineSSD, []InstanceRestore{{DestPort: 30000}}).port(30000)
+	p.detailPath = filepath.Join(t.TempDir(), "rollback_detail_30000.log")
+	exec := &fakeExec{reply: func([]string) error { return errors.New("ERR unknown command 'set'") }}
+	err := replayFiles(newPortLog(30000), p, exec, ssdBinlogs(t, 1), ssdReplayReport{startSeq: 100, endMs: 1 << 62})
+	if err == nil || !strings.Contains(err.Error(), "all 2 replies are errors") {
+		t.Fatalf("err=%v", err)
+	}
+	_ = p.closeDetail()
+	raw, _ := os.ReadFile(p.detailPath)
+	containsAll(t, string(raw),
+		"  error [binlog-1.1.1.1-30000-0000001-20260101000000.log.gz] seq=100 ts="+
+			time.UnixMilli(1000).Format("2006-01-02 15:04:05.000")+" (error) ERR unknown command 'set' <- ",
+		"ERROR binlog-1.1.1.1-30000-0000001-20260101000000.log.gz: all 2 replies are errors",
+	)
+}
+
+func TestDetailRepliesAreCapped(t *testing.T) {
+	p := newHostReport("2.2.2.2", engineSSD, []InstanceRestore{{DestPort: 30000}}).port(30000)
+	p.detailPath = filepath.Join(t.TempDir(), "rollback_detail_30000.log")
+	for i := 0; i < detailMaxReplies+3; i++ {
+		p.detailReply("  error %d", i)
+	}
+	p.noteOmittedReplies()
+	_ = p.closeDetail()
+	raw, _ := os.ReadFile(p.detailPath)
+	detail := string(raw)
+	if n := strings.Count(detail, "  error "); n != detailMaxReplies ||
+		!strings.HasSuffix(detail, "... (3 more error replies omitted)\n") {
+		t.Fatalf("%d error lines, tail %q", n, detail[len(detail)-60:])
+	}
+}
+
+func TestSSDDiagSamplesStayOnOneLine(t *testing.T) {
+	h := newHostReport("2.2.2.2", engineSSD, []InstanceRestore{{DestPort: 30000}})
+	p := h.port(30000)
+	var st replyStats
+	for i := 0; i < 5; i++ {
+		st.Lines++
+		st.record("WRONGTYPE Operation against a key holding the wrong kind of value",
+			commandPreview([]string{"lpush", strings.Repeat("a_very_long_key_name_", 5) + fmt.Sprint(i), "v"}))
+	}
+	p.replayed(1, st)
+	p.finish(nil)
+	text := h.diagText(p, "")
+	if n := strings.Count(text, "\n  (error) WRONGTYPE"); n != 2 {
+		t.Fatalf("%d samples:\n%s", n, text)
+	}
+	if wrapRecord(text) != text {
+		t.Fatalf("diag wraps:\n%s", wrapRecord(text))
 	}
 }

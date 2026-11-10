@@ -128,13 +128,16 @@ func TestSplitArgsUndoesSdscatrepr(t *testing.T) {
 func TestCommandPipeBatchesInOrder(t *testing.T) {
 	exec := &fakeExec{}
 	var seen []string
-	pipe := &commandPipe{exec: exec, onReply: func(args []string, _ error) error {
+	pipe := &commandPipe{exec: exec, onReply: func(args []string, from cmdOrigin, _ error) error {
+		if want := strconv.FormatInt(from.seq, 10); args[1] != want || from.ts != 1000+from.seq {
+			t.Fatalf("reply for %s came with origin %+v", args[1], from)
+		}
 		seen = append(seen, args[1])
 		return nil
 	}}
 	n := 2*pipeBatchCmds + 500
 	for i := 0; i < n; i++ {
-		if err := pipe.add([]string{"set", strconv.Itoa(i), "v"}); err != nil {
+		if err := pipe.addFrom([]string{"set", strconv.Itoa(i), "v"}, cmdOrigin{seq: int64(i), ts: 1000 + int64(i)}); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -160,7 +163,7 @@ func TestCommandPipeBatchesInOrder(t *testing.T) {
 
 func TestCommandPipeFlushesLargeValuesEarly(t *testing.T) {
 	exec := &fakeExec{}
-	pipe := &commandPipe{exec: exec, onReply: func([]string, error) error { return nil }}
+	pipe := &commandPipe{exec: exec, onReply: func([]string, cmdOrigin, error) error { return nil }}
 	big := strings.Repeat("x", pipeBatchBytes/3+1)
 	for i := 0; i < 3; i++ {
 		if err := pipe.add([]string{"set", "k", big}); err != nil {
@@ -174,7 +177,7 @@ func TestCommandPipeFlushesLargeValuesEarly(t *testing.T) {
 
 func TestCommandPipeFailuresAreInFlight(t *testing.T) {
 	pipe := &commandPipe{exec: &fakeExec{fail: io.ErrUnexpectedEOF},
-		onReply: func([]string, error) error { return nil }}
+		onReply: func([]string, cmdOrigin, error) error { return nil }}
 	_ = pipe.add([]string{"set", "k", "v"})
 	err := pipe.flush()
 	if !failedInFlight(err) || !strings.Contains(err.Error(), "broke off") {
@@ -183,7 +186,7 @@ func TestCommandPipeFailuresAreInFlight(t *testing.T) {
 
 	stop := errors.New("ERR apply failed")
 	pipe = &commandPipe{exec: &fakeExec{reply: func([]string) error { return stop }},
-		onReply: func(_ []string, reply error) error { return reply }}
+		onReply: func(_ []string, _ cmdOrigin, reply error) error { return reply }}
 	_ = pipe.add([]string{"set", "k", "v"})
 	err = fmt.Errorf("kvstore 1: %w", pipe.flush())
 	if !failedInFlight(err) || !errors.Is(err, stop) {
