@@ -14,7 +14,6 @@
 <template>
   <DbSelect
     filterable
-    :input-search="false"
     :model-value="defaultValue"
     :placeholder="t('请选择所属DB类型')"
     show-selected-icon

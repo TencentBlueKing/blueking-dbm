@@ -76,6 +76,39 @@ export const splitSearchKeywords = (value = '') =>
     .map((item) => item.trim().toLowerCase())
     .filter((item) => item.length > 0);
 
+/**
+ * 远程搜索用：把搜索词按同一套分隔符拆开，保留原始大小写，用英文逗号连接。
+ * 后端多值过滤普遍按逗号拆分（如 build_empty_and_in_q），不认竖线、空格等其它分隔符
+ */
+export const joinSearchKeywords = (value = '') =>
+  value
+    .split(SEARCH_SEPARATOR_REGEX)
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0)
+    .join(',');
+
+/**
+ * 输入框粘贴多行文本时，浏览器会直接去掉换行，多个值被拼成一个。
+ * 含换行时接管粘贴：各行去空格、丢空行后用逗号连接，插入光标处，返回粘贴后的完整值；
+ * 不含换行返回 null，交给浏览器默认处理
+ */
+export const resolvePastedSearchValue = (event: ClipboardEvent) => {
+  const text = event.clipboardData?.getData('text') ?? '';
+  if (!/[\r\n]/.test(text)) {
+    return null;
+  }
+  event.preventDefault();
+  const input = event.target as HTMLInputElement;
+  const pastedText = text
+    .split(/[\r\n]+/)
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0)
+    .join(',');
+  const start = input.selectionStart ?? input.value.length;
+  const end = input.selectionEnd ?? start;
+  return `${input.value.slice(0, start)}${pastedText}${input.value.slice(end)}`;
+};
+
 /** 判断元素是否完整落在滚动容器可视区域内 */
 export const isInViewPort = (el?: HTMLElement, client?: HTMLElement) => {
   if (!el || !client) {

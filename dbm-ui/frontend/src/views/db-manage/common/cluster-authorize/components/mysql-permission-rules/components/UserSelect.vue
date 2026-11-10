@@ -9,7 +9,6 @@
       :clearable="false"
       :disabled="disabled"
       filterable
-      :input-search="false"
       :remote-method="handleSearchAccount"
       :scroll-loading="isLoading"
       @scroll-end="handleLoadMore"
@@ -162,7 +161,11 @@
     }
     const dropdownEl = selectRef.value?.contentRef?.querySelector('.dbm-select-dropdown');
     // 可滚动即达标；数据加载完则停止
-    if (!dropdownEl || dropdownEl.scrollHeight > dropdownEl.clientHeight || pagination.offset + PAGE_SIZE >= pagination.count) {
+    if (
+      !dropdownEl ||
+      dropdownEl.scrollHeight > dropdownEl.clientHeight ||
+      pagination.offset + PAGE_SIZE >= pagination.count
+    ) {
       return;
     }
     handleLoadMore();

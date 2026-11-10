@@ -261,7 +261,6 @@
                     :clearable="false"
                     :disabled="disableCapSpecs"
                     filterable
-                    :input-search="false"
                     :loading="state.isLoadCapSpecs">
                     <DbOption
                       v-for="item of state.capSpecs"

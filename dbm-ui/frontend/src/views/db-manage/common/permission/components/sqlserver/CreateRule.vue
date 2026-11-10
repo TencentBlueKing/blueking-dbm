@@ -20,7 +20,6 @@
           v-model="formData.account_id"
           :clearable="false"
           filterable
-          :input-search="false"
           :loading="getPermissionRulesLoading">
           <DbOption
             v-for="item of accounts"

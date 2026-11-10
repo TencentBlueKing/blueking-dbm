@@ -9,7 +9,6 @@
       :clearable="false"
       collapse-tags
       filterable
-      :input-search="false"
       multiple
       multiple-mode="tag"
       show-select-all>

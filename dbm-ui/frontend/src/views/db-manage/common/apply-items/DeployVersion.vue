@@ -5,7 +5,6 @@
       class="item-input"
       :disabled="isAdjustApply"
       filterable
-      :input-search="false"
       :loading="loading"
       :placeholder="placeholder">
       <DbOption
