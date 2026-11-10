@@ -21,6 +21,7 @@ from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version
 from backend.flow.engine.bamboo.scene.mysql.validate.exception import TenDBHAUpgradeParamCheckFailedException
+from backend.flow.engine.bamboo.scene.mysql.validate.mysql_upgrade_drs_check import check_instance_upgrade
 from backend.flow.engine.validate.mysql_base_validate import MysqlBaseValidator
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
 from backend.flow.utils.mysql.mysql_version_parse import mysql_version_parse
@@ -363,6 +364,49 @@ class TenDBHAUpgradeValidator(MysqlBaseValidator):
 
         return error_msgs
 
+    def pre_check_schema_by_drs(self) -> list:
+        """在从库上通过 DRS 跑升级通用检查，避免把只读查询打到主库。"""
+        error_msgs = []
+        for info in self.data.get("infos", []):
+            pkg_id = info.get("pkg_id")
+            if not pkg_id:
+                continue
+            try:
+                pkg = self._get_pkg_info(pkg_id)
+                target_version = get_mysql_real_version(pkg.name)
+            except DBMetaException as exc:
+                error_msgs.append(str(exc))
+                continue
+            error_msgs.extend(self._check_clusters_schema(info.get("cluster_ids", []), target_version))
+        return error_msgs
+
+    def _check_clusters_schema(self, cluster_ids, target_version) -> list:
+        error_msgs = []
+        for cluster_id in cluster_ids:
+            try:
+                cluster = Cluster.objects.get(id=cluster_id)
+            except Cluster.DoesNotExist:
+                error_msgs.append(_("集群 {} 不存在").format(cluster_id))
+                continue
+            instance = self._schema_check_instance(cluster)
+            if not instance:
+                error_msgs.append(_("集群 {} 没有找到可检查的实例").format(cluster_id))
+                continue
+            address = "{}:{}".format(instance.machine.ip, instance.port)
+            error_msgs.extend(check_instance_upgrade(address, cluster.bk_cloud_id, target_version, DRSApi.rpc))
+        return error_msgs
+
+    def _schema_check_instance(self, cluster):
+        """优先用 standby 从库。没有从库时才回退主库，检查不能因此跳过。"""
+        slaves = cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.SLAVE.value)
+        standby = slaves.filter(is_stand_by=True).first()
+        if standby:
+            return standby
+        slave = slaves.first()
+        if slave:
+            return slave
+        return cluster.storageinstance_set.filter(instance_inner_role=InstanceInnerRole.MASTER.value).first()
+
     def __call__(self):
         """
         执行校验
@@ -377,6 +421,7 @@ class TenDBHAUpgradeValidator(MysqlBaseValidator):
 
         # 检查升级参数（log_bin_compress 和 binlog_checksum）
         upgrade_param_errors = self.pre_check_upgrade_params()
+        all_errors.extend(self.pre_check_schema_by_drs())
 
         # 如果有升级参数错误，格式化错误信息并添加操作说明
         if upgrade_param_errors:
