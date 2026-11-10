@@ -28,20 +28,22 @@
         :label="t('导出模式')"
         required>
         <CardCheckbox
-          v-model="exportMode"
           :desc="t('选择库表，整表或按条件导出数据与表结构')"
           :disabled="isSubmitting"
           :disabled-tooltips="t('提交中')"
+          :model-value="exportMode"
           :title="t('按库表导出')"
-          true-value="table" />
+          true-value="table"
+          @update:model-value="exportMode = $event === 'sql' ? 'sql' : 'table'" />
         <CardCheckbox
-          v-model="exportMode"
           class="ml-8"
           :desc="t('输入或上传查询 SQL，导出 SELECT 的查询结果')"
           :disabled="isSubmitting"
           :disabled-tooltips="t('提交中')"
+          :model-value="exportMode"
           :title="t('按 SQL 导出')"
-          true-value="sql" />
+          true-value="sql"
+          @update:model-value="exportMode = $event === 'sql' ? 'sql' : 'table'" />
       </DbFormItem>
     </DbForm>
     <BkLoading :loading="isSubmitting">
@@ -80,6 +82,7 @@
 
   import { DBTypes, TicketTypes } from '@common/const';
 
+  import { submittedExportModes } from '@views/db-manage/common/data-export/export-mode-state';
   import CardCheckbox from '@views/db-manage/common/db-card-checkbox/CardCheckbox.vue';
 
   import SqlMode from './components/sql-mode/Index.vue';
@@ -94,7 +97,7 @@
   const { t } = useI18n();
   const eventBus = useEventBus();
   const modeRef = useTemplateRef<ComponentExposed<typeof SqlMode | typeof TableMode>>('modeRef');
-  const exportMode = ref('table');
+  const exportMode = ref(submittedExportModes.get(props.dbType) ?? 'table');
   const resetKey = ref(0);
   const restoreTicket = ref(true);
   const isPreparing = ref(false);
@@ -138,6 +141,9 @@
           .join('\n'),
       );
     },
+    onSuccess() {
+      submittedExportModes.set(props.dbType, exportMode.value);
+    },
   });
 
   const isSubmitting = computed(() => isPreparing.value || ticketLoading.value);
@@ -164,6 +170,7 @@
   };
 
   const handleReset = () => {
+    submittedExportModes.delete(props.dbType);
     restoreTicket.value = false;
     exportMode.value = 'table';
     resetKey.value += 1;
