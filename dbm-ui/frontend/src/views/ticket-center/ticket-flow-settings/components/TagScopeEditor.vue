@@ -68,7 +68,6 @@
           :all-option-text="t('任意值')"
           :disabled="isKeyInvalid || !selectedKey"
           filterable
-          :input-search="false"
           multiple
           multiple-mode="tag"
           :placeholder="t('请选择标签值')"
