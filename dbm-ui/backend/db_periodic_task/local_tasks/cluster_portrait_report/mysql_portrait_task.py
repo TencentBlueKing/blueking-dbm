@@ -80,8 +80,8 @@ class MysqlPortraitReportTask(PortraitReportTaskBase):
         - 只填 MySQL 家族的一处专属知识：按 ``cluster.cluster_type`` 选生成器
 
     使用方式：
-        由 dispatch worker 自动调用；定时任务 ``generate_mysql_cluster_portrait_report``
-        负责选集群 + ``task.submit``。
+        由 dispatch worker 自动调用；定时任务 ``generate_cluster_portrait_report``
+        负责选集群 + 与其他画像 Task 交错 ``task.submit``。
 
     线程安全：是（继承基类无状态特性）
     边界：见 :class:`PortraitReportTaskBase` docstring；本子类不新增行为约束。

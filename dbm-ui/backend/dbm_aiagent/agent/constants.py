@@ -70,3 +70,4 @@ class DBMAgentCode(StrStructuredEnum):
     MYSQL_SKEW_REPORT = EnumField("ai-mysql-skew", _("MySQL 集群倾向报告"))
     MYSQL_CONFIG_PERF_TUNER = EnumField("ai-db-perf-tuner", _("MySQL配置优化智能体"))
     MYSQL_PORTRAIT_CLUSTER = EnumField("ai-c-report", _("MySQL 集群画像"))
+    REDIS_PORTRAIT_CLUSTER = EnumField("ai-rds-portrait", _("Redis 集群画像"))

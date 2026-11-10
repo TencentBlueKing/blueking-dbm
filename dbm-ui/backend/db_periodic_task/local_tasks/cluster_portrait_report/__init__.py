@@ -11,13 +11,12 @@ specific language governing permissions and limitations under the License.
 集群画像报告 —— 包入口。
 
 模块职责：
-    - 导出 celery beat 触发点 :func:`generate_mysql_cluster_portrait_report`（每日 0 点）
-    - 导入 :class:`MysqlPortraitReportTask` 触发 ``@register_dispatch_task`` 副作用，
-      使 Django 启动阶段完成 dispatch registry 与 PortraitQueue metadata 的写入
+    - 导出 celery beat 触发点 :func:`generate_cluster_portrait_report`（每日 0 点）
+    - 导入各 db_type 画像 Task 触发 ``@register_dispatch_task`` 副作用，使其进入 dispatch registry，
+      并被 :func:`generate_cluster_portrait_report` 自动纳入每日投递；导入顺序即轮转顺序
 """
-# 显式再导入 Task 类，使 @register_dispatch_task 在包导入时确定性执行；
-# task.py 内部虽然也 import 了它，但这里再显式导出一次作为约定，避免 task.py 未被解析时漏注册。
 from backend.db_periodic_task.local_tasks.cluster_portrait_report.mysql_portrait_task import MysqlPortraitReportTask
-from backend.db_periodic_task.local_tasks.cluster_portrait_report.task import generate_mysql_cluster_portrait_report
+from backend.db_periodic_task.local_tasks.cluster_portrait_report.redis_portrait_task import RedisPortraitReportTask
+from backend.db_periodic_task.local_tasks.cluster_portrait_report.task import generate_cluster_portrait_report
 
-__all__ = ["generate_mysql_cluster_portrait_report", "MysqlPortraitReportTask"]
+__all__ = ["generate_cluster_portrait_report", "MysqlPortraitReportTask", "RedisPortraitReportTask"]

@@ -42,6 +42,7 @@ from backend.db_report.portrait.generator.mysql import (
     MysqlClusterPortraitGenerator,
     TendbClusterClusterPortraitGenerator,
 )
+from backend.db_report.portrait.generator.redis import RedisClusterPortraitGenerator
 
 __all__ = [
     # 基类与结果 / 中间态 dataclass
@@ -54,4 +55,5 @@ __all__ = [
     # 各 db_type 子类（调用方直接 import 使用）
     "MysqlClusterPortraitGenerator",
     "TendbClusterClusterPortraitGenerator",
+    "RedisClusterPortraitGenerator",
 ]

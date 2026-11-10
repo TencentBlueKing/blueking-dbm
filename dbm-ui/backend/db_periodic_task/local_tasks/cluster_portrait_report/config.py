@@ -13,8 +13,9 @@ specific language governing permissions and limitations under the License.
 模块职责：
     - 定义 :class:`PortraitReportConfigBase`：所有 db_type 画像共享的通用配置字段
       与 ``validate_raw`` 扩展校验（灰度限流 / 错峰 / 时间窗 / 域名黑名单）
-    - 定义 :class:`MysqlPortraitReportConfig`：MySQL 家族画像的具体 task_key 绑定
-    - 未来接入 Redis / MongoDB / SQLServer 画像时，**只需继承基类 + 声明 task_key**，
+    - 定义 :class:`MysqlPortraitReportConfig` / :class:`RedisPortraitReportConfig`：
+      各 db_type 画像的 task_key 绑定与默认 cluster_types
+    - 未来接入 MongoDB / SQLServer 画像时，**只需继承基类 + 声明 task_key / 默认 cluster_types**，
       无需重复通用字段与校验逻辑
 
 设计要点：
@@ -34,6 +35,7 @@ from typing import ClassVar, List
 
 from django.core.exceptions import ValidationError
 
+from backend.db_meta.enums import ClusterType
 from backend.db_periodic_task.dispatch.config import DispatchTaskConfig, IdempotenceMode
 
 #: 默认单集群画像执行超时（秒）；对齐 AITaskConfig 的 540s AI 调用预算
@@ -91,6 +93,18 @@ class PortraitReportConfigBase(DispatchTaskConfig):
     #: 画像域名黑名单：命中的 immute_domain 直接跳过；用于临时排除某些异常集群
     ignore_cluster_domains: List[str] = field(default_factory=list)
 
+    #: 画像覆盖的 cluster_type 列表；空列表表示使用 :meth:`default_cluster_types`
+    cluster_types: List[str] = field(default_factory=list)
+
+    @classmethod
+    def default_cluster_types(cls) -> List[str]:
+        """``cluster_types`` 未配置时的默认画像 cluster_type 集合；子类按 db_type 覆盖。"""
+        return []
+
+    def resolve_cluster_types(self) -> List[str]:
+        """返回生效的 cluster_type 列表：已配置则用配置值，否则回落到 :meth:`default_cluster_types`。"""
+        return list(self.cluster_types) or self.default_cluster_types()
+
     @classmethod
     def validate_raw(cls, raw: dict) -> None:
         """追加画像通用字段的合法性校验。
@@ -109,6 +123,7 @@ class PortraitReportConfigBase(DispatchTaskConfig):
             - ``dispatch_spread_window_seconds < 0`` -> ``ValidationError``
             - ``daily_shuffle_limit < 0`` -> ``ValidationError``
             - ``ignore_cluster_domains`` 非 list[str] -> ``ValidationError``
+            - ``cluster_types`` 非 list[str] 或含未知 ``ClusterType`` 值 -> ``ValidationError``
         """
         super().validate_raw(raw)
         config = cls.from_raw(raw)
@@ -124,6 +139,13 @@ class PortraitReportConfigBase(DispatchTaskConfig):
         domains = config.ignore_cluster_domains or []
         if not isinstance(domains, list) or any(not isinstance(item, str) for item in domains):
             raise ValidationError({"config": "ignore_cluster_domains must be a list of str"})
+
+        cluster_types = config.cluster_types or []
+        if not isinstance(cluster_types, list) or any(not isinstance(item, str) for item in cluster_types):
+            raise ValidationError({"config": "cluster_types must be a list of str"})
+        unknown = sorted(set(cluster_types) - set(ClusterType.get_values()))
+        if unknown:
+            raise ValidationError({"config": f"cluster_types contains unknown ClusterType values: {unknown}"})
 
 
 @dataclass
@@ -146,8 +168,39 @@ class MysqlPortraitReportConfig(PortraitReportConfigBase):
     #: 任务 key：管理端配置行主键；同一进程内唯一，不可与其他 DispatchTask 冲突
     task_key: ClassVar[str] = "mysql.cluster_portrait"
 
+    @classmethod
+    def default_cluster_types(cls) -> List[str]:
+        return [
+            ClusterType.TenDBSingle.value,
+            ClusterType.TenDBHA.value,
+            ClusterType.TenDBCluster.value,
+        ]
+
+
+@dataclass
+class RedisPortraitReportConfig(PortraitReportConfigBase):
+    """Redis 家族集群画像的运行期配置。
+
+    职责：
+        - 通过 ``task_key`` 声明与 ``RedisPortraitReportTask`` 的绑定关系
+        - ``cluster_types`` 未配置时回落到 :meth:`ClusterType.redis_cluster_types`
+
+    边界：
+        - ``daily_shuffle_limit`` 默认 100（灰度保守值），可在 ``DispatchTaskSettings`` 调整
+        - ``enabled`` 沿用 :class:`DispatchTaskConfig` 默认值，需显式开启
+    """
+
+    task_key: ClassVar[str] = "redis.cluster_portrait"
+
+    daily_shuffle_limit: int = 100
+
+    @classmethod
+    def default_cluster_types(cls) -> List[str]:
+        return [cluster_type.value for cluster_type in ClusterType.redis_cluster_types()]
+
 
 __all__ = (
     "PortraitReportConfigBase",
     "MysqlPortraitReportConfig",
+    "RedisPortraitReportConfig",
 )
