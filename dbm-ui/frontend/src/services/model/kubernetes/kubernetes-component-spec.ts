@@ -29,6 +29,7 @@ export default class KubernetesComponentSpec {
         cpu: string;
         memory: string;
       };
+      storage: number;
       version: string;
     }[];
   };
