@@ -11,7 +11,6 @@
 package spiderctlcmd
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"dbm-services/common/go-pubpkg/logger"
@@ -137,12 +136,7 @@ func (d *DeployCtlSpiderAct) Run() (err error) {
 	}
 
 	if err := steps.Run(); err != nil {
-		rollbackCtxb, rerr := json.Marshal(d.BaseService.RollBackContext)
-		if rerr != nil {
-			logger.Error("json Marshal %s", err.Error())
-			fmt.Printf("<ctx>Can't RollBack<ctx>\n")
-		}
-		fmt.Printf("<ctx>%s<ctx>\n", string(rollbackCtxb))
+		logger.Error("steps run failed, %v", err)
 		return err
 	}
 
