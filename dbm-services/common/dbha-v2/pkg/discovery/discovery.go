@@ -49,7 +49,8 @@ const (
 var (
 	ErrEmptyWatchedKey = gerrors.New(gerrors.InvalidParameter, "watched key is required but got empty string")
 
-	// ErrDiscoveryClosed is returned by Get and GetWithPrefix after Close has been called.
+	// ErrDiscoveryClosed is returned by Get, GetWithPrefix, Watch and WatchWithPrefix after Close
+	// has been called.
 	ErrDiscoveryClosed = gerrors.New(gerrors.EtcdFailure, "discovery is closed")
 )
 
@@ -72,6 +73,8 @@ type Discovery struct {
 }
 
 // Watch Subscribe to target key events and receive data from the watch channel.
+// It returns ErrDiscoveryClosed after Close; the returned channel is closed when Close is
+// called or ctx is done.
 func (d *Discovery) Watch(ctx context.Context, key string) (<-chan *WatchEvent, error) {
 	key = strings.TrimSpace(key)
 	if key == "" {
@@ -82,6 +85,8 @@ func (d *Discovery) Watch(ctx context.Context, key string) (<-chan *WatchEvent, 
 }
 
 // WatchWithPrefix Subscribe to prefix key events with prefix and receive data from the watch channel.
+// It returns ErrDiscoveryClosed after Close; the returned channel is closed when Close is
+// called or ctx is done.
 func (d *Discovery) WatchWithPrefix(ctx context.Context, key string) (<-chan *WatchEvent, error) {
 	key = strings.TrimSpace(key)
 	if key == "" {
@@ -96,14 +101,17 @@ func (d *Discovery) WatchWithPrefix(ctx context.Context, key string) (<-chan *Wa
 // It returns ErrDiscoveryClosed after Close has been called.
 func (d *Discovery) Get(ctx context.Context, key string) ([]byte, error) {
 	key = strings.TrimSpace(key)
-	if err := d.rLockReadClient(); err != nil {
-		return nil, err
-	}
-	defer d.cliMu.RUnlock()
 
-	resp, err := d.client.Get(ctx, key)
+	var resp *clientv3.GetResponse
+	err := d.withReadClient(func(cli *clientv3.Client) error {
+		var getErr error
+		if resp, getErr = cli.Get(ctx, key); getErr != nil {
+			return gerrors.New(gerrors.EtcdFailure, getErr.Error())
+		}
+		return nil
+	})
 	if err != nil {
-		return nil, gerrors.New(gerrors.EtcdFailure, err.Error())
+		return nil, err
 	}
 
 	if len(resp.Kvs) == 0 {
@@ -119,15 +127,17 @@ func (d *Discovery) Get(ctx context.Context, key string) ([]byte, error) {
 // so GetWithPrefix works without a prior Watch. It returns ErrDiscoveryClosed after Close.
 func (d *Discovery) GetWithPrefix(ctx context.Context, key string) (map[string][]byte, error) {
 	key = strings.TrimSpace(key)
-	if err := d.rLockReadClient(); err != nil {
-		return nil, err
-	}
-	defer d.cliMu.RUnlock()
 
-	resp, err := d.client.Get(ctx, key, clientv3.WithPrefix())
-
+	var resp *clientv3.GetResponse
+	err := d.withReadClient(func(cli *clientv3.Client) error {
+		var getErr error
+		if resp, getErr = cli.Get(ctx, key, clientv3.WithPrefix()); getErr != nil {
+			return gerrors.New(gerrors.EtcdFailure, getErr.Error())
+		}
+		return nil
+	})
 	if err != nil {
-		return nil, gerrors.New(gerrors.EtcdFailure, err.Error())
+		return nil, err
 	}
 
 	kvs := map[string][]byte{}
@@ -140,43 +150,50 @@ func (d *Discovery) GetWithPrefix(ctx context.Context, key string) (map[string][
 
 // Close Discovery instance
 func (d *Discovery) Close() {
-	if d.quit != nil {
-		close(d.quit) // NOTE: Notify all goroutines by closing this channel.
-	}
-
-	d.wg.Wait()
+	d.cliMu.Lock()
+	d.closed = true
+	quit := d.quit
 	d.quit = nil
+	d.cliMu.Unlock()
+
+	// cliMu must not be held here: a watcher may need it in dropClient before exiting.
+	if quit != nil {
+		close(quit) // NOTE: Notify all goroutines by closing this channel.
+	}
+	d.wg.Wait()
 
 	d.cliMu.Lock()
 	defer d.cliMu.Unlock()
-
-	d.closed = true
 	if d.client != nil {
 		d.client.Close()
 		d.client = nil
 	}
 }
 
-// rLockReadClient makes sure the etcd client exists and returns with cliMu read-locked.
-// The caller must call cliMu.RUnlock when it returns nil; on error no lock is held.
-func (d *Discovery) rLockReadClient() error {
-	d.cliMu.RLock()
-	if !d.closed && d.client != nil {
-		return nil
-	}
-	d.cliMu.RUnlock()
-
-	if err := d.ensureReadClient(); err != nil {
-		return err
+// withReadClient runs fn with the etcd client while cliMu is read-locked, creating the
+// client on first use. It returns ErrDiscoveryClosed after Close. fn must only use cli and
+// must not call any Discovery method: cliMu is held, so a nested lock can deadlock.
+func (d *Discovery) withReadClient(fn func(cli *clientv3.Client) error) error {
+	if !d.readClientReady() {
+		if err := d.ensureReadClient(); err != nil {
+			return err
+		}
 	}
 
 	d.cliMu.RLock()
+	defer d.cliMu.RUnlock()
 	if d.closed || d.client == nil {
-		d.cliMu.RUnlock()
 		return ErrDiscoveryClosed
 	}
 
-	return nil
+	return fn(d.client)
+}
+
+func (d *Discovery) readClientReady() bool {
+	d.cliMu.RLock()
+	defer d.cliMu.RUnlock()
+
+	return !d.closed && d.client != nil
 }
 
 func (d *Discovery) ensureReadClient() error {
@@ -200,36 +217,90 @@ func (d *Discovery) ensureReadClient() error {
 	return nil
 }
 
-func (d *Discovery) watchCommon(ctx context.Context, key string, opts ...clientv3.OpOption) (<-chan *WatchEvent, error) {
-	if d.quit == nil {
-		d.quit = make(chan struct{})
-	}
-
+// acquireWatchClient returns the client and quit channel for a new watcher and registers it
+// in wg. The caller must call wg.Done when the watcher exits.
+func (d *Discovery) acquireWatchClient() (*clientv3.Client, chan struct{}, error) {
 	d.cliMu.Lock()
+	defer d.cliMu.Unlock()
+
+	if d.closed {
+		return nil, nil, ErrDiscoveryClosed
+	}
 	if d.client == nil {
 		etcdCli, err := d.createEtcdClient()
 		if err != nil {
-			d.cliMu.Unlock()
-			return nil, err
+			return nil, nil, err
 		}
 		d.client = etcdCli
 	}
-
-	// set watcher
-	watchChan := d.client.Watch(ctx, key, opts...)
-	watchEventChan := make(chan *WatchEvent, defaultChannelBuffMaxSize)
-
-	d.cliMu.Unlock()
-
+	if d.quit == nil {
+		d.quit = make(chan struct{})
+	}
 	d.wg.Add(1)
+
+	return d.client, d.quit, nil
+}
+
+// dropClient closes cli and clears it only if it is still the current client, so a watcher
+// that failed on an old client never closes a newer one.
+func (d *Discovery) dropClient(cli *clientv3.Client) {
+	d.cliMu.Lock()
+	defer d.cliMu.Unlock()
+
+	if d.client == nil || d.client != cli {
+		return
+	}
+	d.client.Close()
+	d.client = nil
+}
+
+// toWatchEvent converts an etcd event, returning nil for types other than put and delete.
+func toWatchEvent(event *clientv3.Event) *WatchEvent {
+	var eventType WatchedEventType
+	switch event.Type {
+	case clientv3.EventTypePut:
+		eventType = WatchedEventPut
+	case clientv3.EventTypeDelete:
+		eventType = WatchedEventDelete
+	default:
+		return nil
+	}
+
+	return &WatchEvent{
+		EventType: eventType,
+		Key:       string(event.Kv.Key),
+		Value:     []byte(event.Kv.Value),
+	}
+}
+
+func (d *Discovery) watchCommon(ctx context.Context, key string, opts ...clientv3.OpOption) (<-chan *WatchEvent, error) {
+	cli, quit, err := d.acquireWatchClient()
+	if err != nil {
+		return nil, err
+	}
+
+	// cli.Watch blocks until the watch stream is up, so it runs outside cliMu and is
+	// cancelled by Close through quit.
+	watchCtx, cancel := context.WithCancel(ctx)
+	go func() {
+		select {
+		case <-quit:
+			cancel()
+		case <-watchCtx.Done():
+		}
+	}()
+
+	watchChan := cli.Watch(watchCtx, key, opts...)
+	watchEventChan := make(chan *WatchEvent, defaultChannelBuffMaxSize)
 
 	go func() {
 		defer d.wg.Done()
 		defer close(watchEventChan)
+		defer cancel()
 
 		for {
 			select {
-			case <-d.quit:
+			case <-quit:
 				logger.Info("exit watcher. key prefix:%s", key)
 				return
 
@@ -237,34 +308,32 @@ func (d *Discovery) watchCommon(ctx context.Context, key string, opts ...clientv
 				logger.Info("exit watcher. key prefix:%s", key)
 				return
 
-			case watchResp := <-watchChan:
+			case watchResp, ok := <-watchChan:
+				if !ok {
+					logger.Info("watch channel closed, key prefix: %s", key)
+					return
+				}
+
 				if err := watchResp.Err(); err != nil {
-					d.cliMu.Lock()
-					d.client.Close()
-					d.client = nil
-					d.cliMu.Unlock()
+					d.dropClient(cli)
 					logger.Error("failed to read watch event, errmsg: %s", err)
 					return
 				}
 
 				for _, event := range watchResp.Events {
-					switch event.Type {
-					case clientv3.EventTypePut:
-						event := &WatchEvent{
-							EventType: WatchedEventPut,
-							Key:       string(event.Kv.Key),
-							Value:     []byte(event.Kv.Value),
-						}
-						watchEventChan <- event
+					watchEvent := toWatchEvent(event)
+					if watchEvent == nil {
+						continue
+					}
 
-					case clientv3.EventTypeDelete:
-						event := &WatchEvent{
-							EventType: WatchedEventDelete,
-							Key:       string(event.Kv.Key),
-							Value:     []byte(event.Kv.Value),
-						}
-						watchEventChan <- event
-
+					select {
+					case watchEventChan <- watchEvent:
+					case <-quit:
+						logger.Info("exit watcher while sending event, key prefix: %s", key)
+						return
+					case <-ctx.Done():
+						logger.Info("exit watcher while sending event, key prefix: %s", key)
+						return
 					}
 				}
 			}

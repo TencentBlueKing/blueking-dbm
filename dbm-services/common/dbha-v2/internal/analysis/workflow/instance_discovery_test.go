@@ -25,8 +25,13 @@
 package workflow
 
 import (
+	"context"
+	"net"
 	"strconv"
 	"testing"
+	"time"
+
+	"dbm-services/common/dbha-v2/pkg/discovery"
 )
 
 // TestConsistentHash_Stability verifies that the same instance set always
@@ -284,5 +289,56 @@ func TestConsistentHash_LoadBalance(t *testing.T) {
 			t.Errorf("instance %s has too much deviation: %.1f%% (max allowed: %.1f%%)",
 				inst, deviation*100, maxDeviation*100)
 		}
+	}
+}
+
+// TestRunWatchUnblocksWhenQuitClosed verifies that closing the workflow quit channel
+// unblocks RunWatch while etcd is unreachable, so the analysis service can shut down.
+func TestRunWatchUnblocksWhenQuitClosed(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen failed, errmsg: %s", err)
+	}
+	endpoint := ln.Addr().String()
+	_ = ln.Close()
+
+	cli, err := discovery.NewClientWithOptions(discovery.OptionEndpoints([]string{endpoint}))
+	if err != nil {
+		t.Fatalf("create discovery client failed, errmsg: %s", err)
+	}
+	disc, err := cli.CreateDiscovery()
+	if err != nil {
+		t.Fatalf("create discovery failed, errmsg: %s", err)
+	}
+	t.Cleanup(func() {
+		closed := make(chan struct{})
+		go func() {
+			defer close(closed)
+			disc.Close()
+		}()
+		select {
+		case <-closed:
+		case <-time.After(2 * time.Second):
+			t.Error("discovery close blocked over 2s")
+		}
+	})
+
+	quit := make(chan struct{})
+	instDisc := NewInstanceDiscovery(disc, discovery.HaServerSelfPrefix(discovery.HaServerRoleAnalysis),
+		"inst-A", quit)
+
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		instDisc.RunWatch(context.Background())
+	}()
+
+	time.Sleep(100 * time.Millisecond)
+	close(quit)
+
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("RunWatch not returned within 2s after quit closed")
 	}
 }
