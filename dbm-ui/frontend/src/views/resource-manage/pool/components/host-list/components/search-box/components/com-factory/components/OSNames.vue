@@ -14,13 +14,12 @@
 <template>
   <DbSelect
     filterable
-    :input-search="false"
     :loading="loading"
     :model-value="defaultValue"
     :placeholder="t('请选择操作系统名称')"
     @change="handleChange">
     <DbOptionGroup
-      v-if="data?.os_names?.length > 0"
+      v-if="data?.os_names?.length"
       group-style="divider">
       <DbOption
         v-for="item in data?.os_names"
