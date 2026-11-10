@@ -14,7 +14,6 @@
 <template>
   <DbSelect
     filterable
-    :input-search="false"
     :loading="loading"
     :model-value="defaultValue"
     :placeholder="t('请选择操作系统类型')"

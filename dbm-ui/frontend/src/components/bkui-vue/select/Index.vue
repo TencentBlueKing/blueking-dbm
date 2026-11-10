@@ -47,7 +47,11 @@
           :placeholder="localPlaceholder"
           :selected="selectedTags"
           :tag-theme="tagTheme"
+          @blur="handleInputBlur"
           @enter="handleCreateCustomOption"
+          @focus="handleInputFocus"
+          @input="handleInputChange"
+          @paste="handleTriggerPaste"
           @remove="handleDeleteTag">
           <template
             v-if="$slots.tag"
@@ -93,8 +97,11 @@
             :readonly="!isInput"
             type="text"
             :value="triggerValue"
+            @blur="handleInputBlur"
+            @focus="handleInputFocus"
             @input="handleInputChange"
-            @keydown.enter="handleTriggerEnter" />
+            @keydown.enter="handleTriggerEnter"
+            @paste="handleTriggerPaste" />
         </div>
         <BkLoading
           v-if="loading"
@@ -152,7 +159,8 @@
             v-model="searchValue"
             class="dbm-select-search-input"
             :placeholder="localSearchPlaceholder"
-            type="text" />
+            type="text"
+            @paste="handleSearchPaste" />
           <span
             v-if="searchValue"
             class="dbm-select-search-clear"
@@ -195,9 +203,9 @@
                   v-if="showSelectedIcon"
                   class="dbm-select-checkbox"
                   :disabled="showSelectAllDisabled"
-                  :indeterminate="!isAllSelected && !!selected.length"
+                  :indeterminate="!isAllSelected && isPartSelected"
                   :model-value="isAllSelected" />
-                {{ localSelectAllText }}
+                {{ selectAllLabel }}
               </li>
               <li
                 v-if="virtualBlankTop"
@@ -258,6 +266,7 @@
     isInViewPort,
     type OptionRegistry,
     type OptionValue,
+    resolvePastedSearchValue,
     type SelectedItem,
     selectKey,
     splitSearchKeywords,
@@ -391,7 +400,7 @@
     filterOption: undefined,
     highlightKeyword: false,
     idKey: 'value',
-    inputSearch: false,
+    inputSearch: true,
     inputTooltipsOptions: () => ({}),
     keepSearchValue: false,
     list: () => [],
@@ -466,6 +475,8 @@
   const searchLoading = ref(false);
   const isPopoverShow = ref(false);
   const isFocus = ref(false);
+  // 默认模式（非 tag）触发器输入框是否持有原生焦点
+  const isInputFocused = ref(false);
   const isHover = ref(false);
   const triggerWidth = ref(0);
   const virtualStartIndex = ref(0);
@@ -584,9 +595,8 @@
     return !(searchLoading.value || isOptionsEmpty.value || isSearchEmpty.value);
   });
 
-  const isShowSelectAll = computed(
-    () => props.multiple && props.showSelectAll && (!curSearchValue.value || !props.filterable),
-  );
+  // 搜索时也展示全选，作用范围收窄到命中项（对齐 tag-input 的「全选（n）」），便于多值搜索后一次选中
+  const isShowSelectAll = computed(() => props.multiple && props.showSelectAll);
 
   const isShowAll = computed(() => props.multiple && props.showAll);
 
@@ -610,12 +620,48 @@
     return result;
   });
 
+  /**
+   * 全选作用范围：搜索时只取命中的可选项，否则为全部可选项。
+   * option 模式看各选项的 visible（本地搜索已回写）；list 模式看 filterList（远程搜索时即外部返回的结果）
+   */
+  const selectAllScopeList = computed(() => {
+    if (!props.filterable || !curSearchValue.value) {
+      return selectableList.value;
+    }
+    const result = new Map<OptionValue, number | string>();
+    options.value.forEach((option) => {
+      if (!option.visible || option.isDisabled || result.has(option.optionID)) {
+        return;
+      }
+      result.set(option.optionID, option.optionName);
+    });
+    filterList.value.forEach((item) => {
+      if (item.disabled || result.has(item[props.idKey])) {
+        return;
+      }
+      result.set(item[props.idKey], item[props.displayKey]);
+    });
+    return result;
+  });
+
+  const isScopeValueSelected = (value: OptionValue) => selected.value.some((item) => isEqual(item.value, value));
+
   const isAllSelected = computed(() => {
-    if (!selectableList.value.size) {
+    if (!selectAllScopeList.value.size) {
       return false;
     }
-    return [...selectableList.value.keys()].every((value) => selected.value.some((item) => isEqual(item.value, value)));
+    return [...selectAllScopeList.value.keys()].every(isScopeValueSelected);
   });
+
+  // 全选半选态：范围内有部分已选
+  const isPartSelected = computed(() => [...selectAllScopeList.value.keys()].some(isScopeValueSelected));
+
+  // 搜索时带上命中数量，提示全选只作用于搜索结果
+  const selectAllLabel = computed(() =>
+    selectAllScopeList.value === selectableList.value
+      ? localSelectAllText.value
+      : t('全选（n）', { n: selectAllScopeList.value.size }),
+  );
 
   const curContentText = computed(() => {
     if (searchLoading.value) {
@@ -630,8 +676,11 @@
     return '';
   });
 
-  // 触发器输入框正在作为搜索框使用（inputSearch 且已展开）
-  const isInputSearching = computed(() => props.filterable && props.inputSearch && isPopoverShow.value);
+  // 搜索框直接使用触发器输入框
+  const isTriggerSearchable = computed(() => props.filterable && props.inputSearch);
+
+  // 触发器输入框正在作为搜索框使用：已展开，或已聚焦（对齐 tag-input，聚焦即可输入，输入即展开）
+  const isInputSearching = computed(() => isTriggerSearchable.value && (isPopoverShow.value || isInputFocused.value));
 
   // 触发器输入框可编辑：inputSearch 搜索（展开时）或 allowCreate 创建
   const isInput = computed(() => isInputSearching.value || props.allowCreate);
@@ -802,6 +851,8 @@
       return;
     }
     isFocus.value = false;
+    // 原生 blur 在 blurInput 的延时之后才触发，先退出搜索态，避免收起后短暂只显示占位符
+    isInputFocused.value = false;
     blurInput();
     emits('blur');
   };
@@ -829,11 +880,17 @@
     hidePopover();
   };
 
-  const handleTogglePopover = () => {
+  const handleTogglePopover = (event: MouseEvent) => {
     if (isDisabled.value || props.trigger === 'manual') {
       return;
     }
     handleFocus();
+    const target = event.target as HTMLElement;
+    const isClickInput = target === inputRef.value || target.classList.contains('dbm-select-tag-input');
+    // 搜索中点击输入框只用于定位光标 / 选中文字，不收起下拉（对齐 tag-input）
+    if (isPopoverShow.value && isInputSearching.value && isClickInput) {
+      return;
+    }
     isPopoverShow.value = !isPopoverShow.value;
   };
 
@@ -913,13 +970,13 @@
     if (props.showSelectAllDisabled) {
       return;
     }
-    // 全选 / 取消全选只作用于可选项，已选的禁用项、自定义创建的值等不在可选范围内的值保持不变
-    const selectableValues = [...selectableList.value.keys()];
+    // 全选 / 取消全选只作用于可选项（搜索时为命中的可选项），已选的禁用项、自定义创建的值、范围外的已选值保持不变
+    const scopeValues = [...selectAllScopeList.value.keys()];
     if (isAllSelected.value) {
-      selected.value = selected.value.filter((item) => !selectableValues.some((value) => isEqual(value, item.value)));
+      selected.value = selected.value.filter((item) => !scopeValues.some((value) => isEqual(value, item.value)));
     } else {
-      const unselectedList = [...selectableList.value.entries()]
-        .filter(([value]) => !selected.value.some((item) => isEqual(item.value, value)))
+      const unselectedList = [...selectAllScopeList.value.entries()]
+        .filter(([value]) => !isScopeValueSelected(value))
         .map(([value, label]) => ({ label, value }));
       // 与选中具体选项一致，全选时移除「全部」
       selected.value = [...selected.value.filter((item) => item.value !== props.allOptionId), ...unselectedList];
@@ -961,6 +1018,62 @@
 
   const handleInputChange = (event: Event) => {
     customOptionName.value = (event.target as HTMLInputElement).value;
+    // 聚焦后未展开（如键盘 Tab 聚焦）直接输入时，展开下拉展示搜索结果
+    if (isTriggerSearchable.value && !isPopoverShow.value && !isDisabled.value) {
+      handleShowPopover();
+    }
+  };
+
+  /** 触发器输入框作为搜索框时，粘贴多行文本按多个关键字搜索；allowCreate 的创建输入保持浏览器默认行为 */
+  const handleTriggerPaste = (event: ClipboardEvent) => {
+    if (!isInputSearching.value) {
+      return;
+    }
+    const value = resolvePastedSearchValue(event);
+    if (value === null) {
+      return;
+    }
+    customOptionName.value = value;
+    if (!isPopoverShow.value && !isDisabled.value) {
+      handleShowPopover();
+    }
+  };
+
+  /** 下拉内搜索框粘贴多行文本，按多个关键字搜索 */
+  const handleSearchPaste = (event: ClipboardEvent) => {
+    const value = resolvePastedSearchValue(event);
+    if (value !== null) {
+      searchValue.value = value;
+    }
+  };
+
+  /** 输入框聚焦即进入搜索态，可直接输入关键字 */
+  const handleInputFocus = () => {
+    if (!isTriggerSearchable.value || isDisabled.value) {
+      return;
+    }
+    isInputFocused.value = true;
+    handleFocus();
+  };
+
+  /**
+   * 焦点离开组件时退出搜索态。
+   * 已展开时：焦点移到组件外（如键盘 Tab）才收起；relatedTarget 为空（点击选项、页面空白）交给 handleDocumentClick 处理。
+   * 未展开时：没有 document 点击监听兜底，直接失焦
+   */
+  const handleInputBlur = (event: FocusEvent) => {
+    isInputFocused.value = false;
+    if (!isTriggerSearchable.value) {
+      return;
+    }
+    if (isPopoverShow.value) {
+      const nextTarget = event.relatedTarget as Node | null;
+      if (!nextTarget || rootRef.value?.contains(nextTarget) || tippyInstance?.popper.contains(nextTarget)) {
+        return;
+      }
+      handleHidePopover();
+    }
+    handleBlur();
   };
 
   /** allowCreate：回车创建选项之外的值 */
@@ -1380,6 +1493,11 @@
       border: none;
       outline: none;
       flex: 1;
+
+      // 可输入（搜索 / 自定义创建）时使用文本光标
+      &:not([readonly], :disabled) {
+        cursor: text;
+      }
 
       &::placeholder {
         color: #c4c6cc;

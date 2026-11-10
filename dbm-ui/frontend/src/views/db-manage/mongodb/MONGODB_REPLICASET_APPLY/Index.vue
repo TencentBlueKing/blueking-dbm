@@ -42,7 +42,6 @@
               class="item-input"
               :disabled="modifyState.isAdjustApply"
               filterable
-              :input-search="false"
               :loading="getVersionsLoading">
               <DbOption
                 v-for="versionItem in versionList || []"

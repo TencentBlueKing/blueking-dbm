@@ -22,7 +22,6 @@
       :clearable="false"
       :disabled="isAdjustApply"
       filterable
-      :input-search="false"
       :loading="isLoading">
       <DbOption
         v-for="item in bcsClusterList"

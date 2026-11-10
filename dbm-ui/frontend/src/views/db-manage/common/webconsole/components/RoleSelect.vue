@@ -3,7 +3,6 @@
     <div class="operate-item-inner">
       <DbSelect
         v-model="modelValue"
-        :input-search="false"
         :list="list">
         <template #trigger="{ selected }">
           <div

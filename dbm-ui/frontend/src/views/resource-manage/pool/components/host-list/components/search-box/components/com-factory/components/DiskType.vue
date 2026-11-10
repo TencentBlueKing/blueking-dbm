@@ -15,7 +15,6 @@
   <DbSelect
     :disabled="Boolean(model.spec_id)"
     filterable
-    :input-search="false"
     :model-value="defaultValue"
     :placeholder="t('请选择数据盘类型')"
     @change="handleChange">

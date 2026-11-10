@@ -24,6 +24,8 @@
   import type DbResource from '@services/model/db-resource/DbResource';
   import { listTag } from '@services/source/tag';
 
+  import { joinSearchKeywords } from '@components/bkui-vue/select/common';
+
   interface Props {
     defaultValue?: string[];
   }
@@ -103,7 +105,8 @@
   };
 
   const handleSearch = (val: string) => {
-    searchVal.value = val;
+    // 后端 value 只认逗号分隔的多值，竖线、空格等分隔符统一转成逗号
+    searchVal.value = joinSearchKeywords(val);
   };
 
   onMounted(() => {
