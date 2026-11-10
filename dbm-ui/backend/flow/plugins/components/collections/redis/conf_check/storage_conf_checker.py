@@ -26,7 +26,18 @@ from backend.flow.utils.redis.redis_script_template import build_storage_conf_ch
 
 from .base import BaseConfChecker, CheckTarget, ConfCheckResult
 from .registry import redis_conf_checker
-from .storage_conf_parse import StorageHostData, compare_directives, parse_storage_host_block, resolve_expected_conf
+from .storage_conf_parse import (
+    DEFAULT_STORAGE_CONF_WHITELIST,
+    SUBCHECK_LOADMODULE,
+    SUBCHECK_ROLE,
+    WHITELIST_WILDCARD,
+    StorageHostData,
+    compare_directives,
+    loads_b2_module,
+    normalize_whitelist,
+    parse_storage_host_block,
+    resolve_expected_conf,
+)
 
 logger = logging.getLogger("flow")
 
@@ -127,6 +138,10 @@ class StorageConfChecker(BaseConfChecker):
     2. loadmodule .so files (dbconfig module names via TbRedisModuleSupport vs disk),
     3. every other dbconfig directive (after placeholder substitution and normalization).
 
+    ``checker_config`` (REDIS_CONF_CHECK.customized.storage_conf) limits the inspected items via
+    ``whitelist`` (default DEFAULT_STORAGE_CONF_WHITELIST, "*" = everything) and ``directive_rules``;
+    ``check_role`` / ``check_loadmodule`` booleans force those sub-checks on or off.
+
     Disk and runtime state are collected on the host through redis-cmd.sh (no DRS, no
     password lookup); see ``build_storage_conf_check_snippet``.
     """
@@ -197,16 +212,19 @@ class StorageConfChecker(BaseConfChecker):
     ) -> List[ConfCheckResult]:
         data = parse_storage_host_block(host_block)
         ctx: Optional[StorageClusterContext] = target.extra.get(CLUSTER_CTX_KEY)
+        config = checker_config or {}
+        raw_whitelist = config.get("whitelist")
+        whitelist = normalize_whitelist(DEFAULT_STORAGE_CONF_WHITELIST if raw_whitelist is None else raw_whitelist)
 
         if data.collection_error:
             findings = ["[collect] {}".format(_("主机采集失败({})").format(data.collection_error))]
         else:
-            findings = (
-                self._collect_findings(data)
-                + self._role_findings(target, data, ctx)
-                + self._module_findings(data, ctx)
-                + self._conf_findings(target, data, ctx)
-            )
+            findings = self._collect_findings(data)
+            if self._subcheck_enabled(config, whitelist, "check_role", SUBCHECK_ROLE):
+                findings += self._role_findings(target, data, ctx)
+            if self._subcheck_enabled(config, whitelist, "check_loadmodule", SUBCHECK_LOADMODULE):
+                findings += self._module_findings(data, ctx)
+            findings += self._conf_findings(target, data, ctx, whitelist, config.get("directive_rules"))
 
         if findings:
             state = ReportStateType.ABNORMAL.value
@@ -215,6 +233,12 @@ class StorageConfChecker(BaseConfChecker):
             state = ReportStateType.NORMAL.value
             msg = _("存储实例 {} 配置一致: 角色/同步/module/dbconfig检查通过").format(target.address)
         return [ConfCheckResult(ip=target.ip, port=target.port, state=state, msg=msg)]
+
+    @staticmethod
+    def _subcheck_enabled(config: Dict, whitelist: frozenset, flag: str, item: str) -> bool:
+        if isinstance(config.get(flag), bool):
+            return config[flag]
+        return item in whitelist or WHITELIST_WILDCARD in whitelist
 
     @staticmethod
     def _collect_findings(data: StorageHostData) -> List[str]:
@@ -285,19 +309,34 @@ class StorageConfChecker(BaseConfChecker):
         return findings
 
     @staticmethod
-    def _conf_findings(target: CheckTarget, data: StorageHostData, ctx: Optional[StorageClusterContext]) -> List[str]:
+    def _conf_findings(
+        target: CheckTarget,
+        data: StorageHostData,
+        ctx: Optional[StorageClusterContext],
+        whitelist: frozenset,
+        directive_rules: Optional[Dict[str, Dict]] = None,
+    ) -> List[str]:
         if ctx is None:
             return ["[conf] {}".format(_("集群上下文缺失, 无法比对dbconfig"))]
         if ctx.dbconfig is None:
             return ["[conf] {}".format(_("dbconfig查询失败({})").format(ctx.dbconfig_error or "unknown"))]
         if data.disk is None and data.mem is None:
             return []
+        meta_role = target.extra.get("meta_role", "")
         expected = resolve_expected_conf(
             ctx.dbconfig,
             ip=target.ip,
             port=target.port,
             cluster_enabled=ctx.cluster_type in CLUSTER_ENABLED_TYPES,
-            check_databases=ctx.cluster_type == ClusterType.TendisRedisInstance.value,
+            cluster_type=ctx.cluster_type,
+            role=ROLE_NORMALIZE.get(meta_role, meta_role),
+            has_b2_module=loads_b2_module(
+                ctx.expected_modules,
+                data.disk.modules if data.disk is not None else (),
+                _module_names(ctx.dbconfig),
+            ),
+            whitelist=whitelist,
+            directive_rules=directive_rules,
         )
         drifts = compare_directives(expected, data.disk, data.mem)
         if not drifts:

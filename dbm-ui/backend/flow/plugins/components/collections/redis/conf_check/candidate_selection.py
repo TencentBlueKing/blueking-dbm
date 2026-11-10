@@ -20,6 +20,8 @@ def checker_query_filters(config, checker) -> Dict:
         cluster_types = [ctype for ctype in cluster_types if ctype in global_cluster_types]
     return {
         "cluster_types": cluster_types,
+        "bizs": overrides.get("bizs", getattr(config, "bizs", None)) or [],
+        "clusters": overrides.get("clusters", getattr(config, "clusters", None)) or [],
         "bizs_ignored": overrides.get("bizs_ignored", getattr(config, "bizs_ignored", None)) or [],
         "clusters_ignored": overrides.get("clusters_ignored", getattr(config, "clusters_ignored", None)) or [],
         "bk_cloud_ids": overrides.get("bk_cloud_ids", getattr(config, "bk_cloud_ids", None)) or [],
@@ -38,6 +40,11 @@ def get_candidate_cluster_tuples(config) -> List[Tuple[int, int]]:
             cluster_type__in=filters["cluster_types"],
             phase=ClusterPhase.ONLINE,
         )
+        if filters["bizs"]:
+            query = query.filter(bk_biz_id__in=filters["bizs"])
+        if filters["clusters"]:
+            query = query.filter(id__in=filters["clusters"])
+        # ignore lists are applied after the whitelists so they always take precedence
         if filters["bizs_ignored"]:
             query = query.exclude(bk_biz_id__in=filters["bizs_ignored"])
         if filters["clusters_ignored"]:
