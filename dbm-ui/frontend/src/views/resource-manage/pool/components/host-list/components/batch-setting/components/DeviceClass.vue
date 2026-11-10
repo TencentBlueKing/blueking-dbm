@@ -15,7 +15,6 @@
   <DbSelect
     v-model="modelValue"
     filterable
-    :input-search="false"
     :loading="isLoading"
     :placeholder="t('请选择机型')"
     :scroll-height="384">

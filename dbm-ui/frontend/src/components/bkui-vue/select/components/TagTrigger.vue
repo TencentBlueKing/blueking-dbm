@@ -59,8 +59,11 @@
         :style="{ display: selected.length && !filterable ? 'none' : '' }"
         type="text"
         :value="filterable ? modelValue : ''"
+        @blur="handleBlur"
+        @focus="handleFocus"
         @input="handleInput"
-        @keydown="handleKeydown" />
+        @keydown="handleKeydown"
+        @paste="handlePaste" />
     </div>
   </div>
 </template>
@@ -86,7 +89,11 @@
   }
 
   interface Emits {
+    (e: 'blur', event: FocusEvent): void;
     (e: 'enter', value: string, event: KeyboardEvent): void;
+    (e: 'focus'): void;
+    (e: 'input', event: Event): void;
+    (e: 'paste', event: ClipboardEvent): void;
     (e: 'remove', value: SelectedItem['value']): void;
   }
 
@@ -203,6 +210,22 @@
 
   const handleInput = (event: Event) => {
     modelValue.value = (event.target as HTMLInputElement).value;
+    // 透传给外层 select：聚焦后未展开时，输入即展开下拉
+    emits('input', event);
+  };
+
+  // 焦点事件透传给外层 select，用于进入 / 退出搜索态
+  const handleFocus = () => {
+    emits('focus');
+  };
+
+  const handleBlur = (event: FocusEvent) => {
+    emits('blur', event);
+  };
+
+  // 粘贴交给外层 select 处理多行文本
+  const handlePaste = (event: ClipboardEvent) => {
+    emits('paste', event);
   };
 
   const handleKeydown = (event: KeyboardEvent) => {

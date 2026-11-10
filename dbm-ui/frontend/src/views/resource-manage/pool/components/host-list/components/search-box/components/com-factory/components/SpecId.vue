@@ -20,7 +20,6 @@
         :clearable="false"
         :disabled="!currentDbType || currentDbType === 'PUBLIC'"
         filterable
-        :input-search="false"
         style="width: 150px">
         <DbOption
           v-for="item in clusterMachineList"
@@ -32,7 +31,6 @@
         :key="currentMachine"
         :disabled="!currentMachine"
         filterable
-        :input-search="false"
         :loading="isResourceSpecListLoading"
         :model-value="defaultValue"
         :placeholder="t('请选择匹配规格')"

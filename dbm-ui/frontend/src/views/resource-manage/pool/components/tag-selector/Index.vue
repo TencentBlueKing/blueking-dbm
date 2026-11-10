@@ -82,6 +82,8 @@
   import DbResourceModel from '@services/model/db-resource/DbResource';
   import { createTag, listTag, validateTag } from '@services/source/tag';
 
+  import { joinSearchKeywords } from '@components/bkui-vue/select/common';
+
   import { messageSuccess } from '@utils';
 
   interface Props {
@@ -250,7 +252,8 @@
   };
 
   const handleSearch = (val: string) => {
-    searchVal.value = val;
+    // 后端 value 只认逗号分隔的多值，竖线、空格等分隔符统一转成逗号
+    searchVal.value = joinSearchKeywords(val);
   };
 
   const initTagList = () => {

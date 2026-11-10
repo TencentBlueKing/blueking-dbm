@@ -41,7 +41,6 @@
           <DbSelect
             v-model="formData.bk_cloud_id"
             filterable
-            :input-search="false"
             :loading="cloudLoading"
             :placeholder="t('请选择云区域')">
             <DbOption

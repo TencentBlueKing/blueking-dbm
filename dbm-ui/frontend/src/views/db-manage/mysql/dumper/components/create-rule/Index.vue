@@ -55,7 +55,6 @@
             v-model="formModel.name"
             :clearable="false"
             filterable
-            :input-search="false"
             @change="(id: number) => handleSelectSubscribeName(id)">
             <DbOption
               v-for="(item, index) in subscribeNameList"

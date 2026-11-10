@@ -64,7 +64,6 @@
       <DbSelect
         v-model="collectName"
         filterable
-        :input-search="false"
         :placeholder="t('请选择收藏的条件')"
         style="flex: 1"
         @change="handleCollectChange">

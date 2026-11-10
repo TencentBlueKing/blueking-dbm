@@ -221,7 +221,6 @@
             v-model="createFileState.formdata.version"
             :clearable="false"
             filterable
-            :input-search="false"
             :loading="createFileState.isLoadVersions">
             <DbOption
               v-for="version of createFileState.versions"
