@@ -56,23 +56,14 @@ grpcurl `-d` 使用的 JSON：
 | --- | --- | --- | --- | --- | --- |
 | 1 | `role` | string | 是 | 角色，取值为 `admin`、`analysis` 或 `receiver` | `analysis` |
 | 2 | `id` | string | 是 | 注册信息的 `id` 字段，是进程启动时生成的 UUID。正常注册时与 etcd key 的最后一段相同，但接口不校验这一点 | `8a7b6c5d-4e3f-4a1b-9c0d-abcdef012345` |
-| 3 | `ips` | repeated string | 是 | 实例上报的 IP，已去掉空串，按字符串升序排列，至少一个元素。实例内不去重 | `["127.0.0.1", "::1"]` |
+| 3 | `ips` | repeated string | 是 | 实例上报的 IP，已去掉空串，按字符串升序排列，至少一个元素。实例内不去重。来源见表后说明 | `["127.0.0.1", "::1"]` |
 | 4 | `startTime` | string | 是 | 进程启动时间，按 Asia/Shanghai 时区格式化，格式为 `2006-01-02T15:04:05+08:00`。零值时为 `""` | `2026-11-04T14:00:00+08:00` |
 | 5 | `updatedAt` | string | 是 | 注册信息最后一次刷新的时间，格式同上。各进程按自己配置的 `discovery.serviceTimerInterval` 刷新，默认 3 秒 | `2026-11-04T14:30:00+08:00` |
 | 6 | `uptime` | string | 是 | 实例自己上报的运行时长，原样透传。由 durafmt 生成，含多个单位并精确到微秒，只供人读，不要解析 | `6 seconds 8 milliseconds 437 microseconds` |
 
-与 HTTP 接口 `GET /api/admin/meta/ha-servers` 的字段对照：
-
-| gRPC | HTTP |
-| --- | --- |
-| `servers` | `data.servers` |
-| `ips` | `data.ips` |
-| `startTime` | `start_time` |
-| `updatedAt` | `updated_at` |
-| 其余字段 | 同名 |
-
-两个接口的列举、过滤、排序和时间格式化逻辑完全相同。每次调用各自读取一次 etcd，
-所以注册信息没有变化时两者结果一致；两次调用之间有实例注册、续约或下线时，结果可能不同。
+`ips` 由各进程启动时调用 `machine.GetLocalIPs()` 探测一次，之后不再更新。
+只取物理网卡上的地址，并排除环回、链路本地、组播和未指定地址，所以真实结果中不会出现 `127.0.0.1` 或 `::1`。
+本文档表格和样例中的环回地址只是示意值。
 
 ### 3.3 HaServerListCode
 
@@ -120,12 +111,13 @@ service AdminService {
 
 ### 返回 JSON 样例
 
-样例为 protojson 形式，即 grpcurl 加 `-emit-defaults` 后的输出：字段名为 camelCase，枚举输出为名称。
+样例为 protojson 形式，并输出默认值（对应 `protojson.MarshalOptions{EmitUnpopulated: true}`）：
+字段名为 camelCase，枚举输出为名称。
 
-**默认值省略规则**：不加 `-emit-defaults` 时，值为 0 的枚举（`HA_SERVER_LIST_SUCCESS`）和空数组都会被省略。
+**默认值省略规则**：不输出默认值时，值为 0 的枚举（`HA_SERVER_LIST_SUCCESS`）和空数组都会被省略。
 这只影响 JSON 展示；用生成代码直接调用时，这些字段读到的就是默认值。
 
-样例和第 5 节实测数据中的 `uptime` 为 `30 minutes`，是写入 mock etcd 的示意值；真实值的格式见 3.2 节。
+下面的样例中 `uptime` 为 `30 minutes`、IP 为环回地址，都是示意值；真实值见 3.2 节。
 
 成功，有数据（gRPC 状态 OK）：
 
@@ -198,8 +190,8 @@ service AdminService {
 - 业务失败时 gRPC 状态仍为 OK，调用方必须检查 `code`。
 - etcd 的原始错误只写进日志，不会出现在 `errmsg` 里。
 - 本接口不受 storage 状态影响，storage 重载期间也不会返回 `Unavailable`。
-- etcd 恢复后接口会自动恢复，不需要重启 Admin。沙箱实测 mock etcd 重新启动约 7 秒后恢复，
-  沙箱回归脚本的验收窗口为 20 秒。这是实测结果，不是服务承诺。
+- etcd 恢复后接口会自动恢复，不需要重启 Admin。沙箱实测 mock etcd 重新启动约 7 秒后恢复。
+  这是实测结果，不是服务承诺。
 - 调用方 deadline 早于服务端超时到期时，客户端收到 `DeadlineExceeded`；服务端此时返回的是
   `HA_SERVER_LIST_FAIL` 业务响应，日志 `errmsg` 为 `context canceled`，指标中按 `grpc_code="OK"` 计数。
 
@@ -215,164 +207,9 @@ grpcurl -plaintext -emit-defaults -import-path pkg/proto/idl -proto admin.proto 
   -d '{}' 127.0.0.1:50051 AdminService/ListHaServers
 ```
 
-成功时输出第 3 节的 protojson 格式（多行缩进）。连不上 Admin 时 grpcurl 输出 `ERROR:` 和 `Code: Unavailable`，
-没有响应体。
-
 > grpcurl 本身未实测（验证环境没有安装 grpcurl）。第 3 节的 protojson 样例已用 Go 客户端实测：
 > 以 `protojson` 加 `EmitUnpopulated` 序列化真实响应，字段名、枚举名和空数组的输出与样例一致；
 > 不开启 `EmitUnpopulated` 时，成功响应省略 `code`，失败响应省略 `servers` 和 `ips`，与“默认值省略规则”一致。
-
-### 5.2 沙箱 mock 客户端
-
-沙箱的 mock 客户端用生成代码调用 gRPC。同时传 `--admin-grpc-addr` 和 `--admin-web-addr` 时，它还会调用 HTTP 接口，
-比较两边的 `servers` 和 `ips`，`consistent` 为 `true` 表示两边一致；只传一个地址时只调用对应的协议，
-输出中没有 `consistent`。mock 客户端的输出字段名是 snake_case，与 gRPC 的 protojson 字段名不同。
-
-mock 客户端在 stdout 输出一行紧凑 JSON，下面为方便阅读做了格式化，字段、顺序和取值都与原始输出一致。
-
-下面的命令使用**沙箱端口**（gRPC 15051、Web 18080），不是默认端口：
-
-```bash
-make ha-sandbox-mock
-build/dbha-ha-sandbox-mock --list-ha-servers --admin-grpc-addr 127.0.0.1:15051 --admin-web-addr 127.0.0.1:18080
-```
-
-连接默认部署的 Admin 时，改为 `--admin-grpc-addr <host>:50051 --admin-web-addr <host>:50060`。
-
-成功时的实测输出（mock etcd 中写入与第 3 节样例相同的注册数据，并删除了 Admin 自身的注册记录）：
-
-```json
-{
-  "grpc": {
-    "grpc_code": "OK",
-    "code": "HA_SERVER_LIST_SUCCESS",
-    "errmsg": "success",
-    "servers": [
-      {
-        "role": "admin",
-        "id": "6f1c2a3e-1b2d-4c5e-8f90-123456789abc",
-        "ips": ["127.0.0.1"],
-        "start_time": "2026-11-04T14:00:00+08:00",
-        "updated_at": "2026-11-04T14:30:00+08:00",
-        "uptime": "30 minutes"
-      },
-      {
-        "role": "analysis",
-        "id": "8a7b6c5d-4e3f-4a1b-9c0d-abcdef012345",
-        "ips": ["127.0.0.1", "::1"],
-        "start_time": "2026-11-04T14:00:00+08:00",
-        "updated_at": "2026-11-04T14:30:00+08:00",
-        "uptime": "30 minutes"
-      },
-      {
-        "role": "receiver",
-        "id": "c3d4e5f6-7a8b-4c9d-8e1f-0a1b2c3d4e5f",
-        "ips": ["::1"],
-        "start_time": "2026-11-04T14:00:00+08:00",
-        "updated_at": "2026-11-04T14:30:00+08:00",
-        "uptime": "30 minutes"
-      }
-    ],
-    "ips": ["127.0.0.1", "::1"]
-  },
-  "http": {
-    "status": 200,
-    "code": 0,
-    "message": "",
-    "servers": [
-      {
-        "role": "admin",
-        "id": "6f1c2a3e-1b2d-4c5e-8f90-123456789abc",
-        "ips": ["127.0.0.1"],
-        "start_time": "2026-11-04T14:00:00+08:00",
-        "updated_at": "2026-11-04T14:30:00+08:00",
-        "uptime": "30 minutes"
-      },
-      {
-        "role": "analysis",
-        "id": "8a7b6c5d-4e3f-4a1b-9c0d-abcdef012345",
-        "ips": ["127.0.0.1", "::1"],
-        "start_time": "2026-11-04T14:00:00+08:00",
-        "updated_at": "2026-11-04T14:30:00+08:00",
-        "uptime": "30 minutes"
-      },
-      {
-        "role": "receiver",
-        "id": "c3d4e5f6-7a8b-4c9d-8e1f-0a1b2c3d4e5f",
-        "ips": ["::1"],
-        "start_time": "2026-11-04T14:00:00+08:00",
-        "updated_at": "2026-11-04T14:30:00+08:00",
-        "uptime": "30 minutes"
-      }
-    ],
-    "ips": ["127.0.0.1", "::1"]
-  },
-  "consistent": true
-}
-```
-
-etcd 不可达时的实测输出（gRPC 状态 OK，业务码为 `HA_SERVER_LIST_FAIL`）：
-
-```json
-{
-  "grpc": {
-    "grpc_code": "OK",
-    "code": "HA_SERVER_LIST_FAIL",
-    "errmsg": "service discovery unavailable",
-    "servers": [],
-    "ips": []
-  },
-  "http": {
-    "status": 400,
-    "code": 1,
-    "message": "service discovery unavailable",
-    "raw_data": "\"\"",
-    "servers": [],
-    "ips": []
-  },
-  "consistent": true
-}
-```
-
-`http.raw_data` 是 HTTP 响应里 `data` 字段的 JSON 原文，失败时 `data` 为空字符串，所以这里是 `"\"\""`。
-
-Admin 日志中对应的告警（gRPC 和 HTTP 各一条，内容相同）。日志文件中每条是一行 JSON，下面做了格式化：
-
-```json
-{
-  "level": "warn",
-  "time": "2026-11-09T16:12:25.939+0800",
-  "msg": "list ha servers failed, errmsg: context deadline exceeded"
-}
-```
-
-连不上 Admin 时的实测输出（只调用 gRPC，端口上没有进程监听）：
-
-```bash
-build/dbha-ha-sandbox-mock --list-ha-servers --admin-grpc-addr 127.0.0.1:15999
-```
-
-stderr 输出一行日志（纯文本，不是 JSON）：
-
-```text
-2026/11/09 16:12:15 admin grpc list_ha_servers failed, grpc_code: Unavailable, errmsg: rpc error: code = Unavailable desc = connection error: desc = "transport: Error while dialing: dial tcp 127.0.0.1:15999: connect: connection refused"
-```
-
-stdout 的结果（已格式化）：
-
-```json
-{
-  "grpc": {
-    "grpc_code": "Unavailable",
-    "code": "",
-    "errmsg": "",
-    "servers": [],
-    "ips": []
-  }
-}
-```
-
-此时没有拿到响应，`code` 和 `errmsg` 为空字符串，只能根据 `grpc_code` 判断。
 
 ## 6. 行为说明
 
@@ -457,7 +294,6 @@ curl -s http://127.0.0.1:50080/metrics | grep 'ListHaServers'
 | 列举、过滤与排序 | [pkg/discovery/server_list.go](../../../pkg/discovery/server_list.go) |
 | 时间格式 | [internal/admin/api/open/serializer/haserver.go](../../../internal/admin/api/open/serializer/haserver.go) |
 | gRPC 指标拦截器 | [internal/admin/apm/grpc_interceptor.go](../../../internal/admin/apm/grpc_interceptor.go) |
-| 沙箱 mock 客户端 | [tools/cmd/ha-sandbox-mock/ha_servers_call.go](../../../tools/cmd/ha-sandbox-mock/ha_servers_call.go) |
 
 ---
 
