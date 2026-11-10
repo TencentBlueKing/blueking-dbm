@@ -69,6 +69,20 @@ logger = logging.getLogger("test")
 pytestmark = pytest.mark.django_db
 
 
+def _migrate_upgrade_drs_rpc(body):
+    cmds = body.get("cmds") or []
+    results = []
+    for cmd in cmds:
+        if cmd == "select version() as version":
+            table_data = [{"version": "5.7.20-log"}]
+        elif "show global variables" in cmd:
+            table_data = [{"Variable_name": "log_bin_compress", "Value": "OFF"}]
+        else:
+            table_data = []
+        results.append({"table_data": table_data, "error_msg": ""})
+    return [{"error_msg": "", "cmd_results": results}]
+
+
 @pytest.fixture(scope="class", autouse=True)
 def setup_mysql_database(django_db_setup, django_db_blocker):
     with django_db_blocker.unblock():
@@ -235,7 +249,9 @@ class TestMySQLTicket(BaseTicketTest):
 
         ticket_data = copy.deepcopy(MYSQL_MIGRATE_UPGRADE_DATA)
         ticket_data["details"]["infos"][0]["pkg_id"] = mysql_pkg.id
-        self.flow_test(ticket_data)
+        drs_rpc = "backend.flow.engine.bamboo.scene.mysql.validate.tendbha_upgrade_validator.DRSApi.rpc"
+        with patch(drs_rpc, side_effect=_migrate_upgrade_drs_rpc):
+            self.flow_test(ticket_data)
 
     @use_pipeline_mock
     def test_mysql_migrate_cluster_flow(self):
