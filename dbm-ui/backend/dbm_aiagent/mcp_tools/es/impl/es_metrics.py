@@ -15,6 +15,7 @@ from typing import Dict, List, Optional
 
 from django.utils import timezone
 
+from backend import env
 from backend.components import BKMonitorV3Api
 from backend.db_meta.models import Cluster
 from backend.utils.time import timezone2timestamp
@@ -500,14 +501,13 @@ def _build_aggregate_statistics(series_list: List[Dict]) -> Optional[Dict]:
 
 
 def _query_aggregate_statistics(
-    bk_biz_id: int,
     promql: str,
     start_time: datetime,
     end_time: datetime,
     metric_desc: str,
 ) -> Optional[Dict]:
     query_params = copy.deepcopy(UNIFY_QUERY_PARAMS)
-    query_params["bk_biz_id"] = bk_biz_id
+    query_params["bk_biz_id"] = env.DBA_APP_BK_BIZ_ID
     query_params["start_time"] = int(timezone2timestamp(start_time))
     query_params["end_time"] = int(timezone2timestamp(end_time))
     query_params["query_configs"][0]["promql"] = promql
@@ -564,7 +564,7 @@ def query_es_detail_metrics(
     promql = metric_config["promql"].format(cluster_domain=cluster_domain, top_n=top_n)
 
     query_params = copy.deepcopy(UNIFY_QUERY_PARAMS)
-    query_params["bk_biz_id"] = bk_biz_id
+    query_params["bk_biz_id"] = env.DBA_APP_BK_BIZ_ID
     query_params["start_time"] = int(timezone2timestamp(start_time))
     query_params["end_time"] = int(timezone2timestamp(end_time))
     query_params["query_configs"][0]["promql"] = promql
@@ -676,7 +676,8 @@ def query_es_metrics(
         promql = metric_config["promql"].format(cluster_domain=cluster_domain)
 
         query_params = copy.deepcopy(UNIFY_QUERY_PARAMS)
-        query_params["bk_biz_id"] = bk_biz_id
+        # 集群校验使用调用方业务，监控查询使用统一的 DBA 数据空间。
+        query_params["bk_biz_id"] = env.DBA_APP_BK_BIZ_ID
         query_params["start_time"] = start_timestamp
         query_params["end_time"] = end_timestamp
         query_params["query_configs"][0]["promql"] = promql
@@ -773,7 +774,6 @@ def get_es_performance_summary(
 
     metrics = metrics_data.get("metrics", {})
     datanode_jvm_stats = _query_aggregate_statistics(
-        bk_biz_id=bk_biz_id,
         promql="""(
             max by (cluster_domain, name) (
                 bkmonitor:exporter_dbm_elasticsearch_exporter:elasticsearch_jvm_memory_used_bytes{{
