@@ -778,6 +778,13 @@ class TestTicketHandlerTodoOperations:
                     ticket=ticket,
                     flow_type=FlowType.BK_ITSM,
                     flow_alias="单据审批",
+                    # ITSM todo 的处理人取自 flow.details 里的 approver，缺失时 Todo.objects.create 会 KeyError
+                    details={
+                        "fields": [
+                            {"key": "approver", "value": "admin,dba1"},
+                            {"key": "approval_result", "value": "true"},
+                        ]
+                    },
                     status=TicketFlowStatus.RUNNING,
                 )
                 todo = Todo.objects.create(
