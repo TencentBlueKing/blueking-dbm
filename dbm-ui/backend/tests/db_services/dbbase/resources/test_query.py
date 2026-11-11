@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from backend.db_meta.enums import ClusterEntryType, ClusterType
+from backend.db_meta.enums import ClusterEntryType, ClusterType, InstanceInnerRole, InstanceRole, InstanceStatus
 from backend.db_meta.models import ProxyInstance, StorageInstance
 from backend.db_services.dbbase.resources.query import CommonExportQueryResourceMixin, CommonQueryResourceMixin
 from backend.ticket.constants import TicketType
@@ -258,14 +258,26 @@ class TestCommonQueryResourceMixin:
         cluster = test_cluster_with_entries
         mock_cc_cloud.return_value = {"0": {"bk_cloud_name": "Default Area"}}
 
-        # 获取集群的所有主机ID
-        storage_instances = StorageInstance.objects.filter(cluster=cluster)
-        bk_host_ids = [inst.machine.bk_host_id for inst in storage_instances]
+        # 同一主机上再挂一个实例，确认按实例 ID 导出时不会把同机实例一起带出
+        storage_instances = list(StorageInstance.objects.filter(cluster=cluster))
+        master = storage_instances[0]
+        extra = StorageInstance.objects.create(
+            machine=master.machine,
+            port=master.port + 1,
+            cluster_type=master.cluster_type,
+            bk_biz_id=master.bk_biz_id,
+            instance_inner_role=InstanceInnerRole.SLAVE,
+            instance_role=InstanceRole.BACKEND_SLAVE,
+            db_module_id=master.db_module_id,
+            status=InstanceStatus.RUNNING.value,
+            version=master.version,
+        )
+        extra.cluster.add(cluster)
 
         headers, data_list = CommonQueryResourceMixin.common_query_instance(
             bk_biz_id=cluster.bk_biz_id,
             cluster_types=[ClusterType.TenDBHA],
-            bk_host_ids=bk_host_ids,
+            instance_ids=[master.id],
         )
 
         # 验证返回的表头
@@ -276,8 +288,8 @@ class TestCommonQueryResourceMixin:
         assert "ip_port" in header_ids
         assert "master_domain" in header_ids
 
-        # 验证返回的数据
-        assert len(data_list) > 0
+        # 只导出选中的实例
+        assert {inst_data["instance_id"] for inst_data in data_list} == {master.id}
         for inst_data in data_list:
             assert "ip" in inst_data
             assert "ip_port" in inst_data
@@ -288,15 +300,15 @@ class TestCommonQueryResourceMixin:
         cluster = test_cluster_with_entries
         mock_cc_cloud.return_value = {"0": {"bk_cloud_name": "Default Area"}}
 
-        # 获取代理实例的主机ID
+        # 获取代理实例 ID
         proxy_instances = ProxyInstance.objects.filter(cluster=cluster)
-        bk_host_ids = [inst.machine.bk_host_id for inst in proxy_instances]
+        instance_ids = [inst.id for inst in proxy_instances]
         ip_list = [inst.machine.ip for inst in proxy_instances]
 
         headers, data_list = CommonQueryResourceMixin.common_query_instance(
             bk_biz_id=cluster.bk_biz_id,
             cluster_types=[ClusterType.TenDBHA],
-            bk_host_ids=bk_host_ids,
+            instance_ids=instance_ids,
         )
 
         # 验证返回了代理实例
@@ -312,7 +324,7 @@ class TestCommonQueryResourceMixin:
         headers, data_list = CommonQueryResourceMixin.common_query_instance(
             bk_biz_id=test_bk_biz_id,
             cluster_types=[ClusterType.TenDBHA],
-            bk_host_ids=[999999],  # 不存在的主机ID
+            instance_ids=[999999],  # 不存在的实例ID
         )
 
         # 验证返回空数据
@@ -407,9 +419,8 @@ class TestCommonQueryResourceMixinExport:
         mock_get_biz_name.return_value = "test_biz"
         mock_excel_response.return_value = MagicMock()
 
-        # 获取实例的主机ID
         storage_instances = StorageInstance.objects.filter(cluster=cluster)
-        bk_host_ids = [inst.machine.bk_host_id for inst in storage_instances]
+        instance_ids = [inst.id for inst in storage_instances]
 
         # 创建一个测试类来使用这个方法
         class TestResource(CommonExportQueryResourceMixin, CommonQueryResourceMixin):
@@ -417,7 +428,7 @@ class TestCommonQueryResourceMixinExport:
 
         TestResource.export_instance(
             bk_biz_id=cluster.bk_biz_id,
-            bk_host_ids=bk_host_ids,
+            instance_ids=instance_ids,
         )
 
         # 验证Excel导出方法被调用
@@ -461,7 +472,7 @@ class TestCommonQueryResourceMixinExport:
 
         TestResource.export_instance(
             bk_biz_id=test_bk_biz_id,
-            bk_host_ids=[999999],  # 不存在的主机ID
+            instance_ids=[999999],  # 不存在的实例ID
         )
 
         # 即使没有数据也应该能导出
