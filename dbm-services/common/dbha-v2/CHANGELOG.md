@@ -1,5 +1,14 @@
 # DBHA-v2 Change Log
 
+## v2.1.0-beta.2
+
+- 【新增】Admin 新增 HA Server 列表接口（gRPC ListHaServers、HTTP GET /api/admin/meta/ha-servers），从 etcd 查询 admin、analysis、receiver 各实例的运行信息。
+- 【优化】Discovery 改为按需创建 etcd 客户端。
+- 【修复】白名单匹配改为仅按集群域名判断。
+- 【修复】移除重复的切换指标，按 db_type + action_scope 标签合并，并自动适配 DB 类型。
+- 【修复】对可能导致扩散的指标标签 method、path、db_type 做收敛处理。
+- 【修复】etcd 异常时 Discovery 的 Watch 会卡住 Get、Close 等调用，导致 analysis 无法正常退出。
+
 ## v2.1.0-beta.1
 
 - 【新增】数据探测采集补充 6 种集群类型：RedisInstance、TwemproxyRedisInstance、TwemproxyTendisSSDInstance、PredixyTendisplusCluster、PredixyRedisCluster、PredixyTendisplusInstance。
