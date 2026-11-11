@@ -329,6 +329,7 @@ class Permission(object):
         data_field: Callable = lambda data_list: data_list,
         always_allowed: Callable = lambda item: False,
         many: bool = True,
+        attribute_field: Callable = None,
     ):
         """
         视图函数数据返回后，插入权限相关字段
@@ -339,13 +340,24 @@ class Permission(object):
         @param data_field: 从response.data中获取结果集的方式
         @param always_allowed: 满足一定条件进行权限豁免
         @param many: 是否为列表数据
+        @param attribute_field: 从结果行取出资源属性，避免批量鉴权时再逐条查询
         """
         result_list = data_field(response.data)
         if not many:
             result_list = [result_list]
 
-        instance_ids = [id_field(item) for item in result_list if id_field(item)]
-        resources_list = [[instance] for instance in resource_meta.batch_create_instances(instance_ids)]
+        if attribute_field:
+            resources_list = []
+            for item in result_list:
+                origin_instance_id = id_field(item)
+                if not origin_instance_id:
+                    continue
+                resources_list.append(
+                    [resource_meta.create_instance(str(origin_instance_id), attr=attribute_field(item))]
+                )
+        else:
+            instance_ids = [id_field(item) for item in result_list if id_field(item)]
+            resources_list = [[instance] for instance in resource_meta.batch_create_instances(instance_ids)]
 
         if not resources_list:
             return response
@@ -427,6 +439,7 @@ class Permission(object):
         data_field: Callable = lambda data_list: data_list,
         always_allowed: Callable = lambda item: False,
         many: bool = True,
+        attribute_field: Callable = None,
     ):
         """
         内嵌数据权限字段的装饰器，适用于列表每一项数据的权限字段
@@ -452,6 +465,7 @@ class Permission(object):
                     data_field,
                     always_allowed,
                     many,
+                    attribute_field,
                 )
 
             return wrapped_view

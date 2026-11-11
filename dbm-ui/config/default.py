@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 from pathlib import Path
 from typing import Dict
 
@@ -139,6 +140,7 @@ INSTALLED_APPS += (
     "backend.db_services.mysql.open_area",
     "backend.db_services.ipchooser",
     "backend.db_services.risk_memo",
+    "backend.db_services.dns_domain",
     "backend.dbm_tools",
     "backend.db_proxy",
     "backend.db_monitor",
