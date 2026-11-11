@@ -245,11 +245,19 @@ func (task *TendisssdDrRestoreTask) Run() {
 		return
 	}
 
-	ok, _ = task.SlaveCli.IsTendisSSDReplicaStatusOk(task.MasterIP, strconv.Itoa(task.MasterPort))
+	var checkErr error
+	ok, checkErr = task.SlaveCli.IsTendisSSDReplicaStatusOk(task.MasterIP, strconv.Itoa(task.MasterPort))
 	if ok {
 		// 如果主从关系已经ok,则避免重复执行
 		task.runtime.Logger.Info("tendisSSD slave(%s) master(%s) link_status:up", task.SlaveAddr(), task.MasterAddr())
 		return
+	}
+	if checkErr != nil {
+		task.runtime.Logger.Warn("slave(%s) master(%s) replica status not ok:%v, will do full restore",
+			task.SlaveAddr(), task.MasterAddr(), checkErr)
+	} else {
+		task.runtime.Logger.Warn("slave(%s) master(%s) replica status not ok, will do full restore",
+			task.SlaveAddr(), task.MasterAddr())
 	}
 
 	task.Precheck()
@@ -557,10 +565,42 @@ export LD_LIBRARY_PATH=LD_LIBRARY_PATH:%s
 		return
 	}
 	masterRunID := infoRet["run_id"]
-	task.runtime.Logger.Info("slave(%s) confxx set server-runid %s", task.SlaveAddr(), masterRunID)
-	_, task.Err = task.SlaveCli.ConfigSet("server-runid", masterRunID)
-	if task.Err != nil {
+	task.runtime.Logger.Info("master(%s) info server run_id:%s", task.MasterAddr(), masterRunID)
+	if masterRunID == "" {
+		task.Err = fmt.Errorf("master(%s) info server run_id is empty,infoRet:%+v", task.MasterAddr(), infoRet)
+		task.runtime.Logger.Error(task.Err.Error())
 		return
+	}
+	// 记录设置前 slave 自身的 run_id,便于排查 runid 不一致导致的增量同步失败
+	slaveInfoRet, err := task.SlaveCli.Info("server")
+	if err != nil {
+		task.runtime.Logger.Warn("slave(%s) info server failed:%v", task.SlaveAddr(), err)
+	} else {
+		task.runtime.Logger.Info("slave(%s) run_id before set server-runid:%s", task.SlaveAddr(),
+			slaveInfoRet["run_id"])
+	}
+
+	for i := 0; i < 3; i++ {
+		// # 内核：这个把旧的runid写到rocksdb，但是内存里的改了新的。
+		task.runtime.Logger.Info("slave(%s) config set server-runid %s", task.SlaveAddr(), masterRunID)
+		_, task.Err = task.SlaveCli.ConfigSet("server-runid", masterRunID)
+		if task.Err != nil {
+			return
+		}
+		time.Sleep(time.Second)
+	}
+
+	// 设置后回读确认 server-runid 是否生效
+	slaveInfoRet, err = task.SlaveCli.Info("server")
+	if err != nil {
+		task.runtime.Logger.Warn("slave(%s) info server failed:%v", task.SlaveAddr(), err)
+	} else {
+		task.runtime.Logger.Info("slave(%s) run_id after set server-runid:%s,expect:%s", task.SlaveAddr(),
+			slaveInfoRet["run_id"], masterRunID)
+		if slaveInfoRet["run_id"] != masterRunID {
+			task.runtime.Logger.Warn("slave(%s) run_id:%s != master run_id:%s after set server-runid,incr-sync may fail",
+				task.SlaveAddr(), slaveInfoRet["run_id"], masterRunID)
+		}
 	}
 
 	slaveBinlogRange2, _ := task.SlaveCli.TendisSSDBinlogSize()
@@ -606,12 +646,28 @@ export LD_LIBRARY_PATH=LD_LIBRARY_PATH:%s
 		_, lastErr = task.SlaveCli.IsTendisSSDReplicaStatusOk(task.MasterIP, strconv.Itoa(task.MasterPort))
 		if lastErr != nil {
 			task.runtime.Logger.Warn("IsTendisSSDReplicaStatusOk failed:%s,sleep 5 seconds and retry...", lastErr.Error())
+			// 每30秒打印一次slave复制状态,便于排查增量同步卡住的原因
+			if (i+1)%6 == 0 {
+				if replInfo, err01 := task.SlaveCli.Info("replication"); err01 == nil {
+					task.runtime.Logger.Info("slave(%s) info replication: role:%s,master_host:%s,master_port:%s,"+
+						"master_link_status:%s,master_sync_in_progress:%s",
+						task.SlaveAddr(), replInfo["role"], replInfo["master_host"], replInfo["master_port"],
+						replInfo["master_link_status"], replInfo["master_sync_in_progress"])
+				}
+			}
 			continue
 		}
 		break
 	}
 	// 如果循环结束仍有错误，说明达到最大重试次数仍未成功
 	if lastErr != nil {
+		// 超时失败时,打印slave和master两侧的复制现场,便于定位
+		if replInfo, err01 := task.SlaveCli.Info("replication"); err01 == nil {
+			task.runtime.Logger.Error("slave(%s) info replication:%+v", task.SlaveAddr(), replInfo)
+		}
+		if slavesState, err01 := task.MasterCli.TendisSSDInfoSlaves(); err01 == nil {
+			task.runtime.Logger.Error("master(%s) info slaves:%s", task.MasterAddr(), slavesState.String())
+		}
 		task.Err = lastErr
 		return
 	}
