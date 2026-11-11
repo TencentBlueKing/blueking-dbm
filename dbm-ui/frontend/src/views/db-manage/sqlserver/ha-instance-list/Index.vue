@@ -30,7 +30,7 @@
         class="ml-8"
         export-type="instance"
         :has-selected="isSelected"
-        :ids="selectedIdList"
+        :ids="selectedHostIdList"
         type="sqlserver_ha" />
       <DbQuickSearch
         v-model="quickSearchValue"
@@ -100,7 +100,7 @@
     disabled: ['instance_address'],
   });
 
-  const { handleSelection, isSelected, selectedIdList, selectedList } =
+  const { handleSelection, isSelected, selectedHostIdList, selectedList } =
     useClusterTableSelect<SqlserverhaInstanceModel>();
 
   const instanceTableRef = useTemplateRef('instanceTable');
