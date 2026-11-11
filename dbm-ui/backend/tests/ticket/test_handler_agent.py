@@ -751,6 +751,68 @@ class TestTicketHandlerTodoOperations:
         finally:
             ticket.delete()
 
+    @patch("backend.ticket.handler.TicketHandler.batch_process_todo")
+    def test_batch_process_ticket_version_per_ticket(self, mock_batch_todo, test_ticket_bk_biz_id):
+        """批量处理单据：versions 用字符串 key 传入时能按单据取到各自的版本号
+
+        覆盖两个历史缺陷：
+        1. params 是 JSONField，versions 的 key 是字符串，用 int 的 ticket.id 取值永远取不到；
+        2. 所有待办共用同一个 params 字典，多张单据的 version 会互相覆盖。
+        """
+        mock_batch_todo.return_value = []
+        created = []
+        try:
+            for ticket_id in (2031, 2032, 2033):
+                ticket = Ticket.objects.create(
+                    id=ticket_id,
+                    bk_biz_id=test_ticket_bk_biz_id,
+                    ticket_type=TicketType.MYSQL_HA_APPLY,
+                    status=TicketStatus.APPROVE,
+                    creator="admin",
+                    updater="admin",
+                    remark="test batch process ticket",
+                    details={"nodes": {}},
+                    group=TicketType.MYSQL_HA_APPLY.value,
+                )
+                flow = Flow.objects.create(
+                    ticket=ticket,
+                    flow_type=FlowType.BK_ITSM,
+                    flow_alias="单据审批",
+                    status=TicketFlowStatus.RUNNING,
+                )
+                todo = Todo.objects.create(
+                    ticket=ticket,
+                    flow=flow,
+                    name="单据等待审批",
+                    type=TodoType.ITSM,
+                    status=TodoStatus.TODO,
+                    operators=["admin"],
+                    context={"flow_id": flow.id, "ticket_id": ticket.id},
+                )
+                created.append((ticket, flow, todo))
+
+            TicketHandler.batch_process_ticket(
+                username="admin",
+                action=TodoActionType.TERMINATE,
+                ticket_ids=[2031, 2032, 2033],
+                params={"remark": "123", "versions": {"2031": 0, "2032": 2}},
+            )
+
+            operations = mock_batch_todo.call_args.kwargs["operations"]
+            versions = {operation["todo_id"]: operation["params"]["version"] for operation in operations}
+            # 各自命中自己的版本号；未传版本号的单据为 None，交由 check_content_version 明确提示缺少版本号
+            assert versions[created[0][2].id] == 0
+            assert versions[created[1][2].id] == 2
+            assert versions[created[2][2].id] is None
+            # remark 等公共参数保持不变，且各待办的 params 必须是独立副本
+            assert [operation["params"]["remark"] for operation in operations] == ["123"] * 3
+            assert operations[0]["params"] is not operations[1]["params"]
+        finally:
+            for ticket, flow, todo in created:
+                todo.delete()
+                flow.delete()
+                ticket.delete()
+
 
 class TestTicketHandlerFlowConfig:
     """测试 TicketHandler 单据流程配置方法"""
