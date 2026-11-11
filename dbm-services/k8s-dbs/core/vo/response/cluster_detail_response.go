@@ -52,7 +52,7 @@ type ComponentDetail struct {
 	Env           map[string]interface{} `json:"env,omitempty"`
 	Request       *ResourceDetail        `json:"request,omitempty"`
 	Limit         *ResourceDetail        `json:"limit,omitempty"`
-	Storage       string                 `json:"storage,omitempty"`
+	Storage       *resource.Quantity     `json:"storage,omitempty"`
 	Args          map[string]interface{} `json:"args,omitempty"`
 }
 
