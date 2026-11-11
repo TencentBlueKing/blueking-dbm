@@ -13,6 +13,7 @@ package apply
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -46,8 +47,64 @@ func (param *RequestInputParam) NormalizeAffinities() {
 	}
 }
 
+// ValidateGroupsInSameLocation 校验同地点申请的跨分组地域参数一致性。
+// GroupsInSameLocation 为真且存在多个分组时，所有分组的 city 必须相同；
+// 在城市一致的前提下，若任意分组指定了 sub_zone，则所有分组的 sub_zone 配置也必须相同。
+func (param RequestInputParam) ValidateGroupsInSameLocation() error {
+	if !param.GroupsInSameLocation || len(param.Details) <= 1 {
+		return nil
+	}
+	first := param.Details[0]
+	firstCity := strings.TrimSpace(first.LocationSpec.City)
+	if firstCity == "" {
+		return fmt.Errorf("groups_in_same_location=true 时各分组必须指定相同的 city, 分组 %s 的 city 为空",
+			first.GroupMark)
+	}
+	firstZones := locationSubZoneKey(first.LocationSpec)
+	for _, detail := range param.Details[1:] {
+		city := strings.TrimSpace(detail.LocationSpec.City)
+		if city != firstCity {
+			return fmt.Errorf("groups_in_same_location=true 时各分组 city 必须相同: 分组 %s=%s, 分组 %s=%s",
+				first.GroupMark, firstCity, detail.GroupMark, city)
+		}
+		if zones := locationSubZoneKey(detail.LocationSpec); zones != firstZones {
+			return fmt.Errorf("groups_in_same_location=true 时各分组 sub_zone 必须相同: 分组 %s=%q, 分组 %s=%q",
+				first.GroupMark, firstZones, detail.GroupMark, zones)
+		}
+	}
+	return nil
+}
+
+// locationSubZoneKey 把 sub_zone 相关配置归一化成可比字符串：
+// 去掉空白与重复项并排序，顺序差异不影响判定；未指定任何 sub_zone 时返回空串。
+func locationSubZoneKey(spec meta.LocationSpec) string {
+	subZoneIds := normalizeSubZoneIds(spec.SubZoneIds)
+	excludeSubZoneIds := normalizeSubZoneIds(spec.ExcludeSubZoneIds)
+	if len(subZoneIds) == 0 && len(excludeSubZoneIds) == 0 {
+		return ""
+	}
+	return fmt.Sprintf("is_exclude=%t,sub_zone_ids=%v,exclude_sub_zone_ids=%v",
+		spec.IsExclude(), subZoneIds, excludeSubZoneIds)
+}
+
+// normalizeSubZoneIds 去掉空白项、排序并去重
+func normalizeSubZoneIds(ids []string) []string {
+	result := make([]string, 0, len(ids))
+	for _, id := range ids {
+		id = strings.TrimSpace(id)
+		if id != "" {
+			result = append(result, id)
+		}
+	}
+	sort.Strings(result)
+	return lo.Uniq(result)
+}
+
 func (param *RequestInputParam) ParamCheck() (err error) {
 	param.NormalizeAffinities()
+	if err = param.ValidateGroupsInSameLocation(); err != nil {
+		return err
+	}
 	for _, a := range param.Details {
 		for _, d := range a.StorageSpecs {
 			if d.MaxSize > 0 && d.MinSize > d.MaxSize {
@@ -146,7 +203,8 @@ type RequestInputParam struct {
 	DryRun       bool           `json:"dry_run"`
 	ForbizId     int            `json:"for_biz_id"`
 	Details      []ObjectDetail `json:"details" binding:"required,gt=0,dive"`
-	// 表示 deails需要保证每个请求的资源都在同一个园区,参考第一个detail的园区的相关参数
+	// 表示 details 需要保证每个请求的资源都在同一个园区：各分组 city 必须相同，
+	// 若指定 sub_zone，则所有分组的 sub_zone 配置也必须相同，详见 ValidateGroupsInSameLocation
 	GroupsInSameLocation bool `json:"groups_in_same_location"`
 	ActionInfo
 }
