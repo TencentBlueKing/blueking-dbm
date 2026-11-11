@@ -387,16 +387,22 @@ class TicketHandler:
             for ticket in tickets
         ]
         operations = []
-        all_version = params.pop("version", {})
+        params = dict(params or {})
+        # versions 由前端以 JSON 传入，key 为字符串(如 "75398")，这里统一按字符串归一化，
+        # 否则用 int 的 ticket.id 取永远取不到；缺省保持 None，交由 check_content_version 明确提示缺少版本号，
+        # 避免被误判成"单据内容已被修改"
+        all_version = {str(ticket_id): version for ticket_id, version in (params.pop("versions", None) or {}).items()}
         for todo in running_todos:
-            if todo:
-                params["version"] = all_version.get(todo.ticket.id, "")
-                operations.append(
-                    {
-                        "todo_id": todo.id,
-                        "params": params,
-                    }
-                )
+            if not todo:
+                continue
+            # 每个待办必须用独立的 params 副本：共用同一个 dict 时多张单据的 version 会互相覆盖，
+            # 导致后一张的版本号被用到前一张上(或并发时被随机覆盖)
+            operations.append(
+                {
+                    "todo_id": todo.id,
+                    "params": {**params, "version": all_version.get(str(todo.ticket.id))},
+                }
+            )
         return TicketHandler.batch_process_todo(user=username, action=action, operations=operations)
 
     @classmethod

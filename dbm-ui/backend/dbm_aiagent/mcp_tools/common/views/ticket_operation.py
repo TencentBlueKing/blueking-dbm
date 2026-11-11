@@ -130,8 +130,12 @@ class TicketOperationMcpToolsViewSet(McpToolsViewSet):
             raise DBMMcpBadTicketStatusException(msg=f"{tk.status} 不支持当前操作")
 
         version = TicketSnapshot.objects.filter(ticket_id=ticket_id).count()
+        # 与前端一致按 versions 传：{单据ID: 内容版本号}，handler 按单据逐条取用
         TicketHandler.batch_process_ticket(
-            username=username, action=TodoActionType.APPROVE, ticket_ids=[ticket_id], params={"version": version}
+            username=username,
+            action=TodoActionType.APPROVE,
+            ticket_ids=[ticket_id],
+            params={"versions": {str(ticket_id): version}},
         )
 
         time.sleep(5)  # 这里 sleep 是为了能返回一个正常点的状态
