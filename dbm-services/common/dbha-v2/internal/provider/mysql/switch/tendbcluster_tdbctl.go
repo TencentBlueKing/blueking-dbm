@@ -639,7 +639,7 @@ func (op *TdbctlOperator) TdbctlFlushRouting(
 		flushRouteSql = TdbctlFlushRouteForceSql
 	}
 
-	gdb, cancel := GormWithExecSqlTimeout(tdbctlDB)
+	gdb, cancel := GormWithFlushRoutingTimeout(tdbctlDB)
 	defer cancel()
 
 	if result := gdb.Exec(flushRouteSql); result.Error != nil {

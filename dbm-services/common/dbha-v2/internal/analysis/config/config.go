@@ -73,6 +73,7 @@ var Cfg = Configuration{
 			},
 			Mysql: SwitchFlowMysqlConfig{
 				ExecSqlTimeout:                30 * time.Second,
+				TdbctlFlushRoutingTimeout:     30 * time.Second,
 				AllowedIgnoreCheckSum:         false,
 				AllowedIgnoreSlaveDelay:       false,
 				AllowedSlowBytes:              0,
@@ -139,6 +140,7 @@ type SwitchFlowCommonConfig struct {
 // SwitchFlowMysqlConfig holds MySQL / TenDB switch-flow settings.
 type SwitchFlowMysqlConfig struct {
 	ExecSqlTimeout                time.Duration `yaml:"execSqlTimeout"                     mapstructure:"execSqlTimeout"`
+	TdbctlFlushRoutingTimeout     time.Duration `yaml:"tdbctlFlushRoutingTimeout"          mapstructure:"tdbctlFlushRoutingTimeout"`
 	AllowedIgnoreCheckSum         bool          `yaml:"slaveAllowedIgnoreCheckSum"         mapstructure:"slaveAllowedIgnoreCheckSum"`
 	AllowedIgnoreSlaveDelay       bool          `yaml:"slaveAllowedIgnoreSlaveDelay"       mapstructure:"slaveAllowedIgnoreSlaveDelay"`
 	AllowedSlowBytes              int           `yaml:"slaveAllowedSlowBytes"              mapstructure:"slaveAllowedSlowBytes"`
