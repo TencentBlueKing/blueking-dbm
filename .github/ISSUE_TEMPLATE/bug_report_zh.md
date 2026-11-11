@@ -3,7 +3,6 @@ name: Bug反馈
 about: Bug反馈
 title: "[BUG]"
 labels: bug,kind/bug,backlog
-assignees: zhangzhw8
 ---
 
 **问题描述**
