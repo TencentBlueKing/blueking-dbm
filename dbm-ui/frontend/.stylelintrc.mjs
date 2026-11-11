@@ -197,6 +197,17 @@ export default {
       'speak',
     ],
     'no-invalid-position-declaration': null,
+    // stylelint 18 新增：无法解析 Less 变量与运算（如 1px solid @light-gray、(1px * @counter)），全部误报
+    'value-no-invalid': null,
+    // stylelint 18 新增：按原生 CSS 嵌套解析 &，误判 Less 拼接写法 &::-webkit-scrollbar-thumb { &:hover }
+    'selector-no-unmatchable': null,
+    // Markdown / 日志渲染内容可能包含 <font> 标签，需要保留对它的样式覆盖
+    'selector-no-deprecated': [
+      true,
+      {
+        ignoreSelectors: ['font'],
+      },
+    ],
   },
   overrides: [
     {
