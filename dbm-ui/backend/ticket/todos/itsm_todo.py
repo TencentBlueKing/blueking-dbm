@@ -36,18 +36,30 @@ class ItsmTodo(todos.TodoActor):
         super().process(username, action, params)
 
     def _process(self, username, action, params):
+        from blueapps.account.models import User
+
         from backend.ticket.handler import TicketHandler
         from backend.ticket.modify import TicketModifyHandler
 
         ticket_id = self.context.get("ticket_id")
         own = self.todo.ticket.creator
         message = params.get("remark", "")
+        # 审批类操作(通过/拒绝)ITSM 只接受当前节点的处理人，超管等不在名单内的操作人改用 admin 身份发起；
+        # 这里只影响调 ITSM 用的身份，DBM 侧的 done_by/updater/待办历史仍记录真实操作人。
+        # 撤单必须用提单人本人身份，不参与该兜底。
+        user = User.objects.filter(username=username).first()
+        if username in self.todo.operators + self.todo.helpers:
+            approve_operator = username
+        elif user and user.is_superuser:
+            approve_operator = "admin"
+        else:
+            approve_operator = None
 
-        def approve_itsm_ticket(itsm_action, is_approved):
+        def approve_itsm_ticket(itsm_action, is_approved, operator=None):
             sn = TicketHandler.operate_itsm_ticket(
                 ticket_id,
                 action=itsm_action,
-                operator=username,
+                operator=operator or username,
                 is_approved=is_approved,
                 action_message=message,
             )
@@ -56,13 +68,13 @@ class ItsmTodo(todos.TodoActor):
         # 系统终止，认为是关单(调用itsm接口要用admin发起)
         if action == TodoActionType.TERMINATE and username == DEFAULT_SYSTEM_USER:
             username = "admin"
-            approve_itsm_ticket(OperateNodeActionType.TERMINATE, is_approved=False)
+            approve_itsm_ticket(OperateNodeActionType.TERMINATE, is_approved=False, operator="admin")
             self.todo.set_terminated(username, action)
         # 审批人终止，认为是拒单
         elif action == TodoActionType.TERMINATE and username != own:
             # 校验内容版本：提单人可能在审批期间重新编辑过单据
             TicketModifyHandler.check_content_version(self.todo.ticket, params.get("version"))
-            approve_itsm_ticket(OperateNodeActionType.TRANSITION, is_approved=False)
+            approve_itsm_ticket(OperateNodeActionType.TRANSITION, is_approved=False, operator=approve_operator)
             self.todo.set_terminated(username, action)
         # 自己终止，认为是撤单
         elif action == TodoActionType.TERMINATE and username == own:
@@ -72,9 +84,7 @@ class ItsmTodo(todos.TodoActor):
         elif action == TodoActionType.APPROVE:
             # 校验内容版本：提单人可能在审批期间重新编辑过单据
             TicketModifyHandler.check_content_version(self.todo.ticket, params.get("version"))
-            if username not in self.todo.operators + self.todo.helpers:
-                username = "admin"
-            approve_itsm_ticket(OperateNodeActionType.TRANSITION, is_approved=True)
+            approve_itsm_ticket(OperateNodeActionType.TRANSITION, is_approved=True, operator=approve_operator)
             self.todo.set_success(username, action)
 
     def _deliver(self, username, processors, remark):

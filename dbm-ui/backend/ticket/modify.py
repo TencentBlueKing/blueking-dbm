@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging
 
+from blueapps.account.models import User
 from django.db import transaction
 from django.utils.translation import gettext as _
 
@@ -135,12 +136,23 @@ class TicketModifyHandler:
     def on_behalf_modify(
         cls, ticket, operator, details, change_details, ticket_remark, remark, change_count, config=None
     ):
-        cls._check_approve_permission(ticket, operator)
+        # 权限校验；返回值表示 operator 是否为超管，供下面决定调 ITSM 用的身份
+        user = User.objects.filter(username=operator).first()
+        if not user:
+            return
+        is_dba_approver = cls._check_dba_approver(ticket, operator)
+
+        if not is_dba_approver and not user.is_superuser:
+            raise TicketModifyForbiddenException()
+
         if ticket.status != TicketStatus.APPROVE:
             raise TicketModifyStatusException(status=TicketStatus.get_choice_label(ticket.status))
 
         itsm_flow = cls._get_running_itsm_flow(ticket)
         old_sn = itsm_flow.flow_obj_id
+        # 超管与审批同权，但超管不在该 ITSM 单据的审批人名单里，而 ITSM 只接受节点处理人操作，
+        # 故超管代为修改时以 admin 身份发起拒单；业务 DBA(真实审批人)仍用本人身份
+        itsm_operator = operator if is_dba_approver else "admin"
 
         # 冻结审批节点并关闭其待办
         cls._freeze_flow(itsm_flow, remark=remark)
@@ -193,7 +205,7 @@ class TicketModifyHandler:
             lambda: TicketHandler.operate_itsm_ticket(
                 ticket.id,
                 action=OperateNodeActionType.TRANSITION,
-                operator=operator,
+                operator=itsm_operator,
                 is_approved=False,
                 action_message=remark or _("审批人代为修改"),
                 sn=old_sn,
@@ -376,12 +388,15 @@ class TicketModifyHandler:
     # 权限校验
     # ------------------------------------------------------------------
     @staticmethod
-    def _check_approve_permission(ticket, operator):
-        """代为修改权限：与审批通过/拒绝同源，取业务下对应 DB 类型的管理员"""
+    def _check_dba_approver(ticket, operator):
+        """
+        判断是否是dba审批人员
+        """
         db_type = BuilderFactory.get_builder_cls(ticket.ticket_type).group
         admins = DBAdministrator.get_biz_db_type_admins(ticket.bk_biz_id, db_type)
         if operator not in admins:
-            raise TicketModifyForbiddenException()
+            return False
+        return True
 
     @staticmethod
     def _check_replenish_permission(ticket, operator):
@@ -514,12 +529,15 @@ class TicketModifyHandler:
         next_flow_key = FlowContext.NEXT_FLOW.value
         kept = []
         for idx, new_flow in enumerate(new_flows):
-            # 预定义的flow type类型才考虑覆盖
-            if new_flow not in [
+            # 预定义的flow type类型才考虑覆盖(注意比的是 flow_type，不是 Flow 实例)
+            # 定时/人工确认同样来自 build_flows_after_itsm 的流程模板，漏掉它们会变成游离节点、顺序错乱
+            if new_flow.flow_type not in [
                 FlowType.RESOURCE_BATCH_APPLY,
                 FlowType.RESOURCE_APPLY,
                 FlowType.INNER_FLOW,
                 FlowType.HOST_RECYCLE,
+                FlowType.TIMER,
+                FlowType.PAUSE,
             ]:
                 continue
             if idx < len(old_pending):
