@@ -21,7 +21,11 @@
     </InfoItem>
     <template v-if="details.export_mode === 'sql'">
       <InfoItem :label="t('查询 SQL')">
-        <BkButton v-if="details.sql_filename" text theme="primary" @click="handleOpenSql">
+        <BkButton
+          v-if="details.sql_filename"
+          text
+          theme="primary"
+          @click="handleOpenSql">
           {{ details.sql_filename }}
         </BkButton>
         <template v-else>--</template>
@@ -51,7 +55,9 @@
         :label="t('忽略表名')">
         <TagBlock :data="details.tables_ignore" />
       </InfoItem>
-      <InfoItem v-if="details.where" :label="t('where 条件')">
+      <InfoItem
+        v-if="details.where"
+        :label="t('where 条件')">
         {{ details.where }}
       </InfoItem>
     </template>
@@ -64,7 +70,10 @@
     :title="t('SQL 内容')"
     :width="960">
     <div class="dump-data-sql-slider">
-      <BkLoading class="dump-data-sql-loading" :loading="isContentLoading">
+      <BkLoading
+        class="dump-data-sql-loading"
+        color="#1e1e1e"
+        :loading="isContentLoading">
         <Editor
           v-if="contentLoaded && isSqlShow"
           :message-list="[]"
@@ -72,9 +81,16 @@
           readonly
           :show-result-panel="false"
           :title="sqlFilename" />
-        <div v-else-if="loadFailed" class="dump-data-sql-error">
+        <div
+          v-else-if="loadFailed"
+          class="dump-data-sql-error">
           <span>{{ t('SQL 文件内容读取失败，请重新上传') }}</span>
-          <BkButton text theme="primary" @click="fetchSqlContent">{{ t('重试') }}</BkButton>
+          <BkButton
+            text
+            theme="primary"
+            @click="fetchSqlContent">
+            {{ t('重试') }}
+          </BkButton>
         </div>
       </BkLoading>
     </div>
@@ -101,10 +117,10 @@
 
   const { t } = useI18n();
   const details = computed(() => props.ticketDetails.details);
-  const sqlFilename = computed(() => details.value.export_mode === 'sql' ? details.value.sql_filename : '');
-  const sqlFilePath = computed(() => details.value.export_mode === 'sql'
-    ? `${details.value.sql_path}/${details.value.sql_filename}`
-    : '');
+  const sqlFilename = computed(() => (details.value.export_mode === 'sql' ? details.value.sql_filename : ''));
+  const sqlFilePath = computed(() =>
+    details.value.export_mode === 'sql' ? `${details.value.sql_path}/${details.value.sql_filename}` : '',
+  );
   const isSqlShow = ref(false);
   const sqlContent = ref('');
   const contentLoaded = ref(false);
@@ -135,20 +151,24 @@
     if (!contentLoaded.value) fetchSqlContent();
   };
 
-  watch(() => props.ticketDetails.id + ':' + sqlFilePath.value, () => {
+  watch(
+    () => props.ticketDetails.id + ':' + sqlFilePath.value,
+    () => {
+      readVersion += 1;
+      isSqlShow.value = false;
+      sqlContent.value = '';
+      contentLoaded.value = false;
+      loadFailed.value = false;
+      isContentLoading.value = false;
+    },
+  );
+  onBeforeUnmount(() => {
     readVersion += 1;
-    isSqlShow.value = false;
-    sqlContent.value = '';
-    contentLoaded.value = false;
-    loadFailed.value = false;
-    isContentLoading.value = false;
   });
-  onBeforeUnmount(() => { readVersion += 1; });
 </script>
 
 <style lang="less" scoped>
   .dump-data-demand {
-    font-size: 14px;
     row-gap: 12px;
 
     :deep(.db-ticket-info-item) {
@@ -160,7 +180,6 @@
     :deep(.db-ticket-info-item-label) {
       padding-right: 12px;
       line-height: 20px;
-      color: #979ba5;
       box-sizing: border-box;
       flex: 0 0 132px;
     }
@@ -168,7 +187,6 @@
     :deep(.db-ticket-info-item-value) {
       min-width: 0;
       white-space: normal;
-      word-break: break-all;
     }
   }
 
