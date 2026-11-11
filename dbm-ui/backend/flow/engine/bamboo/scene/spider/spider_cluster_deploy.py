@@ -266,15 +266,14 @@ class TenDBClusterApplyFlow(object):
         deploy_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
 
         # 拼接执行原子任务活动节点需要的通用的私有参数结构体, 减少代码重复率，但引用时注意内部参数值传递的问题
-        # 增加old_instance_configs的参数，用于安装mysql实例时，需要使用到指定的mysql的配置信息
-        # 增加spider_copy_config的参数，用于安装spider实例时，需要使用到spider的配置信息
+        # 注意：cluster 参数按阶段差异化赋值，避免各安装阶段互相污染：
+        #   - 安装mysql实例阶段：cluster={"old_instance_configs": ...}，用于指定实例的mysql配置信息
+        #   - 安装spider实例阶段：cluster={"immutable_domain": ..., "auto_incr_value": ..., "spider_copy_config": ...}
+        #     其中 spider_copy_config 用于安装spider实例时克隆指定的spider配置信息
         exec_act_kwargs = ExecActuatorKwargs(
             bk_cloud_id=int(self.data["bk_cloud_id"]),
             cluster_type=ClusterType.TenDBCluster,
-            cluster={
-                "old_instance_configs": self.data.get("old_instance_configs", {}),
-                "spider_copy_config": self.data.get("spider_copy_config", {}),
-            },
+            cluster={},
         )
 
         bk_host_ids = []
@@ -336,6 +335,8 @@ class TenDBClusterApplyFlow(object):
 
         # 阶段3 并发安装mysql实例(一个活动节点部署多实例)
         acts_list = []
+        # 安装mysql实例时，cluster 只需要携带 old_instance_configs（指定实例的配置信息）
+        exec_act_kwargs.cluster = {"old_instance_configs": self.data.get("old_instance_configs", {})}
         for mysql_ip in self.data["mysql_ip_list"]:
             exec_act_kwargs.exec_ip = mysql_ip["ip"]
             exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_mysql_payload.__name__
@@ -369,9 +370,11 @@ class TenDBClusterApplyFlow(object):
         auto_incr_value = 1
         for spider_ip in self.data["spider_ip_list"]:
             exec_act_kwargs.exec_ip = spider_ip["ip"]
+            # 安装spider实例时，cluster 需要携带 spider_copy_config（spider配置克隆信息）
             exec_act_kwargs.cluster = {
                 "immutable_domain": self.data["immutable_domain"],
                 "auto_incr_value": auto_incr_value,
+                "spider_copy_config": self.data.get("spider_copy_config", {}),
             }
             exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_spider_payload.__name__
             acts_list.append(
@@ -542,15 +545,14 @@ class TenDBClusterApplyFlow(object):
         deploy_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
 
         # 拼接执行原子任务活动节点需要的通用的私有参数结构体, 减少代码重复率，但引用时注意内部参数值传递的问题
-        # 增加old_instance_configs的参数，用于安装mysql实例时，需要使用到指定的mysql的配置信息
-        # 增加spider_copy_config的参数，用于安装spider实例时，需要使用到spider的配置信息
+        # 注意：cluster 参数按阶段差异化赋值，避免各安装阶段互相污染：
+        #   - 安装mysql实例阶段：cluster={"old_instance_configs": ...}，用于指定实例的mysql配置信息
+        #   - 安装spider实例阶段：cluster={"immutable_domain": ..., "auto_incr_value": ..., "spider_copy_config": ...}
+        #     其中 spider_copy_config 用于安装spider实例时克隆指定的spider配置信息
         exec_act_kwargs = ExecActuatorKwargs(
             bk_cloud_id=int(self.data["bk_cloud_id"]),
             cluster_type=ClusterType.TenDBCluster,
-            cluster={
-                "old_instance_configs": self.data.get("old_instance_configs", {}),
-                "spider_copy_config": self.data.get("spider_copy_config", {}),
-            },
+            cluster={},
         )
 
         bk_host_ids = []
@@ -612,6 +614,8 @@ class TenDBClusterApplyFlow(object):
 
         # 阶段3 并发安装mysql实例(一个活动节点部署多实例)
         acts_list = []
+        # 安装mysql实例时，cluster 只需要携带 old_instance_configs（指定实例的配置信息）
+        exec_act_kwargs.cluster = {"old_instance_configs": self.data.get("old_instance_configs", {})}
         for mysql_ip in self.data["mysql_ip_list"]:
             exec_act_kwargs.exec_ip = mysql_ip["ip"]
             exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_mysql_payload.__name__
@@ -645,9 +649,11 @@ class TenDBClusterApplyFlow(object):
         auto_incr_value = 1
         for spider_ip in self.data["spider_ip_list"]:
             exec_act_kwargs.exec_ip = spider_ip["ip"]
+            # 安装spider实例时，cluster 需要携带 spider_copy_config（spider配置克隆信息）
             exec_act_kwargs.cluster = {
                 "immutable_domain": self.data["immutable_domain"],
                 "auto_incr_value": auto_incr_value,
+                "spider_copy_config": self.data.get("spider_copy_config", {}),
             }
             exec_act_kwargs.get_mysql_payload_func = MysqlActPayload.get_install_spider_payload.__name__
             acts_list.append(
