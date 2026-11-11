@@ -48,7 +48,8 @@ export const useClusterQuickSearch = (cluster_type: ClusterTypes | ClusterTypes[
         name: t('访问入口（域名 / CLB / 北极星）'),
         type: 'multiple-input',
         validator: (value: string) => {
-          return !ipPort.test(value) && !ipv4.test(value);
+          // 排除 IP:Port（归实例），CLB 等入口可能是纯 IPv4，放行
+          return !ipPort.test(value);
         },
       },
 
