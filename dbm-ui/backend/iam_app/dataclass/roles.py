@@ -15,6 +15,7 @@ from typing import Dict, List
 from django.utils.translation import gettext_lazy as _
 
 from backend.configuration.constants import DBType
+from backend.env import RUN_VER
 from backend.iam_app.dataclass.actions import ActionEnum, ActionMeta, _all_actions
 
 # 各组件 DBA 共有的操作，三段的鉴权范围不同，见注释
@@ -376,11 +377,17 @@ class RoleMeta:
     description: str
     # 角色包含的操作。为 None 表示包含全部已注册操作，用于平台管理员随注册面自动增减
     actions: List[ActionMeta] = None
+    # 仅内部版注册。开源环境不写入权限模型
+    internal_only: bool = False
+
+    def enabled_in_internal_env(self) -> bool:
+        """internal_only 的角色只在内部版 RUN_VER=ieod 注册。"""
+        return not self.internal_only or RUN_VER == "ieod"
 
     def get_actions(self) -> List[ActionMeta]:
         """角色包含的动作，未同步到V4的动作不纳入"""
         actions = _all_actions.values() if self.actions is None else self.actions
-        return [action for action in actions if not action.is_disabled_v4()]
+        return [action for action in actions if not action.is_disabled_v4() and action.enabled_in_internal_env()]
 
     def to_json_v4(self) -> Dict:
         # 角色内动作的授权维度取动作自身关联的资源类型，无关资源的动作则为空
@@ -511,17 +518,29 @@ class RoleEnum:
     #     actions=_make_dba_actions(DBType.Oracle),
     # )
 
-    # ---------------- 平台管理员：含全部已注册操作，随注册面自动增减 ----------------
+    # V4 没有属性授权。创建自主维护域名时，把该角色授到这个域名上，创建人因此拥有 dns_manage。
+    DNS_DOMAIN_MANAGER = RoleMeta(
+        id="dns_domain_manager",
+        name=_("域名创建者"),
+        description=_("创建自主维护域名后，拥有该域名的 dns_manage。"),
+        actions=[ActionEnum.DNS_MANAGE],
+        internal_only=True,
+    )
+
+    # actions=None 含全部已注册操作，因此包含域名服务的三项。
+    # 授予该角色时，dns_manage 的资源范围是 dns_domain 无限制（*）。
     PLATFORM_ADMIN = RoleMeta(
         id="dbm_platform_admin",
         name=_("平台管理员"),
-        description=_("拥有平台全部已注册操作（含全局设置、全部组件）。"),
+        description=_("拥有平台全部已注册操作（含全局设置、全部组件；内部版另含域名服务）。"),
         # None表示所有已注册操作，[]表示无动作
         actions=None,
     )
 
 
-# 角色的动作列表不允许为空，无动作的角色不注册到IAM
+# 角色的动作列表不允许为空，无动作的角色不注册到IAM。仅内部启用的角色在开源环境不注册
 _all_roles = {
-    role.id: role for role in RoleEnum.__dict__.values() if isinstance(role, RoleMeta) and role.get_actions()
+    role.id: role
+    for role in RoleEnum.__dict__.values()
+    if isinstance(role, RoleMeta) and role.enabled_in_internal_env() and role.get_actions()
 }
