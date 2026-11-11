@@ -23,6 +23,7 @@ from backend.core import notify
 from backend.db_dirty.constants import MachineEventType
 from backend.db_dirty.models import MachineEvent
 from backend.db_meta.models import AppCache, Spec, Tag
+from backend.db_services.dbresource.apply_protocol import apply_resource
 from backend.db_services.dbresource.exceptions import ResourceApplyException, ResourceApplyInsufficientException
 from backend.ticket import constants
 from backend.ticket.builders.common.base import fetch_apply_hosts
@@ -151,11 +152,13 @@ class ResourceApplyFlow(BaseTicketFlow):
                 "os_type": host["os_type"],
                 # bk_disk为系统盘，storage_device为数据盘/data|/data1
                 "storage_device": host["storage_device"],
-                # 补充城市和园区
+                # 补充城市、园区和云可用区。云可用区是容灾判定的单元
                 "idc_id": host.get("idc_id"),
                 "city": host.get("city"),
                 "sub_zone": host.get("sub_zone"),
                 "sub_zone_id": host.get("sub_zone_id"),
+                "bk_cloud_region": host.get("bk_cloud_region") or "",
+                "bk_cloud_zone": host.get("bk_cloud_zone") or "",
                 "rack_id": host.get("rack_id"),
                 "device_class": host.get("device_class"),
                 # 补充主机资源池原信息，可能用于重导入
@@ -198,8 +201,8 @@ class ResourceApplyFlow(BaseTicketFlow):
         if affinity in [AffinityEnum.SAME_SUBZONE, AffinityEnum.SAME_SUBZONE_CROSS_SWTICH]:
             apply_params.update(groups_in_same_location=True)
 
-        # 向资源池申请机器
-        resp = DBResourceApi.resource_apply(params=apply_params, raw=True)
+        # 向资源池申请机器（按开关走 v1/v2 协议）
+        resp = apply_resource(params=apply_params, raw=True)
         if resp["code"] == ResourceApplyErrCode.RESOURCE_LAKE:
             # 如果是资源不足，则创建补货单，用户手动处理后可以重试资源申请
             self.create_replenish_todo()

@@ -22,7 +22,6 @@ from backend.configuration.constants import AffinityEnum, DBType, SystemSettings
 from backend.configuration.models import DBAdministrator
 from backend.db_meta.enums import ClusterPhase, ClusterType, InstanceRole, MachineType
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
-from backend.db_meta.models.city_map import BKSubzone
 from backend.db_meta.models.storage_instance_tuple import StorageInstanceTuple
 from backend.db_report.enums import MetaCheckSubType, ReportStateType
 from backend.db_report.portrait.redis_dimensions import RedisPortraitDimensionCode
@@ -149,11 +148,14 @@ class RedisAffinityChecker:
     This checker ensures that Redis clusters maintain proper physical separation between
     components (proxies, masters, and slaves) to minimize the impact of hardware failures.
 
+    判定单元为**云可用区**（``Machine.bk_cloud_zone`` / ``Cluster.cloud_zone_list``）：
+    同一云可用区下的多个园区网络等同，不再视为已分散；机架判断保持不变。
+
     Supported Affinity Levels:
     ---------------------------
-    1. SAME_SUBZONE_CROSS_SWTICH: Components within the same subzone but on different racks
-    2. CROS_SUBZONE: Components distributed across different subzones
-    3. CROSS_RACK: Components on different racks (subzone placement is flexible)
+    1. SAME_SUBZONE_CROSS_SWTICH: Components within the same cloud zone but on different racks
+    2. CROS_SUBZONE: Components distributed across different cloud zones
+    3. CROSS_RACK: Components on different racks (cloud zone placement is flexible)
 
     Validation Rules:
     -----------------
@@ -161,29 +163,29 @@ class RedisAffinityChecker:
     A. Proxy Distribution (for clusters with proxies):
        Validates that proxy instances are properly distributed to avoid single points of failure.
 
-       Subzone requirements:
-       - SAME_SUBZONE_CROSS_SWTICH: All proxies must be in a single subzone
-       - CROS_SUBZONE: No subzone may contain more than 2/3 of total proxies
-       - CROSS_RACK: No subzone restrictions
+       Cloud zone requirements:
+       - SAME_SUBZONE_CROSS_SWTICH: All proxies must be in a single cloud zone
+       - CROS_SUBZONE: No cloud zone may contain more than 2/3 of total proxies
+       - CROSS_RACK: No cloud zone restrictions
 
-       Rack distribution (applies within each subzone):
-       - Given n proxies in a subzone across m racks, requires: m >= floor(n/2) + 1
+       Rack distribution (applies within each cloud zone):
+       - Given n proxies in a cloud zone across m racks, requires: m >= floor(n/2) + 1
        - This ensures no single rack failure can take down more than half the proxies
 
     B. Master-Slave Pairs (backend storage):
        Validates each master-slave replication pair for proper physical separation.
 
        - SAME_SUBZONE_CROSS_SWTICH:
-         * Master and slave MUST be in the same subzone
+         * Master and slave MUST be in the same cloud zone
          * Master and slave MUST be on different racks
 
        - CROS_SUBZONE:
-         * Master and slave MUST be in different subzones
-         * Rack placement is not validated (different subzones provide sufficient separation)
+         * Master and slave MUST be in different cloud zones
+         * Rack placement is not validated (different cloud zones provide sufficient separation)
 
        - CROSS_RACK:
-         * If in different subzones: automatically compliant
-         * If in the same subzone: MUST be on different racks
+         * If in different cloud zones: automatically compliant
+         * If in the same cloud zone: MUST be on different racks
 
        Masters without configured slaves generate warnings but do not fail the check.
     """
@@ -192,7 +194,6 @@ class RedisAffinityChecker:
     BACKEND_PAIRS_CHECK = "backend_pairs_location"
 
     SKIP_PROXY_CHECK_LABEL = {"directmode": "true"}
-    _subzone_map_cache: Dict[int, str] = {}
 
     def __init__(self, config: Optional[RedisAffinityCheckConfig] = None):
         """Initialize the affinity checker"""
@@ -219,7 +220,6 @@ class RedisAffinityChecker:
         """
         Debug check a single cluster
         """
-        self.__class__._subzone_map_cache = BKSubzone.get_subzone_map(get_cache=True)
         clusters = _load_affinity_clusters_page(
             list(Cluster.objects.filter(immute_domain=cluster_domain).values_list("id", flat=True))
         )
@@ -234,8 +234,6 @@ class RedisAffinityChecker:
         """
         Check affinity for all Redis clusters
         """
-        self.__class__._subzone_map_cache = BKSubzone.get_subzone_map(get_cache=True)
-
         delete_old_meta_check_reports(
             MetaCheckSubType.AffinityViolation,
             self._supported_cluster_types,
@@ -300,7 +298,8 @@ class RedisAffinityChecker:
             ]
 
         check_results = []
-        expected_subzone_id = self._resolve_expected_subzone_id(cluster.zone_list or [])
+        # 判定单元为云可用区；cloud_zone_list 为空表示随机（与旧 zone_list 语义一致），不做“指定可用区”校验
+        expected_cloud_zone = self._resolve_expected_cloud_zone(cluster.cloud_zone_list or [])
 
         # Skip proxy check if cluster is RedisInstance or labeled
         skip_proxy_check = cluster.cluster_type == ClusterType.RedisInstance.value or is_cluster_labeled_with(
@@ -314,7 +313,7 @@ class RedisAffinityChecker:
             proxy_result = self._validate_proxies_affinity(
                 proxy_instances=proxy_instances,
                 affinity_level=affinity_level,
-                expected_subzone_id=expected_subzone_id,
+                expected_cloud_zone=expected_cloud_zone,
             )
             proxy_result["result_type"] = RedisAffinityChecker.PROXY_DISTRIBUTION_CHECK
             proxy_result["identifier"] = "proxies"
@@ -327,7 +326,7 @@ class RedisAffinityChecker:
         backend_results = self._validate_backends_affinity(
             master_instances=master_instances,
             affinity_level=affinity_level,
-            expected_subzone_id=expected_subzone_id,
+            expected_cloud_zone=expected_cloud_zone,
         )
         for identifier, result in backend_results.items():
             result["result_type"] = RedisAffinityChecker.BACKEND_PAIRS_CHECK
@@ -366,27 +365,28 @@ class RedisAffinityChecker:
         return False
 
     @classmethod
-    def _resolve_expected_subzone_id(cls, zone_list: List[Union[int, str]]) -> Optional[int]:
+    def _resolve_expected_cloud_zone(cls, cloud_zone_list: List[Union[int, str]]) -> Optional[str]:
         """
-        Resolve expected subzone from cluster meta zone_list.
-        For SAME_SUBZONE style checks we use the first configured subzone.
+        Resolve expected cloud zone from cluster meta cloud_zone_list.
+        For SAME_SUBZONE style checks we use the first configured cloud zone.
+        云可用区本身就是字符串（如 ap-guangzhou-1），不再做 int 转换；
+        空列表表示随机部署，返回 None（即不校验“指定可用区”）。
         """
-        if not zone_list:
+        if not cloud_zone_list:
             return None
 
-        first_zone = zone_list[0]
-        try:
-            return int(first_zone)
-        except (TypeError, ValueError):
-            logger.warning("affinity_check: invalid zone_list value: %s", first_zone)
+        first_zone = cloud_zone_list[0]
+        if first_zone in [None, ""]:
+            logger.warning("affinity_check: empty cloud_zone_list value: %s", cloud_zone_list)
             return None
+        return str(first_zone)
 
     @classmethod
     def _validate_proxies_affinity(
         cls,
         proxy_instances,
         affinity_level: AffinityEnum,
-        expected_subzone_id: Optional[int] = None,
+        expected_cloud_zone: Optional[str] = None,
     ) -> Dict[str, any]:
         """
         Check if proxies fulfill the affinity requirement
@@ -394,17 +394,17 @@ class RedisAffinityChecker:
         Returns:
             dict: {msg: str, state: ReportStateType, machine_type: MachineType, proxy_count: int}
         """
-        subzones_racks_map = defaultdict(set)
-        subzones_machines_map = defaultdict(int)
-        subzones_ips_map = defaultdict(list)  # Track IPs per (subzone_id, rack_id)
+        cloud_zones_racks_map = defaultdict(set)
+        cloud_zones_machines_map = defaultdict(int)
+        cloud_zones_ips_map = defaultdict(list)  # Track IPs per (cloud_zone, rack_id)
         machine_type: MachineType = None
         for proxy_obj in proxy_instances:
-            subzone_id = proxy_obj.machine.bk_sub_zone_id
+            cloud_zone = proxy_obj.machine.bk_cloud_zone
             rack_id = proxy_obj.machine.bk_rack_id
 
-            subzones_racks_map[subzone_id].add(rack_id)  # record rack in a subzone
-            subzones_machines_map[subzone_id] += 1  # record subzone heatmap
-            subzones_ips_map[(subzone_id, rack_id)].append(proxy_obj.machine.ip)  # collect location -> ip
+            cloud_zones_racks_map[cloud_zone].add(rack_id)  # record rack in a cloud zone
+            cloud_zones_machines_map[cloud_zone] += 1  # record cloud zone heatmap
+            cloud_zones_ips_map[(cloud_zone, rack_id)].append(proxy_obj.machine.ip)  # collect location -> ip
             machine_type = proxy_obj.machine_type
 
         result = {
@@ -417,18 +417,20 @@ class RedisAffinityChecker:
         msg, state = None, ReportStateType.NORMAL
         match affinity_level:
             case AffinityEnum.SAME_SUBZONE_CROSS_SWTICH:
-                msg, state = cls._check_proxies_same_subzone(
-                    racks_map=subzones_racks_map,
-                    machines_map=subzones_machines_map,
-                    ips_map=subzones_ips_map,
-                    expected_subzone_id=expected_subzone_id,
+                msg, state = cls._check_proxies_same_cloud_zone(
+                    racks_map=cloud_zones_racks_map,
+                    machines_map=cloud_zones_machines_map,
+                    ips_map=cloud_zones_ips_map,
+                    expected_cloud_zone=expected_cloud_zone,
                 )
             case AffinityEnum.CROS_SUBZONE:
-                msg, state = cls._check_proxies_cross_subzone(
-                    subzones_racks_map, subzones_machines_map, subzones_ips_map
+                msg, state = cls._check_proxies_cross_cloud_zone(
+                    cloud_zones_racks_map, cloud_zones_machines_map, cloud_zones_ips_map
                 )
             case AffinityEnum.CROSS_RACK:
-                msg, state = cls._check_proxies_cross_rack(subzones_racks_map, subzones_machines_map, subzones_ips_map)
+                msg, state = cls._check_proxies_cross_rack(
+                    cloud_zones_racks_map, cloud_zones_machines_map, cloud_zones_ips_map
+                )
 
         if msg:
             result["state"] = state
@@ -443,33 +445,27 @@ class RedisAffinityChecker:
         return "{}。{}。".format(normalized_violation_msg, str(_("建议：{}").format(suggestion)))
 
     @classmethod
-    def _get_subzone_display(cls, subzone_id: Union[int, str]) -> str:
-        """Get human readable subzone display name with id fallback."""
-        subzone_name = cls._subzone_map_cache.get(subzone_id)
-        if subzone_name is None:
-            subzone_name = cls._subzone_map_cache.get(str(subzone_id))
-        if subzone_name is None:
-            # Fallback in case helper is used before check initialization.
-            subzone_map = BKSubzone.get_subzone_map(get_cache=True)
-            subzone_name = subzone_map.get(subzone_id) or subzone_map.get(str(subzone_id))
-        return subzone_name or _("园区ID:{}").format(subzone_id)
+    def _get_cloud_zone_display(cls, cloud_zone: Union[int, str]) -> str:
+        """云可用区本身就是可读名称（如 ap-guangzhou-1），空值给出占位文案。"""
+        zone = "" if cloud_zone in [None, ""] else str(cloud_zone).strip()
+        return zone or _("未设置可用区")
 
     @classmethod
-    def _pick_ips_from_subzone(
+    def _pick_ips_from_cloud_zone(
         cls,
         ips_map: dict,
-        target_subzone_id: int,
+        target_cloud_zone: str,
         pick_count: int,
     ) -> List[str]:
         """
-        Pick IPs from a target subzone, prioritizing racks with more instances first.
+        Pick IPs from a target cloud zone, prioritizing racks with more instances first.
         """
         if pick_count <= 0:
             return []
 
         candidate_racks = []
-        for (subzone_id, rack_id), ips in ips_map.items():
-            if subzone_id != target_subzone_id:
+        for (cloud_zone, rack_id), ips in ips_map.items():
+            if cloud_zone != target_cloud_zone:
                 continue
             sorted_ips = sorted(ips)
             candidate_racks.append((rack_id, sorted_ips))
@@ -486,72 +482,72 @@ class RedisAffinityChecker:
         return selected_ips
 
     @classmethod
-    def _build_proxy_same_subzone_multi_subzone_suggestion(
+    def _build_proxy_same_cloud_zone_suggestion(
         cls,
         machines_map: dict,
         ips_map: dict,
-        expected_subzone_id: Optional[int] = None,
+        expected_cloud_zone: Optional[str] = None,
     ) -> str:
         """
-        Suggest moving proxies into target subzone from cluster meta if provided.
-        Otherwise fallback to majority subzone.
+        Suggest moving proxies into target cloud zone from cluster meta if provided.
+        Otherwise fallback to majority cloud zone.
         """
-        target_subzone_id = expected_subzone_id
-        if target_subzone_id is None:
-            target_subzone_id, _x = max(
+        target_cloud_zone = expected_cloud_zone
+        if target_cloud_zone is None:
+            target_cloud_zone, _x = max(
                 sorted(machines_map.items(), key=lambda item: str(item[0])),
                 key=lambda item: item[1],
             )
 
         total_proxy_count = sum(machines_map.values())
-        target_subzone_count = machines_map.get(target_subzone_id, 0)
-        replace_count = total_proxy_count - target_subzone_count
+        target_cloud_zone_count = machines_map.get(target_cloud_zone, 0)
+        replace_count = total_proxy_count - target_cloud_zone_count
 
         non_target_ips = []
-        for (subzone_id, _x), ips in sorted(ips_map.items(), key=lambda item: (str(item[0][0]), str(item[0][1]))):
-            if subzone_id != target_subzone_id:
+        for (cloud_zone, _x), ips in sorted(ips_map.items(), key=lambda item: (str(item[0][0]), str(item[0][1]))):
+            if cloud_zone != target_cloud_zone:
                 non_target_ips.extend(sorted(ips))
 
         selected_ips = non_target_ips[:replace_count]
-        target_subzone_display = cls._get_subzone_display(target_subzone_id)
-        return _("替换或迁移 {} 台 proxy 机器 [{}]（不在目标园区({})），使所有 proxy 位于同一园区").format(
-            replace_count, ", ".join(selected_ips), target_subzone_display
+        target_cloud_zone_display = cls._get_cloud_zone_display(target_cloud_zone)
+        return _("替换或迁移 {} 台 proxy 机器 [{}]（不在目标可用区({})），使所有 proxy 位于同一可用区").format(
+            replace_count, ", ".join(selected_ips), target_cloud_zone_display
         )
 
     @classmethod
-    def _build_proxy_cross_subzone_suggestion(
+    def _build_proxy_cross_cloud_zone_suggestion(
         cls,
-        subzone_id: int,
+        cloud_zone: str,
         replace_count: int,
         ips_map: dict,
     ) -> str:
         """
-        Suggest moving minimal proxies out of an overloaded subzone.
+        Suggest moving minimal proxies out of an overloaded cloud zone.
         """
-        selected_ips = cls._pick_ips_from_subzone(
-            ips_map=ips_map, target_subzone_id=subzone_id, pick_count=replace_count
+        selected_ips = cls._pick_ips_from_cloud_zone(
+            ips_map=ips_map, target_cloud_zone=cloud_zone, pick_count=replace_count
         )
-        subzone_display = cls._get_subzone_display(subzone_id)
-        return _("将 {} 台 proxy 机器 [{}]（位于过载园区({})）迁移到其他园区，以满足园区分布要求").format(
-            replace_count, ", ".join(selected_ips), subzone_display
+        cloud_zone_display = cls._get_cloud_zone_display(cloud_zone)
+        return _("将 {} 台 proxy 机器 [{}]（位于过载可用区({})）迁移到其他可用区，以满足可用区分布要求").format(
+            replace_count, ", ".join(selected_ips), cloud_zone_display
         )
 
     @classmethod
     def _build_proxy_cross_rack_suggestion(
         cls,
-        subzone_id: int,
+        cloud_zone: str,
         replace_count: int,
         ips_map: dict,
     ) -> str:
         """
-        Suggest moving minimal proxies to different racks/switches in the same subzone.
+        Suggest moving minimal proxies to different racks/switches in the same cloud zone.
         """
-        selected_ips = cls._pick_ips_from_subzone(
-            ips_map=ips_map, target_subzone_id=subzone_id, pick_count=replace_count
+        selected_ips = cls._pick_ips_from_cloud_zone(
+            ips_map=ips_map, target_cloud_zone=cloud_zone, pick_count=replace_count
         )
-        subzone_display = cls._get_subzone_display(subzone_id)
-        return _("将 {} 台 proxy 机器 [{}]（位于园区({})）替换或迁移到不同机架，以满足机架分布要求").format(
-            replace_count, ", ".join(selected_ips), subzone_display
+        cloud_zone_display = cls._get_cloud_zone_display(cloud_zone)
+        return _("将 {} 台 proxy 机器 [{}]（位于可用区({})）替换或迁移到不同机架，以满足机架分布要求").format(
+            replace_count, ", ".join(selected_ips), cloud_zone_display
         )
 
     @classmethod
@@ -579,62 +575,62 @@ class RedisAffinityChecker:
         )
 
     @classmethod
-    def _check_proxies_same_subzone(
+    def _check_proxies_same_cloud_zone(
         cls,
         racks_map: dict,
         machines_map: dict,
         ips_map: dict,
-        expected_subzone_id: Optional[int] = None,
+        expected_cloud_zone: Optional[str] = None,
     ) -> Optional[str]:
         """Check SAME_SUBZONE_CROSS_SWTICH for proxies"""
         proxy_count = sum(machines_map.values())
-        subzone_count = len(racks_map.keys())
-        if subzone_count != 1:
+        cloud_zone_count = len(racks_map.keys())
+        if cloud_zone_count != 1:
             all_ips = [ip for ips in ips_map.values() for ip in ips]
             ips_str = ", ".join(all_ips)
-            if expected_subzone_id is None:
-                violation_msg = _("亲和性违规：Proxy [{}] 分布在 {} 个不同园区，期望为 1 个园区").format(ips_str, subzone_count)
+            if expected_cloud_zone is None:
+                violation_msg = _("亲和性违规：Proxy [{}] 分布在 {} 个不同可用区，期望为 1 个可用区").format(ips_str, cloud_zone_count)
             else:
-                expected_subzone_display = cls._get_subzone_display(expected_subzone_id)
-                violation_msg = _("亲和性违规：Proxy [{}] 分布在 {} 个不同园区，期望位于集群元数据指定的园区({})").format(
-                    ips_str, subzone_count, expected_subzone_display
+                expected_cloud_zone_display = cls._get_cloud_zone_display(expected_cloud_zone)
+                violation_msg = _("亲和性违规：Proxy [{}] 分布在 {} 个不同可用区，期望位于集群元数据指定的可用区({})").format(
+                    ips_str, cloud_zone_count, expected_cloud_zone_display
                 )
-            suggestion = cls._build_proxy_same_subzone_multi_subzone_suggestion(
+            suggestion = cls._build_proxy_same_cloud_zone_suggestion(
                 machines_map=machines_map,
                 ips_map=ips_map,
-                expected_subzone_id=expected_subzone_id,
+                expected_cloud_zone=expected_cloud_zone,
             )
             return (cls._append_suggestion(violation_msg, suggestion), ReportStateType.ABNORMAL)
 
-        subzone_id = list(racks_map.keys())[0]
-        if expected_subzone_id is not None and subzone_id != expected_subzone_id:
-            all_ips_in_subzone = [ip for (sz_id, _), ips in ips_map.items() if sz_id == subzone_id for ip in ips]
-            ips_str = ", ".join(all_ips_in_subzone)
-            current_subzone_display = cls._get_subzone_display(subzone_id)
-            expected_subzone_display = cls._get_subzone_display(expected_subzone_id)
-            violation_msg = _("亲和性违规：Proxy [{}] 位于园区({})，期望位于集群元数据指定的园区({})").format(
-                ips_str, current_subzone_display, expected_subzone_display
+        cloud_zone = list(racks_map.keys())[0]
+        if expected_cloud_zone is not None and cloud_zone != expected_cloud_zone:
+            all_ips_in_cloud_zone = [ip for (cz, _), ips in ips_map.items() if cz == cloud_zone for ip in ips]
+            ips_str = ", ".join(all_ips_in_cloud_zone)
+            current_cloud_zone_display = cls._get_cloud_zone_display(cloud_zone)
+            expected_cloud_zone_display = cls._get_cloud_zone_display(expected_cloud_zone)
+            violation_msg = _("亲和性违规：Proxy [{}] 位于可用区({})，期望位于集群元数据指定的可用区({})").format(
+                ips_str, current_cloud_zone_display, expected_cloud_zone_display
             )
-            suggestion = cls._build_proxy_same_subzone_multi_subzone_suggestion(
+            suggestion = cls._build_proxy_same_cloud_zone_suggestion(
                 machines_map=machines_map,
                 ips_map=ips_map,
-                expected_subzone_id=expected_subzone_id,
+                expected_cloud_zone=expected_cloud_zone,
             )
             return cls._append_suggestion(violation_msg, suggestion), ReportStateType.ABNORMAL
 
         rack_count = len(list(racks_map.values())[0])
         ok, min_required_racks = cls._cross_rack_check_and_get_limits(proxy_count, rack_count)
         if not ok:
-            # Collect all IPs for this subzone across all racks
-            all_ips_in_subzone = [ip for (sz_id, _), ips in ips_map.items() if sz_id == subzone_id for ip in ips]
-            ips_str = ", ".join(all_ips_in_subzone)
-            subzone_display = cls._get_subzone_display(subzone_id)
-            violation_msg = _("亲和性违规：Proxy [{}] 在园区({}) 内仅分布在 {} 个机架，期望至少 {} 个机架").format(
-                ips_str, subzone_display, rack_count, min_required_racks
+            # Collect all IPs for this cloud zone across all racks
+            all_ips_in_cloud_zone = [ip for (cz, _), ips in ips_map.items() if cz == cloud_zone for ip in ips]
+            ips_str = ", ".join(all_ips_in_cloud_zone)
+            cloud_zone_display = cls._get_cloud_zone_display(cloud_zone)
+            violation_msg = _("亲和性违规：Proxy [{}] 在可用区({}) 内仅分布在 {} 个机架，期望至少 {} 个机架").format(
+                ips_str, cloud_zone_display, rack_count, min_required_racks
             )
             replace_count = max(0, min_required_racks - rack_count)
             suggestion = cls._build_proxy_cross_rack_suggestion(
-                subzone_id=subzone_id,
+                cloud_zone=cloud_zone,
                 replace_count=replace_count,
                 ips_map=ips_map,
             )
@@ -642,27 +638,27 @@ class RedisAffinityChecker:
         return None, ReportStateType.NORMAL
 
     @classmethod
-    def _check_proxies_cross_subzone(cls, racks_map: dict, machines_map: dict, ips_map: dict) -> Optional[str]:
+    def _check_proxies_cross_cloud_zone(cls, racks_map: dict, machines_map: dict, ips_map: dict) -> Optional[str]:
         """Check CROS_SUBZONE for proxies"""
         proxy_count = sum(machines_map.values())
-        max_proxies_per_subzone = floor(
+        max_proxies_per_cloud_zone = floor(
             proxy_count / 3 * 2
-        )  # We expect each subzone contains no more than 2/3 of all proxies
+        )  # We expect each cloud zone contains no more than 2/3 of all proxies
 
-        for subzone_id in racks_map.keys():
-            sub_proxy_count = machines_map[subzone_id]
-            # Collect all IPs for this subzone across all racks
-            all_ips_in_subzone = [ip for (sz_id, _), ips in ips_map.items() if sz_id == subzone_id for ip in ips]
-            ips_str = ", ".join(all_ips_in_subzone)
+        for cloud_zone in racks_map.keys():
+            sub_proxy_count = machines_map[cloud_zone]
+            # Collect all IPs for this cloud zone across all racks
+            all_ips_in_cloud_zone = [ip for (cz, _), ips in ips_map.items() if cz == cloud_zone for ip in ips]
+            ips_str = ", ".join(all_ips_in_cloud_zone)
 
-            if sub_proxy_count > max_proxies_per_subzone:
-                subzone_display = cls._get_subzone_display(subzone_id)
-                violation_msg = _("亲和性违规：{} 个 proxy [{}] 在园区({}) 内超过上限 {}").format(
-                    sub_proxy_count, ips_str, subzone_display, max_proxies_per_subzone
+            if sub_proxy_count > max_proxies_per_cloud_zone:
+                cloud_zone_display = cls._get_cloud_zone_display(cloud_zone)
+                violation_msg = _("亲和性违规：{} 个 proxy [{}] 在可用区({}) 内超过上限 {}").format(
+                    sub_proxy_count, ips_str, cloud_zone_display, max_proxies_per_cloud_zone
                 )
-                replace_count = sub_proxy_count - max_proxies_per_subzone
-                suggestion = cls._build_proxy_cross_subzone_suggestion(
-                    subzone_id=subzone_id,
+                replace_count = sub_proxy_count - max_proxies_per_cloud_zone
+                suggestion = cls._build_proxy_cross_cloud_zone_suggestion(
+                    cloud_zone=cloud_zone,
                     replace_count=replace_count,
                     ips_map=ips_map,
                 )
@@ -674,21 +670,21 @@ class RedisAffinityChecker:
     def _check_proxies_cross_rack(cls, racks_map: dict, machines_map: dict, ips_map: dict) -> Optional[str]:
         """Check CROSS_RACK for proxies"""
         msg = ""
-        for subzone_id, rack_set in racks_map.items():
+        for cloud_zone, rack_set in racks_map.items():
             rack_count = len(rack_set)
-            sub_proxy_count = machines_map[subzone_id]
+            sub_proxy_count = machines_map[cloud_zone]
             ok, min_required_racks = cls._cross_rack_check_and_get_limits(sub_proxy_count, rack_count)
             if not ok:
-                # Collect all IPs for this subzone across all racks
-                all_ips_in_subzone = [ip for (sz_id, _), ips in ips_map.items() if sz_id == subzone_id for ip in ips]
-                ips_str = ", ".join(all_ips_in_subzone)
-                subzone_display = cls._get_subzone_display(subzone_id)
-                violation_msg = _("亲和性违规：{} 个 proxy [{}] 在园区({}) 内仅分布在 {} 个机架，期望至少 {} 个机架\n").format(
-                    sub_proxy_count, ips_str, subzone_display, rack_count, min_required_racks
+                # Collect all IPs for this cloud zone across all racks
+                all_ips_in_cloud_zone = [ip for (cz, _), ips in ips_map.items() if cz == cloud_zone for ip in ips]
+                ips_str = ", ".join(all_ips_in_cloud_zone)
+                cloud_zone_display = cls._get_cloud_zone_display(cloud_zone)
+                violation_msg = _("亲和性违规：{} 个 proxy [{}] 在可用区({}) 内仅分布在 {} 个机架，期望至少 {} 个机架\n").format(
+                    sub_proxy_count, ips_str, cloud_zone_display, rack_count, min_required_racks
                 )
                 replace_count = max(0, min_required_racks - rack_count)
                 suggestion = cls._build_proxy_cross_rack_suggestion(
-                    subzone_id=subzone_id,
+                    cloud_zone=cloud_zone,
                     replace_count=replace_count,
                     ips_map=ips_map,
                 )
@@ -697,7 +693,7 @@ class RedisAffinityChecker:
 
     @classmethod
     def _cross_rack_check_and_get_limits(cls, n_proxy, n_rack) -> Tuple[bool, int]:
-        """Based on the #proxy and #rack in a subzone, determine if it's acceptable"""
+        """Based on the #proxy and #rack in a cloud zone, determine if it's acceptable"""
         min_required_racks = floor(n_proxy / 2 + 1)
         return n_rack >= min_required_racks, min_required_racks
 
@@ -706,7 +702,7 @@ class RedisAffinityChecker:
         cls,
         master_instances,
         affinity_level: AffinityEnum,
-        expected_subzone_id: Optional[int] = None,
+        expected_cloud_zone: Optional[str] = None,
     ) -> Dict[str, Dict[str, any]]:
         """
         Check if the master-slave pairs in cluster fulfill the affinity level
@@ -724,7 +720,7 @@ class RedisAffinityChecker:
             backend_result, slave_ips = cls._check_master_slave_affinity(
                 master_instances=instances,
                 affinity_level=affinity_level,
-                expected_subzone_id=expected_subzone_id,
+                expected_cloud_zone=expected_cloud_zone,
             )
             identifier = master_ip if slave_ips is None else ", ".join(slave_ips)
             backend_results[identifier] = backend_result
@@ -736,7 +732,7 @@ class RedisAffinityChecker:
         cls,
         master_instances: List[StorageInstance],
         affinity_level: str,
-        expected_subzone_id: Optional[int] = None,
+        expected_cloud_zone: Optional[str] = None,
     ) -> Tuple[Dict[str, any], List[str]]:
         """
         Check affinity for all instances on a master machine
@@ -791,13 +787,13 @@ class RedisAffinityChecker:
             msg = None
             match affinity_level:
                 case AffinityEnum.SAME_SUBZONE_CROSS_SWTICH.value:
-                    msg = cls._check_backend_same_subzone(
+                    msg = cls._check_backend_same_cloud_zone(
                         first_master,
                         slave_obj,
-                        expected_subzone_id=expected_subzone_id,
+                        expected_cloud_zone=expected_cloud_zone,
                     )
                 case AffinityEnum.CROS_SUBZONE.value:
-                    msg = cls._check_backend_cross_subzone(first_master, slave_obj)
+                    msg = cls._check_backend_cross_cloud_zone(first_master, slave_obj)
                 case AffinityEnum.CROSS_RACK.value:
                     msg = cls._check_backend_cross_rack(first_master, slave_obj)
 
@@ -819,39 +815,39 @@ class RedisAffinityChecker:
         return result, violating_slaves
 
     @classmethod
-    def _check_backend_same_subzone(
+    def _check_backend_same_cloud_zone(
         cls,
         master_obj: StorageInstance,
         slave_obj: StorageInstance,
-        expected_subzone_id: Optional[int] = None,
+        expected_cloud_zone: Optional[str] = None,
     ) -> Optional[str]:
         """Check SAME_SUBZONE_CROSS_SWTICH affinity for master-slave pair"""
-        master_subzone_id = master_obj.machine.bk_sub_zone_id
-        slave_subzone_id = slave_obj.machine.bk_sub_zone_id
+        master_cloud_zone = master_obj.machine.bk_cloud_zone
+        slave_cloud_zone = slave_obj.machine.bk_cloud_zone
 
-        if master_obj.machine.bk_sub_zone_id != slave_obj.machine.bk_sub_zone_id:
+        if master_cloud_zone != slave_cloud_zone:
             expected_display = (
-                cls._get_subzone_display(expected_subzone_id) if expected_subzone_id is not None else None
+                cls._get_cloud_zone_display(expected_cloud_zone) if expected_cloud_zone is not None else None
             )
-            master_subzone_display = cls._get_subzone_display(master_subzone_id)
-            slave_subzone_display = cls._get_subzone_display(slave_subzone_id)
-            violation_msg = _("亲和性违规：主节点 {} 位于园区({})，副节点 {} 位于园区({})，期望位于同一园区").format(
+            master_cloud_zone_display = cls._get_cloud_zone_display(master_cloud_zone)
+            slave_cloud_zone_display = cls._get_cloud_zone_display(slave_cloud_zone)
+            violation_msg = _("亲和性违规：主节点 {} 位于可用区({})，副节点 {} 位于可用区({})，期望位于同一可用区").format(
                 master_obj.machine.ip,
-                master_subzone_display,
+                master_cloud_zone_display,
                 slave_obj.machine.ip,
-                slave_subzone_display,
+                slave_cloud_zone_display,
             )
             target_rule_desc = (
-                _("园区({}) 且不同机架").format(expected_display)
+                _("可用区({}) 且不同机架").format(expected_display)
                 if expected_display
-                else _("与主节点 {} 位于同一园区且不同机架").format(master_obj.machine.ip)
+                else _("与主节点 {} 位于同一可用区且不同机架").format(master_obj.machine.ip)
             )
             machines_to_move = None
-            if expected_subzone_id is not None:
+            if expected_cloud_zone is not None:
                 machines_to_move = []
-                if master_subzone_id != expected_subzone_id:
+                if master_cloud_zone != expected_cloud_zone:
                     machines_to_move.append((_("主节点"), master_obj))
-                if slave_subzone_id != expected_subzone_id:
+                if slave_cloud_zone != expected_cloud_zone:
                     machines_to_move.append((_("副节点"), slave_obj))
             suggestion = cls._build_backend_replace_slave_suggestion(
                 master_obj=master_obj,
@@ -862,20 +858,20 @@ class RedisAffinityChecker:
             )
             return cls._append_suggestion(violation_msg, suggestion)
 
-        if expected_subzone_id is not None and master_subzone_id != expected_subzone_id:
-            current_subzone_display = cls._get_subzone_display(master_subzone_id)
-            expected_subzone_display = cls._get_subzone_display(expected_subzone_id)
-            violation_msg = _("亲和性违规：主节点 {} 与副节点 {} 位于园区({})，期望位于集群元数据指定的园区({})").format(
+        if expected_cloud_zone is not None and master_cloud_zone != expected_cloud_zone:
+            current_cloud_zone_display = cls._get_cloud_zone_display(master_cloud_zone)
+            expected_cloud_zone_display = cls._get_cloud_zone_display(expected_cloud_zone)
+            violation_msg = _("亲和性违规：主节点 {} 与副节点 {} 位于可用区({})，期望位于集群元数据指定的可用区({})").format(
                 master_obj.machine.ip,
                 slave_obj.machine.ip,
-                current_subzone_display,
-                expected_subzone_display,
+                current_cloud_zone_display,
+                expected_cloud_zone_display,
             )
             suggestion = cls._build_backend_replace_slave_suggestion(
                 master_obj=master_obj,
                 slave_obj=slave_obj,
                 affinity_level=AffinityEnum.SAME_SUBZONE_CROSS_SWTICH.value,
-                target_rule_desc=_("园区({}) 且不同机架").format(expected_subzone_display),
+                target_rule_desc=_("可用区({}) 且不同机架").format(expected_cloud_zone_display),
                 machines_to_move=[(_("主节点"), master_obj), (_("副节点"), slave_obj)],
             )
             return cls._append_suggestion(violation_msg, suggestion)
@@ -884,25 +880,25 @@ class RedisAffinityChecker:
             master_obj=master_obj,
             slave_obj=slave_obj,
             affinity_level=AffinityEnum.SAME_SUBZONE_CROSS_SWTICH.value,
-            target_rule_desc=_("与主节点 {} 位于同一园区且不同机架").format(master_obj.machine.ip),
+            target_rule_desc=_("与主节点 {} 位于同一可用区且不同机架").format(master_obj.machine.ip),
         )
 
     @classmethod
-    def _check_backend_cross_subzone(
+    def _check_backend_cross_cloud_zone(
         cls,
         master_obj: StorageInstance,
         slave_obj: StorageInstance,
     ) -> Optional[str]:
         """Check CROS_SUBZONE affinity for master-slave pair"""
-        if master_obj.machine.bk_sub_zone_id == slave_obj.machine.bk_sub_zone_id:
-            violation_msg = _("亲和性违规：主节点 {} 与副节点 {} 位于同一园区，期望位于不同园区").format(
+        if master_obj.machine.bk_cloud_zone == slave_obj.machine.bk_cloud_zone:
+            violation_msg = _("亲和性违规：主节点 {} 与副节点 {} 位于同一可用区，期望位于不同可用区").format(
                 master_obj.machine.ip, slave_obj.machine.ip
             )
             suggestion = cls._build_backend_replace_slave_suggestion(
                 master_obj=master_obj,
                 slave_obj=slave_obj,
                 affinity_level=AffinityEnum.CROS_SUBZONE.value,
-                target_rule_desc=_("与主节点 {} 不同的园区").format(master_obj.machine.ip),
+                target_rule_desc=_("与主节点 {} 不同的可用区").format(master_obj.machine.ip),
             )
             return cls._append_suggestion(violation_msg, suggestion)
         return None
@@ -916,16 +912,16 @@ class RedisAffinityChecker:
         target_rule_desc: Optional[str] = None,
     ) -> Optional[str]:
         """Check CROSS_RACK affinity for master-slave pair"""
-        # If they are in different subzones, CROSS_RACK is satisfied regardless of rack
-        if master_obj.machine.bk_sub_zone_id != slave_obj.machine.bk_sub_zone_id:
+        # If they are in different cloud zones, CROSS_RACK is satisfied regardless of rack
+        if master_obj.machine.bk_cloud_zone != slave_obj.machine.bk_cloud_zone:
             return None
 
-        # Same subzone (or subzone unknown) - must be in different racks
+        # Same cloud zone (or cloud zone unknown) - must be in different racks
         if master_obj.machine.bk_rack_id == slave_obj.machine.bk_rack_id:
             violation_msg = _("亲和性违规：主节点 {} 与副节点 {} 位于同一机架，期望位于不同机架").format(
                 master_obj.machine.ip, slave_obj.machine.ip
             )
-            final_target_rule = target_rule_desc or _("与主节点 {} 不同的机架（或不同园区）").format(master_obj.machine.ip)
+            final_target_rule = target_rule_desc or _("与主节点 {} 不同的机架（或不同可用区）").format(master_obj.machine.ip)
             suggestion = cls._build_backend_replace_slave_suggestion(
                 master_obj=master_obj,
                 slave_obj=slave_obj,

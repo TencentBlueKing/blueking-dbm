@@ -70,15 +70,15 @@ class AffinityEnum(StrStructuredEnum):
     """
 
     # 这个swtich 拼写错误不要改, 可能会影响老集群
-    SAME_SUBZONE_CROSS_SWTICH = EnumField("SAME_SUBZONE_CROSS_SWTICH", _("指定园区"))
-    SAME_SUBZONE = EnumField("SAME_SUBZONE", _("指定园区(无机架要求)"))
-    CROS_SUBZONE = EnumField("CROS_SUBZONE", _("跨园区"))
-    CROSS_RACK = EnumField("CROSS_RACK", _("不限园区"))
+    SAME_SUBZONE_CROSS_SWTICH = EnumField("SAME_SUBZONE_CROSS_SWTICH", _("指定可用区"))
+    SAME_SUBZONE = EnumField("SAME_SUBZONE", _("指定可用区(无机架要求)"))
+    CROS_SUBZONE = EnumField("CROS_SUBZONE", _("跨可用区"))
+    CROSS_RACK = EnumField("CROSS_RACK", _("跨机架"))
     NONE = EnumField("NONE", _("无"))
-    MAX_EACH_ZONE_EQUAL = EnumField("MAX_EACH_ZONE_EQUAL", _("每个subzone尽量均匀分布"))
+    MAX_EACH_ZONE_EQUAL = EnumField("MAX_EACH_ZONE_EQUAL", _("每个可用区尽量均匀分布"))
     # mongodb专属
-    CROSS_SUBZONE_STRONG = EnumField("CROSS_SUBZONE_STRONG", _("跨园区(强)"))
-    CROSS_SUBZONE_WEAK = EnumField("CROSS_SUBZONE_WEAK", _("跨园区(弱)"))
+    CROSS_SUBZONE_STRONG = EnumField("CROSS_SUBZONE_STRONG", _("跨可用区(强)"))
+    CROSS_SUBZONE_WEAK = EnumField("CROSS_SUBZONE_WEAK", _("跨可用区(弱)"))
 
 
 class DBType(StrStructuredEnum):
@@ -344,7 +344,7 @@ BIZ_CONFIG_INFO = {
     },
 }
 
-# 默认的环境容灾要求: 同城同园区，同城跨园区，同城无园区
+# 默认的环境容灾要求: 指定可用区，不限园区，跨可用区
 AFFINITY_VALUE = [
     {
         "value": AffinityEnum.SAME_SUBZONE_CROSS_SWTICH,
@@ -360,6 +360,7 @@ DEFAULT_MACHINE_PROPERTY = {
     "city_meta": True,  # 地域
     "device_class": True,  # 机型
     "sub_zone_meta": True,  # 园区
+    "cloud_zone_meta": True,  # 云可用区
     "storage_device": True,  # 磁盘
 }
 

@@ -216,6 +216,8 @@ class MySQLRollbackNewHostResourceParamBuilder(BaseOperateResourceParamBuilder):
             role_spec["location_spec"] = {
                 "city": apply_details["city"],
                 "sub_zone_ids": apply_details["zone_list"],
+                # 带上源集群记录的云地域，资源申请走 v2 时可直接使用
+                "bk_cloud_region": cluster.bk_cloud_region or "",
             }
             # 标签与 spec_id 同层，资源池据此精确匹配机器
             role_spec.update(labels=label.get("labels") or [], label_names=label.get("label_names") or [])
@@ -309,13 +311,13 @@ class MySQLRollbackNewHostFlowBuilder(BaseMySQLTicketFlowBuilder):
 
     @staticmethod
     def get_apply_zone_list(cluster: Cluster) -> List[str]:
-        """与集群部署单据保持一致：只有子zone级别的容灾才限定机房列表"""
+        """与集群部署单据保持一致：只有可用区级别的容灾才限定可用区列表"""
         if cluster.disaster_tolerance_level in [
             AffinityEnum.CROS_SUBZONE,
             AffinityEnum.SAME_SUBZONE,
             AffinityEnum.SAME_SUBZONE_CROSS_SWTICH,
         ]:
-            return cluster.zone_list or []
+            return cluster.cloud_zone_list or []
         return []
 
     def patch_apply_ticket_detail(self):

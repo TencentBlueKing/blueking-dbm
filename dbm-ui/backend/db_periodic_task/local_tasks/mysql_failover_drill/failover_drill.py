@@ -21,6 +21,7 @@ from backend.db_meta.models import BKCity, Cluster, Machine, ProxyInstance
 from backend.db_report.enums import ReportStateType
 from backend.db_report.models.failover_drill_report import FailoverDrillReport
 from backend.db_services.cmdb.biz import get_or_create_resource_module, get_resource_biz
+from backend.db_services.dbresource.apply_protocol import apply_resource
 from backend.db_services.dbresource.exceptions import (
     ResourceApplyException,
     ResourceApplyInsufficientException,
@@ -133,7 +134,7 @@ class MysqlFailoverDrill(BaseFailoverDrill):
             "operator": "dba",
         }
 
-        resp = DBResourceApi.resource_apply(params=apply_params, raw=True)
+        resp = apply_resource(params=apply_params, raw=True)
         if resp["code"] == ResourceApplyErrCode.RESOURCE_LAKE:
             info = _("资源不足申请失败，请前往补货后重试{}").format(resp.get("message"))
             self.update_drill_task_report(info)

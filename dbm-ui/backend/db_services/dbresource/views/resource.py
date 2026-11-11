@@ -25,6 +25,7 @@ from backend.components.xwork.client import XworkApi
 from backend.db_dirty.models import MachineEvent
 from backend.db_meta.models import AppCache
 from backend.db_meta.models.machine import DeviceClass
+from backend.db_services.dbresource.apply_protocol import apply_resource
 from backend.db_services.dbresource.constants import RESOURCE_IMPORT_TASK_FIELD, SWAGGER_TAG
 from backend.db_services.dbresource.filters import DeviceClassFilter
 from backend.db_services.dbresource.handlers import ResourceHandler
@@ -217,7 +218,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
     @action(detail=False, methods=["POST"], url_path="apply", serializer_class=ResourceApplySerializer)
     def resource_apply(self, request):
         validated_data = self.params_validate(self.get_serializer_class())
-        return Response(DBResourceApi.resource_apply(params=validated_data))
+        return Response(apply_resource(params=validated_data, raw=False))
 
     @common_swagger_auto_schema(
         operation_summary=_("获取挂载点"),

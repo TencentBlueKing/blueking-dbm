@@ -133,7 +133,12 @@ class MongoDBAutofixResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder)
                     "tolerance": get_mongodb_cluster_tolerance(
                         cluster.disaster_tolerance_level, _tolerance_role(group)
                     ),
-                    "location_spec": {"city": cluster.region, "sub_zone_ids": list(cluster.zone_list or [])},
+                    "location_spec": {
+                        "city": cluster.region,
+                        "sub_zone_ids": list(cluster.cloud_zone_list or []),
+                        # 带上集群记录的云地域，资源申请走 v2 时可直接使用
+                        "bk_cloud_region": cluster.bk_cloud_region or "",
+                    },
                     "current_hosts": current,
                 }
             info["resource_spec"] = resource_spec

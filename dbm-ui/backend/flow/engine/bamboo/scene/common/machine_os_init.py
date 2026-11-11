@@ -540,11 +540,13 @@ class ImportResourceInitStepFlow(object):
             act_component_code=HCMResourceReplenishComponent.code,
             kwargs=asdict(
                 ResourceHcmReplenishKwargs(
-                    subzone=self.data["subzone"],
-                    city=self.data["city"],
+                    subzone=self.data.get("subzone", ""),
+                    city=self.data.get("city", ""),
                     count=self.data["count"],
                     spec_id=self.data["spec_id"],
                     os_name=self.data["os_name"],
+                    bk_cloud_region=self.data.get("bk_cloud_region", ""),
+                    bk_cloud_zone=self.data.get("bk_cloud_zone", ""),
                 )
             ),
         )

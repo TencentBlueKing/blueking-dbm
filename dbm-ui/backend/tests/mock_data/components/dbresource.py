@@ -67,3 +67,8 @@ class DBResourceApiMock(object):
     @classmethod
     def resource_apply(cls, params, *args, **kwargs):
         return cls.resource_pre_apply(params, *args, **kwargs)
+
+    @classmethod
+    def resource_apply_v2(cls, params, *args, **kwargs):
+        """v2 申请按可用区下发，返回结构保持一致"""
+        return cls.resource_pre_apply(params, *args, **kwargs)

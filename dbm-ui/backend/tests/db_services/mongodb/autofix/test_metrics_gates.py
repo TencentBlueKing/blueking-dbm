@@ -186,10 +186,10 @@ def test_is_delay_satisfied():
 
 def test_zone_breaker_by_count():
     candidates = [
-        HostCandidate(ip="127.0.0.1", bk_sub_zone_id=10, bk_city="sz"),
-        HostCandidate(ip="127.0.0.2", bk_sub_zone_id=10, bk_city="sz"),
-        HostCandidate(ip="127.0.0.3", bk_sub_zone_id=10, bk_city="sz"),
-        HostCandidate(ip="127.0.0.4", bk_sub_zone_id=20, bk_city="sz"),
+        HostCandidate(ip="127.0.0.1", bk_sub_zone_id=10, bk_cloud_zone="ap-sz-1", bk_city="sz"),
+        HostCandidate(ip="127.0.0.2", bk_sub_zone_id=10, bk_cloud_zone="ap-sz-1", bk_city="sz"),
+        HostCandidate(ip="127.0.0.3", bk_sub_zone_id=10, bk_cloud_zone="ap-sz-1", bk_city="sz"),
+        HostCandidate(ip="127.0.0.4", bk_sub_zone_id=20, bk_cloud_zone="ap-sz-2", bk_city="sz"),
     ]
     result = zone_city_circuit_breaker(candidates, zone_host_threshold=3, city_host_threshold=5)
     assert {c.ip for c in result.suppressed} == {"127.0.0.1", "127.0.0.2", "127.0.0.3"}
@@ -198,13 +198,13 @@ def test_zone_breaker_by_count():
 
 def test_zone_breaker_by_percent():
     candidates = [
-        HostCandidate(ip="127.0.0.1", bk_sub_zone_id=10, bk_city="gz"),
-        HostCandidate(ip="127.0.0.2", bk_sub_zone_id=10, bk_city="gz"),
+        HostCandidate(ip="127.0.0.1", bk_sub_zone_id=10, bk_cloud_zone="ap-gz-1", bk_city="gz"),
+        HostCandidate(ip="127.0.0.2", bk_sub_zone_id=10, bk_cloud_zone="ap-gz-1", bk_city="gz"),
     ]
     # 2/5 = 0.4 >= 0.3
     result = zone_city_circuit_breaker(
         candidates,
-        zone_total_hosts={10: 5},
+        zone_total_hosts={"ap-gz-1": 5},
         zone_host_threshold=3,
         zone_percent=0.3,
         city_host_threshold=5,
@@ -213,7 +213,10 @@ def test_zone_breaker_by_percent():
 
 
 def test_city_breaker():
-    candidates = [HostCandidate(ip=f"127.0.0.{i}", bk_sub_zone_id=i, bk_city="sh") for i in range(1, 6)]
+    candidates = [
+        HostCandidate(ip=f"127.0.0.{i}", bk_sub_zone_id=i, bk_cloud_zone=f"ap-sh-{i}", bk_city="sh")
+        for i in range(1, 6)
+    ]
     result = zone_city_circuit_breaker(candidates, zone_host_threshold=10, city_host_threshold=5)
     assert len(result.suppressed) == 5
 

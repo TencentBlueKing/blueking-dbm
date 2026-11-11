@@ -85,15 +85,15 @@ class BaseMongoDBOperateDetailSerializer(
         if cluster.disaster_tolerance_level != AffinityEnum.CROS_SUBZONE:
             return
 
-        # 如果其他规格的满足容灾亲和性，则合法
-        other_machine_subzone_ids = {machine.bk_sub_zone_id for machine in machines if machine.spec_id != spec_id}
-        if len(other_machine_subzone_ids) > 1:
+        # 如果其他规格的满足容灾亲和性（分布在不同云可用区），则合法
+        other_machine_cloud_zones = {machine.bk_cloud_zone for machine in machines if machine.spec_id != spec_id}
+        if len(other_machine_cloud_zones) > 1:
             return
 
         # 如果缩容指定规格的机器不是全部裁掉，并且与其他机器规格有差集，则合法
-        shrink_machine_subzone_ids = [machine.bk_sub_zone_id for machine in machines if machine.spec_id == spec_id]
-        machine_count, shrink_machine_subzone_ids = len(shrink_machine_subzone_ids), set(shrink_machine_subzone_ids)
-        if machine_count != count and (shrink_machine_subzone_ids - other_machine_subzone_ids):
+        shrink_machine_cloud_zones = [machine.bk_cloud_zone for machine in machines if machine.spec_id == spec_id]
+        machine_count, shrink_machine_cloud_zones = len(shrink_machine_cloud_zones), set(shrink_machine_cloud_zones)
+        if machine_count != count and (shrink_machine_cloud_zones - other_machine_cloud_zones):
             return
 
         raise serializers.ValidationError(_("缩容规格: {} 的台数: {} 后不满足容灾要求!").format(spec_id, count))
@@ -104,8 +104,8 @@ class BaseMongoDBOperateDetailSerializer(
         if cluster.disaster_tolerance_level != AffinityEnum.CROS_SUBZONE:
             return
 
-        remain_machine_subzone_ids = [machine.bk_sub_zone_id for machine in machines if machine.ip not in ips]
-        if len(set(remain_machine_subzone_ids)) < 2:
+        remain_machine_cloud_zones = [machine.bk_cloud_zone for machine in machines if machine.ip not in ips]
+        if len(set(remain_machine_cloud_zones)) < 2:
             raise serializers.ValidationError(_("缩容机器: {} 后不满足容灾要求!").format(ips))
 
     @classmethod

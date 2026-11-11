@@ -293,6 +293,7 @@ def _aggregate_by_ip(
                 ip=machine.ip,
                 bk_host_id=machine.bk_host_id,
                 bk_sub_zone_id=machine.bk_sub_zone_id or 0,
+                bk_cloud_zone=machine.bk_cloud_zone or "",
                 bk_city=_city_name(machine),
             )
             by_ip[machine.ip] = cand
@@ -442,7 +443,7 @@ def _collect_sustained_peers(
 
 def _apply_zone_city_gates(candidates: List[HostCandidate]) -> List[HostCandidate]:
     """园区/城市熔断，返回通过候选。"""
-    zone_totals = count_mongo_hosts_by_zone(c.bk_sub_zone_id for c in candidates)
+    zone_totals = count_mongo_hosts_by_zone(c.bk_cloud_zone for c in candidates)
     breaker = zone_city_circuit_breaker(
         candidates,
         zone_total_hosts=zone_totals,

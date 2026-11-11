@@ -21,6 +21,7 @@ from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
+from backend.ticket.builders.common.base import cluster_location_spec
 from backend.ticket.builders.mongodb.base import (
     BaseMongoDBOperateDetailSerializer,
     BaseMongoDBOperateResourceParamBuilder,
@@ -71,7 +72,7 @@ class MongoDBAddShardNodesResourceParamBuilder(BaseMongoDBOperateResourceParamBu
         id__cluster = {cluster.id: cluster for cluster in Cluster.objects.filter(id__in=cluster_ids)}
         for info in self.ticket_data["infos"]:
             cluster = id__cluster[info["cluster_ids"][0]]
-            info["resource_spec"]["shard_nodes"].update(location_spec={"city": cluster.region, "sub_zone_ids": []})
+            info["resource_spec"]["shard_nodes"].update(location_spec=cluster_location_spec(cluster, sub_zone_ids=[]))
 
     def post_callback(self):
         with self.next_flow_manager() as next_flow:

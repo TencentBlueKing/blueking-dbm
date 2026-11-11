@@ -58,6 +58,22 @@ def get_filtered_items(details: Dict[str, Any], match_keys: List[str], valid_typ
     return [item for item in targets if isinstance(item, valid_types) and item]
 
 
+def cluster_location_spec(cluster: Cluster, sub_zone_ids: List = None) -> Dict[str, Any]:
+    """构造资源申请的位置参数
+
+    内部继续用 v1 的 key（city + sub_zone_ids），额外带上集群记录的云地域：
+    资源申请走 v2 时可以直接取用，不必再靠可用区 / 城市反查 BKSubzone。
+
+    @param sub_zone_ids: 指定可用区列表；不传则用集群自己记录的 cloud_zone_list（空表示随机）
+    """
+    cloud_zones = cluster.cloud_zone_list if sub_zone_ids is None else sub_zone_ids
+    return {
+        "city": cluster.region,
+        "sub_zone_ids": list(cloud_zones or []),
+        "bk_cloud_region": cluster.bk_cloud_region or "",
+    }
+
+
 def get_ticket_zone_list(ticket_data, role="backend_group"):
     zone_list = []
     if ticket_data["ip_source"] == IpSource.RESOURCE_POOL and ticket_data["disaster_tolerance_level"] in [
@@ -65,6 +81,8 @@ def get_ticket_zone_list(ticket_data, role="backend_group"):
         AffinityEnum.SAME_SUBZONE,
         AffinityEnum.SAME_SUBZONE_CROSS_SWTICH,
     ]:
+        # 单据 details 里的 location_spec 仍沿用 v1 的 key，值已经是云可用区
+        # （下发到 v2 时由 apply_protocol 统一转换）
         zone_list = ticket_data["resource_spec"][role]["location_spec"].get("sub_zone_ids", [])
     return zone_list
 
@@ -139,16 +157,16 @@ def format_bigdata_resource_spec(attrs: Dict[str, Any]) -> Dict[str, Any]:
     # 移除无用的资源角色申请
     remove_useless_spec(attrs)
     # 获取集群所在的城市
-    cluster_location_spec = {}
+    default_location_spec = {}
     if "cluster_id" in attrs:
         cluster = Cluster.objects.get(id=attrs["cluster_id"])
-        cluster_location_spec = {"city": cluster.region, "sub_zone_ids": []}
-    # 格式化资源规格的亲和性和城市
+        default_location_spec = cluster_location_spec(cluster, sub_zone_ids=[])
+    # 格式化资源规格的亲和性和地域
     for role, resource_spec in attrs["resource_spec"].items():
         # 大数据亲和性固定为MAX_EACH_ZONE_EQUAL
         resource_spec["affinity"] = AffinityEnum.MAX_EACH_ZONE_EQUAL
-        # 城市优先以传递的为准，然后以集群为准
-        resource_spec["location_spec"] = resource_spec.get("location_spec") or cluster_location_spec
+        # 地域优先以传递的为准，然后以集群为准
+        resource_spec["location_spec"] = resource_spec.get("location_spec") or default_location_spec
 
 
 def get_mongodb_cluster_tolerance(disaster_tolerance_level, role=None):
@@ -172,6 +190,11 @@ class HostInfoSerializer(serializers.Serializer):
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
     ip = serializers.CharField(help_text=_("IP地址"))
     bk_sub_zone = serializers.CharField(help_text=_("园区"), allow_null=True, allow_blank=True, required=False)
+    bk_cloud_zone = serializers.CharField(help_text=_("云可用区"), allow_null=True, allow_blank=True, required=False)
+    # 兼容早期命名，入参两个都收，取值时统一用 bk_cloud_zone
+    bk_cloud_sub_zone = serializers.CharField(
+        help_text=_("云可用区(旧字段名，兼容用)"), allow_null=True, allow_blank=True, required=False
+    )
     bk_host_id = serializers.IntegerField(help_text=_("主机ID"))
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
     port = serializers.IntegerField(help_text=_("端口号"), required=False)

@@ -60,6 +60,8 @@ class BaseTicketTest:
         patch("backend.components.itsm.backends.v3.ItsmApi", ItsmApiMock()),
         patch("backend.db_services.cmdb.biz.Permission", PermissionMock),
         patch("backend.ticket.flow_manager.resource.DBResourceApi", DBResourceApiMock),
+        # 资源申请统一走 apply_protocol 适配层，这里把适配层用的客户端也换成 mock
+        patch("backend.db_services.dbresource.apply_protocol.DBResourceApi", DBResourceApiMock),
         patch("backend.db_services.dbresource.handlers.CCApi", CCApiMock()),
         patch("backend.db_services.cmdb.biz.CCApi", CCApiMock()),
         patch("backend.db_services.ipchooser.query.resource.CCApi", CCApiMock()),

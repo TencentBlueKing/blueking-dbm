@@ -59,7 +59,7 @@ def machine_order_by_tolerance(disaster_tolerance_level: str, machine_set: list)
     """通过容灾级别获取机器顺序"""
 
     machines = []
-    # 主从节点分布在不同的机房
+    # 主从节点分布在不同的可用区（同一可用区下的不同园区不算分散）
     if disaster_tolerance_level in [
         AffinityEnum.CROSS_SUBZONE_STRONG,
         AffinityEnum.CROSS_SUBZONE_WEAK,
@@ -68,12 +68,12 @@ def machine_order_by_tolerance(disaster_tolerance_level: str, machine_set: list)
         machines.append(mongo_machine_set[0])
         mongo_machine_set.remove(mongo_machine_set[0])
         for machine in mongo_machine_set:
-            if machine["sub_zone_id"] != machines[0]["sub_zone_id"]:
+            if (machine.get("bk_cloud_zone") or "") != (machines[0].get("bk_cloud_zone") or ""):
                 machines.append(machine)
                 break
         mongo_machine_set.remove(machines[1])
         machines.extend(mongo_machine_set)
-    # 主从节点分布在相同的机房
+    # 主从节点分布在相同的可用区
     elif disaster_tolerance_level in [
         AffinityEnum.SAME_SUBZONE,
         AffinityEnum.NONE,

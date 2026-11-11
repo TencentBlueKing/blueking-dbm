@@ -243,7 +243,7 @@ class TenDBClusterAddNodesFlow(object):
         # spider_slave角色不做容灾检查
         if add_spider_role == TenDBClusterSpiderRole.SPIDER_MASTER:
             exists_hosts = [
-                {"ip": i.machine.ip, "sub_zone_id": i.machine.bk_sub_zone_id, "rack_id": i.machine.bk_rack_id}
+                {"ip": i.machine.ip, "bk_cloud_zone": i.machine.bk_cloud_zone, "rack_id": i.machine.bk_rack_id}
                 for i in cluster.proxyinstance_set.filter(tendbclusterspiderext__spider_role=add_spider_role)
             ]
             if is_check_disaster_tolerance_level and not BaseValidator.check_disaster_tolerance_level(

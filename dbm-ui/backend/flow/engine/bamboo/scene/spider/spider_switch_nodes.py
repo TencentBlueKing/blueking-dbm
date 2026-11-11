@@ -291,7 +291,7 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
             ).exclude(machine__ip__in=[i["ip"] for i in old_spider_hosts])
 
             check_hosts = [
-                {"ip": i.machine.ip, "sub_zone_id": i.machine.bk_sub_zone_id, "rack_id": i.machine.bk_rack_id}
+                {"ip": i.machine.ip, "bk_cloud_zone": i.machine.bk_cloud_zone, "rack_id": i.machine.bk_rack_id}
                 for i in remaining_spiders
             ]
             if len(new_spider_hosts + check_hosts) > 1:

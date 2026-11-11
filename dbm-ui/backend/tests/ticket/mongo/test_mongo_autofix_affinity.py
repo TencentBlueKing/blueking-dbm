@@ -84,7 +84,9 @@ class TestReplaceAffinitySpec:
             bk_cloud_id=0,
             region="深圳",
             disaster_tolerance_level=AffinityEnum.CROSS_SUBZONE_STRONG,
-            zone_list=[5, 6],
+            # 容灾改按可用区判定后，集群记录的是云可用区与云地域
+            cloud_zone_list=["ap-shenzhen-1", "ap-shenzhen-2"],
+            bk_cloud_region="ap-shenzhen",
         )
         builder = MongoDBAutofixResourceParamBuilder.__new__(MongoDBAutofixResourceParamBuilder)
         builder.ticket = SimpleNamespace(bk_biz_id=3)
@@ -101,7 +103,11 @@ class TestReplaceAffinitySpec:
         assert spec["count"] == 2
         assert spec["affinity"] == AffinityEnum.CROSS_SUBZONE_STRONG
         assert spec["tolerance"] == 0.33
-        assert spec["location_spec"] == {"city": "深圳", "sub_zone_ids": [5, 6]}
+        assert spec["location_spec"] == {
+            "city": "深圳",
+            "sub_zone_ids": ["ap-shenzhen-1", "ap-shenzhen-2"],
+            "bk_cloud_region": "ap-shenzhen",
+        }
         assert "include_or_exclue" not in spec["location_spec"]
         assert [item["bk_host_id"] for item in spec["current_hosts"]] == [8, 99]
 

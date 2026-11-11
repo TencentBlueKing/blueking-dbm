@@ -20,7 +20,7 @@ from backend.db_meta.models import Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
+from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, cluster_location_spec
 from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.builders.redis.base import (
     BaseRedisTicketFlowBuilder,
@@ -101,7 +101,8 @@ class RedisFixPointMakeResourceParamBuilder(BaseOperateResourceParamBuilder):
         for info in self.ticket_data["infos"]:
             cluster = id__cluster[info["cluster_id"]]
             info["resource_spec"]["redis"].update(
-                affinity=AffinityEnum.NONE.value, location_spec={"city": cluster.region, "sub_zone_ids": []}
+                affinity=AffinityEnum.NONE.value,
+                location_spec=cluster_location_spec(cluster, sub_zone_ids=[]),
             )
             info.update(bk_cloud_id=cluster.bk_cloud_id, bk_biz_id=self.ticket.bk_biz_id)
 

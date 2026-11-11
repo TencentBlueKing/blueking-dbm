@@ -354,10 +354,18 @@ class ClusterServiceHandler:
             return {}
         cluster_info["cluster_name"] = cluster_info["name"]
         cluster_info["master_domain"] = cluster_info["immute_domain"]
-        if cluster_info.get("zone_list"):
-            cluster_info["zone_names"] = BKSubzone.objects.filter(
-                bk_sub_zone_id__in=cluster_info["zone_list"]
-            ).values_list("bk_sub_zone", flat=True)
+        # 容灾改按可用区后，集群记录的位置是云可用区，直接展示可用区名；
+        # 存量集群 zone_list 里还是园区 ID，回落到园区名映射
+        cloud_zone_list = [zone for zone in (cluster_info.get("cloud_zone_list") or []) if zone]
+        if cloud_zone_list:
+            cluster_info["zone_names"] = cloud_zone_list
+            cluster_info["cloud_zone_list"] = cloud_zone_list
+        elif cluster_info.get("zone_list"):
+            cluster_info["zone_names"] = list(
+                BKSubzone.objects.filter(bk_sub_zone_id__in=cluster_info["zone_list"]).values_list(
+                    "bk_sub_zone", flat=True
+                )
+            )
         else:
             cluster_info["zone_names"] = []
         return cluster_info

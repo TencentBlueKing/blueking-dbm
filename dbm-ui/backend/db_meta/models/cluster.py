@@ -45,6 +45,7 @@ from backend.db_meta.enums.cluster_status import (
 )
 from backend.db_meta.enums.comm import SystemTagEnum, TagType
 from backend.db_meta.exceptions import ClusterExclusiveOperateException, DBMetaException
+from backend.db_meta.models.city_map import resolve_cloud_region
 from backend.db_meta.models.tag import Tag
 from backend.db_services.version.constants import LATEST, PredixyVersion, TwemproxyVersion
 from backend.exceptions import ApiError
@@ -116,6 +117,16 @@ class Cluster(AuditedModel):
 
     def __str__(self):
         return self.name
+
+    def save(self, *args, **kwargs):
+        """新建集群时补齐云地域（region）
+
+        部署 / 回档 / 迁移等场景都会走 Cluster.objects.create()，统一在模型层补一次，
+        避免每新增一个组件都要记得传。只在插入时补，更新时不改写已有值。
+        """
+        if self._state.adding and not self.bk_cloud_region:
+            self.bk_cloud_region = resolve_cloud_region(cloud_zones=self.cloud_zone_list, city=self.region)
+        return super().save(*args, **kwargs)
 
     def to_dict(self):
         """将集群所有字段转为字段"""

@@ -116,7 +116,7 @@ def create(
         major_version=major_version,
         region=region,
         disaster_tolerance_level=disaster_tolerance_level,
-        zone_list=zone_list if zone_list else [],
+        cloud_zone_list=zone_list if zone_list else [],
     )
     cluster.storageinstance_set.add(*storage_objs)
 

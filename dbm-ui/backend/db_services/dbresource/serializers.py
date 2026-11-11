@@ -16,6 +16,7 @@ from rest_framework import serializers
 
 from backend import env
 from backend.components.hcm.client import HCMApi
+from backend.components.hcm.constants import SUBZONE_ALL as HCM_SUBZONE_ALL
 from backend.components.xwork.client import XworkApi
 from backend.configuration.constants import DBType, SystemSettingsEnum
 from backend.configuration.models import SystemSettings
@@ -24,6 +25,7 @@ from backend.db_dirty.constants import MachineEventType
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.enums.spec import SpecClusterType, SpecMachineType
 from backend.db_meta.models import Spec
+from backend.db_meta.models.city_map import BKSubzone
 from backend.db_meta.models.machine import DeviceClass, Machine
 from backend.db_meta.models.tag import Tag
 from backend.db_services.dbresource import mock
@@ -185,6 +187,9 @@ class ResourceListSerializer(serializers.Serializer):
     hosts = serializers.CharField(help_text=_("主机IP列表"), required=False)
     bk_cloud_ids = serializers.CharField(help_text=_("云区域ID列表"), required=False)
     city = serializers.CharField(help_text=_("城市"), required=False)
+    # 地域（region）与可用区筛选，直接按字段名透传给资源池服务，不做转换
+    bk_cloud_region = serializers.CharField(help_text=_("云地域"), required=False)
+    bk_cloud_zone = serializers.CharField(help_text=_("云可用区"), required=False)
     subzones = serializers.CharField(help_text=_("园区"), required=False)
     subzone_ids = serializers.CharField(help_text=_("园区ID"), required=False)
 
@@ -305,6 +310,8 @@ class ResourceListSerializer(serializers.Serializer):
                 "os_names",
                 "hosts",
                 "city",
+                "bk_cloud_region",
+                "bk_cloud_zone",
                 "subzones",
                 "subzone_ids",
                 "cpu",
@@ -698,11 +705,16 @@ class GetDiskTypeResponseSerializer(serializers.Serializer):
 class SpecCountResourceSerializer(serializers.Serializer):
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
+    # 跨可用区/指定可用区时这里传的是云可用区（如 ap-chongqing-1），
+    # 兼容存量前端传的园区 ID
     sub_zone_ids = serializers.ListField(
-        help_text=_("云区域ID列表"), child=serializers.CharField(), required=False, default=[]
+        help_text=_("云可用区列表"), child=serializers.CharField(), required=False, default=[]
     )
     spec_ids = serializers.ListField(help_text=_("规格ID列表"), child=serializers.IntegerField())
     city = serializers.CharField(help_text=_("城市"), default="default", required=False)
+    group_by_cloud_zone = serializers.BooleanField(
+        help_text=_("是否按可用区分组返回数量（跨可用区/指定可用区时使用）"), required=False, default=False
+    )
 
 
 class SpecCostEstimateSerializer(serializers.Serializer):
@@ -745,8 +757,15 @@ class CalcResourceWaterLevelSerializer(serializers.Serializer):
 class ResourceHcmReplenishSerializer(serializers.Serializer):
     db_type = serializers.ChoiceField(help_text=_("数据库类型"), choices=DBType.get_choices())
     spec_id = serializers.IntegerField(help_text=_("规格ID"))
-    city = serializers.CharField(help_text=_("城市"))
-    subzone = serializers.CharField(help_text=_("园区名称；传 'all' 表示海磊侧选择「可用区：全部，资源分布式方式：分 Campus（Camplus）生产」"))
+    # 补货目标位置：新口径按 region + 可用区下单，老口径(city + subzone)保留兼容存量单据
+    bk_cloud_region = serializers.CharField(help_text=_("云地域 region，如 ap-chongqing"), required=False, default="")
+    bk_cloud_zone = serializers.CharField(help_text=_("云可用区，如 ap-chongqing-1"), required=False, default="")
+    city = serializers.CharField(help_text=_("城市（老口径，兼容用）"), required=False, default="")
+    subzone = serializers.CharField(
+        help_text=_("园区名称（老口径，兼容用）；传 'all' 表示海磊侧选择「可用区：全部，资源分布式方式：分 Campus（Camplus）生产」"),
+        required=False,
+        default="",
+    )
     os_name = serializers.CharField(help_text=_("操作系统名称"))
     count = serializers.IntegerField(help_text=_("申请数量"))
     os_type = serializers.CharField(help_text=_("操作系统类型"), required=False)
@@ -769,6 +788,22 @@ class ResourceHcmReplenishSerializer(serializers.Serializer):
     def validate(self, attrs):
         if not env.HCM_APIGW_DOMAIN:
             raise serializers.ValidationError(_("没有合法海磊域名，不支持主机资源补货"))
+
+        cloud_region = (attrs.get("bk_cloud_region") or "").strip()
+        cloud_zone = (attrs.get("bk_cloud_zone") or "").strip()
+        subzone = (attrs.get("subzone") or "").strip()
+        # 只传了可用区没传地域，或者反过来，都无法下单
+        if bool(cloud_region) != bool(cloud_zone):
+            raise serializers.ValidationError(_("按可用区补货时，region 和可用区必须同时填写"))
+        # 老口径只传了园区时，用园区反查出可用区，补货单统一记录 region + 可用区
+        if not (cloud_region and cloud_zone) and subzone and subzone != HCM_SUBZONE_ALL:
+            bk_subzone = BKSubzone.objects.filter(bk_sub_zone=subzone).first()
+            if bk_subzone and bk_subzone.bk_cloud_zone:
+                cloud_region, cloud_zone = bk_subzone.bk_cloud_region or "", bk_subzone.bk_cloud_zone
+        # 只传了城市（无园区）的情况保留老逻辑，由海磊按城市关联地域
+        if not (cloud_region and cloud_zone) and not subzone and not attrs.get("city"):
+            raise serializers.ValidationError(_("请选择补货的可用区"))
+        attrs["bk_cloud_region"], attrs["bk_cloud_zone"] = cloud_region, cloud_zone
         return attrs
 
 

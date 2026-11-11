@@ -119,13 +119,13 @@ def get_apply_city(cluster: Cluster) -> str:
 
 
 def get_apply_zone_list(cluster: Cluster) -> List[str]:
-    """与集群部署单据保持一致：只有子zone级别的容灾才限定机房列表"""
+    """与集群部署单据保持一致：只有可用区级别的容灾才限定可用区列表"""
     if cluster.disaster_tolerance_level in [
         AffinityEnum.CROS_SUBZONE,
         AffinityEnum.SAME_SUBZONE,
         AffinityEnum.SAME_SUBZONE_CROSS_SWTICH,
     ]:
-        return cluster.zone_list or []
+        return cluster.cloud_zone_list or []
     return []
 
 
@@ -248,7 +248,12 @@ class TendbRollbackNewHostResourceParamBuilder(BaseOperateResourceParamBuilder):
         cluster = Cluster.objects.get(id=info["cluster_id"])
         resource_spec = get_cluster_role_resource_spec(cluster)
         # 位置信息与集群部署单据保持一致：同城部署，非子zone容灾不限定机房
-        location_spec = {"city": get_apply_city(cluster), "sub_zone_ids": get_apply_zone_list(cluster)}
+        location_spec = {
+            "city": get_apply_city(cluster),
+            "sub_zone_ids": get_apply_zone_list(cluster),
+            # 带上源集群记录的云地域，资源申请走 v2 时可直接使用
+            "bk_cloud_region": cluster.bk_cloud_region or "",
+        }
         # 资源标签由提单时指定，各角色共用同一份：labels 为标签ID，label_names 为标签名称
         label = info.get("label") or {}
 

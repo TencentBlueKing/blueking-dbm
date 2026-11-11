@@ -46,6 +46,9 @@ MYSQL_SIMULATION_DOMAIN = get_type_env(key="MYSQL_SIMULATION_DOMAIN", _type=str,
 HADB_APIGW_DOMAIN = get_type_env(key="HADB_APIGW_DOMAIN", _type=str, default="http://bk-dbm-hadb-api")
 HADBV2_APIGW_DOMAIN = get_type_env(key="HADBV2_APIGW_DOMAIN", _type=str, default="http://bk-dbm-hadb-api")
 DBRESOURCE_APIGW_DOMAIN = get_type_env(key="DBRESOURCE_APIGW_DOMAIN", _type=str, default="http://bk-dbm-db-resource")
+# 资源申请协议版本：v1 走旧接口 /resource/apply（逻辑城 + 园区 ID），
+# v2 走 /v2/resource/apply（云地域 + 云可用区）。默认 v1，切换前请确认资源池服务已支持 v2。
+RESOURCE_APPLY_API_VERSION = get_type_env(key="DBM_RESOURCE_APPLY_API_VERSION", _type=str, default="v1")
 KUBERNETES_APIGW_DOMAIN = get_type_env(key="KUBERNETES_APIGW_DOMAIN", _type=str, default="http://bk-dbm-kubernetes")
 BACKUP_APIGW_DOMAIN = get_type_env(key="BACKUP_APIGW_DOMAIN", _type=str, default="http://bk-dbm-backup-server:7000")
 SLOW_QUERY_PARSER_DOMAIN = get_type_env(

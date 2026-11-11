@@ -114,6 +114,10 @@ class ImportMachinePollKwargs:
 class ResourceHcmReplenishKwargs:
     """
     定义资源池补货的私有变量结构体
+
+    补货目标位置有两种口径：
+    - 新口径：region + 可用区（bk_cloud_region / bk_cloud_zone），按可用区向海磊下单；
+    - 老口径：city + subzone（园区），保留用于兼容存量单据。
     """
 
     city: str
@@ -121,6 +125,8 @@ class ResourceHcmReplenishKwargs:
     os_name: str
     spec_id: int
     count: int
+    bk_cloud_region: str = ""
+    bk_cloud_zone: str = ""
 
 
 @dataclass

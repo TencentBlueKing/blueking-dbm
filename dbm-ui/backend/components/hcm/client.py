@@ -156,13 +156,18 @@ class _HCMApi(BaseApi):
         return region
 
     @classmethod
-    def _resolve_region_zone(cls, subzone: str, city: str = None) -> tuple:
+    def _resolve_region_zone(
+        cls, subzone: str, city: str = None, cloud_region: str = "", cloud_zone: str = ""
+    ) -> tuple:
         """解析云地域/云可用区，返回 (region, zone)
 
+        - 显式传了 cloud_region/cloud_zone：按可用区补货，直接使用，不再反查园区
         - subzone 为具体园区：由园区记录反查 region/zone
         - subzone 为 SUBZONE_ALL：海磊侧「可用区：全部」，zone 返回 SUBZONE_ALL（可用区全部哨兵值），
           region 由城市关联查询得到
         """
+        if cloud_region and cloud_zone:
+            return cloud_region, cloud_zone
         if subzone == SUBZONE_ALL:
             if not city:
                 raise DataAPIException(_("subzone为{}时必须提供城市，用于关联查询云地域").format(subzone))
@@ -195,12 +200,14 @@ class _HCMApi(BaseApi):
         self,
         bk_biz_id: str,
         username: str,
-        city: str,
-        subzone: str,
         os_name: str,
         device_types: list,
         disk: list,
         count: int,
+        city: str = "",
+        subzone: str = "",
+        cloud_region: str = "",
+        cloud_zone: str = "",
         ticket_id: int = None,
         device_index: int = 0,
     ):
@@ -218,23 +225,26 @@ class _HCMApi(BaseApi):
         hcm_image_map = SystemSettings.get_setting_value(SystemSettingsEnum.HCM_OS_NAME_IMAGE_MAP, default={})
         hcm_image_map = {key.strip().lower(): value for key, value in hcm_image_map.items()}
 
-        # 查询云地域和云可用区（subzone=SUBZONE_ALL 时云地域由城市关联查询，提单改传 zones=[SUBZONE_ALL]）
-        region, zone = self._resolve_region_zone(subzone, city)
+        # 查询云地域和云可用区（按可用区补货时直接使用入参，subzone=SUBZONE_ALL 时云地域由城市关联查询）
+        region, zone = self._resolve_region_zone(subzone, city, cloud_region, cloud_zone)
 
         # 根据操作系统名称获取镜像ID
         image_id = hcm_image_map.get(os_name.strip().lower())
         if not image_id:
             raise DataAPIException(_("未找到操作系统{}对应的镜像ID").format(os_name))
 
-        # 查询cc的园区需要拿园区映射关系（HCM可能是虚拟园区，要拿映射的真实园区查询）TODO: 暂不需要约束CC园区
-        # subzone_map = SystemSettings.get_setting_value(SystemSettingsEnum.REPLENISH_SUBZONE_MAP, {})
-        # subzones = subzone_map.get(subzone) or [subzone]
-        # 查询业务下同地域同一批机型的任意一个机器云区域实例ID
+        # 查询业务下同地域同一批机型的任意一个机器云区域实例ID。
+        # 按可用区补货时没有城市，改用云地域过滤
+        location_rule = (
+            {"field": "bk_cloud_region", "operator": "equal", "value": region}
+            if cloud_region
+            else {"field": "idc_city_name", "operator": "equal", "value": city}
+        )
         filters = {
             "condition": "AND",
             "rules": [
                 {"field": "bk_svr_device_cls_name", "operator": "in", "value": device_types},
-                {"field": "idc_city_name", "operator": "equal", "value": city},
+                location_rule,
             ],
         }
         params = {
@@ -294,12 +304,14 @@ class _HCMApi(BaseApi):
         bk_biz_id: str,
         ticket_id: int,
         username: str,
-        subzone: str,
-        city: str,
         os_name: str,
         device_types: list,
         disk: list,
         count: int,
+        subzone: str = "",
+        city: str = "",
+        cloud_region: str = "",
+        cloud_zone: str = "",
         device_index: int = 0,
     ):
         """
@@ -309,8 +321,8 @@ class _HCMApi(BaseApi):
         hcm_image_map = SystemSettings.get_setting_value(SystemSettingsEnum.HCM_OS_NAME_IMAGE_MAP, default={})
         hcm_image_map = {key.strip().lower(): value for key, value in hcm_image_map.items()}
 
-        # 查询云地域和云可用区（subzone=SUBZONE_ALL 同 create_apply，云地域由城市关联查询）
-        region, zone = self._resolve_region_zone(subzone, city)
+        # 查询云地域和云可用区（按可用区补货时直接用入参，其余同 create_apply）
+        region, zone = self._resolve_region_zone(subzone, city, cloud_region, cloud_zone)
 
         # 根据操作系统名称获取镜像ID
         image_id = hcm_image_map.get(os_name.strip().lower())
@@ -342,26 +354,34 @@ class _HCMApi(BaseApi):
         }
         self.modify_biz_apply(params=modify_apply_params, use_param_user=True)
 
-    def get_cvm_device_capacity(self, device_type: str, subzone: str) -> int:
+    def get_cvm_device_capacity(
+        self, device_type: str, subzone: str = "", cloud_region: str = "", cloud_zone: str = ""
+    ) -> int:
         """
         获取CVM机型的容量
         :param device_type: 机型
         :param subzone: 机器园区
+        :param cloud_region: 云地域，按可用区补货时直接传入
+        :param cloud_zone: 云可用区，按可用区补货时直接传入
         :return: 预估最大容量
         """
-        # 查询云可用区和云地域
-        try:
-            bk_subzone = BKSubzone.objects.get(bk_sub_zone=subzone)
-        except BKSubzone.DoesNotExist:
-            raise DataAPIException(_("BKSubzone未找到可用区记录: {}").format(subzone))
+        if cloud_region and cloud_zone:
+            region, zone = cloud_region, cloud_zone
+        else:
+            # 查询云可用区和云地域
+            try:
+                bk_subzone = BKSubzone.objects.get(bk_sub_zone=subzone)
+            except BKSubzone.DoesNotExist:
+                raise DataAPIException(_("BKSubzone未找到可用区记录: {}").format(subzone))
+            region, zone = bk_subzone.bk_cloud_region, bk_subzone.bk_cloud_zone
 
         capacity_params = {
             # 固定查询滚服项目，计费模式：包年包月，36个月
             "require_type": 6,
             "charge_type": "PREPAID",
             "device_types": [device_type],
-            "region": bk_subzone.bk_cloud_region,
-            "zones": [bk_subzone.bk_cloud_zone],
+            "region": region,
+            "zones": [zone],
         }
         resp = self.get_cvm_capacity(params=capacity_params, use_admin=True)
         # 未查询到任何资源，直接返回0
