@@ -17,6 +17,7 @@ from backend.db_meta.api.cluster.tendbcluster.handler import TenDBClusterCluster
 from backend.db_meta.api.cluster.tendbcluster.remotedb_node_migrate import TenDBClusterMigrateRemoteDb
 from backend.db_meta.enums import InstanceStatus, MachineType, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
+from backend.db_meta.models.city_map import resolve_apply_region
 from backend.flow.utils.dict_to_dataclass import dict_to_dataclass
 from backend.flow.utils.spider.spider_act_dataclass import ShardInfo
 
@@ -67,8 +68,9 @@ class SpiderDBMeta(object):
             "resource_spec": self.global_data.get("resource_spec") or def_resource_spec,
             "shard_infos": shard_infos,
             "region": self.global_data["city"],
+            "bk_cloud_region": resolve_apply_region(self.global_data),
             "disaster_tolerance_level": self.global_data["disaster_tolerance_level"],
-            "zone_list": self.global_data.get("zone_list", []),
+            "cloud_zone_list": self.global_data.get("cloud_zone_list") or self.global_data.get("zone_list", []),
         }
         TenDBClusterClusterHandler.create(**kwargs)
         return True

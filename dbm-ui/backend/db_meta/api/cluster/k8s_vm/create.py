@@ -27,6 +27,7 @@ def create(
     status: str,
     region: str,
     creator: str,
+    bk_cloud_region: str = "",
 ) -> dict:
     cluster_defaults = {
         "name": name,
@@ -37,6 +38,7 @@ def create(
         "phase": phase,
         "status": status,
         "region": region,
+        "bk_cloud_region": bk_cloud_region,
     }
     cluster, created = Cluster.objects.get_or_create(
         immute_domain=immute_domain, defaults={**cluster_defaults, "creator": creator}

@@ -16,6 +16,7 @@ from rest_framework import serializers
 from backend.configuration.constants import AffinityEnum, DBPrivSecurityType
 from backend.configuration.handlers.password import DBPasswordHandler
 from backend.db_meta.models import Cluster, Machine, StorageInstance
+from backend.db_meta.models.city_map import resolve_logical_city
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.engine.controller.redis import RedisController
@@ -145,8 +146,8 @@ class RedisInstanceApplyFlowParamBuilder(builders.FlowParamBuilder):
             cluster = master_host__cluster[master_host]
             # 更新追加集群的部署信息
             info.update(
-                city=cluster.region,
-                city_code=cluster.region,
+                city=resolve_logical_city(cluster),
+                city_code=resolve_logical_city(cluster),
                 disaster_tolerance_level=cluster.disaster_tolerance_level,
                 port=master_host__max_port[master_host],
                 db_version=cluster.major_version,

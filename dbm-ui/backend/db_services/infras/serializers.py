@@ -30,6 +30,18 @@ class CitySLZ(serializers.Serializer):
     inventory_tag = serializers.CharField()
 
 
+class CloudRegionSLZ(serializers.Serializer):
+    """云地域信息"""
+
+    bk_cloud_region = serializers.CharField()
+    display_name = serializers.CharField()
+    # 库存信息，与城市接口保持一致（暂未统计，统一返回充足）
+    inventory = serializers.IntegerField()
+    inventory_tag = serializers.CharField()
+    # 该地域下登记过的可用区个数，跨可用区时前端据此过滤「至少 2 个可用区」的地域
+    zone_count = serializers.IntegerField()
+
+
 class LogicCitySLZ(serializers.Serializer):
     """逻辑城市映射"""
 
@@ -41,6 +53,8 @@ class LogicCitySLZ(serializers.Serializer):
 
 class ListSubzoneSLZ(serializers.Serializer):
     city_code = serializers.CharField(help_text=_("城市ID"), required=False, default="")
+    # 部署页按地域圈定可用区，这里支持直接用云地域过滤
+    region = serializers.CharField(help_text=_("云地域"), required=False, default="")
 
 
 class SubzoneSLZ(serializers.Serializer):
@@ -50,6 +64,8 @@ class SubzoneSLZ(serializers.Serializer):
     bk_city_code = serializers.CharField()
     bk_sub_zone_id = serializers.IntegerField()
     bk_sub_zone = serializers.CharField()
+    bk_cloud_zone = serializers.CharField()
+    bk_cloud_region = serializers.CharField()
 
 
 class HostSpecSLZ(serializers.Serializer):

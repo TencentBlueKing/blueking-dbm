@@ -14,6 +14,7 @@ from django.db.transaction import atomic
 
 from backend.db_meta import api
 from backend.db_meta.enums import InstanceRole, MachineType
+from backend.db_meta.models.city_map import resolve_apply_region
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.consts import LevelInfoEnum, PulsarRoleEnum
 from backend.flow.utils.pulsar.consts import PULSAR_BOOKKEEPER_SERVICE_PORT, PULSAR_ZOOKEEPER_SERVICE_PORT
@@ -119,6 +120,7 @@ class PulsarDBMeta(object):
             "creator": self.ticket_data["created_by"],
             "major_version": self.ticket_data["db_version"],
             "region": self.ticket_data["city_code"],
+            "bk_cloud_region": resolve_apply_region(self.ticket_data),
             "disaster_tolerance_level": self.ticket_data["disaster_tolerance_level"],
         }
         with atomic():

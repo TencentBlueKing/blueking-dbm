@@ -163,7 +163,7 @@ class TestDBResourceViewSet:
         assert len(result["task_ids"]) == 1
         assert "root_id_2" in result["task_ids"]
 
-    @patch("backend.components.dbresource.client.DBResourceApi.resource_apply")
+    @patch("backend.components.dbresource.client.DBResourceApi.resource_apply_v2")
     def test_resource_apply(self, mock_apply):
         """测试资源申请"""
         mock_apply.return_value = {"request_id": "req_123", "details": []}
@@ -497,3 +497,18 @@ class TestDBResourceViewSet:
 
         assert response.status_code == status.HTTP_200_OK
         assert mock_append.called
+
+
+def test_normalize_apply_count_city():
+    """资源预览的 city 只认逻辑城，其余（default / 云地域 / 空）都归一成 default（不限地域）"""
+    from backend.db_meta.models import LogicalCity
+    from backend.db_services.dbresource.handlers import ResourceHandler
+
+    LogicalCity.objects.get_or_create(name="南京")
+
+    # 空值表示不按城市过滤（云地域/可用区改由 bk_cloud_region / bk_cloud_zone 传）
+    assert ResourceHandler._normalize_apply_count_city("") == ""
+    assert ResourceHandler._normalize_apply_count_city("default") == ""
+    # 前端把云地域直接塞进 city 时，不能当逻辑城去查，否则会被过滤成 0 台
+    assert ResourceHandler._normalize_apply_count_city("ap-nanjing") == ""
+    assert ResourceHandler._normalize_apply_count_city("南京") == "南京"

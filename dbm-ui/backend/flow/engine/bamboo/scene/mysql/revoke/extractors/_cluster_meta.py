@@ -68,10 +68,8 @@ def load_tendbha_cluster_meta(cluster_ids: List[int], err_prefix: str, info_idx:
     :param info_idx: info 在 infos 中的索引，用于错误消息定位
     :return: dict，字段：
         - ``cluster_domains``:        ``Tuple[str, ...]`` 关联集群 ``immute_domain`` 去重
-        - ``clb_regions``:            ``Tuple[str, ...]`` 关联集群 ``region`` 字段去重（供 F2.b
-          CLB 校验使用；元素为 ``cluster.region`` 字符串，可能为中文地名"南京"或腾讯云 region
-          代号"ap-nanjing"，具体取决于集群创建时写入的口径——下游 ``check_clb_mapping`` 比对
-          ``ip + clbid`` 不比对 region 字段，二者兼容）
+        - ``clb_regions``:            ``Tuple[str, ...]`` 关联集群 ``bk_cloud_region`` 去重（供 F2.b
+          CLB 校验使用；元素为云地域代号如"ap-nanjing"，与 CLB 注册时传的 region 口径一致）
         - ``storage_expected_ports``: ``Tuple[int, ...]`` 关联集群全部 ``StorageInstance.port`` 去重
         - ``proxy_expected_ports``:   ``Tuple[int, ...]`` 关联集群全部 ``ProxyInstance.port`` 去重（proxy_port 口径）
         - ``access_layer_proxies``:   ``Tuple[AccessLayerInstance, ...]`` RUNNING proxy
@@ -121,11 +119,11 @@ def load_tendbha_cluster_meta(cluster_ids: List[int], err_prefix: str, info_idx:
     # 聚合 immute_domain：按集合去重；集合天然不保序，保持与"端口 set 去重"相同的无序口径
     cluster_domains: Tuple[str, ...] = tuple({c.immute_domain for c in clusters if c.immute_domain})
 
-    # 聚合 Cluster.region：供 F2.b CLB 校验使用。
-    # 口径：业务层中 Cluster.region 等同于 CLB 创建时使用的 region（见 mysql_clb.create_lb_and_register_target
-    # 直接 region = cluster.region），因此直接读 Cluster 自带字段即可，不需额外查 CLBEntryDetail。
-    # 空字符串由 ``if c.region`` 过滤；集合天然去重 + 保持无序口径
-    clb_regions: Tuple[str, ...] = tuple({c.region for c in clusters if c.region})
+    # 聚合 Cluster.bk_cloud_region：供 F2.b CLB 校验使用。
+    # 口径：CLB 侧已改为按云地域收参（见 mysql_clb.create_lb_and_register_target 传 cluster.bk_cloud_region），
+    # 因此这里也读云地域，不需额外查 CLBEntryDetail。
+    # 空字符串被过滤掉；集合天然去重 + 保持无序口径
+    clb_regions: Tuple[str, ...] = tuple({c.bk_cloud_region for c in clusters if c.bk_cloud_region})
 
     # 聚合 RUNNING proxy 实例：按整条 AccessLayerInstance 跨集群去重；
     # AccessLayerInstance 是 frozen dataclass 天然可哈希，直接走 set 推导。

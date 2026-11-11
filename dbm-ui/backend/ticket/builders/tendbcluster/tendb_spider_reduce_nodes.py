@@ -95,15 +95,15 @@ class TendbSpiderReduceNodesFlowBuilder(BaseTendbTicketFlowBuilder):
         @param role: 下架的spider角色
         @param reduced_to_count: 下架后剩余的spider节点数量
         """
-        sub_zone_ips = defaultdict(set)
+        cloud_zone_ips = defaultdict(set)
 
-        # 首先根据每个园区ID，给每个spider节点分组
+        # 首先根据每个云可用区，给每个spider节点分组
         ctl_primary = cluster.tendbcluster_ctl_primary_address()
         all_spiders = cluster.proxyinstance_set.filter(tendbclusterspiderext__spider_role=role).prefetch_related(
             "machine"
         )
         for spider in all_spiders:
-            sub_zone_ips[spider.machine.bk_sub_zone_id].add(spider.machine.ip)
+            cloud_zone_ips[spider.machine.bk_cloud_zone].add(spider.machine.ip)
 
         if (
             cluster.disaster_tolerance_level
@@ -128,18 +128,18 @@ class TendbSpiderReduceNodesFlowBuilder(BaseTendbTicketFlowBuilder):
             ]
 
         if cluster.disaster_tolerance_level == AffinityEnum.CROS_SUBZONE:
-            # 属于跨园区的容灾级别，保证sub_zone_id至少要两个以上的
-            # 用公平轮训方案，按照园区分组选出要保留的spider ip
-            if len(sub_zone_ips) <= 1:
-                # 集群当年不能满足跨园区特性，先报出异常
+            # 属于跨可用区的容灾级别，保证 cloud_zone 至少要两个以上的
+            # 用公平轮训方案，按照可用区分组选出要保留的spider ip
+            if len(cloud_zone_ips) <= 1:
+                # 集群当年不能满足跨可用区特性，先报出异常
                 raise Exception(
                     _(
-                        "集群[{}]当前spider层不符合容灾级别[{}], {}节点都在一个园区里{}".format(
-                            cluster.immute_domain, cluster.disaster_tolerance_level, role, sub_zone_ips.keys()
+                        "集群[{}]当前spider层不符合容灾级别[{}], {}节点都在一个可用区里{}".format(
+                            cluster.immute_domain, cluster.disaster_tolerance_level, role, cloud_zone_ips.keys()
                         )
                     )
                 )
-            remaining_spider_ips = get_value_for_roundrobin(sub_zone_ips, reduced_to_count)
+            remaining_spider_ips = get_value_for_roundrobin(cloud_zone_ips, reduced_to_count)
             # 反向计算出缩容的spider ip
             return [
                 {"ip": s.machine.ip, "bk_host_id": s.machine.bk_host_id}
@@ -147,17 +147,17 @@ class TendbSpiderReduceNodesFlowBuilder(BaseTendbTicketFlowBuilder):
             ]
 
         if cluster.disaster_tolerance_level == AffinityEnum.SAME_SUBZONE:
-            # 属于同园区（无机架要求）的容灾级别，保证sub_zone_id有且只有一个
-            # 根据分组取出同园区的ip，作为保留，如果没有任意一个分组能满足需要，则应该报异常
+            # 属于同可用区（无机架要求）的容灾级别，保证 cloud_zone 有且只有一个
+            # 根据分组取出同可用区的ip，作为保留，如果没有任意一个分组能满足需要，则应该报异常
             remaining_spider_ips = list()
-            for values in sub_zone_ips.values():
+            for values in cloud_zone_ips.values():
                 if len(values) >= reduced_to_count:
                     remaining_spider_ips.extend(list(values)[:reduced_to_count])
 
             if not remaining_spider_ips:
                 raise Exception(
                     _(
-                        "集群[{}]根据设置的容灾级别[{}]，计算不出缩容后能满足spider节点数量， 请检查{}节点的园区分布".format(
+                        "集群[{}]根据设置的容灾级别[{}]，计算不出缩容后能满足spider节点数量， 请检查{}节点的可用区分布".format(
                             cluster.immute_domain, cluster.disaster_tolerance_level, role
                         )
                     )
@@ -170,9 +170,9 @@ class TendbSpiderReduceNodesFlowBuilder(BaseTendbTicketFlowBuilder):
             ]
 
         if cluster.disaster_tolerance_level == AffinityEnum.SAME_SUBZONE_CROSS_SWTICH:
-            # 属于同园区的容灾级别，保证sub_zone_id有且只有一个， 同时机架保证至少两个以上
+            # 属于同可用区的容灾级别，保证 cloud_zone 有且只有一个， 同时机架保证至少两个以上
             # 先挑出满足保留数量长度的分组
-            for values in sub_zone_ips.values():
+            for values in cloud_zone_ips.values():
                 if len(values) >= reduced_to_count:
                     # 根据分组的所有主机IP，重新建立新分组信息，以机架ID
                     rack_ips = defaultdict(set)

@@ -219,6 +219,7 @@ def init_cluster(master_instance, slave_instance, proxy_instance_1, proxy_instan
         time_zone="+08:00",
         major_version="MySQL-5.7",
         region="",
+        bk_cloud_region="",
     )
 
     # 关联实例
@@ -324,6 +325,7 @@ class TestCreateCluster:
             bk_cloud_id=TEST_BK_CLOUD_ID,
             time_zone="+08:00",
             region="",
+            bk_cloud_region="",
             disaster_tolerance_level="NONE",
             slave_domain="new-cluster-slave.db.com",
             proxies=proxies,
@@ -374,6 +376,7 @@ class TestCreateCluster:
             bk_cloud_id=TEST_BK_CLOUD_ID,
             time_zone="+08:00",
             region="",
+            bk_cloud_region="",
             disaster_tolerance_level="NONE",
             proxies=proxies,
             storages=storages,

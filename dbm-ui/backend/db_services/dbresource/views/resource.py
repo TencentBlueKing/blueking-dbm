@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
 from typing import Dict, List
 
 from django.utils.translation import gettext_lazy as _
@@ -25,6 +26,7 @@ from backend.components.xwork.client import XworkApi
 from backend.db_dirty.models import MachineEvent
 from backend.db_meta.models import AppCache
 from backend.db_meta.models.machine import DeviceClass
+from backend.db_services.dbresource.apply_protocol import apply_resource
 from backend.db_services.dbresource.constants import RESOURCE_IMPORT_TASK_FIELD, SWAGGER_TAG
 from backend.db_services.dbresource.filters import DeviceClassFilter
 from backend.db_services.dbresource.handlers import ResourceHandler
@@ -66,6 +68,8 @@ from backend.iam_app.handlers.permission import Permission
 from backend.ticket.constants import BAMBOO_STATE__TICKET_STATE_MAP, TicketStatus, TicketType
 from backend.ticket.models import Ticket
 from backend.utils.redis import RedisConn
+
+logger = logging.getLogger("root")
 
 
 class DBResourceViewSet(viewsets.SystemViewSet):
@@ -217,7 +221,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
     @action(detail=False, methods=["POST"], url_path="apply", serializer_class=ResourceApplySerializer)
     def resource_apply(self, request):
         validated_data = self.params_validate(self.get_serializer_class())
-        return Response(DBResourceApi.resource_apply(params=validated_data))
+        return Response(apply_resource(params=validated_data, raw=False))
 
     @common_swagger_auto_schema(
         operation_summary=_("获取挂载点"),
@@ -332,6 +336,7 @@ class DBResourceViewSet(viewsets.SystemViewSet):
             MachineEvent.create_machine_events(
                 bk_biz_id, hosts, update_type, None, request.user.username, None, "", remark_map
             )
+        update_params = {key: value for key, value in update_params.items() if value is not None}
         return Response(DBResourceApi.resource_batch_update(params=update_params))
 
     @common_swagger_auto_schema(
@@ -435,6 +440,11 @@ class DBResourceViewSet(viewsets.SystemViewSet):
     )
     def spec_resource_count(self, request):
         apply_params = self.params_validate(self.get_serializer_class())
+        # 旧联调文档写的是单值 bk_cloud_zone，新协议统一用 bk_cloud_zone_list；
+        # serializer 不会报错，但要留下痕迹，避免可用区条件被静默丢掉导致预览数量偏大
+        raw = request.data if isinstance(request.data, dict) else {}
+        if raw.get("bk_cloud_zone") and not raw.get("bk_cloud_zone_list"):
+            logger.warning("spec_resource_count: bk_cloud_zone is deprecated, pass bk_cloud_zone_list instead")
         return Response(ResourceHandler.spec_resource_count(**apply_params))
 
     @common_swagger_auto_schema(

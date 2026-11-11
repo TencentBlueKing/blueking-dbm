@@ -51,7 +51,8 @@ def create(
     time_zone: str,
     region: str,
     creator: str = "",
-    zone_list: list = None,
+    cloud_zone_list: list = None,
+    bk_cloud_region: str = "",
 ) -> Cluster:
     bk_biz_id = request_validator.validated_integer(bk_biz_id)
     immute_domain = request_validator.validated_domain(immute_domain)
@@ -73,7 +74,8 @@ def create(
         time_zone=time_zone,
         major_version=major_version,
         region=region,
-        zone_list=zone_list if zone_list else [],
+        bk_cloud_region=bk_cloud_region,
+        cloud_zone_list=cloud_zone_list if cloud_zone_list else [],
     )
     cluster.storageinstance_set.add(*storage_objs)
 

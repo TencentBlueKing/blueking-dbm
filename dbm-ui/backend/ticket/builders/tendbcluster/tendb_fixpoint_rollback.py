@@ -19,6 +19,7 @@ from backend.components.dbconfig import constants as dbconf_const
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.enums.comm import SystemTagEnum, TagType
 from backend.db_meta.models import AppCache, Cluster, Tag
+from backend.db_meta.models.city_map import resolve_logical_city
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
 from backend.iam_app.dataclass.actions import ActionEnum
@@ -214,7 +215,7 @@ class TendbFixPointRollbackFlowBuilder(BaseTendbTicketFlowBuilder):
             "bk_cloud_id": cluster.bk_cloud_id,
             "db_app_abbr": db_app_abbr,
             "cluster_name": cluster_name,
-            "city": cluster.region,
+            "city": resolve_logical_city(cluster),
             "module": cluster.db_module_id,
             "db_module_id": cluster.db_module_id,
             "disaster_tolerance_level": cluster.disaster_tolerance_level,

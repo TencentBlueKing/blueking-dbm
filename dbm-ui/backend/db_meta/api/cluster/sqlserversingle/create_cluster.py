@@ -50,7 +50,8 @@ def create(
     bk_cloud_id: int,
     region: str,
     creator: str = "",
-    zone_list: list = None,
+    cloud_zone_list: list = None,
+    bk_cloud_region: str = "",
 ) -> Cluster:
     # 延迟导入，避免循环依赖
     from backend.flow.utils.sqlserver.sqlserver_db_function import get_instance_time_zone
@@ -79,7 +80,8 @@ def create(
         time_zone=get_instance_time_zone(storage_objs[0]),
         major_version=major_version,
         region=region,
-        zone_list=zone_list if zone_list else [],
+        bk_cloud_region=bk_cloud_region,
+        cloud_zone_list=cloud_zone_list if cloud_zone_list else [],
     )
     cluster.storageinstance_set.add(*storage_objs)
 

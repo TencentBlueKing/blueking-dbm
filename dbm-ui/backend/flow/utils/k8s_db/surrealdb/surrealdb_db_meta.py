@@ -14,6 +14,7 @@ from django.db.transaction import atomic
 from django.utils.translation import gettext as _
 
 from backend.db_meta import api
+from backend.db_meta.models.city_map import resolve_apply_region
 
 logger = logging.getLogger("flow")
 
@@ -44,6 +45,7 @@ class SurrealdbDBMeta(object):
             "phase": "online",
             "status": "normal",
             "region": self.ticket_data["region"],
+            "bk_cloud_region": resolve_apply_region(self.ticket_data),
             "creator": self.ticket_data["creator"],
         }
         with atomic():

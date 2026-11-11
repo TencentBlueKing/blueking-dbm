@@ -27,6 +27,7 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.models import ExerciseIgnoreConfig, MySQLBackupRecoverTask, TaskPhase, TaskStatus
 from backend.db_report.models.mysql_backup_result import MysqlBackupResult
+from backend.db_services.dbresource.apply_protocol import apply_resource
 from backend.env import MYSQL_BACKUPRECOVER_BIZ_ID, MYSQL_BACKUPRECOVER_MCH_LABELS_ID
 from backend.flow.consts import RollbackType
 from backend.flow.engine.bamboo.scene.mysql.mysql_rollback_exercise import MySQLRollbackExerciseFlow
@@ -594,7 +595,7 @@ def gen_rollback_task():
         # 申请资源
         mysql_version = backup_record.get("mysql_version", "")
         apply_params = build_resource_apply_params(root_id, storage_spec_list, mysql_version)
-        resp = DBResourceApi.resource_apply(params=apply_params, raw=True)
+        resp = apply_resource(params=apply_params, raw=True)
         if resp["code"] != 0:
             if resp["code"] == ResourceApplyErrCode.RESOURCE_LAKE:
                 logger.error(

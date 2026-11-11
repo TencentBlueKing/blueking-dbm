@@ -34,6 +34,7 @@ def create(
     creator: str = "",
     major_version: str = "",
     region: str = "",
+    bk_cloud_region: str = "",
 ):
     """
     创建 Doris 集群
@@ -57,6 +58,7 @@ def create(
         major_version=major_version,
         bk_cloud_id=bk_cloud_id,
         region=region,
+        bk_cloud_region=bk_cloud_region,
     )
 
     cluster_entry = ClusterEntry.objects.create(

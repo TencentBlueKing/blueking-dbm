@@ -43,6 +43,7 @@ from backend.db_meta.models import (
     StorageInstanceTuple,
     Tag,
 )
+from backend.db_meta.models.city_map import resolve_apply_region
 from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.db_package.models import Package
 from backend.db_services.mysql.dumper.models import DumperSubscribeConfig
@@ -86,7 +87,8 @@ class MySQLDBMeta(object):
             bk_cloud_id=int(self.ticket_data["bk_cloud_id"]),
             resource_spec=self.ticket_data.get("resource_spec", def_resource_spec),
             region=self.ticket_data["city"],
-            zone_list=self.ticket_data.get("zone_list", []),
+            bk_cloud_region=resolve_apply_region(self.ticket_data),
+            cloud_zone_list=self.ticket_data.get("cloud_zone_list") or self.ticket_data.get("zone_list", []),
         )
         for tag_key in builtin_cluster_tags:
             builtin_tag = Tag.get_builtin_tag(key=tag_key, value=True, type=TagType.CLUSTER)[0]
@@ -116,8 +118,9 @@ class MySQLDBMeta(object):
             "bk_cloud_id": int(self.ticket_data["bk_cloud_id"]),
             "resource_spec": self.ticket_data.get("resource_spec", def_resource_spec),
             "region": self.ticket_data["city"],
+            "bk_cloud_region": resolve_apply_region(self.ticket_data),
             "disaster_tolerance_level": self.ticket_data["disaster_tolerance_level"],
-            "zone_list": self.ticket_data.get("zone_list", []),
+            "cloud_zone_list": self.ticket_data.get("cloud_zone_list") or self.ticket_data.get("zone_list", []),
         }
         TenDBHAClusterHandler.create(**kwargs)
         return True

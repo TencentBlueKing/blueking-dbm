@@ -26,7 +26,10 @@ from .host import (
     list_cap_specs_ssd,
     list_cap_specs_tendisplus,
     list_cities,
+    list_cloud_regions,
+    list_cloud_zones,
     list_common_cities,
+    list_common_cloud_regions,
     list_host_specs,
     list_logic_cities,
     list_subzones,
@@ -80,6 +83,28 @@ class LogicalCityViewSet(viewsets.SystemViewSet):
         return Response(resp_data)
 
     @common_swagger_auto_schema(
+        operation_summary=_("查询云地域信息"),
+        responses={status.HTTP_200_OK: serializers.CloudRegionSLZ(label=_("云地域信息"), many=True)},
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False)
+    def list_cloud_regions(self, requests, *args, **kwargs):
+        return Response(serializers.CloudRegionSLZ(list_cloud_regions(), many=True).data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询常用云地域信息"),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False)
+    def list_common_cloud_regions(self, requests, *args, **kwargs):
+        uncommon, common = list_common_cloud_regions()
+        resp_data = {
+            "common": serializers.CloudRegionSLZ(common, many=True).data,
+            "uncommon": serializers.CloudRegionSLZ(uncommon, many=True).data,
+        }
+        return Response(resp_data)
+
+    @common_swagger_auto_schema(
         operation_summary=_("查询逻辑城市映射关系"),
         responses={status.HTTP_200_OK: serializers.LogicCitySLZ(label=_("城市信息"), many=True)},
         tags=[SWAGGER_TAG],
@@ -100,6 +125,17 @@ class LogicalCityViewSet(viewsets.SystemViewSet):
         params = self.params_validate(self.get_serializer_class())
         serializer = serializers.SubzoneSLZ(list_subzones(params["city_code"]), many=True)
         return Response(serializer.data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询云可用区信息"),
+        query_serializer=ListSubzoneSLZ(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=ListSubzoneSLZ)
+    def list_cloud_zones(self, requests, *args, **kwargs):
+        params = self.params_validate(self.get_serializer_class())
+        cloud_zones = list_cloud_zones(params["city_code"], params.get("region", ""))
+        return Response(cloud_zones)
 
 
 class HostSpecViewSet(viewsets.SystemViewSet):

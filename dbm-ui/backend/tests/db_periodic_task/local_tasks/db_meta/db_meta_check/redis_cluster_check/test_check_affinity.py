@@ -14,36 +14,99 @@ def redis_affinity_module(django_db_setup, django_db_blocker):
         )
 
 
-def _storage(ip: str, subzone_id: int, rack_id: str):
-    return SimpleNamespace(machine=SimpleNamespace(ip=ip, bk_sub_zone_id=subzone_id, bk_rack_id=rack_id))
-
-
-def test_same_subzone_cross_switch_suggests_moving_slave_to_expected_subzone(redis_affinity_module):
-    checker = redis_affinity_module.RedisAffinityChecker
-    checker._subzone_map_cache = {1: "test-subzone-a", 2: "test-subzone-b"}
-
-    msg = checker._check_backend_same_subzone(
-        master_obj=_storage("1.1.1.1", 1, "rack-a"),
-        slave_obj=_storage("1.1.1.2", 2, "rack-b"),
-        expected_subzone_id=1,
+def _storage(ip: str, cloud_zone: str, rack_id: str, subzone_id: int = 1):
+    return SimpleNamespace(
+        machine=SimpleNamespace(
+            ip=ip,
+            bk_cloud_zone=cloud_zone,
+            bk_sub_zone_id=subzone_id,
+            bk_rack_id=rack_id,
+        )
     )
 
-    assert "请将副节点机器 1.1.1.2 替换或迁移到 园区(test-subzone-a) 且不同机架" in msg
+
+def test_same_cloud_zone_cross_switch_suggests_moving_slave_to_expected_cloud_zone(redis_affinity_module):
+    checker = redis_affinity_module.RedisAffinityChecker
+
+    msg = checker._check_backend_same_cloud_zone(
+        master_obj=_storage("1.1.1.1", "cz-a", "rack-a"),
+        slave_obj=_storage("1.1.1.2", "cz-b", "rack-b"),
+        expected_cloud_zone="cz-a",
+    )
+
+    assert "请将副节点机器 1.1.1.2 替换或迁移到 可用区(cz-a) 且不同机架" in msg
     assert "主节点机器 1.1.1.1 替换" not in msg
 
 
-def test_same_subzone_cross_switch_suggests_moving_master_when_slave_is_in_expected_subzone(redis_affinity_module):
+def test_same_cloud_zone_cross_switch_suggests_moving_master_when_slave_is_in_expected_cloud_zone(
+    redis_affinity_module,
+):
     checker = redis_affinity_module.RedisAffinityChecker
-    checker._subzone_map_cache = {1: "test-subzone-a", 2: "test-subzone-b"}
 
-    msg = checker._check_backend_same_subzone(
-        master_obj=_storage("1.1.1.2", 2, "rack-b"),
-        slave_obj=_storage("1.1.1.1", 1, "rack-a"),
-        expected_subzone_id=1,
+    msg = checker._check_backend_same_cloud_zone(
+        master_obj=_storage("1.1.1.2", "cz-b", "rack-b"),
+        slave_obj=_storage("1.1.1.1", "cz-a", "rack-a"),
+        expected_cloud_zone="cz-a",
     )
 
-    assert "请将主节点机器 1.1.1.2 替换或迁移到 园区(test-subzone-a) 且不同机架" in msg
+    assert "请将主节点机器 1.1.1.2 替换或迁移到 可用区(cz-a) 且不同机架" in msg
     assert "副节点机器 1.1.1.1 替换" not in msg
+
+
+def test_cross_subzone_violates_when_same_cloud_zone_but_different_subzones(redis_affinity_module):
+    """同一可用区、不同园区不再视为已分散：CROS_SUBZONE 应判定违规。"""
+    checker = redis_affinity_module.RedisAffinityChecker
+
+    msg = checker._check_backend_cross_cloud_zone(
+        master_obj=_storage("1.1.1.1", "cz-a", "rack-a", subzone_id=1),
+        slave_obj=_storage("1.1.1.2", "cz-a", "rack-b", subzone_id=2),
+    )
+
+    assert msg is not None
+    assert "位于同一可用区" in msg
+
+
+def test_cross_subzone_passes_when_different_cloud_zones(redis_affinity_module):
+    checker = redis_affinity_module.RedisAffinityChecker
+
+    msg = checker._check_backend_cross_cloud_zone(
+        master_obj=_storage("1.1.1.1", "cz-a", "rack-a", subzone_id=1),
+        slave_obj=_storage("1.1.1.2", "cz-b", "rack-a", subzone_id=2),
+    )
+
+    assert msg is None
+
+
+def test_proxies_same_cloud_zone_across_subzones_counts_as_single_zone(redis_affinity_module):
+    """同一可用区下不同园区的 proxy 视为同区，不再因园区不同判违规。"""
+    checker = redis_affinity_module.RedisAffinityChecker
+    proxies = [
+        SimpleNamespace(
+            machine=SimpleNamespace(bk_cloud_zone="cz-a", bk_sub_zone_id=1, bk_rack_id=11, ip="1.1.1.1"),
+            machine_type="proxy",
+        ),
+        SimpleNamespace(
+            machine=SimpleNamespace(bk_cloud_zone="cz-a", bk_sub_zone_id=2, bk_rack_id=12, ip="1.1.1.2"),
+            machine_type="proxy",
+        ),
+    ]
+
+    result = checker._validate_proxies_affinity(
+        proxy_instances=proxies,
+        affinity_level=redis_affinity_module.AffinityEnum.SAME_SUBZONE_CROSS_SWTICH,
+        expected_cloud_zone=None,
+    )
+
+    assert result["state"] == redis_affinity_module.ReportStateType.NORMAL.value
+    assert result["msg"] == ""
+
+
+def test_resolve_expected_cloud_zone_allows_empty_as_random(redis_affinity_module):
+    checker = redis_affinity_module.RedisAffinityChecker
+
+    assert checker._resolve_expected_cloud_zone([]) is None
+    assert checker._resolve_expected_cloud_zone(None) is None
+    assert checker._resolve_expected_cloud_zone(["cz-a"]) == "cz-a"
 
 
 def test_check_redis_affinity_exits_when_disabled(redis_affinity_module):
@@ -99,11 +162,9 @@ def test_check_all_clusters_ingests_portrait_and_survives_ingest_failure(redis_a
     with patch.object(redis_affinity_module, "RedisReportWriter"):
         checker = redis_affinity_module.RedisAffinityChecker(config)
 
-    with patch.object(redis_affinity_module.BKSubzone, "get_subzone_map", return_value={}), patch.object(
-        redis_affinity_module, "delete_old_meta_check_reports"
-    ), patch.object(redis_affinity_module, "_get_candidate_cluster_ids", return_value=[1]), patch.object(
-        redis_affinity_module, "_fetch_affinity_ignore_cluster_ids", return_value=set()
-    ), patch.object(
+    with patch.object(redis_affinity_module, "delete_old_meta_check_reports"), patch.object(
+        redis_affinity_module, "_get_candidate_cluster_ids", return_value=[1]
+    ), patch.object(redis_affinity_module, "_fetch_affinity_ignore_cluster_ids", return_value=set()), patch.object(
         redis_affinity_module, "_load_affinity_clusters_page", return_value=[cluster]
     ), patch.object(
         checker, "_should_ignore_cluster", return_value=False
@@ -121,11 +182,9 @@ def test_check_all_clusters_ingests_portrait_and_survives_ingest_failure(redis_a
     assert ingest.call_args.kwargs["prefix"] == "[亲和性]"
     assert ingest.call_args.kwargs["dimension"] == redis_affinity_module.RedisPortraitDimensionCode.TOPOLOGY_SCALE
 
-    with patch.object(redis_affinity_module.BKSubzone, "get_subzone_map", return_value={}), patch.object(
-        redis_affinity_module, "delete_old_meta_check_reports"
-    ), patch.object(redis_affinity_module, "_get_candidate_cluster_ids", return_value=[1]), patch.object(
-        redis_affinity_module, "_fetch_affinity_ignore_cluster_ids", return_value=set()
-    ), patch.object(
+    with patch.object(redis_affinity_module, "delete_old_meta_check_reports"), patch.object(
+        redis_affinity_module, "_get_candidate_cluster_ids", return_value=[1]
+    ), patch.object(redis_affinity_module, "_fetch_affinity_ignore_cluster_ids", return_value=set()), patch.object(
         redis_affinity_module, "_load_affinity_clusters_page", return_value=[cluster]
     ), patch.object(
         checker, "_should_ignore_cluster", return_value=False

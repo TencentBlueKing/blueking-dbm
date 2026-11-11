@@ -49,6 +49,8 @@ RESOURCE_UPDATE_REMARK = {
     "rack_id": _("机架"),
     "device_class": _("机型"),
     "storage_device": _("数据盘"),
+    "bk_cloud_region": _("云地域"),
+    "bk_cloud_zone": _("可用区"),
 }
 
 

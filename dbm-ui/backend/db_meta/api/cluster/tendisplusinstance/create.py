@@ -42,8 +42,9 @@ def create_predixy_tendisplus_ins(
     bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
     region: str = "",
     disaster_tolerance_level: str = "",
-    zone_list: list = None,
+    cloud_zone_list: list = None,
     ip_port_storages: Optional[dict] = None,
+    bk_cloud_region: str = "",
 ):
     """
     注册 TendisPredixyTendisplusInstance 集群（Predixy + TendisPlus 主从模式）
@@ -74,8 +75,9 @@ def create_predixy_tendisplus_ins(
             creator=creator,
             bk_cloud_id=bk_cloud_id,
             region=region,
+            bk_cloud_region=bk_cloud_region,
             disaster_tolerance_level=disaster_tolerance_level,
-            zone_list=zone_list,
+            cloud_zone_list=cloud_zone_list,
         )
         cluster.proxyinstance_set.add(*proxy_objs)
         cluster.storageinstance_set.add(*storage_objs)

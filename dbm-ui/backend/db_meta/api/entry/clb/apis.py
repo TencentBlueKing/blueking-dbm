@@ -75,7 +75,7 @@ def create_by_role(clb_infos: List[Dict], role: str, creator: str = ""):
                 clb_ip=clb_info.get("clb_ip"),
                 clb_id=clb_info.get("clb_id", ""),
                 listener_id=clb_info.get("clb_listener_id", ""),
-                clb_region=c.region,
+                clb_region=c.bk_cloud_region,
                 clb_port=clb_info.get("clb_port", 0),
                 creator=creator,
             )

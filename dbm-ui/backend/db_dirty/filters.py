@@ -60,6 +60,8 @@ class DirtyMachinePoolFilter(filters.FilterSet):
     ips = filters.CharFilter(field_name="ip", method="filter_ips", label=_("过滤IP"))
     city = filters.CharFilter(field_name="city", method="filter_city", label=_("城市"))
     sub_zone = filters.CharFilter(field_name="sub_zone", method="filter_sub_zone", label=_("园区"))
+    bk_cloud_zone = filters.CharFilter(field_name="bk_cloud_zone", method="filter_bk_cloud_zone", label=_("可用区"))
+    bk_cloud_region = filters.CharFilter(field_name="bk_cloud_region", method="filter_bk_cloud_region", label=_("地域"))
     rack_id = filters.CharFilter(field_name="rack_id", method="filter_rack_id", label=_("机架"))
     device_class = filters.CharFilter(field_name="device_class", method="filter_device_class", label=_("机型"))
     os_name = filters.CharFilter(field_name="os_name", method="filter_os_name", label=_("操作系统"))
@@ -84,6 +86,12 @@ class DirtyMachinePoolFilter(filters.FilterSet):
 
     def filter_sub_zone(self, queryset, name, value):
         return queryset.filter(build_empty_and_in_q("sub_zone", value, "exact"))
+
+    def filter_bk_cloud_zone(self, queryset, name, value):
+        return queryset.filter(build_empty_and_in_q("bk_cloud_zone", value, "exact"))
+
+    def filter_bk_cloud_region(self, queryset, name, value):
+        return queryset.filter(build_empty_and_in_q("bk_cloud_region", value, "exact"))
 
     def filter_rack_id(self, queryset, name, value):
         return queryset.filter(rack_id__in=value.split(","))
@@ -134,4 +142,6 @@ class DirtyMachinePoolFilter(filters.FilterSet):
             "updater",
             "is_todo",
             "todo_type",
+            "bk_cloud_zone",
+            "bk_cloud_region",
         ]

@@ -220,7 +220,9 @@ class CheckIfNormalSpiderNodeService(DropSpiderRoutingService):
         检查clb是否有绑定到ip信息
         """
         clb_detail = CLBEntryDetail.objects.get(entry=entry)
-        info = NameServiceApi.clb_check_clb_register_target_by_ip({"region": cluster.region, "ips": [spider_ip]})
+        info = NameServiceApi.clb_check_clb_register_target_by_ip(
+            {"region": cluster.bk_cloud_region, "ips": [spider_ip]}
+        )
         if info and info["clbid"] == clb_detail.clb_id:
             # 表示主机已经绑定好clb
             self.log_info(f"{spider_ip} already bound to clb [{clb_detail.clb_id}]")

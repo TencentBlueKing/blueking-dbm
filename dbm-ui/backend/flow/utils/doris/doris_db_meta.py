@@ -15,6 +15,7 @@ from django.utils.translation import gettext as _
 
 from backend.db_meta import api
 from backend.db_meta.enums import InstanceRole, MachineType
+from backend.db_meta.models.city_map import resolve_apply_region
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.consts import DorisRoleEnum, LevelInfoEnum
 from backend.flow.utils.doris.consts import DEFAULT_BE_WEB_PORT
@@ -125,6 +126,7 @@ class DorisDBMeta(object):
             "creator": self.ticket_data["created_by"],
             "major_version": self.ticket_data["db_version"],
             "region": self.ticket_data["city_code"],
+            "bk_cloud_region": resolve_apply_region(self.ticket_data),
         }
 
         with atomic():
