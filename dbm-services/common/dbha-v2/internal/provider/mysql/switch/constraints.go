@@ -34,7 +34,10 @@ import (
 	"gorm.io/gorm"
 )
 
-const defaultExecSqlTimeout = 30 * time.Second
+const (
+	defaultExecSqlTimeout      = 30 * time.Second
+	defaultFlushRoutingTimeout = 30 * time.Second
+)
 
 // ExecSqlTimeout returns workflow.switchflow.mysql.execSqlTimeout, or default when unset.
 func ExecSqlTimeout() time.Duration {
@@ -45,8 +48,28 @@ func ExecSqlTimeout() time.Duration {
 	return d
 }
 
+// FlushRoutingTimeout returns workflow.switchflow.mysql.tdbctlFlushRoutingTimeout,
+// or default when unset. It applies to TDBCTL FLUSH ROUTING [FORCE].
+func FlushRoutingTimeout() time.Duration {
+	d := config.Cfg.Workflow.SwitchFlow.Mysql.TdbctlFlushRoutingTimeout
+	if d <= 0 {
+		return defaultFlushRoutingTimeout
+	}
+	return d
+}
+
 // GormWithExecSqlTimeout returns db scoped to ExecSqlTimeout and the cancel func for its context deadline.
 func GormWithExecSqlTimeout(db *hamysql.GormDB) (*gorm.DB, context.CancelFunc) {
-	ctx, cancel := context.WithTimeout(context.Background(), ExecSqlTimeout())
+	return gormWithTimeout(db, ExecSqlTimeout())
+}
+
+// GormWithFlushRoutingTimeout returns db scoped to FlushRoutingTimeout and the cancel
+// func for its context deadline.
+func GormWithFlushRoutingTimeout(db *hamysql.GormDB) (*gorm.DB, context.CancelFunc) {
+	return gormWithTimeout(db, FlushRoutingTimeout())
+}
+
+func gormWithTimeout(db *hamysql.GormDB, timeout time.Duration) (*gorm.DB, context.CancelFunc) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	return db.DBWithContext(ctx), cancel
 }
