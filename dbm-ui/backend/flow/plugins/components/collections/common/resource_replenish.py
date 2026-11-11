@@ -52,8 +52,10 @@ class HCMResourceReplenishService(BaseService):
                 bk_biz_id=bk_biz_id,
                 ticket_id=ticket.id,
                 username=ticket.creator,
-                city=kwargs["city"],
-                subzone=kwargs["subzone"],
+                city=kwargs.get("city", ""),
+                subzone=kwargs.get("subzone", ""),
+                cloud_region=kwargs.get("bk_cloud_region", ""),
+                cloud_zone=kwargs.get("bk_cloud_zone", ""),
                 os_name=kwargs["os_name"],
                 device_types=spec.device_class,
                 disk=[{"disk_type": s["type"], "disk_size": s["min"]} for s in spec.storage_spec if s.get("min")],
@@ -73,8 +75,10 @@ class HCMResourceReplenishService(BaseService):
                 bk_biz_id=bk_biz_id,
                 ticket_id=ticket.id,
                 username=ticket.creator,
-                subzone=kwargs["subzone"],
-                city=kwargs["city"],
+                subzone=kwargs.get("subzone", ""),
+                city=kwargs.get("city", ""),
+                cloud_region=kwargs.get("bk_cloud_region", ""),
+                cloud_zone=kwargs.get("bk_cloud_zone", ""),
                 os_name=kwargs["os_name"],
                 device_types=spec.device_class,
                 disk=[{"disk_type": s["type"], "disk_size": s["min"]} for s in spec.storage_spec if s.get("min")],
@@ -87,15 +91,22 @@ class HCMResourceReplenishService(BaseService):
             return self.__do_modify_apply(suborder_id, bk_biz_id, ticket, spec, kwargs, apply_count, device_index + 1)
 
     def __find_candidate_device(self, spec, kwargs, candidate_index):
+        # 按可用区补货时没有园区，容量预检直接按可用区查
+        cloud_region, cloud_zone = kwargs.get("bk_cloud_region", ""), kwargs.get("bk_cloud_zone", "")
         # subzone=SUBZONE_ALL（可用区全部+分 Campus（Camplus）生产）：跨园区调度，跳过单园区容量预检，
         # 直接把资源分配交给海磊提单接口，失败时走既有换机型重试流程。
         # 与普通园区一致，候选机型同样不超过 CANDIDATE_DEVICE_NUM，避免机型偏离过远
-        if kwargs["subzone"] == SUBZONE_ALL:
+        if kwargs.get("subzone") == SUBZONE_ALL:
             if candidate_index >= min(len(spec.device_class), self.CANDIDATE_DEVICE_NUM):
                 raise Exception(_("在所有候选机型中，都没有库存容量，请稍后重试"))
             return candidate_index
         for index in range(candidate_index, min(len(spec.device_class), self.CANDIDATE_DEVICE_NUM)):
-            capacity = HCMApi.get_cvm_device_capacity(spec.device_class[index], kwargs["subzone"])
+            capacity = HCMApi.get_cvm_device_capacity(
+                spec.device_class[index],
+                subzone=kwargs.get("subzone", ""),
+                cloud_region=cloud_region,
+                cloud_zone=cloud_zone,
+            )
             if capacity > 0:
                 return index
 

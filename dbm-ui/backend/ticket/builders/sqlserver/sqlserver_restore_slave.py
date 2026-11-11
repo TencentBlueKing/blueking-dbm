@@ -120,23 +120,26 @@ class SQLServerRestoreSlaveResourceParamBuilder(SQLServerBaseOperateResourcePara
                 os_names=info["system_version"],
             )
 
-            # 根据亲和性补充园区信息
+            # 根据亲和性补充可用区信息。容灾判定单元是云可用区，同一可用区下的不同园区不算分散
+            location_spec = info["resource_spec"]["sqlserver_ha"]["location_spec"]
+            location_spec["bk_cloud_region"] = cluster.bk_cloud_region or master_machine.bk_cloud_region or ""
             if cluster.disaster_tolerance_level == AffinityEnum.CROS_SUBZONE:
-                master_subzone = master_machine.bk_sub_zone_id
-                if not cluster.zone_list:
-                    is_include, sub_zone_ids = False, [master_subzone]
+                master_cloud_zone = master_machine.bk_cloud_zone
+                cluster_cloud_zones = [zone for zone in (cluster.cloud_zone_list or []) if zone]
+                if not cluster_cloud_zones:
+                    # 集群没记录可用区（随机），退化成排除主库所在可用区
+                    is_include, cloud_zones = False, [master_cloud_zone]
                 else:
-                    is_include, sub_zone_ids = True, list(set(cluster.zone_list) - {master_subzone})
-                info["resource_spec"]["sqlserver_ha"]["location_spec"].update(
-                    sub_zone_ids=sub_zone_ids, include_or_exclue=is_include
-                )
+                    is_include, cloud_zones = True, list(set(cluster_cloud_zones) - {master_cloud_zone})
+                    if not cloud_zones:
+                        # 集群只记录了主库所在的可用区，同样退化成排除
+                        is_include, cloud_zones = False, [master_cloud_zone]
+                location_spec.update(sub_zone_ids=cloud_zones, include_or_exclue=is_include)
             elif cluster.disaster_tolerance_level in [
                 AffinityEnum.SAME_SUBZONE,
                 AffinityEnum.SAME_SUBZONE_CROSS_SWTICH,
             ]:
-                info["resource_spec"]["sqlserver_ha"]["location_spec"].update(
-                    sub_zone_ids=[master_machine.bk_sub_zone_id], include_or_exclue=True
-                )
+                location_spec.update(sub_zone_ids=[master_machine.bk_cloud_zone], include_or_exclue=True)
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()

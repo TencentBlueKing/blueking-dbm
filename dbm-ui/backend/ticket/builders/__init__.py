@@ -286,25 +286,29 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
         if role not in info["resource_spec"] or "hosts" in info["resource_spec"][role]:
             return
 
+        # 局部导入：builders 包与 common.base 互相引用，模块级导入会循环
+        from backend.ticket.builders.common.base import cluster_location_spec
+
         resource_spec = info["resource_spec"]
         affinity = cluster.disaster_tolerance_level
         # 对互斥主机进行去重
         exclusive_hosts = exclusive_hosts or []
         exclusive_hosts = list({host.bk_host_id: host for host in exclusive_hosts}.values())
 
-        # 如果不需要亲和性，则更新城市，亲和性固定为None
+        # 如果不需要亲和性，则更新地域，亲和性固定为None
         if no_need_affinity:
-            resource_spec[role]["location_spec"] = {"city": cluster.region, "sub_zone_ids": []}
+            resource_spec[role]["location_spec"] = cluster_location_spec(cluster, sub_zone_ids=[])
             resource_spec[role]["affinity"] = AffinityEnum.NONE
             return
 
-        # 获取互斥机器园区、园区信息
+        # 获取互斥机器的可用区、机架信息
         current_hosts = [
             {
                 "ip": host.ip,
                 "bk_host_id": host.bk_host_id,
                 "sub_zone": host.bk_sub_zone,
                 "sub_zone_id": str(host.bk_sub_zone_id),
+                "bk_cloud_zone": host.bk_cloud_zone or "",
                 "rack_id": str(host.bk_rack_id),
             }
             for host in exclusive_hosts
@@ -312,7 +316,7 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
 
         resource_spec[role].update(
             affinity=affinity,
-            location_spec={"city": cluster.region, "sub_zone_ids": cluster.zone_list or []},
+            location_spec=cluster_location_spec(cluster),
             current_hosts=current_hosts,
         )
         if not no_need_tolerance:

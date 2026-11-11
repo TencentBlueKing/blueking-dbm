@@ -15,12 +15,12 @@ from typing import Dict, List, Optional
 
 from django.utils.translation import gettext as _
 
-from backend.components.dbresource.client import DBResourceApi
 from backend.configuration.constants import AffinityEnum
 from backend.constants import INT_MAX
 from backend.db_dirty.constants import MachineEventType
 from backend.db_dirty.models import MachineEvent
 from backend.db_meta.models import AppCache, Cluster, Machine, Spec, StorageInstance, Tag
+from backend.db_services.dbresource.apply_protocol import apply_resource
 from backend.ticket.builders.common.base import fetch_apply_hosts
 from backend.ticket.constants import ResourceApplyErrCode
 
@@ -272,7 +272,7 @@ def apply_exercise_resources(ticket_data: dict, root_id: str) -> ApplyExerciseRe
         "details": apply_details,
     }
 
-    resp = DBResourceApi.resource_apply(params=apply_params, raw=True)
+    resp = apply_resource(params=apply_params, raw=True)
     if resp.get("code") != 0:
         err_code = resp.get("code")
         if err_code in ResourceApplyErrCode.get_values():

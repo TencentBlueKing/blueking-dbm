@@ -124,7 +124,7 @@ def create(
         major_version=major_version,  # 这里存储集群的主版本信息，主要是为展示，存储mysql版本
         region=region,  # 这里保存申请资源的地域信息
         disaster_tolerance_level=disaster_tolerance_level,
-        zone_list=zone_list if zone_list else [],
+        cloud_zone_list=zone_list if zone_list else [],
     )
 
     # 添加 cluster 与所有spider实例和storage实例的映射关系

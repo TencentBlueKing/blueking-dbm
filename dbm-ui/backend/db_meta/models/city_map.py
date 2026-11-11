@@ -8,11 +8,16 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import logging
+from typing import Iterable, Optional
+
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
 from backend.utils.cache import func_cache_decorator
+
+logger = logging.getLogger("root")
 
 
 # 1. 提供机器城市到逻辑城市的映射, 如机器的城市属性是扬州的, 实际当作南京看待
@@ -68,3 +73,41 @@ class BKSubzone(AuditedModel):
     @func_cache_decorator(cache_time=60 * 60 * 24)
     def get_subzone_map(cls):
         return {subzone.bk_sub_zone_id: subzone.bk_sub_zone for subzone in cls.objects.all()}
+
+
+def resolve_cloud_region(cloud_zones: Optional[Iterable[str]] = None, city: str = "") -> str:
+    """由云可用区或城市推出云地域（region）
+
+    优先级：
+    1. 可用区所属的地域（一个可用区只属于一个地域，最权威）；
+    2. 城市（逻辑城）下所有可用区的地域，唯一时才采用。
+
+    推不出来返回空串，由调用方决定是否留空（不在这里抛异常，避免影响部署主流程）。
+    """
+    zones = [zone for zone in (cloud_zones or []) if zone]
+    if zones:
+        regions = set(
+            BKSubzone.objects.filter(bk_cloud_zone__in=zones)
+            .exclude(bk_cloud_region__isnull=True)
+            .exclude(bk_cloud_region="")
+            .values_list("bk_cloud_region", flat=True)
+        )
+        if len(regions) == 1:
+            return regions.pop()
+        if len(regions) > 1:
+            logger.error("cloud zones %s belong to multiple regions %s", zones, sorted(regions))
+
+    city = (city or "").strip()
+    if city and city != "default":
+        regions = set(
+            BKSubzone.objects.filter(bk_city__logical_city__name=city)
+            .exclude(bk_cloud_region__isnull=True)
+            .exclude(bk_cloud_region="")
+            .values_list("bk_cloud_region", flat=True)
+        )
+        if len(regions) == 1:
+            return regions.pop()
+        if len(regions) > 1:
+            logger.error("city %s maps to multiple regions %s", city, sorted(regions))
+
+    return ""

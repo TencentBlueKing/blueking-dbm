@@ -30,6 +30,8 @@ from backend.db_dirty.constants import MachineEventType, PoolType
 from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.enums.spec import SpecClusterType, SpecMachineType
 from backend.db_meta.models import AppCache, Machine, Spec, Tag
+from backend.db_meta.models.city_map import BKSubzone
+from backend.db_services.dbresource.apply_protocol import expand_zone_subzone_ids
 from backend.db_services.dbresource.exceptions import ResourceReturnException, SpecOperateException
 from backend.db_services.dbresource.models import ResourceReplenishRecord
 from backend.db_services.ipchooser.constants import ModeType
@@ -421,9 +423,20 @@ class ResourceHandler(object):
 
     @classmethod
     def spec_resource_count(
-        cls, bk_biz_id: int, bk_cloud_id: int, sub_zone_ids: List[int], spec_ids: List[int], city: str
+        cls,
+        bk_biz_id: int,
+        bk_cloud_id: int,
+        sub_zone_ids: List[str],
+        spec_ids: List[int],
+        city: str,
+        group_by_cloud_zone: bool = False,
     ):
-        """规格预估资源数量"""
+        """规格预估资源数量
+
+        @param sub_zone_ids: 位置条件。跨可用区/指定可用区时传的是云可用区
+        @param group_by_cloud_zone: 为 True 时额外按可用区分组返回数量，
+            只统计有可用区信息的主机（可用区展开成园区 ID 后统计）
+        """
         specs = Spec.objects.filter(spec_id__in=spec_ids)
         if not specs.exists():
             return {}
@@ -432,23 +445,50 @@ class ResourceHandler(object):
         if len(spec_cluster_type) > 1:
             raise SpecOperateException(_("请保证请求的规格类型一致"))
         resource_type = spec_cluster_type[0]
-        # 构造申请参数
-        spec_count_details = [
-            spec.get_group_apply_params(group_mark=str(spec.spec_id), count=1, group_count=1, bk_cloud_id=bk_cloud_id)
-            for spec in specs
-        ]
-        spec_count_details = list(itertools.chain(*spec_count_details))
-        spec_count_params = {
-            "location_spec": {"city": "" if city == "default" else city, "sub_zone_ids": sub_zone_ids},
-            "for_biz_id": bk_biz_id,
-            "resource_type": resource_type,
-            "bk_cloud_id": bk_cloud_id,
-            "details": spec_count_details,
-        }
-        # 获取规格的预估数量，注意剔除分组后缀
-        spec_apply_count = DBResourceApi.apply_count(params=spec_count_params)
-        spec_apply_count = {k.split("_")[0]: v for k, v in spec_apply_count.items()}
-        return spec_apply_count
+
+        def count_by_location(location_zone_ids: List[str]) -> Dict[str, int]:
+            # 构造申请参数
+            spec_count_details = [
+                spec.get_group_apply_params(
+                    group_mark=str(spec.spec_id), count=1, group_count=1, bk_cloud_id=bk_cloud_id
+                )
+                for spec in specs
+            ]
+            spec_count_details = list(itertools.chain(*spec_count_details))
+            params = {
+                "location_spec": {"city": "" if city == "default" else city, "sub_zone_ids": location_zone_ids},
+                "for_biz_id": bk_biz_id,
+                "resource_type": resource_type,
+                "bk_cloud_id": bk_cloud_id,
+                "details": spec_count_details,
+            }
+            # 获取规格的预估数量，注意剔除分组后缀
+            counts = DBResourceApi.apply_count(params=params)
+            return {k.split("_")[0]: v for k, v in counts.items()}
+
+        location_values = [str(value).strip() for value in (sub_zone_ids or []) if str(value).strip()]
+        # 前端传的是云可用区，资源池 /resource/spec/sum 只认园区 ID，这里展开一次；
+        # 已经是园区 ID 的值原样保留
+        zone_values = [value for value in location_values if not value.isdigit()]
+        expanded_ids = expand_zone_subzone_ids(zone_values) if zone_values else []
+        if zone_values and not expanded_ids:
+            logger.error("spec_resource_count: cloud zones %s have no subzone registered", zone_values)
+        expanded_location = list(dict.fromkeys(expanded_ids + [value for value in location_values if value.isdigit()]))
+
+        spec_apply_count = count_by_location(expanded_location)
+        # 按可用区分组只对「传的是可用区」有意义；传老园区 ID 时没有分组口径
+        if not group_by_cloud_zone or not zone_values:
+            return spec_apply_count
+
+        by_cloud_zone: Dict[str, Dict[str, int]] = {}
+        for zone in zone_values:
+            subzone_ids_in_zone = expand_zone_subzone_ids([zone])
+            if not subzone_ids_in_zone:
+                by_cloud_zone[zone] = {spec_id: 0 for spec_id in spec_apply_count}
+                continue
+            by_cloud_zone[zone] = count_by_location(subzone_ids_in_zone)
+
+        return {"total": spec_apply_count, "by_cloud_zone": by_cloud_zone}
 
     @staticmethod
     def resource_list(params):
@@ -601,9 +641,16 @@ class ResourceHandler(object):
         subzone_map = {name: zone_key for zone_key, zone_names in subzone_map.items() for name in zone_names}
         # excluded_city = SystemSettings.get_setting_value(SystemSettingsEnum.REPLENISH_EXCLUDED_CITY, ["default"])
 
+        # 园区 -> (云可用区, 云地域)，补货和水位统计都要按可用区展示
+        cloud_zone_map = {
+            subzone["bk_sub_zone"]: (subzone["bk_cloud_zone"] or "", subzone["bk_cloud_region"] or "")
+            for subzone in BKSubzone.objects.values("bk_sub_zone", "bk_cloud_zone", "bk_cloud_region")
+        }
+
         # 不符合水位数据的统计函数定义
         exclusive_spec = []
-        exclusive_machine = {"empty_os": [], "empty_city": [], "empty_subzone": []}
+        # empty_cloud_zone 对应「可用区信息缺失」：候选主机可用区为空，无法参与跨可用区/指定可用区申领
+        exclusive_machine = {"empty_os": [], "empty_city": [], "empty_subzone": [], "empty_cloud_zone": []}
 
         def add_exclusive_machine_infos(hosts):
             for host in hosts:
@@ -613,6 +660,8 @@ class ResourceHandler(object):
                     exclusive_machine["empty_city"].append(host["ip"])
                 if not host["bk_sub_zone"]:
                     exclusive_machine["empty_subzone"].append(host["ip"])
+                if not host["bk_cloud_zone"]:
+                    exclusive_machine["empty_cloud_zone"].append(host["ip"])
 
         def add_exclusive_spec_infos(spec_ids):
             for spec_id in spec_ids:
@@ -627,7 +676,7 @@ class ResourceHandler(object):
         )
 
         machines = Machine.objects.filter(bk_cloud_id=0).values(
-            "spec_id", "bk_os_name", "bk_city__bk_idc_city_name", "bk_sub_zone", "ip"
+            "spec_id", "bk_os_name", "bk_city__bk_idc_city_name", "bk_sub_zone", "bk_cloud_zone", "ip"
         )
         for m in machines:
             spec_id, city_name, subzone = m["spec_id"], m["bk_city__bk_idc_city_name"], m["bk_sub_zone"]
@@ -657,6 +706,9 @@ class ResourceHandler(object):
                 "os_name": bk_os_name,
                 "city": city_name,
                 "subzone": subzone,
+                # 补货目标位置：region + 可用区，园区仅用于展示
+                "bk_cloud_region": cloud_zone_map.get(subzone, ("", ""))[1],
+                "bk_cloud_zone": cloud_zone_map.get(subzone, ("", ""))[0],
                 "machine_count": subzone_info["machine_count"],
                 "resource_count": subzone_info["resource_count"],
                 "machine_refer_count": math.ceil(
@@ -754,6 +806,8 @@ class ResourceHandler(object):
             {"id": "resource_type", "name": _("所属DB")},
             {"id": "labels", "name": _("资源标签")},
             {"id": "city", "name": _("地域")},
+            # 可用区位于园区之前，空值显示未知
+            {"id": "bk_cloud_zone", "name": _("可用区")},
             {"id": "sub_zone", "name": _("园区")},
             {"id": "rack_id", "name": _("机架")},
             {"id": "same_svr_owner_count", "name": _("同母机台数")},
@@ -801,7 +855,9 @@ class ResourceHandler(object):
                         else res["for_biz"]["bk_biz_name"],
                         "resource_type": _("通用") if res["resource_type"] == "PUBLIC" else res["resource_type"],
                         "labels": " ".join(label["name"] for label in res["labels"]),
-                        "city": res["city"],
+                        # 地域导出 region，存量库存行没有 bk_cloud_region 时回落到城市
+                        "city": res.get("bk_cloud_region") or res["city"],
+                        "bk_cloud_zone": res.get("bk_cloud_zone") or _("未知"),
                         "sub_zone": res["sub_zone"],
                         "rack_id": res["rack_id"],
                         "same_svr_owner_count": res.get("same_svr_owner_count", _("未知")),

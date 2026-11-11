@@ -107,6 +107,41 @@ def list_subzones(city_code: str = "") -> List:
     return subzone_infos
 
 
+def list_cloud_zones(city_code: str = "", region: str = "") -> List:
+    """查询云可用区，并把每个可用区下登记过的园区一起带出去
+
+    部署页的可用区卡片要展示「这个可用区包含哪些园区」，列的是该可用区下
+    登记过的全部园区（不管现在有没有机器），园区用全称，如「南京-江宁」。
+    """
+    qs = BKSubzone.objects.select_related("bk_city").exclude(bk_cloud_zone__isnull=True).exclude(bk_cloud_zone="")
+    if city_code:
+        qs = qs.filter(bk_city__bk_idc_city_name=city_code)
+    if region:
+        qs = qs.filter(bk_cloud_region=region)
+
+    cloud_zone_map: Dict[str, Dict] = {}
+    for subzone in qs.order_by("bk_cloud_zone", "bk_city__bk_idc_city_name", "bk_sub_zone"):
+        city_name = subzone.bk_city.bk_idc_city_name if subzone.bk_city else ""
+        sub_zone_name = subzone.bk_sub_zone or ""
+        # 园区全称自带城市前缀，如「南京-江宁」
+        if sub_zone_name.startswith(city_name):
+            full_name = sub_zone_name
+        else:
+            full_name = f"{city_name}-{sub_zone_name}".strip("-")
+        info = cloud_zone_map.setdefault(
+            subzone.bk_cloud_zone,
+            {
+                "bk_cloud_zone": subzone.bk_cloud_zone,
+                "bk_cloud_region": subzone.bk_cloud_region or "",
+                "sub_zones": [],
+            },
+        )
+        if full_name and full_name not in info["sub_zones"]:
+            info["sub_zones"].append(full_name)
+
+    return [cloud_zone_map[zone] for zone in sorted(cloud_zone_map)]
+
+
 def list_host_specs() -> List[HostSpecModel]:
     # TODO 暂时全量返回，后续机型设计时再做考虑
     return [spec for spec in host_specs]

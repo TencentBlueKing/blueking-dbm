@@ -55,11 +55,16 @@ AF_TICKET_ACTIVE_STATUSES = list(TICKET_RUNNING_STATUS_SET) + [TicketStatus.PEND
 
 @dataclass
 class HostCandidate:
-    """园区/城市熔断用的主机候选."""
+    """可用区/城市熔断用的主机候选.
+
+    熔断维度是云可用区：同一可用区下的不同园区网络等同，不能当成两地故障。
+    bk_sub_zone_id 仅用于自愈核心记录，不参与熔断判定。
+    """
 
     ip: str
     bk_host_id: int = 0
     bk_sub_zone_id: int = 0
+    bk_cloud_zone: str = ""
     bk_city: str = ""
     cluster_ids: List[int] = field(default_factory=list)
     rs_keys: Set[str] = field(default_factory=set)
@@ -81,41 +86,42 @@ def is_instance_running(storage: StorageInstance) -> bool:
 
 def zone_city_circuit_breaker(
     candidates: Iterable[HostCandidate],
-    zone_total_hosts: Optional[Dict[int, int]] = None,
+    zone_total_hosts: Optional[Dict[str, int]] = None,
     zone_host_threshold: int = 3,
     zone_percent: float = 0.3,
     city_host_threshold: int = 5,
 ) -> ZoneBreakerResult:
     """
-    纯函数：同园区 / 同城市批量异常熔断。
+    纯函数：同可用区 / 同城市批量异常熔断。
 
-    - 同 bk_sub_zone_id：候选主机数 >= zone_host_threshold，或占 zone_total_hosts[zone] >= zone_percent
+    - 同 bk_cloud_zone：候选主机数 >= zone_host_threshold，或占 zone_total_hosts[zone] >= zone_percent
     - 同 bk_city：候选主机数 >= city_host_threshold
-    命中则该园区/城市全部 suppress。
+    命中则该可用区/城市全部 suppress。
     """
     candidates = list(candidates)
     zone_total_hosts = zone_total_hosts or {}
 
-    by_zone: Dict[int, List[HostCandidate]] = defaultdict(list)
+    by_zone: Dict[str, List[HostCandidate]] = defaultdict(list)
     by_city: Dict[str, List[HostCandidate]] = defaultdict(list)
     for cand in candidates:
-        by_zone[cand.bk_sub_zone_id].append(cand)
+        by_zone[cand.bk_cloud_zone].append(cand)
         if cand.bk_city:
             by_city[cand.bk_city].append(cand)
 
     suppressed_ips: Set[str] = set()
     reason_by_ip: Dict[str, str] = {}
 
-    for zone_id, hosts in by_zone.items():
-        if zone_id == 0:
+    for zone, hosts in by_zone.items():
+        # 可用区为空的候选不参与可用区熔断，只走城市维度
+        if not zone:
             continue
         uniq = {h.ip: h for h in hosts}
         count = len(uniq)
-        total = zone_total_hosts.get(zone_id) or 0
+        total = zone_total_hosts.get(zone) or 0
         hit_count = count >= zone_host_threshold
         hit_pct = total > 0 and (count / total) >= zone_percent
         if hit_count or hit_pct:
-            reason = f"zone_breaker:zone={zone_id}:count={count}:total={total}"
+            reason = f"zone_breaker:zone={zone}:count={count}:total={total}"
             for ip in uniq:
                 suppressed_ips.add(ip)
                 reason_by_ip[ip] = reason
@@ -295,21 +301,21 @@ def is_restart_shielded(
     return False
 
 
-def count_mongo_hosts_by_zone(zone_ids: Iterable[int]) -> Dict[int, int]:
-    """统计各园区 mongodb/mongo_config/mongos 主机数，供园区占比熔断."""
-    zone_ids = [zid for zid in set(zone_ids) if zid]
-    if not zone_ids:
+def count_mongo_hosts_by_zone(cloud_zones: Iterable[str]) -> Dict[str, int]:
+    """统计各云可用区 mongodb/mongo_config/mongos 主机数，供可用区占比熔断."""
+    cloud_zones = [zone for zone in set(cloud_zones) if zone]
+    if not cloud_zones:
         return {}
     rows = (
         Machine.objects.filter(
-            bk_sub_zone_id__in=zone_ids,
+            bk_cloud_zone__in=cloud_zones,
             machine_type__in=[
                 MachineType.MONGODB.value,
                 MachineType.MONOG_CONFIG.value,
                 MachineType.MONGOS.value,
             ],
         )
-        .values("bk_sub_zone_id")
+        .values("bk_cloud_zone")
         .annotate(host_count=Count("bk_host_id"))
     )
-    return {row["bk_sub_zone_id"]: row["host_count"] for row in rows}
+    return {row["bk_cloud_zone"]: row["host_count"] for row in rows}

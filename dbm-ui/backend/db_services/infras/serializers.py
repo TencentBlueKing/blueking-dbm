@@ -41,6 +41,8 @@ class LogicCitySLZ(serializers.Serializer):
 
 class ListSubzoneSLZ(serializers.Serializer):
     city_code = serializers.CharField(help_text=_("城市ID"), required=False, default="")
+    # 部署页按地域圈定可用区，这里支持直接用云地域过滤
+    region = serializers.CharField(help_text=_("云地域"), required=False, default="")
 
 
 class SubzoneSLZ(serializers.Serializer):
@@ -50,6 +52,8 @@ class SubzoneSLZ(serializers.Serializer):
     bk_city_code = serializers.CharField()
     bk_sub_zone_id = serializers.IntegerField()
     bk_sub_zone = serializers.CharField()
+    bk_cloud_zone = serializers.CharField()
+    bk_cloud_region = serializers.CharField()
 
 
 class HostSpecSLZ(serializers.Serializer):

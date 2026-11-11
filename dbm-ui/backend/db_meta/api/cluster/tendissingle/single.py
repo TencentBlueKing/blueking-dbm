@@ -87,7 +87,7 @@ def pkg_create_single(
             bk_cloud_id=bk_cloud_id,
             region=region,
             disaster_tolerance_level=disaster_tolerance_level,
-            zone_list=zone_list,
+            cloud_zone_list=zone_list,
         )
         cluster.storageinstance_set.add(master_obj)
         cluster.storageinstance_set.add(slave_obj)

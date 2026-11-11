@@ -21,7 +21,7 @@ from backend.flow.engine.bamboo.scene.redis.redis_rollback.plan import RollbackP
 from backend.flow.engine.bamboo.scene.redis.redis_rollback.planner import RollbackPlanner
 from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder
+from backend.ticket.builders.common.base import BaseOperateResourceParamBuilder, cluster_location_spec
 from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.builders.redis.base import (
     BaseRedisTicketFlowBuilder,
@@ -94,7 +94,8 @@ class RedisRollbackResourceParamBuilder(BaseOperateResourceParamBuilder):
         for info in self.ticket_data["infos"]:
             cluster = id__cluster[info["cluster_id"]]
             info["resource_spec"]["redis"].update(
-                affinity=AffinityEnum.NONE.value, location_spec={"city": cluster.region, "sub_zone_ids": []}
+                affinity=AffinityEnum.NONE.value,
+                location_spec=cluster_location_spec(cluster, sub_zone_ids=[]),
             )
             info.update(bk_cloud_id=cluster.bk_cloud_id, bk_biz_id=self.ticket.bk_biz_id)
 

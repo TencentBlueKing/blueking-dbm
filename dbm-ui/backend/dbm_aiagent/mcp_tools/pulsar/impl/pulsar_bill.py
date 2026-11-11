@@ -159,7 +159,11 @@ def submit_pulsar_scale_up_bill(
             role_spec.setdefault("affinity", "MAX_EACH_ZONE_EQUAL")
             role_spec.setdefault(
                 "location_spec",
-                {"city": cluster_obj.region or "default", "sub_zone_ids": cluster_obj.zone_list or []},
+                {
+                    "city": cluster_obj.region or "default",
+                    "sub_zone_ids": cluster_obj.cloud_zone_list or [],
+                    "bk_cloud_region": cluster_obj.bk_cloud_region or "",
+                },
             )
             role_spec.setdefault("labels", [])
             role_spec.setdefault("label_names", [])
