@@ -18,6 +18,7 @@ from backend.configuration.constants import MASTER_DOMAIN_INITIAL_VALUE, SLAVE_D
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.enums.comm import SystemTagEnum, TagType
 from backend.db_meta.models import AppCache, Cluster, DBModule, Machine, Tag
+from backend.db_meta.models.city_map import resolve_logical_city
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.consts import RollbackType
 from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_cluster_config_for_rollback
@@ -215,8 +216,9 @@ class MySQLRollbackNewHostResourceParamBuilder(BaseOperateResourceParamBuilder):
             role_spec = self.ticket_data["resource_spec"][role]
             # 与集群部署单据保持一致：非子zone容灾不限定机房
             role_spec["location_spec"] = {
-                "city": apply_details["city"],
-                "sub_zone_ids": apply_details["zone_list"],
+                "bk_cloud_zone_list": apply_details["zone_list"],
+                # 带上源集群记录的云地域，资源申请走 v2 时可直接使用
+                "bk_cloud_region": cluster.bk_cloud_region or "",
             }
             # 标签与 spec_id 同层，资源池据此精确匹配机器
             role_spec.update(labels=label.get("labels") or [], label_names=label.get("label_names") or [])
@@ -310,13 +312,13 @@ class MySQLRollbackNewHostFlowBuilder(BaseMySQLTicketFlowBuilder):
 
     @staticmethod
     def get_apply_zone_list(cluster: Cluster) -> List[str]:
-        """与集群部署单据保持一致：只有子zone级别的容灾才限定机房列表"""
+        """与集群部署单据保持一致：只有可用区级别的容灾才限定可用区列表"""
         if cluster.disaster_tolerance_level in [
             AffinityEnum.CROS_SUBZONE,
             AffinityEnum.SAME_SUBZONE,
             AffinityEnum.SAME_SUBZONE_CROSS_SWTICH,
         ]:
-            return cluster.zone_list or []
+            return cluster.cloud_zone_list or []
         return []
 
     def patch_apply_ticket_detail(self):
@@ -369,7 +371,7 @@ class MySQLRollbackNewHostFlowBuilder(BaseMySQLTicketFlowBuilder):
             "cluster_type": cluster.cluster_type,
             "db_module_id": cluster.db_module_id,
             "module": str(cluster.db_module_id),
-            "city": cluster.region or "default",
+            "city": resolve_logical_city(cluster) or "default",
             "charset": charset,
             "db_version": db_version,
             "disaster_tolerance_level": cluster.disaster_tolerance_level,

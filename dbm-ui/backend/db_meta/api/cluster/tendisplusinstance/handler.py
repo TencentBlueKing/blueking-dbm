@@ -48,8 +48,9 @@ class TendisPredixyTendisplusInstanceHandler(ClusterHandler):
         bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
         region: str = "",
         disaster_tolerance_level: str = "",
-        zone_list: list = None,
+        cloud_zone_list: list = None,
         ip_port_storages: Optional[dict] = None,
+        bk_cloud_region: str = "",
     ):
         """「必须」创建集群"""
         create_predixy_tendisplus_ins(
@@ -64,8 +65,9 @@ class TendisPredixyTendisplusInstanceHandler(ClusterHandler):
             creator=creator,
             bk_cloud_id=bk_cloud_id,
             region=region,
+            bk_cloud_region=bk_cloud_region,
             disaster_tolerance_level=disaster_tolerance_level,
-            zone_list=zone_list if zone_list else [],
+            cloud_zone_list=cloud_zone_list if cloud_zone_list else [],
             ip_port_storages=ip_port_storages,
         )
 

@@ -166,8 +166,9 @@ def create_mongo_cluster(
     region: str = "",
     cluster_type=ClusterType.MongoShardedCluster.value,
     disaster_tolerance_level: str = "",
-    zone_list: list = None,
+    cloud_zone_list: list = None,
     progress_callback: ProgressCallback = None,
+    bk_cloud_region: str = "",
 ):
     """
     创建分片集群 Meta，并同步 CMDB。
@@ -224,8 +225,9 @@ def create_mongo_cluster(
                 cluster_type=cluster_type,
                 bk_cloud_id=bk_cloud_id,
                 region=region,
+                bk_cloud_region=bk_cloud_region,
                 disaster_tolerance_level=disaster_tolerance_level,
-                zone_list=zone_list,
+                cloud_zone_list=cloud_zone_list,
             )
             emit_progress(progress_callback, f"created cluster id={cluster.id}, phase=offline")
         else:
@@ -290,8 +292,9 @@ def pkg_create_mongo_cluster(
     machine_specs: Optional[Dict] = None,
     cluster_type=ClusterType.MongoShardedCluster.value,
     disaster_tolerance_level: str = "",
-    zone_list: list = None,
+    cloud_zone_list: list = None,
     progress_callback: ProgressCallback = None,
+    bk_cloud_region: str = "",
 ):
     """
     打包创建分片集群 Meta。
@@ -391,8 +394,9 @@ def pkg_create_mongo_cluster(
         creator=creator,
         bk_cloud_id=bk_cloud_id,
         region=region,
+        bk_cloud_region=bk_cloud_region,
         cluster_type=cluster_type,
         disaster_tolerance_level=disaster_tolerance_level,
-        zone_list=zone_list,
+        cloud_zone_list=cloud_zone_list,
         progress_callback=progress_callback,
     )

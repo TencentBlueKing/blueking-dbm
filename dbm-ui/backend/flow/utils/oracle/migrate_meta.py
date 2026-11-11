@@ -18,6 +18,7 @@ from backend.configuration.constants import DBType
 from backend.configuration.handlers.dba import DBAdministratorHandler
 from backend.db_meta.api.cluster.oracle.primary_standby_create import pkg_create_oracle
 from backend.db_meta.models import Cluster
+from backend.db_meta.models.city_map import resolve_apply_region
 from backend.flow.utils.oracle.oracle_password import OraclePassword
 
 logger = logging.getLogger("flow")
@@ -99,6 +100,7 @@ class OracleMigrateMeta(object):
                 creator=self.info["creator"],
                 bk_cloud_id=self.info["bk_cloud_id"],
                 region=self.info["region"],
+                bk_cloud_region=resolve_apply_region(self.info),
                 spec_id=self.info["spec_id"],
                 spec_config=self.info["spec_config"],
                 cluster_type=self.info["cluster_type"],

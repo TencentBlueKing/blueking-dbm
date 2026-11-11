@@ -61,8 +61,8 @@ def submit_kafka_scale_up_bill(
                     resource_spec["broker"]["affinity"] = "MAX_EACH_ZONE_EQUAL"
                 if "location_spec" not in resource_spec["broker"]:
                     resource_spec["broker"]["location_spec"] = {
-                        "city": cluster_obj.region or "default",
-                        "sub_zone_ids": cluster_obj.zone_list or [],
+                        "bk_cloud_region": cluster_obj.bk_cloud_region or "",
+                        "bk_cloud_zone_list": list(cluster_obj.cloud_zone_list or []),
                     }
                 # 补充 labels 和 label_names 字段
                 if "labels" not in resource_spec["broker"]:
@@ -248,8 +248,8 @@ def submit_kafka_replace_bill(
                 resource_spec["broker"]["affinity"] = "MAX_EACH_ZONE_EQUAL"
             if "location_spec" not in resource_spec["broker"]:
                 resource_spec["broker"]["location_spec"] = {
-                    "city": cluster_obj.region or "default",
-                    "sub_zone_ids": cluster_obj.zone_list or [],
+                    "bk_cloud_region": cluster_obj.bk_cloud_region or "",
+                    "bk_cloud_zone_list": list(cluster_obj.cloud_zone_list or []),
                 }
             # 补充 labels 和 label_names 字段
             if "labels" not in resource_spec["broker"]:
@@ -591,8 +591,6 @@ def submit_kafka_apply_bill(
             "timezone": timezone,
             "region": region,
             "city_name": city_name,  # 根据 city_code 获取
-            "sub_zone_ids": [],
-            "sub_zone_names": [],
         },
     }
 
@@ -625,7 +623,8 @@ def submit_kafka_apply_bill(
                     if "affinity" not in resource_spec[role]:
                         resource_spec[role]["affinity"] = disaster_tolerance_level
                     if "location_spec" not in resource_spec[role]:
-                        resource_spec[role]["location_spec"] = {"city": city_code}
+                        # 城市口径已下线，直接下发云地域；region 为 default 时表示不限地域
+                        resource_spec[role]["location_spec"] = {"bk_cloud_region": region}
                     if "labels" not in resource_spec[role]:
                         resource_spec[role]["labels"] = []
                     if "label_names" not in resource_spec[role]:

@@ -17,12 +17,16 @@ from django.utils.translation import gettext_lazy as _
 
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import SystemSettings
-from backend.db_meta.models import BKCity, LogicalCity
+from backend.db_meta.models import BKCity, Cluster, LogicalCity, Machine
 from backend.db_meta.models.city_map import BKSubzone
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.infras.constants import InventoryTag
 
 LCityModel = collections.namedtuple("LCityModel", ["city_code", "city_name", "inventory", "inventory_tag"])
+
+CloudRegionModel = collections.namedtuple(
+    "CloudRegionModel", ["bk_cloud_region", "display_name", "inventory", "inventory_tag", "zone_count"]
+)
 
 HostSpecModel = collections.namedtuple("HostSpecModel", ["city_code", "type", "spec", "cpu", "mem", "description"])
 
@@ -105,6 +109,56 @@ def list_subzones(city_code: str = "") -> List:
     for zone in subzones:
         subzone_infos.append({**model_to_dict(zone), "bk_city_code": zone.bk_city.bk_idc_city_name})
     return subzone_infos
+
+
+def list_cloud_zones(city_code: str = "", region: str = "") -> List:
+    """查询云可用区，并把每个可用区下登记过的园区一起带出去
+
+    部署页的可用区卡片要展示「这个可用区包含哪些园区」，列的是该可用区下
+    登记过的全部园区（不管现在有没有机器），园区用全称，如「南京-江宁」。
+    """
+    qs = BKSubzone.objects.select_related("bk_city").exclude(bk_cloud_zone__isnull=True).exclude(bk_cloud_zone="")
+    if city_code:
+        qs = qs.filter(bk_city__bk_idc_city_name=city_code)
+    if region:
+        qs = qs.filter(bk_cloud_region=region)
+
+    cloud_zone_map: Dict[str, Dict] = {}
+    for subzone in qs.order_by("bk_cloud_zone", "bk_city__bk_idc_city_name", "bk_sub_zone"):
+        city_name = subzone.bk_city.bk_idc_city_name if subzone.bk_city else ""
+        sub_zone_name = subzone.bk_sub_zone or ""
+        # 园区全称自带城市前缀，如「南京-江宁」
+        if sub_zone_name.startswith(city_name):
+            full_name = sub_zone_name
+        else:
+            full_name = f"{city_name}-{sub_zone_name}".strip("-")
+        info = cloud_zone_map.setdefault(
+            subzone.bk_cloud_zone,
+            {
+                "bk_cloud_zone": subzone.bk_cloud_zone,
+                "bk_cloud_region": subzone.bk_cloud_region or "",
+                "sub_zones": [],
+            },
+        )
+        if full_name and full_name not in info["sub_zones"]:
+            info["sub_zones"].append(full_name)
+
+    # 可用区还可能只有机器、没有登记园区（历史导入的机器），这类可用区也要能选到；
+    # 按需求，查不到园区的卡片只显示可用区这一行
+    zone_qs = (
+        Machine.objects.exclude(bk_cloud_zone__isnull=True)
+        .exclude(bk_cloud_zone="")
+        .exclude(bk_cloud_region__isnull=True)
+        .exclude(bk_cloud_region="")
+    )
+    if city_code:
+        zone_qs = zone_qs.filter(bk_city__bk_idc_city_name=city_code)
+    if region:
+        zone_qs = zone_qs.filter(bk_cloud_region=region)
+    for zone, zone_region in zone_qs.values_list("bk_cloud_zone", "bk_cloud_region").distinct():
+        cloud_zone_map.setdefault(zone, {"bk_cloud_zone": zone, "bk_cloud_region": zone_region or "", "sub_zones": []})
+
+    return [cloud_zone_map[zone] for zone in sorted(cloud_zone_map)]
 
 
 def list_host_specs() -> List[HostSpecModel]:
@@ -295,3 +349,55 @@ def get_city_code_name_map() -> Dict[str, str]:
 
 def get_spec_display_map() -> Dict[str, str]:
     return {spec.spec: f"{spec.type}-{spec.cpu}-{spec.mem}" for spec in host_specs}
+
+
+def list_cloud_regions() -> List[CloudRegionModel]:
+    """返回全部云地域列表
+
+    数据源是 BKSubzone 上登记过的 bk_cloud_region。不含「随机」——它固定是 default，
+    由前端自己写在选项里，避免接口多返回一个假地域。
+
+    zone_count 是这个地域下登记过的可用区个数：跨可用区要求至少 2 个可用区，
+    前端要用它来过滤「地域」下拉（需求 3.1），否则只能逐个地域去拉可用区列表。
+    """
+    region_zones = collections.defaultdict(set)
+    for region, zone in BKSubzone.objects.values_list("bk_cloud_region", "bk_cloud_zone"):
+        if region and zone:
+            region_zones[region].add(zone)
+    regions = sorted({region for region in BKSubzone.objects.values_list("bk_cloud_region", flat=True) if region})
+    return [
+        CloudRegionModel(region, region, "0", InventoryTag.SUFFICIENT.value, len(region_zones.get(region, ())))
+        for region in regions
+    ]
+
+
+def list_common_cloud_regions():
+    """返回 (非常用, 常用) 云地域
+
+    常用地域优先取系统配置 COMMON_CLOUD_REGIONS；没有配置时用现有集群用过的地域，
+    保证开箱就有内容，不依赖运维先配一遍。
+    """
+    all_regions = list_cloud_regions()
+    configured = SystemSettings.get_setting_value(SystemSettingsEnum.COMMON_CLOUD_REGIONS, default=[]) or []
+    if not configured:
+        configured = sorted(
+            {
+                region
+                for region in Cluster.objects.exclude(bk_cloud_region__isnull=True)
+                .exclude(bk_cloud_region="")
+                .values_list("bk_cloud_region", flat=True)
+                if region
+            }
+        )
+
+    known = {item.bk_cloud_region for item in all_regions}
+    common_codes = [code for code in configured if code in known]
+    common_set = set(common_codes)
+    order = {code: index for index, code in enumerate(common_codes)}
+
+    uncommon = [item for item in all_regions if item.bk_cloud_region not in common_set]
+    common = sorted(
+        [item for item in all_regions if item.bk_cloud_region in common_set],
+        key=lambda item: order.get(item.bk_cloud_region, len(order)),
+    )
+    return uncommon, common

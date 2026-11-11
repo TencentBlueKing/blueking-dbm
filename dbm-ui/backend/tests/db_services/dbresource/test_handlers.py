@@ -15,6 +15,7 @@ import pytest
 from backend.configuration.constants import DBType
 from backend.db_meta.enums.spec import SpecMachineType
 from backend.db_meta.models import Spec, Tag
+from backend.db_meta.models.city_map import LogicalCity
 from backend.db_services.dbresource.exceptions import SpecOperateException
 from backend.db_services.dbresource.handlers import (
     ClusterSpecFilter,
@@ -413,3 +414,124 @@ class TestResourceHandler:
         assert result[0]["city"] == "shanghai"
         assert result[0]["bk_cloud_region"] == "ap-shanghai"
         assert result[0]["bk_cloud_zone"] == ""
+
+
+class TestSpecResourceCountProtocol:
+    """资源预览入参要按资源池 /resource/spec/sum 的新增字段下发"""
+
+    @staticmethod
+    def _make_spec():
+        return Spec.objects.create(
+            spec_id=7201,
+            spec_name="count-protocol",
+            spec_cluster_type=DBType.MySQL.value,
+            spec_machine_type=SpecMachineType.BACKEND.value,
+            cpu={"max": 8, "min": 8},
+            mem={"max": 32, "min": 32},
+            storage_spec=[{"min": 100, "max": 500, "type": "ALL", "mount_point": "/data"}],
+            device_class=["S5"],
+            enable=True,
+        )
+
+    def test_region_and_zone_list_sent_as_top_level_fields(self):
+        spec = self._make_spec()
+        try:
+            with patch(
+                "backend.db_services.dbresource.handlers.DBResourceApi.apply_count",
+                return_value={"7201_backend": 3},
+            ) as mocked:
+                result = ResourceHandler.spec_resource_count(
+                    bk_biz_id=constant.BK_BIZ_ID,
+                    bk_cloud_id=0,
+                    sub_zone_ids=[],
+                    spec_ids=[7201],
+                    city="default",
+                    bk_cloud_region="ap-shanghai",
+                    bk_cloud_zone_list=["ap-shanghai-1"],
+                )
+            sent = mocked.call_args.kwargs["params"]
+            assert sent["bk_cloud_region"] == "ap-shanghai"
+            # 可用区只有数组字段，没有单值 bk_cloud_zone
+            assert sent["bk_cloud_zone_list"] == ["ap-shanghai-1"]
+            assert "bk_cloud_zone" not in sent
+            # 空 city 不再塞 default，避免资源池按不存在的城市过滤
+            assert sent["location_spec"]["city"] == ""
+            assert result == {"7201": 3}
+        finally:
+            spec.delete()
+
+    def test_zone_list_counted_one_by_one(self):
+        """多选可用区：按可用区逐个查，total 由各可用区相加"""
+        spec = self._make_spec()
+        try:
+            with patch(
+                "backend.db_services.dbresource.handlers.DBResourceApi.apply_count",
+                side_effect=[{"7201_backend": 2}, {"7201_backend": 5}],
+            ) as mocked:
+                result = ResourceHandler.spec_resource_count(
+                    bk_biz_id=constant.BK_BIZ_ID,
+                    bk_cloud_id=0,
+                    sub_zone_ids=[],
+                    spec_ids=[7201],
+                    city="default",
+                    bk_cloud_region="ap-shanghai",
+                    bk_cloud_zone_list=["ap-shanghai-1", "ap-shanghai-2"],
+                    group_by_cloud_zone=True,
+                )
+            assert mocked.call_count == 2
+            assert [c.kwargs["params"]["bk_cloud_zone_list"] for c in mocked.call_args_list] == [
+                ["ap-shanghai-1"],
+                ["ap-shanghai-2"],
+            ]
+            assert result["total"] == {"7201": 7}
+            assert result["by_cloud_zone"]["ap-shanghai-2"] == {"7201": 5}
+        finally:
+            spec.delete()
+
+    def test_sub_zone_ids_keep_legacy_semantics(self):
+        """sub_zone_ids 回到园区 ID 语义：原样透传到 location_spec，不再猜可用区"""
+        spec = self._make_spec()
+        try:
+            with patch(
+                "backend.db_services.dbresource.handlers.DBResourceApi.apply_count",
+                return_value={"7201_backend": 4},
+            ) as mocked:
+                # city 只认逻辑城，测试库里先登记一条，避免被归一化成空
+                LogicalCity.objects.get_or_create(name="南京")
+                ResourceHandler.spec_resource_count(
+                    bk_biz_id=constant.BK_BIZ_ID,
+                    bk_cloud_id=0,
+                    sub_zone_ids=["1109", "1110"],
+                    spec_ids=[7201],
+                    city="南京",
+                )
+            sent = mocked.call_args.kwargs["params"]
+            assert sent["location_spec"]["sub_zone_ids"] == ["1109", "1110"]
+            assert sent["location_spec"]["city"] == "南京"
+            # 没传可用区就不按可用区过滤，也不会从 sub_zone_ids 里反推
+            assert sent["bk_cloud_zone_list"] == []
+        finally:
+            spec.delete()
+
+    def test_region_and_subzone_filters_combined(self):
+        """云字段和园区字段是叠加关系，可以同时下发"""
+        spec = self._make_spec()
+        try:
+            with patch(
+                "backend.db_services.dbresource.handlers.DBResourceApi.apply_count",
+                return_value={"7201_backend": 1},
+            ) as mocked:
+                ResourceHandler.spec_resource_count(
+                    bk_biz_id=constant.BK_BIZ_ID,
+                    bk_cloud_id=0,
+                    sub_zone_ids=["1109"],
+                    spec_ids=[7201],
+                    city="",
+                    bk_cloud_region="ap-shanghai",
+                    bk_cloud_zone_list=["ap-shanghai-1"],
+                )
+            sent = mocked.call_args.kwargs["params"]
+            assert sent["bk_cloud_zone_list"] == ["ap-shanghai-1"]
+            assert sent["location_spec"]["sub_zone_ids"] == ["1109"]
+        finally:
+            spec.delete()

@@ -40,7 +40,8 @@ def create_lb_and_register_target(cluster_id: int, role: str) -> Dict[str, Any]:
     cluster = Cluster.objects.get(id=cluster_id)
     immute_domain = cluster.immute_domain
     bk_biz_id = cluster.bk_biz_id
-    region = cluster.region
+    # CLB 侧已按云地域（region）收参，不再传逻辑城
+    region = cluster.bk_cloud_region
     entry_role = ClusterEntryRole.MASTER_ENTRY
     # 如果是spider slave，应该获取slave entry 作为注册clb的name
     if role == TenDBClusterSpiderRole.SPIDER_SLAVE:

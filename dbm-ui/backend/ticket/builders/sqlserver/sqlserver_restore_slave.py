@@ -112,31 +112,31 @@ class SQLServerRestoreSlaveResourceParamBuilder(SQLServerBaseOperateResourcePara
             master_machine = id__machine[slave__master_host_map[old_slave_host["bk_host_id"]]]
             info.update(bk_cloud_id=master_machine.bk_cloud_id)
 
-            # 补充操作系统、亲和性和城市信息
+            # 补充操作系统、亲和性和地域信息（城市口径已下线，只下发云地域）
             info["resource_spec"]["sqlserver_ha"].update(
                 affinity=cluster.disaster_tolerance_level,
-                location_spec={"city": master_machine.bk_city.logical_city.name, "sub_zone_ids": []},
+                location_spec={"bk_cloud_region": cluster.bk_cloud_region or master_machine.bk_cloud_region or ""},
                 os_type=BkOsType.WINDOWS.value,
                 os_names=info["system_version"],
             )
 
-            # 根据亲和性补充园区信息
+            # 根据亲和性补充可用区信息。容灾判定单元是云可用区，同一可用区下的不同园区不算分散
+            location_spec = info["resource_spec"]["sqlserver_ha"]["location_spec"]
+            master_cloud_zone = master_machine.bk_cloud_zone or ""
             if cluster.disaster_tolerance_level == AffinityEnum.CROS_SUBZONE:
-                master_subzone = master_machine.bk_sub_zone_id
-                if not cluster.zone_list:
-                    is_include, sub_zone_ids = False, [master_subzone]
-                else:
-                    is_include, sub_zone_ids = True, list(set(cluster.zone_list) - {master_subzone})
-                info["resource_spec"]["sqlserver_ha"]["location_spec"].update(
-                    sub_zone_ids=sub_zone_ids, include_or_exclue=is_include
-                )
+                cluster_cloud_zones = {zone for zone in (cluster.cloud_zone_list or []) if zone}
+                remain_zones = sorted(cluster_cloud_zones - {master_cloud_zone}) if master_cloud_zone else []
+                if remain_zones:
+                    location_spec["bk_cloud_zone_list"] = remain_zones
+                elif master_cloud_zone:
+                    # 集群没记录可用区，或只剩主库所在的可用区：改成显式排除主库可用区
+                    location_spec["exclude_bk_cloud_zone_list"] = [master_cloud_zone]
             elif cluster.disaster_tolerance_level in [
                 AffinityEnum.SAME_SUBZONE,
                 AffinityEnum.SAME_SUBZONE_CROSS_SWTICH,
             ]:
-                info["resource_spec"]["sqlserver_ha"]["location_spec"].update(
-                    sub_zone_ids=[master_machine.bk_sub_zone_id], include_or_exclue=True
-                )
+                if master_cloud_zone:
+                    location_spec["bk_cloud_zone_list"] = [master_cloud_zone]
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()

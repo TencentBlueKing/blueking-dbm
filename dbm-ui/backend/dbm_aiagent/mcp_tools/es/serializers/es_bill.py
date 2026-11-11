@@ -188,7 +188,10 @@ class SubmitBillEsApplyInputSerializer(serializers.Serializer):
     http_port = serializers.IntegerField(
         help_text=_("端口，范围 1-65535，默认 9200"), min_value=1, max_value=65535, required=False, default=ES_DEFAULT_PORT
     )
-    city_code = serializers.CharField(help_text=_("城市代码，如 default、上海、深圳等"))
+    city_code = serializers.CharField(help_text=_("城市代码，如 default、上海、深圳等（仅用于单据展示）"))
+    bk_cloud_region = serializers.CharField(
+        help_text=_("云地域，如 ap-guangzhou；不指定或随机时留空"), required=False, allow_blank=True, default=""
+    )
     cluster_alias = serializers.CharField(help_text=_("集群别名，默认空字符串"), required=False, allow_blank=True, default="")
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID，非负整数，默认 0"), min_value=0, required=False, default=0)
     disaster_tolerance_level = serializers.ChoiceField(

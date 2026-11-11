@@ -91,6 +91,7 @@ class TendisClusterBase:
         app: str = None,
         region: str = None,
         tags: List[str] = None,
+        bk_cloud_region: str = "",
     ):
         self.cluster_id = cluster_id
         self.name = name

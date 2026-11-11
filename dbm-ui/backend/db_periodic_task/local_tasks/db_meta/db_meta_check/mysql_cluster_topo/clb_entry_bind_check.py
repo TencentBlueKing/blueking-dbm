@@ -15,6 +15,7 @@ from django.utils.translation import gettext_lazy as _
 from backend.components import NameServiceApi
 from backend.db_meta.enums import ClusterEntryType
 from backend.db_meta.models import Cluster
+from backend.db_meta.models.city_map import is_unknown_cloud_region
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.check_response import CheckResponse
 from backend.db_report.enums import MetaCheckSubType
 
@@ -93,8 +94,8 @@ def _check_one_clb_entry(ce, cluster_domain: str, subtypes: ClbEntryCheckSubtype
         missing_parts.append(_("负载均衡实例 ID 为空"))
     if _is_blank_str(detail.listener_id):
         missing_parts.append(_("监听器 ID 为空"))
-    if _is_blank_str(detail.clb_region):
-        missing_parts.append(_("地域为空"))
+    if is_unknown_cloud_region(detail.clb_region):
+        missing_parts.append(_("地域为空或为随机"))
     if missing_parts:
         bad.append(
             CheckResponse(

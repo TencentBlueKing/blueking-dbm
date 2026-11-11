@@ -118,6 +118,7 @@ def _build_redis_cluster_apply_details(
     backend_spec_id,
     group_num,
     shard_num,
+    bk_cloud_region="",
     apply_clb=False,
     apply_polaris=False,
 ):
@@ -129,7 +130,8 @@ def _build_redis_cluster_apply_details(
     proxy_spec = Spec.objects.get(spec_id=proxy_spec_id)
     backend_spec = Spec.objects.get(spec_id=backend_spec_id)
 
-    location_spec = {"city": city_code, "sub_zone_ids": []}
+    # 城市口径已下线，选机地域用云地域；不指定时为空表示不限地域
+    location_spec = {"bk_cloud_region": bk_cloud_region}
     return {
         "bk_cloud_id": bk_cloud_id,
         "cap_key": "",
@@ -254,6 +256,7 @@ def redis_cluster_apply(request, bk_biz_id, cluster_domain, new_cluster_name, ke
             bk_cloud_id=cluster_obj.bk_cloud_id,
             db_app_abbr=db_app_abbr,
             city_code=city_code,
+            bk_cloud_region=cluster_obj.bk_cloud_region or "",
             disaster_tolerance_level=disaster_tolerance_level,
             cluster_type=cluster_obj.cluster_type,
             db_version=cluster_obj.major_version,
@@ -287,6 +290,7 @@ def redis_cluster_new_apply(
     cluster_alias=None,
     bk_cloud_id=0,
     city_code="",
+    bk_cloud_region="",
     disaster_tolerance_level=AffinityEnum.NONE.value,
     proxy_pwd=None,
     port=50000,
@@ -302,6 +306,7 @@ def redis_cluster_new_apply(
     @param proxy_count: proxy机器数量，至少2台
     @param group_num: 后端机器组数（master去重后的机器对数）
     @param shard_num: 集群总分片数；RedisCluster/Tendisplus集群协议类型要求 >= 3，且不能小于group_num
+    @param bk_cloud_region: 部署地域（如 ap-guangzhou），不传表示不限地域
     @param proxy_pwd: 不传则自动生成满足密码强度策略的随机密码
     """
     if cluster_type not in REDIS_CLUSTER_APPLY_SUPPORTED_TYPES:
@@ -340,6 +345,7 @@ def redis_cluster_new_apply(
             bk_cloud_id=bk_cloud_id,
             db_app_abbr=db_app_abbr,
             city_code=city_code,
+            bk_cloud_region=bk_cloud_region,
             disaster_tolerance_level=disaster_tolerance_level,
             cluster_type=cluster_type,
             db_version=db_version,
@@ -509,7 +515,7 @@ def redis_ins_apply(
                     "affinity": disaster_tolerance_level,
                     "labels": [],
                     "label_names": [],
-                    "location_spec": {"city": city_code, "sub_zone_ids": []},
+                    "location_spec": {"bk_cloud_region": cluster_obj.bk_cloud_region or ""},
                 }
             },
         )

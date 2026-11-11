@@ -51,8 +51,9 @@ class SqlserverHAClusterHandler(ClusterHandler):
         region: str,
         sync_type: str,
         disaster_tolerance_level: str,
-        zone_list: list,
+        cloud_zone_list: list,
         is_increment: bool = False,
+        bk_cloud_region: str = "",
     ):
         """
         1: 录入机器信息
@@ -119,9 +120,10 @@ class SqlserverHAClusterHandler(ClusterHandler):
                     bk_cloud_id=bk_cloud_id,
                     major_version=major_version,
                     region=region,
+                    bk_cloud_region=bk_cloud_region,
                     sync_type=sync_type,
                     disaster_tolerance_level=disaster_tolerance_level,
-                    zone_list=zone_list,
+                    cloud_zone_list=cloud_zone_list,
                 )
             )
 

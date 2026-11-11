@@ -17,6 +17,8 @@ from pipeline.core.flow.activity import Service
 from backend.db_meta.api.cluster.mongocluster import pkg_create_mongo_cluster
 from backend.db_meta.api.cluster.mongorepset import pkg_create_mongoset
 from backend.db_meta.enums.cluster_type import ClusterType
+from backend.db_meta.models.city_map import resolve_apply_region
+from backend.db_services.dbresource.apply_protocol import normalize_location_zones
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 
 logger = logging.getLogger("json")
@@ -55,11 +57,12 @@ class ExecAddRelationshipOperation(BaseService):
                     bk_cloud_id=kwargs["bk_cloud_id"],
                     db_module_id=kwargs["db_module_id"],
                     region=kwargs["region"],
+                    bk_cloud_region=resolve_apply_region(kwargs),
                     skip_machine=kwargs["skip_machine"],
                     spec_id=kwargs["spec_id"],
                     spec_config=kwargs["spec_config"],
                     disaster_tolerance_level=kwargs.get("disaster_tolerance_level", "NONE"),
-                    zone_list=kwargs["zone_list"],
+                    cloud_zone_list=normalize_location_zones(kwargs),
                     progress_callback=progress_callback,
                 )
             elif kwargs["cluster_type"] == ClusterType.MongoShardedCluster.value:
@@ -76,9 +79,10 @@ class ExecAddRelationshipOperation(BaseService):
                     creator=kwargs["creator"],
                     bk_cloud_id=kwargs["bk_cloud_id"],
                     region=kwargs["region"],
+                    bk_cloud_region=resolve_apply_region(kwargs),
                     machine_specs=kwargs["machine_specs"],
                     disaster_tolerance_level=kwargs.get("disaster_tolerance_level", "NONE"),
-                    zone_list=kwargs["zone_list"],
+                    cloud_zone_list=normalize_location_zones(kwargs),
                     progress_callback=progress_callback,
                 )
             else:

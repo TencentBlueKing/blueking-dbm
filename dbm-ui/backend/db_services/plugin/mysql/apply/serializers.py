@@ -64,7 +64,8 @@ class MysqlHaApplyQuickMinorPassSerializer(serializers.Serializer):
         version = self.get_version(attrs["bk_biz_id"], attrs["details"]["db_module_id"])
         if version not in version_list:
             raise ValidationError(_("要部署的集群版本: {}不在配置版本中: {}".format(version, version_list)))
-        extra_info = {"location_spec": {"city": attrs["details"]["city_code"]}}
+        # 城市口径已下线：快速部署沿用 details 顶层的云地域（随机时是 default）
+        extra_info = {"location_spec": {"bk_cloud_region": attrs["details"].get("bk_cloud_region") or ""}}
         resource_spec["backend_group"].update(extra_info)
         resource_spec["proxy"].update(extra_info)
         attrs["details"]["spec"] = ""

@@ -16,6 +16,7 @@ from django.utils.translation import gettext as _
 from backend.db_meta import api
 from backend.db_meta.enums import InstanceRole, MachineType
 from backend.db_meta.models import Cluster
+from backend.db_meta.models.city_map import resolve_apply_region
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, KafkaRoleEnum
 from backend.flow.utils.kafka.kafka_module_operate import KafkaCCTopoOperator
@@ -200,6 +201,7 @@ class KafkaMeta(object):
             "creator": self.ticket_data["created_by"],
             "bk_cloud_id": bk_cloud_id,
             "region": self.ticket_data["city_code"],
+            "bk_cloud_region": resolve_apply_region(self.ticket_data),
             "disaster_tolerance_level": self.ticket_data["disaster_tolerance_level"],
         }
 

@@ -90,10 +90,12 @@ class MysqlSingleApplyExtractor(HostExtractor):
         except (TypeError, ValueError) as err:
             raise NormalTenDBFlowException(message="{} ticket_data field types illegal: {}".format(_ERR_PREFIX, err))
 
-        # F2.b CLB region：部署类单据直接取 ticket_data["city"]（Cluster 尚未入库，不能走 Cluster.region）；
-        # 非字符串 / 空串时降级为空元组（下游 check_clb_mapping 遇空返回 NO_REGION_INPUT）
-        city = ticket_data.get("city")
-        clb_regions: Tuple[str, ...] = (city.strip(),) if isinstance(city, str) and city.strip() else ()
+        # F2.b CLB region：部署类单据取 details 顶层的云地域（Cluster 尚未入库）；城市口径已下线。
+        # 非字符串 / 空串 / default（地域随机）时降级为空元组（下游 check_clb_mapping 遇空返回 NO_REGION_INPUT）
+        region = ticket_data.get("bk_cloud_region")
+        clb_regions: Tuple[str, ...] = (
+            (region.strip(),) if isinstance(region, str) and region.strip() and region.strip() != "default" else ()
+        )
 
         groups: List[ResourceGroup] = []
         for idx, info in enumerate(apply_infos):

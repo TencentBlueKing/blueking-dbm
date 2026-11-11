@@ -13,7 +13,7 @@ from backend.flow.utils.redis.redis_rollback_exercise_resource import (
 def test_build_apply_detail_from_machine_uses_disk_mem_not_spec_id():
     cluster = MagicMock()
     cluster.bk_cloud_id = 0
-    cluster.region = "sz"
+    cluster.bk_cloud_region = "ap-shenzhen"
 
     machine = MagicMock()
     machine.spec_config = {"cpu": {"min": 4, "max": 8}, "mem": {"min": 16, "max": 32}}
@@ -28,14 +28,14 @@ def test_build_apply_detail_from_machine_uses_disk_mem_not_spec_id():
     assert detail["spec"]["ram"]["min"] == 16 * 1024
     assert detail["storage_spec"][0]["min"] == 200
     assert "spec_id" not in detail
-    assert detail["location_spec"] == {"city": "sz", "sub_zone_ids": []}
+    assert detail["location_spec"] == {"bk_cloud_region": "ap-shenzhen"}
 
 
 @pytest.mark.django_db
 def test_build_apply_detail_from_machine_random_region_no_city_filter():
     cluster = MagicMock()
     cluster.bk_cloud_id = 0
-    cluster.region = "default"
+    cluster.bk_cloud_region = "default"
 
     machine = MagicMock()
     machine.spec_config = {"cpu": {"min": 2}, "mem": {"min": 3}}
@@ -44,7 +44,7 @@ def test_build_apply_detail_from_machine_random_region_no_city_filter():
 
     detail = build_apply_detail_from_machine(0, cluster, machine)
 
-    assert detail["location_spec"] == {"city": "", "sub_zone_ids": []}
+    assert detail["location_spec"] == {"bk_cloud_region": ""}
 
 
 def test_all_infos_have_redis():
@@ -53,7 +53,7 @@ def test_all_infos_have_redis():
     assert all_infos_have_redis([]) is False
 
 
-@patch("backend.flow.utils.redis.redis_rollback_exercise_resource.DBResourceApi.resource_apply")
+@patch("backend.db_services.dbresource.apply_protocol.DBResourceApi.resource_apply_v2")
 @patch("backend.flow.utils.redis.redis_rollback_exercise_resource.MachineEvent.host_event_trigger")
 @patch("backend.flow.utils.redis.redis_rollback_exercise_resource.get_instance_machine")
 @patch("backend.flow.utils.redis.redis_rollback_exercise_resource.Cluster.objects.get")
@@ -65,7 +65,7 @@ def test_apply_exercise_resources_marks_failure_on_api_error(
     cluster = MagicMock()
     cluster.id = 1
     cluster.bk_cloud_id = 0
-    cluster.region = "sz"
+    cluster.bk_cloud_region = "ap-shenzhen"
     mock_cluster_get.return_value = cluster
     mock_get_machine.return_value = MagicMock(
         spec_config={"cpu": {"min": 1}, "mem": {"min": 1}},

@@ -314,6 +314,7 @@ class TestSerializerContract:
             major_version="2.0.3",
             phase="online",
             region="sh",
+            bk_cloud_region="ap-shanghai",
             disaster_tolerance_level="NONE",
             tags=SimpleNamespace(all=lambda: []),
         )
@@ -345,6 +346,7 @@ class TestSerializerContract:
             immute_domain=CLUSTER_DOMAIN,
             alias="test",
             region="sh",
+            bk_cloud_region="ap-shanghai",
             major_version="2.0.3",
         )
         counted = [{"cluster__id": 1, "instance_role": InstanceRole.DORIS_FOLLOWER.value, "node_count": 3}]

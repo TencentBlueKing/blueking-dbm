@@ -143,7 +143,8 @@ def create_lb_and_register_target(cluster_id: int) -> Dict[str, Any]:
     if ClusterEntryType.CLB.value in cluster["clusterentry_set"]:
         message = "clb of cluster:{} has existed".format(immute_domain)
         return response_fail(code=3, message=message)
-    region = cluster["region"]
+    # CLB 侧已按云地域（region）收参，不再传逻辑城
+    region = cluster["bk_cloud_region"]
     ips = cluster["twemproxy_set"]
     bk_biz_id = cluster["bk_biz_id"]
 
@@ -186,7 +187,7 @@ def add_clb_info_to_meta(output: Dict[str, Any], cluster_id: int, creator: str) 
                         "clb_ip": clb_ip,
                         "clb_id": output["data"]["loadbalancerid"],
                         "clb_listener_id": output["data"]["listenerid"],
-                        "clb_region": cluster["region"],
+                        "clb_region": cluster["bk_cloud_region"],
                     }
                 ],
                 creator,

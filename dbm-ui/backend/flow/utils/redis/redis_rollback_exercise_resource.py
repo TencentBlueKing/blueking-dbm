@@ -15,12 +15,12 @@ from typing import Dict, List, Optional
 
 from django.utils.translation import gettext as _
 
-from backend.components.dbresource.client import DBResourceApi
 from backend.configuration.constants import AffinityEnum
 from backend.constants import INT_MAX
 from backend.db_dirty.constants import MachineEventType
 from backend.db_dirty.models import MachineEvent
 from backend.db_meta.models import AppCache, Cluster, Machine, Spec, StorageInstance, Tag
+from backend.db_services.dbresource.apply_protocol import apply_resource
 from backend.ticket.builders.common.base import fetch_apply_hosts
 from backend.ticket.constants import ResourceApplyErrCode
 
@@ -146,12 +146,12 @@ def _build_storage_spec(machine: Machine) -> List[dict]:
     return [{"disk_type": "", "min": 1, "max": INT_MAX}]
 
 
-def _build_location_spec(region: str) -> dict:
-    """Random region ('default') means no city filter, aligned with Spec._get_apply_params_detail."""
-    city = region or ""
-    if city == "default":
-        city = ""
-    return {"city": city, "sub_zone_ids": []}
+def _build_location_spec(bk_cloud_region: str) -> dict:
+    """随机地域（default）表示不限地域，等价于不下发地域条件"""
+    region = (bk_cloud_region or "").strip()
+    if region == "default":
+        region = ""
+    return {"bk_cloud_region": region}
 
 
 def build_apply_detail_from_machine(index: int, cluster: Cluster, machine: Machine) -> dict:
@@ -161,7 +161,7 @@ def build_apply_detail_from_machine(index: int, cluster: Cluster, machine: Machi
         "bk_cloud_id": cluster.bk_cloud_id,
         "count": 1,
         "affinity": AffinityEnum.NONE.value,
-        "location_spec": _build_location_spec(cluster.region),
+        "location_spec": _build_location_spec(cluster.bk_cloud_region),
         "spec": {
             # Drill only constrains memory; CPU is unconstrained (0/0 = empty spec in db-resource).
             "cpu": {"min": 0, "max": 0},
@@ -272,7 +272,7 @@ def apply_exercise_resources(ticket_data: dict, root_id: str) -> ApplyExerciseRe
         "details": apply_details,
     }
 
-    resp = DBResourceApi.resource_apply(params=apply_params, raw=True)
+    resp = apply_resource(params=apply_params, raw=True)
     if resp.get("code") != 0:
         err_code = resp.get("code")
         if err_code in ResourceApplyErrCode.get_values():

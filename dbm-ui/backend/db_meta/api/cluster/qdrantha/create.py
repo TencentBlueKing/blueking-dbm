@@ -31,6 +31,7 @@ def create(
     status: str,
     region: str,
     creator: str,
+    bk_cloud_region: str = "",
 ) -> dict:
     params = {
         "name": name,
@@ -43,6 +44,7 @@ def create(
         "status": status,
         "region": region,
         "creator": creator,
+        "bk_cloud_region": bk_cloud_region,
     }
     cluster, cluster_created = Cluster.objects.get_or_create(
         name=name,

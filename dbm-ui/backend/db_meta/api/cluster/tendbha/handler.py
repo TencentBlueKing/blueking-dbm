@@ -59,7 +59,8 @@ class TenDBHAClusterHandler(ClusterHandler):
         resource_spec: dict,
         region: str,
         disaster_tolerance_level: str,
-        zone_list: list,
+        cloud_zone_list: list,
+        bk_cloud_region: str = "",
     ):
         """「必须」创建集群,多实例录入方式"""
 
@@ -154,8 +155,9 @@ class TenDBHAClusterHandler(ClusterHandler):
                     time_zone=time_zone,
                     major_version=major_version,
                     region=region,
+                    bk_cloud_region=bk_cloud_region,
                     disaster_tolerance_level=disaster_tolerance_level,
-                    zone_list=zone_list,
+                    cloud_zone_list=cloud_zone_list,
                 )
             )
 

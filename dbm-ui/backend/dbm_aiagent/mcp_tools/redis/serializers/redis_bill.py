@@ -91,12 +91,18 @@ class SubmitBillRedisClusterNewApplyInputSerializer(serializers.Serializer):
         allow_blank=True,
         required=False,
     )
+    bk_cloud_region = serializers.CharField(
+        help_text=_("云地域，如 ap-guangzhou（用于资源池选机），不传或传空则不限地域"),
+        default="",
+        allow_blank=True,
+        required=False,
+    )
     disaster_tolerance_level = serializers.ChoiceField(
         choices=AffinityEnum.get_choices(),
         help_text=_(
             "容灾要求（机器亲和性策略），影响资源池选机的分布策略，默认NONE（无要求）。可选值："
-            "SAME_SUBZONE_CROSS_SWTICH(指定园区)、SAME_SUBZONE(指定园区，无机架要求)、"
-            "CROS_SUBZONE(跨园区)、CROSS_RACK(不限园区)、NONE(无)、"
+            "SAME_SUBZONE_CROSS_SWTICH(指定可用区)、SAME_SUBZONE(指定可用区，无机架要求)、"
+            "CROS_SUBZONE(跨可用区)、CROSS_RACK(不限园区)、NONE(无)、"
             "MAX_EACH_ZONE_EQUAL(每个subzone尽量均匀分布)"
         ),
         default=AffinityEnum.NONE.value,

@@ -62,7 +62,8 @@ class TenDBClusterClusterHandler(ClusterHandler):
         resource_spec: dict,
         region: str,
         disaster_tolerance_level: str,
-        zone_list: list,
+        cloud_zone_list: list,
+        bk_cloud_region: str = "",
     ):
         """「必须」创建spider集群"""
 
@@ -148,8 +149,9 @@ class TenDBClusterClusterHandler(ClusterHandler):
             storages=storages,
             creator=creator,
             region=region,
+            bk_cloud_region=bk_cloud_region,
             disaster_tolerance_level=disaster_tolerance_level,
-            zone_list=zone_list,
+            cloud_zone_list=cloud_zone_list,
         )
 
         cc_topo_operator = MysqlCCTopoOperator(cluster)

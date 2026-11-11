@@ -11,43 +11,15 @@ specific language governing permissions and limitations under the License.
 
 import logging
 from datetime import timedelta
-from typing import Set
 
-from django.core.exceptions import ObjectDoesNotExist
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
-from backend.db_meta.models import BKCity, Cluster, LogicalCity
+from backend.db_meta.models import Cluster
 from backend.db_report.enums import ReportStateType
 from backend.db_report.models import AffinityCheckReport
 
 logger = logging.getLogger("root")
-
-
-def get_cluster_expected_city_ids(cluster: Cluster) -> Set[int]:
-    """
-    根据集群的 region 获取期望的 bk_idc_city_id 集合
-
-    Args:
-        cluster: 集群对象
-
-    Returns:
-        set: 该集群 region 对应的所有 bk_idc_city_id 集合
-
-    Raises:
-        LogicalCity.DoesNotExist: 如果 region 对应的逻辑城市不存在
-    """
-    try:
-        # cluster.region → LogicalCity.name
-        logical_city = LogicalCity.objects.get(name=cluster.region)
-        # LogicalCity → BKCity.bk_idc_city_id
-        expected_city_ids = set(
-            BKCity.objects.filter(logical_city=logical_city).values_list("bk_idc_city_id", flat=True)
-        )
-        return expected_city_ids
-    except ObjectDoesNotExist:
-        logger.warning(_("集群 {} 的 region '{}' 在 LogicalCity 表中不存在").format(cluster.immute_domain, cluster.region))
-        return set()
 
 
 def create_or_update_affinity_report(
@@ -99,7 +71,8 @@ def create_or_update_affinity_report(
             cluster_id=cluster.id,
             cluster=cluster.immute_domain,
             cluster_type=cluster.cluster_type,
-            region=cluster.region,
+            # Cluster.region 即将下线，报告里存云地域
+            region=cluster.bk_cloud_region or cluster.region,
             affinity_type=affinity_type,
             state=state,
             status=(state == ReportStateType.NORMAL.value),  # True=正常, False=异常

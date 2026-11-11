@@ -156,7 +156,16 @@ def test_health_reused_per_load_balancer(api, health):
     assert api.clb_get_target_private_ips.call_count == 3
 
 
-@pytest.mark.parametrize("detail", [_detail(clb_id=""), _detail(region=" "), None])
+@pytest.mark.parametrize(
+    "detail",
+    [
+        _detail(clb_id=""),
+        _detail(region=" "),
+        # 部署时地域选「随机」存下来的哨兵值，同样不能拿去调 CLB
+        _detail(region="default"),
+        None,
+    ],
+)
 def test_incomplete_metadata_makes_no_calls(api, health, detail):
     with _patch_entries([_entry(11, 1, detail)]):
         [snap] = snapshot_clusters([1])
