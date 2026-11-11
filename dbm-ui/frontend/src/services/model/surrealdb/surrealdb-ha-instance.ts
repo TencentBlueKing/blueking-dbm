@@ -56,8 +56,13 @@ export default class SurrealHaInstance {
   }
 
   get resourceQuotaDisplay() {
+    // 本 model 仅用于分布式集群，tikv / pd 为存储类组件（有 PVC），surreal 无存储，追加存储容量展示（storage 单位 Gi）
+    const storageDisplay =
+      ['pd', 'tikv'].includes(this.componentName) && this.resourceQuota.storage
+        ? ` / ${this.resourceQuota.storage}Gi`
+        : '';
     return this.status === ClusterK8sInstStatusKeys.RUNNING
-      ? `${this.resourceQuota.limitCpu}C / ${this.resourceQuota.limitMemory}GB`
+      ? `${this.resourceQuota.limitCpu}C / ${this.resourceQuota.limitMemory}Gi${storageDisplay}`
       : '--';
   }
 }

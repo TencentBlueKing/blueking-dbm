@@ -21,9 +21,13 @@
         ×
         <span class="text-bold">{{ item.replicas }}</span>
         （
-        <span>{{ item.limit.cpu }}</span>
+        <span>{{ item.limit.cpu }}C</span>
         /
         <span>{{ item.limit.memory }}</span>
+        <template v-if="showStorage(item)">
+          /
+          <span>{{ item.storage }}</span>
+        </template>
         ）
       </DbTag>
     </template>
@@ -62,6 +66,19 @@
   const props = defineProps<Props<T>>();
 
   const { t } = useI18n();
+
+  // 各集群类型下有存储容量（PVC）的组件；surrealdb 单机的 surreal 有存储，分布式只有 tikv / pd 有存储
+  const STORAGE_COMPONENTS_MAP: Partial<Record<ClusterTypes, string[]>> = {
+    [ClusterTypes.K8S_QDRANT_HA]: ['qdrant'],
+    [ClusterTypes.K8S_SURREALDB_HA]: ['tikv', 'pd'],
+    [ClusterTypes.K8S_SURREALDB_SINGLE]: ['surreal'],
+    [ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER]: ['vmstorage'],
+    [ClusterTypes.K8S_VICTORIAMETRICS_SELECT]: [],
+  };
+
+  // 是否展示存储容量：集群类型对应的存储类组件且后端返回了 storage（带 Gi 单位的 quantity 字符串）
+  const showStorage = (item: { componentName: string; storage?: string }) =>
+    STORAGE_COMPONENTS_MAP[props.clusterType]?.includes(item.componentName) && Boolean(item.storage);
 
   const requestApiMap = {
     [ClusterTypes.K8S_QDRANT_HA]: getQdrantHaComponentSpec,
