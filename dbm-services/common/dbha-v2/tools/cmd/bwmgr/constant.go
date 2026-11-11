@@ -89,6 +89,12 @@ const (
 	flagDryRun             = "dry-run"
 	flagUpsert             = "upsert"
 	flagYes                = "yes"
+	flagCreateTmplFromXlsx = "create-template-from-xlsx"
+	flagXlsxFile           = "xlsx-file"
+	flagXlsxBkBizID        = "xlsx-bk-biz-id"
+	flagXlsxSwitchVersion  = "xlsx-switch-version"
+	flagXlsxStatus         = "xlsx-status"
+	flagXlsxReport         = "xlsx-report"
 )
 
 const (
@@ -145,6 +151,13 @@ const (
 	flagUsageDryRun             = "Validate import file without calling API"
 	flagUsageUpsert             = "Update existing entry when add matches bk-biz-id, bk-cloud-id, and cluster-id"
 	flagUsageEntryID            = "Entry ID"
+	flagUsageCreateTmplFromXlsx = "Create an add-only JSON Lines import file at the path from a DBM cluster xlsx " +
+		"export, verify it, and exit"
+	flagUsageXlsxFile          = "DBM cluster xlsx export file path (required with --create-template-from-xlsx)"
+	flagUsageXlsxBkBizID       = "Business ID for xlsx records (default: parsed from the xlsx file name)"
+	flagUsageXlsxSwitchVersion = "Switch version for xlsx records (v1/v2)"
+	flagUsageXlsxStatus        = "Status for xlsx records (enabled/disabled)"
+	flagUsageXlsxReport        = "JSON verify report path (default: <output>.report.json)"
 )
 
 const (
@@ -163,3 +176,5 @@ const (
 	errLoadConfigFormat        = "failed to load config: %v"
 	logExecuteCommandErrFormat = "failed to execute bwmgr command, errmsg: %s"
 )
+
+const errXlsxFlagsRequireTemplate = "--xlsx-* flags require --create-template-from-xlsx"
