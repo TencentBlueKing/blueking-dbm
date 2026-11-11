@@ -693,11 +693,13 @@ class MongoDBListRetrieveResource(query.ListRetrieveResource, MongoDBExportQuery
         return storage_instance, storage_id__shard
 
     @staticmethod
-    def common_query_instance(bk_biz_id: int, cluster_types: list, bk_host_ids: list) -> Tuple[List[Dict], List[Dict]]:
-
+    def common_query_instance(
+        bk_biz_id: int, cluster_types: list, instance_ids: list
+    ) -> Tuple[List[Dict], List[Dict]]:
+        """按实例 ID 过滤，避免同一主机上的其它实例被一并导出。"""
         query_condition = Q(bk_biz_id=bk_biz_id, cluster_type__in=cluster_types)
-        if bk_host_ids:
-            query_condition = query_condition & Q(machine__bk_host_id__in=bk_host_ids)
+        if instance_ids:
+            query_condition = query_condition & Q(id__in=instance_ids)
         fields = [
             "id",
             "role",

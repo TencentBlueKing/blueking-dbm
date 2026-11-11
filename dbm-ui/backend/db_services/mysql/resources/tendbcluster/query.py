@@ -399,11 +399,13 @@ class ListRetrieveResource(MysqlListRetrieveResource, TenDBClusterCommonQueryRes
         return [{"cluster_id": k, "primary": v} for k, v in cluster_id__primary_address_map.items()]
 
     @staticmethod
-    def common_query_instance(bk_biz_id: int, cluster_types: list, bk_host_ids: list) -> Tuple[List[Dict], List[Dict]]:
-        """实例通用属性查询"""
+    def common_query_instance(
+        bk_biz_id: int, cluster_types: list, instance_ids: list
+    ) -> Tuple[List[Dict], List[Dict]]:
+        """实例通用属性查询。按实例 ID 过滤，避免同一主机上的其它实例被一并导出。"""
         query_condition = Q(bk_biz_id=bk_biz_id, cluster_type__in=cluster_types)
-        if bk_host_ids:
-            query_condition = query_condition & Q(machine__bk_host_id__in=bk_host_ids)
+        if instance_ids:
+            query_condition = query_condition & Q(id__in=instance_ids)
 
         # 获取remote实例的查询集
         remote_insts = (

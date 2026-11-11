@@ -140,8 +140,8 @@ class ResourceViewSet(SystemViewSet):
     @action(methods=["POST", "GET"], detail=False, url_path="export_instance")
     def export_instance(self, request, bk_biz_id: int):
         """导出实例数据为 excel 文件"""
-        bk_host_ids = request.data.get("bk_host_ids")
-        return self.query_class.export_instance(bk_biz_id, bk_host_ids)
+        instance_ids = request.data.get("instance_ids")
+        return self.query_class.export_instance(bk_biz_id, instance_ids)
 
     def _paginate_resource_list(self, request, bk_biz_id: int):
         return self.paginator.paginate_resource_list(request, bk_biz_id, self)
