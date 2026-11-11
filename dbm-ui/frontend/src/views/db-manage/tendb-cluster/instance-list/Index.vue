@@ -30,7 +30,7 @@
         class="ml-8"
         export-type="instance"
         :has-selected="isSelected"
-        :ids="selectedIdList"
+        :ids="selectedHostIdList"
         type="spider" />
       <DbQuickSearch
         v-model="quickSearchValue"
@@ -113,7 +113,7 @@
     disabled: ['instance_address'],
   });
 
-  const { handleSelection, isSelected, selectedIdList, selectedList } =
+  const { handleSelection, isSelected, selectedHostIdList, selectedList } =
     useClusterTableSelect<TendbclusterInstanceModel>();
 
   const instanceTableRef = useTemplateRef('instanceTable');

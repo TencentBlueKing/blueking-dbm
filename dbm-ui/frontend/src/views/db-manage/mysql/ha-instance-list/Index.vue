@@ -30,7 +30,7 @@
         class="ml-8"
         export-type="instance"
         :has-selected="isSelected"
-        :ids="selectedIdList"
+        :ids="selectedHostIdList"
         type="tendbha" />
       <DbQuickSearch
         v-model="quickSearchValue"
@@ -101,7 +101,7 @@
   } from '@views/db-manage/common/instance-table/Index.vue';
   import useClusterTableSelect from '@views/db-manage/hooks/useClusterTableSelect';
 
-  const { handleSelection, isSelected, selectedIdList, selectedList } = useClusterTableSelect<TendbhaInstanceModel>();
+  const { handleSelection, isSelected, selectedHostIdList, selectedList } = useClusterTableSelect<TendbhaInstanceModel>();
   const { isSearching, quickSearchData, quickSearchValue } = useInstanceQuickSearch({
     cluster_type: ClusterTypes.TENDBHA,
   });

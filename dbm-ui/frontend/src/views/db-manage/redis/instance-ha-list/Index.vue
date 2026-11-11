@@ -17,7 +17,7 @@
         class="ml-8"
         export-type="instance"
         :has-selected="isSelected"
-        :ids="selectedIdList"
+        :ids="selectedHostIdList"
         type="redis" />
       <DbQuickSearch
         v-model="quickSearchValue"
@@ -87,7 +87,7 @@
     disabled: ['instance_address'],
   });
 
-  const { handleSelection, isSelected, selectedIdList, selectedList } = useClusterTableSelect<RedisInstanceModel>();
+  const { handleSelection, isSelected, selectedHostIdList, selectedList } = useClusterTableSelect<RedisInstanceModel>();
 
   const instanceTableRef = useTemplateRef('instanceTable');
 
