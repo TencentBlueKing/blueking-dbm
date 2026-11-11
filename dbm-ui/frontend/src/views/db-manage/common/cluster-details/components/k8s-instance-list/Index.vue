@@ -74,14 +74,14 @@
                 </BkButton>
               </DbDropdownItem>
               <!-- VictoriaMetrics 的 vminsert / vmselect 支持缩容，走扩缩容弹窗；vmstorage 只允许水平扩容 -->
-              <BkDropdownItem v-if="isVmHorizontalScalingRole">
+              <DbDropdownItem v-if="isVmHorizontalScalingRole">
                 <BkButton
                   style="width: 105px"
                   text
                   @click="handleHorizontalScalingShow">
                   {{ t('水平扩缩容') }}
                 </BkButton>
-              </BkDropdownItem>
+              </DbDropdownItem>
               <DbDropdownItem
                 v-if="
                   !isVmHorizontalScalingRole &&
@@ -99,14 +99,14 @@
                   {{ t('水平扩容') }}
                 </BkButton>
               </DbDropdownItem>
-              <DbDropdownItem v-if="isVmstorageClbTab">
+              <!-- <DbDropdownItem v-if="isVmstorageClbTab">
                 <BkButton
                   style="width: 105px"
                   text
                   @click="handleToggleClb(!vmstorageClbEnabled)">
                   {{ vmstorageClbEnabled ? t('停用 CLB') : t('启用 CLB') }}
                 </BkButton>
-              </DbDropdownItem>
+              </DbDropdownItem> -->
             </AuthTemplate>
           </DbDropdownMenu>
         </template>
@@ -243,8 +243,8 @@
   </div>
 </template>
 <script lang="tsx">
-  import BkAlert from 'bkui-vue/lib/alert/index';
-  import InfoBox from 'bkui-vue/lib/info-box';
+  // import BkAlert from 'bkui-vue/lib/alert/index';
+  // import InfoBox from 'bkui-vue/lib/info-box';
   import _ from 'lodash';
   import type { VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
@@ -255,9 +255,10 @@
   import SurrealdbHaDetailModel from '@services/model/surrealdb/surrealdb-ha-detail';
   import SurrealdbSingleDetailModel from '@services/model/surrealdb/surrealdb-single-detail';
   import VictoriametricsClusterDetailModel from '@services/model/victoriametrics/victoriametrics-cluster-detail';
+  // import VictoriametricsClusterInstance from '@services/model/victoriametrics/victoriametrics-cluster-instance';
   import VictoriametricsSelectDetailModel from '@services/model/victoriametrics/victoriametrics-select-detail.ts';
-  import { toggleVictoriametricsStorageClb } from '@services/source/victoriametricsCluster.ts';
 
+  // import { toggleVictoriametricsStorageClb } from '@services/source/victoriametricsCluster.ts';
   // import { restartComponent } from '@services/source/kubernetesToolbox.ts';
   import { useUrlSearch } from '@hooks';
 
@@ -350,9 +351,9 @@
   });
 
   // VictoriaMetrics 标准集群 vmstorage 支持存储入口 CLB 启停（更多配置）
-  const isVmstorageClbTab = computed(
-    () => props.clusterType === ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER && props.role === 'vmstorage',
-  );
+  // const isVmstorageClbTab = computed(
+  //   () => props.clusterType === ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER && props.role === 'vmstorage',
+  // );
 
   const VM_HORIZONTAL_SCALING_ROLES = ['vminsert', 'vmselect'];
   const VM_CLUSTER_TYPES = [
@@ -364,50 +365,47 @@
   const isVmHorizontalScalingRole = computed(
     () => VM_HORIZONTAL_SCALING_ROLES.includes(props.role) && VM_CLUSTER_TYPES.includes(props.clusterType as string),
   );
-  const vmstorageClbEnabled = computed(() =>
-    isVmstorageClbTab.value ? (props.clusterData as VictoriametricsClusterDetailModel).isStorageClbEnabled : false,
-  );
 
-  const handleToggleClb = (enable: boolean) => {
-    const doToggle = () => {
-      toggleVictoriametricsStorageClb({
-        cluster_id: props.clusterData.id,
-        enable,
-      }).then(() => {
-        // messageSuccess(enable ? t('已启用存储 CLB') : t('已停用存储 CLB'));
-        handleOperateSuccess();
-      });
-    };
-    if (enable) {
-      InfoBox({
-        cancelText: t('取消'),
-        confirmText: t('启用'),
-        content: '',
-        onConfirm: doToggle,
-        title: t('确定启用 CLB？'),
-      });
-      return;
-    }
-    const storageEntry = (props.clusterData as VictoriametricsClusterDetailModel).storageEntryDisplay || 'CLB';
-    InfoBox({
-      cancelText: t('取消'),
-      confirmText: t('停用'),
-      content: (
-        <div>
-          <div>
-            {t('停用后存储入口')} {storageEntry} {t('立即不可用，引用该入口的查询集群将读不到数据。')}
-          </div>
-          <BkAlert
-            class='mt-8'
-            theme='warning'
-            title={t('该操作调用 API，成功后写入操作记录。')}></BkAlert>
-        </div>
-      ),
-      onConfirm: doToggle,
-      theme: 'danger',
-      title: t('确定停用 CLB？'),
-    });
-  };
+  // const handleToggleClb = (enable: boolean) => {
+  //   const doToggle = () => {
+  //     toggleVictoriametricsStorageClb({
+  //       cluster_id: props.clusterData.id,
+  //       enable,
+  //     }).then(() => {
+  //       // messageSuccess(enable ? t('已启用存储 CLB') : t('已停用存储 CLB'));
+  //       handleOperateSuccess();
+  //     });
+  //   };
+  //   if (enable) {
+  //     InfoBox({
+  //       cancelText: t('取消'),
+  //       confirmText: t('启用'),
+  //       content: '',
+  //       onConfirm: doToggle,
+  //       title: t('确定启用 CLB？'),
+  //     });
+  //     return;
+  //   }
+  //   const storageEntry = (props.clusterData as VictoriametricsClusterDetailModel).storageEntryDisplay || 'CLB';
+  //   InfoBox({
+  //     cancelText: t('取消'),
+  //     confirmText: t('停用'),
+  //     content: (
+  //       <div>
+  //         <div>
+  //           {t('停用后存储入口')} {storageEntry} {t('立即不可用，引用该入口的查询集群将读不到数据。')}
+  //         </div>
+  //         <BkAlert
+  //           class='mt-8'
+  //           theme='warning'
+  //           title={t('该操作调用 API，成功后写入操作记录。')}></BkAlert>
+  //       </div>
+  //     ),
+  //     onConfirm: doToggle,
+  //     theme: 'danger',
+  //     title: t('确定停用 CLB？'),
+  //   });
+  // };
 
   const rootRef = useTemplateRef('rootRef');
 
@@ -429,6 +427,13 @@
       (item) => item.componentName === currentComponentName,
     ) as IColumnData[];
   });
+
+  // vmstorage CLB 启停状态以实例的 is_clb_enabled 为准（显隐见 isVmstorageClbTab，仍由集群类型 + 角色控制）
+  // const vmstorageClbEnabled = computed(
+  //   () =>
+  //     isVmstorageClbTab.value &&
+  //     originalData.value.some((item) => (item as VictoriametricsClusterInstance).is_clb_enabled),
+  // );
 
   const { data: instanceData, run } = useRequest(requestHandler, {
     manual: true,

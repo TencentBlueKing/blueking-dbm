@@ -22,13 +22,14 @@ export default class KubernetesComponentSpec {
       componentName: string;
       limit: {
         cpu: string;
-        memory: string;
+        memory: string; // 自带单位Gi
       };
       replicas: number;
       request: {
         cpu: string;
-        memory: string;
+        memory: string; // 自带单位Gi
       };
+      storage: string; // 自带单位Gi
       version: string;
     }[];
   };

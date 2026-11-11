@@ -56,8 +56,11 @@ export default class SurrealSingleInstance {
   }
 
   get resourceQuotaDisplay() {
+    // surreal 为存储类组件（有 PVC），追加存储容量展示（storage 单位 Gi）
+    const storageDisplay =
+      this.componentName === 'surreal' && this.resourceQuota.storage ? ` / ${this.resourceQuota.storage}Gi` : '';
     return this.status === ClusterK8sInstStatusKeys.RUNNING
-      ? `${this.resourceQuota.limitCpu}C / ${this.resourceQuota.limitMemory}GB`
+      ? `${this.resourceQuota.limitCpu}C / ${this.resourceQuota.limitMemory}Gi${storageDisplay}`
       : '--';
   }
 }
