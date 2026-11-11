@@ -23,9 +23,9 @@ from backend.db_services.plugin.ticket.serializers import (
     OpenAPIBkChatProcessTodoSerializer,
 )
 from backend.db_services.plugin.view import BaseOpenAPIViewSet
-from backend.ticket.constants import TodoStatus, TodoType
+from backend.ticket.constants import TODO_RUNNING_STATUS, TicketFlowStatus, TodoStatus, TodoType
 from backend.ticket.exceptions import TodoDuplicateProcessException
-from backend.ticket.models import Todo
+from backend.ticket.models import TicketSnapshot, Todo
 from backend.ticket.serializers import TicketSerializer
 from backend.ticket.todos import TodoActorFactory
 from backend.ticket.views import TicketViewSet
@@ -64,11 +64,22 @@ class TicketApiGwViewSet(BaseOpenAPIViewSet, TicketViewSet):
         user = super().get_or_create_user(params["username"])
         todo = Todo.objects.get(id=params["todo_id"])
         if todo.type not in [TodoType.ITSM, TodoType.APPROVE]:
-            return Response({"response_msg": _("暂不支持该类型{}todo的处理").fromat(todo.type), "response_color": "red"})
+            return Response({"response_msg": _("暂不支持该类型{}todo的处理").format(todo.type), "response_color": "red"})
+
+        # 过期通知：通知发出后节点可能已经结束(审批期间被代为修改、提单人重新编辑后进入新一轮审批)，
+        # 此时对旧通知做通过/拒绝属于过期操作，要明确报错，而不是静默返回上一次的处理结果
+        flow_status = todo.flow.status if todo.flow_id else None
+        if todo.status not in TODO_RUNNING_STATUS and flow_status != TicketFlowStatus.RUNNING:
+            return Response({"response_msg": _("该节点状态不符合当前操作，请刷新单据后重试"), "response_color": "red"})
+
+        # 企微卡片带不回版本号时(如按钮 payload 未携带)，按单据当前内容版本补齐，
+        # 避免 ITSM 单据的版本校验直接抛"缺少单据内容版本号"
+        action_params = dict(params.get("params") or {})
+        action_params.setdefault("version", TicketSnapshot.objects.filter(ticket_id=todo.ticket_id).count())
 
         # 确认todo，忽略重复操作
         try:
-            TodoActorFactory.actor(todo).process(user.username, params["action"], params["params"])
+            TodoActorFactory.actor(todo).process(user.username, params["action"], action_params)
         except TodoDuplicateProcessException:
             pass
 
