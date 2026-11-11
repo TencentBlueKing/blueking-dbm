@@ -24,6 +24,8 @@
 
 package handler
 
+import "io"
+
 // ConfirmFunc prompts the user and returns true when an operation may proceed.
 type ConfirmFunc func(prompt string) bool
 
@@ -64,6 +66,19 @@ type ImportOptions struct {
 	Yes                    bool
 	Upsert                 bool
 	Confirm                ConfirmFunc
+}
+
+// XlsxTemplateOptions contains import --create-template-from-xlsx arguments.
+type XlsxTemplateOptions struct {
+	Output        string
+	XlsxFile      string
+	BkBizID       int
+	BkBizIDSet    bool
+	SwitchVersion string
+	Status        string
+	Report        string
+	// Out receives the text verify report, nil means os.Stdout.
+	Out io.Writer
 }
 
 // UpdateOptions contains update command query and set arguments.

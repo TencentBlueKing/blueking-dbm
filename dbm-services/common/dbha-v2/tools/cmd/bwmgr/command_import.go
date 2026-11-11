@@ -25,6 +25,7 @@
 package main
 
 import (
+	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/tools/internal/bwmgr/handler"
 
 	"github.com/spf13/cobra"
@@ -36,6 +37,15 @@ func newImportCmd(a *app) *cobra.Command {
 		Short: cmdShortImport,
 		Long:  cmdLongImport,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if xlsxFlagsChanged(cmd) {
+				xlsxOpts, err := newXlsxTemplateOptions(cmd)
+				if err != nil {
+					return err
+				}
+
+				return handler.CreateImportTemplateFromXlsx(xlsxOpts)
+			}
+
 			opts, err := newImportOptions(cmd)
 			if err != nil {
 				return err
@@ -53,8 +63,82 @@ func newImportCmd(a *app) *cobra.Command {
 	importCmd.Flags().Bool(flagDryRun, defaultFalseValue, flagUsageDryRun)
 	importCmd.Flags().Bool(flagUpsert, defaultFalseValue, flagUsageUpsert)
 	importCmd.Flags().Bool(flagYes, defaultFalseValue, flagUsageYesRisky)
+	importCmd.Flags().String(flagCreateTmplFromXlsx, defaultStringValue, flagUsageCreateTmplFromXlsx)
+	importCmd.Flags().String(flagXlsxFile, defaultStringValue, flagUsageXlsxFile)
+	importCmd.Flags().Int(flagXlsxBkBizID, defaultIntValue, flagUsageXlsxBkBizID)
+	importCmd.Flags().String(flagXlsxSwitchVersion, defaultSwitchVersion, flagUsageXlsxSwitchVersion)
+	importCmd.Flags().String(flagXlsxStatus, defaultStatus, flagUsageXlsxStatus)
+	importCmd.Flags().String(flagXlsxReport, defaultStringValue, flagUsageXlsxReport)
 
 	return importCmd
+}
+
+func xlsxFlagNames() []string {
+	return []string{
+		flagCreateTmplFromXlsx,
+		flagXlsxFile,
+		flagXlsxBkBizID,
+		flagXlsxSwitchVersion,
+		flagXlsxStatus,
+		flagXlsxReport,
+	}
+}
+
+func xlsxFlagsChanged(cmd *cobra.Command) bool {
+	for _, name := range xlsxFlagNames() {
+		if cmd.Flags().Changed(name) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func newXlsxTemplateOptions(cmd *cobra.Command) (handler.XlsxTemplateOptions, error) {
+	output, err := cmd.Flags().GetString(flagCreateTmplFromXlsx)
+	if err != nil {
+		return handler.XlsxTemplateOptions{}, err
+	}
+	if output == "" {
+		return handler.XlsxTemplateOptions{}, gerrors.Newf(gerrors.InvalidParameter, errXlsxFlagsRequireTemplate)
+	}
+
+	createTemplate, err := cmd.Flags().GetString(flagCreateTmpl)
+	if err != nil {
+		return handler.XlsxTemplateOptions{}, err
+	}
+
+	createTemplateFromList, err := cmd.Flags().GetString(flagCreateTmplFromList)
+	if err != nil {
+		return handler.XlsxTemplateOptions{}, err
+	}
+
+	if err := handler.ValidateImportTemplateFlags(createTemplate, createTemplateFromList, output); err != nil {
+		return handler.XlsxTemplateOptions{}, err
+	}
+
+	opts := handler.XlsxTemplateOptions{
+		Output:     output,
+		BkBizIDSet: cmd.Flags().Changed(flagXlsxBkBizID),
+		Out:        cmd.OutOrStdout(),
+	}
+	if opts.XlsxFile, err = cmd.Flags().GetString(flagXlsxFile); err != nil {
+		return handler.XlsxTemplateOptions{}, err
+	}
+	if opts.BkBizID, err = cmd.Flags().GetInt(flagXlsxBkBizID); err != nil {
+		return handler.XlsxTemplateOptions{}, err
+	}
+	if opts.SwitchVersion, err = cmd.Flags().GetString(flagXlsxSwitchVersion); err != nil {
+		return handler.XlsxTemplateOptions{}, err
+	}
+	if opts.Status, err = cmd.Flags().GetString(flagXlsxStatus); err != nil {
+		return handler.XlsxTemplateOptions{}, err
+	}
+	if opts.Report, err = cmd.Flags().GetString(flagXlsxReport); err != nil {
+		return handler.XlsxTemplateOptions{}, err
+	}
+
+	return opts, nil
 }
 
 func newImportOptions(cmd *cobra.Command) (handler.ImportOptions, error) {
