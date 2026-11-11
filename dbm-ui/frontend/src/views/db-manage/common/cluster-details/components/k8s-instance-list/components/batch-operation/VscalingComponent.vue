@@ -49,7 +49,7 @@
           required>
           <div class="form-box">
             <div class="box-label">{{ t('内存') }}</div>
-            <div class="box-count">{{ beforeData.memory }} GB</div>
+            <div class="box-count">{{ beforeData.memory }} Gi</div>
             <div class="box-arrow mr-24">
               <DbIcon type="arrow-right" />
             </div>
@@ -57,7 +57,7 @@
               v-model="formData.memory"
               :min="1"
               style="width: 200px"
-              suffix="GB"
+              suffix="Gi"
               type="number" />
           </div>
         </DbFormItem>

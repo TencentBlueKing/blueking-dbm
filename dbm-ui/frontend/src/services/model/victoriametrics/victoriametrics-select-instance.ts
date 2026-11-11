@@ -57,7 +57,7 @@ export default class VictoriametricsSelectInstance {
 
   get resourceQuotaDisplay() {
     return this.status === ClusterK8sInstStatusKeys.RUNNING
-      ? `${this.resourceQuota.limitCpu}C / ${this.resourceQuota.limitMemory}GB`
+      ? `${this.resourceQuota.limitCpu}C / ${this.resourceQuota.limitMemory}Gi`
       : '--';
   }
 }
