@@ -47,6 +47,7 @@ class MongoClusterHandler(ClusterHandler):
         bk_cloud_id: int = DEFAULT_BK_CLOUD_ID,
         region: str = "",
         disaster_tolerance_level: str = "",
+        bk_cloud_region: str = "",
     ):
         """「必须」创建集群"""
         pkg_create_mongo_cluster(
@@ -61,6 +62,7 @@ class MongoClusterHandler(ClusterHandler):
             creator=creator,
             bk_cloud_id=bk_cloud_id,
             region=region,
+            bk_cloud_region=bk_cloud_region,
             cluster_type=ClusterType.MongoShardedCluster.value,
             disaster_tolerance_level=disaster_tolerance_level,
         )

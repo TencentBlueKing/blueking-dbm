@@ -52,7 +52,7 @@ def pulsar_list_clusters(bk_biz_id: int) -> List:
             "cluster_type": c.cluster_type,
             "immute_domain": c.immute_domain,
             "alias": c.alias,
-            "region": c.region,
+            "region": c.bk_cloud_region or c.region,
             "broker_count": c.storageinstance_set.filter(instance_role=PULSAR_ROLES["broker"]).count(),
             "bookkeeper_count": c.storageinstance_set.filter(instance_role=PULSAR_ROLES["bookkeeper"]).count(),
             "zookeeper_count": c.storageinstance_set.filter(instance_role=PULSAR_ROLES["zookeeper"]).count(),
@@ -197,7 +197,7 @@ def cluster_overview(immute_domain: str) -> Dict:
         "cluster_type": cluster_obj.cluster_type,
         "major_version": cluster_obj.major_version,
         "phase": cluster_obj.phase,
-        "region": cluster_obj.region,
+        "region": cluster_obj.bk_cloud_region or cluster_obj.region,
         "disaster_tolerance_level": cluster_obj.disaster_tolerance_level,
         "tags": ["{}:{}".format(tag.key, tag.value) for tag in cluster_obj.tags.all()],
         "cluster_entries": [

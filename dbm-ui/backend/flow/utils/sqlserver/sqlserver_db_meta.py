@@ -15,6 +15,7 @@ from backend.db_meta.api.cluster.sqlserversingle.handler import SqlserverSingleC
 from backend.db_meta.api.storage_instance import remove_storage_instances
 from backend.db_meta.enums import ClusterPhase, ClusterType, MachineType
 from backend.db_meta.models import Cluster, StorageInstance
+from backend.db_meta.models.city_map import resolve_apply_region
 from backend.db_meta.models.sqlserver_dts import DtsStatus, SqlserverDtsInfo
 from backend.flow.consts import InstanceStatus, SqlserverDtsMode
 from backend.flow.utils.sqlserver.sqlserver_host import Host
@@ -52,8 +53,9 @@ class SqlserverDBMeta(object):
             bk_cloud_id=int(self.global_data["bk_cloud_id"]),
             resource_spec=self.global_data.get("resource_spec", def_resource_spec),
             region=self.global_data["region"],
+            bk_cloud_region=resolve_apply_region(self.global_data),
             is_increment=self.global_data.get("is_increment", False),
-            zone_list=self.global_data.get("zone_list", []),
+            cloud_zone_list=self.global_data.get("cloud_zone_list") or self.global_data.get("zone_list", []),
         )
         return True
 
@@ -74,10 +76,11 @@ class SqlserverDBMeta(object):
             bk_cloud_id=int(self.global_data["bk_cloud_id"]),
             resource_spec=self.global_data.get("resource_spec", def_resource_spec),
             region=self.global_data["region"],
+            bk_cloud_region=resolve_apply_region(self.global_data),
             sync_type=self.global_data["sync_type"],
             disaster_tolerance_level=self.global_data["disaster_tolerance_level"],
             is_increment=self.global_data.get("is_increment", False),
-            zone_list=self.global_data.get("zone_list", []),
+            cloud_zone_list=self.global_data.get("cloud_zone_list") or self.global_data.get("zone_list", []),
         )
         return True
 

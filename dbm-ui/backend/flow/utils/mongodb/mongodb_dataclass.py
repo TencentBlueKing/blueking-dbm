@@ -27,6 +27,7 @@ from backend.db_meta.enums import ClusterEntryType
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.enums.instance_role import InstanceRole
 from backend.db_meta.models import Cluster
+from backend.db_meta.models.city_map import resolve_apply_region
 from backend.db_package.models import Package
 from backend.flow.consts import (
     DEFAULT_DB_MODULE_ID,
@@ -755,9 +756,10 @@ class ActKwargs:
             "major_version": self.db_release_version,
             "creator": self.payload["created_by"],
             "region": self.payload["city"],
+            "bk_cloud_region": resolve_apply_region(self.payload),
             "db_module_id": 0,
             "disaster_tolerance_level": self.payload["disaster_tolerance_level"],
-            "zone_list": self.payload["zone_list"],
+            "cloud_zone_list": self.payload.get("cloud_zone_list") or self.payload.get("zone_list", []),
         }
 
         if self.payload["cluster_type"] == ClusterType.MongoReplicaSet.value:

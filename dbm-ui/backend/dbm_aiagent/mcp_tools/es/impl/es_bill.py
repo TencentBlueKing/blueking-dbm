@@ -16,6 +16,7 @@ from rest_framework import serializers
 
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster, Machine, Spec
+from backend.db_meta.models.city_map import resolve_logical_city
 from backend.db_services.dbbase.constants import ES_DEFAULT_PORT
 from backend.ticket.builders.common.base import IpSource
 from backend.ticket.constants import TicketType
@@ -182,7 +183,7 @@ def submit_es_scale_up_bill(
     cluster_obj = _get_cluster(bk_biz_id, cluster_domain)
     cluster_id = cluster_obj.id
 
-    enriched_spec = _enrich_es_resource_spec(resource_spec, cluster_obj.region or "default") or {}
+    enriched_spec = _enrich_es_resource_spec(resource_spec, resolve_logical_city(cluster_obj) or "default") or {}
 
     # 计算 ext_info：按角色统计扩容磁盘与主机数，供前端渲染单据需求信息
     ext_info = {}
@@ -324,7 +325,7 @@ def submit_es_replace_bill(
         "cluster_id": cluster_id,
         "old_nodes": old_nodes,
         "ip_source": IpSource.RESOURCE_POOL.value,
-        "resource_spec": _enrich_es_resource_spec(resource_spec, cluster_obj.region or "default"),
+        "resource_spec": _enrich_es_resource_spec(resource_spec, resolve_logical_city(cluster_obj) or "default"),
     }
 
     ticket_param = {

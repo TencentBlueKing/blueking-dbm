@@ -49,11 +49,11 @@ class _DBResourceApi(BaseApi):
             url="resource/same_svr_owner/ips",
             description=_("查询同母机 IP"),
         )
-        self.resource_apply = self.generate_data_api(
+        # 资源申请只走 v2：入参按云地域 + 云可用区（bk_cloud_region / bk_cloud_zone_list）
+        self.resource_apply_v2 = self.generate_data_api(
             method="POST",
-            url="resource/apply",
-            description=_("资源池资源申请"),
-            # 调整超时时长，关闭重试
+            url="v2/resource/apply",
+            description=_("资源池资源申请(v2)"),
             default_timeout=60,
             max_retry_times=1,
         )

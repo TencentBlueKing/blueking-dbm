@@ -13,6 +13,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.models import AppCache, Cluster
+from backend.db_meta.models.city_map import resolve_logical_city
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.iam_app.dataclass.actions import ActionEnum
@@ -133,7 +134,13 @@ class MongoDBAutofixResourceParamBuilder(BaseMongoDBOperateResourceParamBuilder)
                     "tolerance": get_mongodb_cluster_tolerance(
                         cluster.disaster_tolerance_level, _tolerance_role(group)
                     ),
-                    "location_spec": {"city": cluster.region, "sub_zone_ids": list(cluster.zone_list or [])},
+                    "location_spec": {
+                        # Cluster.region 即将下线，城市从实例机器反查
+                        "city": resolve_logical_city(cluster),
+                        "sub_zone_ids": list(cluster.cloud_zone_list or []),
+                        # 带上集群记录的云地域，资源申请走 v2 时可直接使用
+                        "bk_cloud_region": cluster.bk_cloud_region or "",
+                    },
                     "current_hosts": current,
                 }
             info["resource_spec"] = resource_spec

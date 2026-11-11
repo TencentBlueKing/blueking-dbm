@@ -23,6 +23,7 @@ from backend.bk_web.pagination import AuditedLimitOffsetPagination
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.configuration.constants import DBType
 from backend.db_meta.enums.spec import SpecMachineType
+from backend.db_meta.models.city_map import BKSubzone
 from backend.db_services.dbresource.constants import SWAGGER_TAG
 from backend.db_services.dbresource.filters import ReplenishRecordFilter
 from backend.db_services.dbresource.handlers import (
@@ -130,6 +131,11 @@ class DBReplenishViewSet(viewsets.AuditedModelViewSet):
 
         rows = []
         error_log_map = {}
+        # 老补货单只记了目的地园区，用园区反查 region/可用区，保证新旧单据导出时口径一致
+        subzone_location_map = {
+            subzone["bk_sub_zone"]: (subzone["bk_cloud_region"] or "", subzone["bk_cloud_zone"] or "")
+            for subzone in BKSubzone.objects.values("bk_sub_zone", "bk_cloud_region", "bk_cloud_zone")
+        }
 
         def _query_ticket_error_log(ticket_id):
             info = ticket_apply_count_map.get(ticket_id, {})
@@ -170,6 +176,12 @@ class DBReplenishViewSet(viewsets.AuditedModelViewSet):
             db_type = details["db_type"]
             spec_type = spec["spec_machine_type"]
             error_log = error_log_map.get(ticket_id, "")
+            # 补货目标位置：新单据直接带 region + 可用区，老单据用园区反查
+            cloud_region = details.get("bk_cloud_region", "")
+            cloud_zone = details.get("bk_cloud_zone", "")
+            if not (cloud_region and cloud_zone):
+                fallback_region, fallback_zone = subzone_location_map.get(details.get("subzone", ""), ("", ""))
+                cloud_region, cloud_zone = cloud_region or fallback_region, cloud_zone or fallback_zone
 
             rows.append(
                 {
@@ -178,7 +190,8 @@ class DBReplenishViewSet(viewsets.AuditedModelViewSet):
                     "db_type": str(DBType.get_choice_label(db_type)) if db_type else "",
                     "spec_type": str(SpecMachineType.get_choice_label(spec_type)) if spec_type else "",
                     "spec": spec.get("spec_name", details.get("spec_id", "")),
-                    "city": details.get("city", ""),
+                    "bk_cloud_region": cloud_region,
+                    "bk_cloud_zone": cloud_zone,
                     "subzone": details.get("subzone", ""),
                     "os_name": details.get("os_name", ""),
                     "apply_count": info.get("apply_count", 0),
@@ -193,7 +206,8 @@ class DBReplenishViewSet(viewsets.AuditedModelViewSet):
             {"id": "db_type", "name": _("DB 类型")},
             {"id": "spec_type", "name": _("规格类型")},
             {"id": "spec", "name": _("规格")},
-            {"id": "city", "name": _("地域")},
+            {"id": "bk_cloud_region", "name": _("地域")},
+            {"id": "bk_cloud_zone", "name": _("可用区")},
             {"id": "subzone", "name": _("园区")},
             {"id": "os_name", "name": _("操作系统")},
             {"id": "apply_count", "name": _("申请数量")},

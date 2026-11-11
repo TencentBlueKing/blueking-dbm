@@ -198,6 +198,8 @@ class Machine(AuditedModel):
                     "bk_mem",
                     "bk_agent_id",
                     "bk_cloud_inst_id",
+                    "bk_cloud_region",
+                    "bk_cloud_zone",
                 ],
                 "host_property_filter": {
                     "condition": "AND",

@@ -111,6 +111,7 @@ def pkg_create_oracle(
     spec_config: str = "",
     cluster_type: str = "",  # ClusterType.OraclePrimaryStandby.value ClusterType.OracleSingleNone.value
     disaster_tolerance_level: str = "",
+    bk_cloud_region: str = "",
 ):
     """
     这里打包从头开始创建一个 oracle 主备集群
@@ -147,6 +148,7 @@ def pkg_create_oracle(
         creator=creator,
         bk_cloud_id=bk_cloud_id,
         region=region,
+        bk_cloud_region=bk_cloud_region,
         cluster_type=cluster_type,
         disaster_tolerance_level=disaster_tolerance_level,
     )
@@ -166,6 +168,7 @@ def create_oracle_set(
     region: str = "",
     cluster_type: str = "",
     disaster_tolerance_level: str = "",
+    bk_cloud_region: str = "",
 ):
     """创建副本集 MongoSet 实例
     1. 一般情况需要2到3个域名
@@ -197,6 +200,7 @@ def create_oracle_set(
             cluster_type=cluster_type,
             bk_cloud_id=bk_cloud_id,
             region=region,
+            bk_cloud_region=bk_cloud_region,
             disaster_tolerance_level=disaster_tolerance_level,
         )
         # 创建集群与实例的关系 db_meta_storageinstance_cluster

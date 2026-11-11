@@ -34,6 +34,7 @@ TenDBHA 部署单据 · 候选主机 Extractor。
 from typing import Any, Dict, List, Tuple
 
 from backend.db_meta.enums import ClusterType, InstanceRole
+from backend.db_meta.models.city_map import resolve_apply_region
 from backend.flow.engine.bamboo.scene.mysql.common.exceptions import NormalTenDBFlowException
 from backend.flow.engine.bamboo.scene.mysql.revoke.base.models import AccessLayerInstance, ResourceGroup, RevokeUnit
 from backend.flow.engine.bamboo.scene.mysql.revoke.base.role_consts import PROXY
@@ -108,10 +109,11 @@ class MysqlHaApplyExtractor(HostExtractor):
         except (TypeError, ValueError) as err:
             raise NormalTenDBFlowException(message="{} ticket_data field types illegal: {}".format(_ERR_PREFIX, err))
 
-        # F2.b CLB region：部署类单据直接取 ticket_data["city"]（Cluster 尚未入库，不能走 Cluster.region）；
-        # 非字符串 / 空串时降级为空元组（下游 check_clb_mapping 遇空返回 NO_REGION_INPUT）
-        city = ticket_data.get("city")
-        clb_regions: Tuple[str, ...] = (city.strip(),) if isinstance(city, str) and city.strip() else ()
+        # F2.b CLB region：部署类单据直接取云地域（Cluster 尚未入库，不能走集群字段）。
+        # CLB 侧已改为按云地域收参，这里用 resolve_apply_region 统一取 bk_cloud_region，
+        # 取不到时按可用区/城市反推；仍为空则降级为空元组（下游 check_clb_mapping 返回 NO_REGION_INPUT）
+        region = resolve_apply_region(ticket_data)
+        clb_regions: Tuple[str, ...] = (region,) if region else ()
 
         groups: List[ResourceGroup] = []
         for idx, info in enumerate(apply_infos):

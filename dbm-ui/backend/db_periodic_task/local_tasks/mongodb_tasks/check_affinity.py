@@ -166,14 +166,15 @@ class CheckMongodbAffinityTask:
             return cluster_report.make_records()
 
         cluster_def = (
-            Cluster.objects.filter(id=cluster.cluster_id)
-            .values("disaster_tolerance_level", "zone_list", "region")
-            .first()
+            Cluster.objects.filter(id=cluster.cluster_id).values("disaster_tolerance_level", "cloud_zone_list").first()
             or {}
         )
         disaster_tolerance_level = cluster_def.get("disaster_tolerance_level", "") or ""
-        zone_list = normalize_to_str_set(cluster_def.get("zone_list") or [])
-        cluster_region = str(cluster_def.get("region", "") or "")
+        # 亲和性判定单元为云可用区（同可用区不同园区网络等同，不再按园区判断）
+        cloud_zone_list = normalize_to_str_set(cluster_def.get("cloud_zone_list") or [])
+        # 容灾判定不再看城市：地域校验整体关闭，cluster_region 不再从 Cluster.region 读取
+        cluster_region = ""
+        check_region = False
 
         topology_result = collect_topology_by_set(nodes, is_sharded_cluster=cluster.is_sharded_cluster())
         skip_member_count_check = self.ignore_member_count_check(cluster)
@@ -202,13 +203,14 @@ class CheckMongodbAffinityTask:
 
             check_result = self.check_affinity_rules(
                 disaster_tolerance_level=disaster_tolerance_level,
-                zone_list=zone_list,
-                actual_sub_zone_set=result["sub_zone_set"],
+                cloud_zone_list=cloud_zone_list,
+                actual_cloud_zone_set=result["cloud_zone_set"],
                 actual_region_set=result["region_set"],
                 actual_rack_set=result["rack_set"],
                 component_nodes=result["nodes"],
                 cluster_region=cluster_region,
-                # same as single_node tag: skip min sub_zone counts for CROS_SUBZONE /
+                check_region=check_region,
+                # same as single_node tag: skip min cloud_zone counts for CROS_SUBZONE /
                 # CROSS_SUBZONE_STRONG / CROSS_SUBZONE_WEAK / MAJORITY_ELECTION_DISTRI
                 has_single_node_tag=skip_member_count_check,
             )
@@ -228,25 +230,30 @@ class CheckMongodbAffinityTask:
     def check_affinity_rules(  # noqa: C901
         self,
         disaster_tolerance_level: str,
-        zone_list: set[str],
-        actual_sub_zone_set: set[str],
+        cloud_zone_list: set[str],
+        actual_cloud_zone_set: set[str],
         actual_rack_set: set[str],
         component_nodes: list[dict],
         actual_region_set: set[str] | None = None,
         cluster_region: str = "",
         has_single_node_tag: bool = False,
+        check_region: bool = True,
     ) -> dict:
         """Delegate to ``check_affinity_standalone.check_affinity_rules``.
 
-        When ``has_single_node_tag`` is True, the shared rules skip minimum sub_zone count
+        判定单元为云可用区（``Cluster.cloud_zone_list`` vs 节点所在 ``Machine.bk_cloud_zone``），
+        机架维度不变。
+
+        When ``has_single_node_tag`` is True, the shared rules skip minimum cloud_zone count
         checks for ``CROS_SUBZONE``, ``CROSS_SUBZONE_STRONG``, ``CROSS_SUBZONE_WEAK``, and
         ``MAJORITY_ELECTION_DISTRI`` (see that function's docstring).
         """
         state, reasons = shared_check_affinity_rules(
             disaster_tolerance_level=disaster_tolerance_level,
             cluster_region=cluster_region,
-            zone_list=zone_list,
-            actual_sub_zone_set=actual_sub_zone_set,
+            check_region=check_region,
+            cloud_zone_list=cloud_zone_list,
+            actual_cloud_zone_set=actual_cloud_zone_set,
             actual_region_set=actual_region_set or set(),
             actual_rack_set=actual_rack_set,
             component_nodes=component_nodes,
@@ -286,7 +293,7 @@ def collect_topology_by_set(nodes: list, is_sharded_cluster: bool = False) -> di
     for cloud_id in cloud_set:
         machine_rows = Machine.objects.filter(ip__in=ip_list, bk_cloud_id=cloud_id).values(
             "ip",
-            "bk_sub_zone_id",
+            "bk_cloud_zone",
             "bk_rack_id",
             "bk_cloud_id",
             "bk_city__logical_city__name",
@@ -299,7 +306,7 @@ def collect_topology_by_set(nodes: list, is_sharded_cluster: bool = False) -> di
         topology_by_set.setdefault(
             set_name,
             {
-                "sub_zone_set": set(),
+                "cloud_zone_set": set(),
                 "region_set": set(),
                 "rack_set": set(),
                 "set_sample": "",
@@ -315,9 +322,9 @@ def collect_topology_by_set(nodes: list, is_sharded_cluster: bool = False) -> di
                 {"instance": addr(node), "msg": "machine not found in db_meta"}
             )
             continue
-        if not machine.get("bk_sub_zone_id"):
+        if not machine.get("bk_cloud_zone"):
             topology_by_set[set_name]["missing_messages"].append(
-                {"instance": addr(node), "msg": "bk_sub_zone_id is empty"}
+                {"instance": addr(node), "msg": "bk_cloud_zone is empty"}
             )
             continue
         if not machine.get("bk_rack_id"):
@@ -325,7 +332,7 @@ def collect_topology_by_set(nodes: list, is_sharded_cluster: bool = False) -> di
                 {"instance": addr(node), "msg": "bk_rack_id is empty"}
             )
             continue
-        sub_zone = str(machine.get("bk_sub_zone_id"))
+        cloud_zone = str(machine.get("bk_cloud_zone")).strip()
         rack = str(machine.get("bk_rack_id"))
         region = str(machine.get("bk_city__logical_city__name") or "").strip()
         if not region:
@@ -333,14 +340,14 @@ def collect_topology_by_set(nodes: list, is_sharded_cluster: bool = False) -> di
                 {"instance": addr(node), "msg": "logical_city name is empty for machine bk_city"}
             )
             continue
-        topology_by_set[set_name]["sub_zone_set"].add(sub_zone)
+        topology_by_set[set_name]["cloud_zone_set"].add(cloud_zone)
         topology_by_set[set_name]["region_set"].add(region)
         topology_by_set[set_name]["rack_set"].add(rack)
         topology_by_set[set_name]["nodes"].append(
             {
                 "ip": node.ip,
                 "bk_cloud_id": node.bk_cloud_id,
-                "actual_sub_zone": sub_zone,
+                "actual_cloud_zone": cloud_zone,
                 "actual_rack": rack,
                 "instance_role": str(getattr(node, "instance_role", "") or ""),
             }
@@ -362,7 +369,7 @@ def collect_topology_by_set(nodes: list, is_sharded_cluster: bool = False) -> di
         grouped_topology.setdefault(
             group_key,
             {
-                "sub_zone_set": set(),
+                "cloud_zone_set": set(),
                 "region_set": set(),
                 "rack_set": set(),
                 "set_sample": "",
@@ -370,7 +377,7 @@ def collect_topology_by_set(nodes: list, is_sharded_cluster: bool = False) -> di
                 "nodes": [],
             },
         )
-        grouped_topology[group_key]["sub_zone_set"].update(result["sub_zone_set"])
+        grouped_topology[group_key]["cloud_zone_set"].update(result["cloud_zone_set"])
         grouped_topology[group_key]["region_set"].update(result["region_set"])
         grouped_topology[group_key]["rack_set"].update(result["rack_set"])
         grouped_topology[group_key]["missing_messages"].extend(result["missing_messages"])

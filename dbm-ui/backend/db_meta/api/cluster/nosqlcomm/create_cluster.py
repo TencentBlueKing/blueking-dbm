@@ -50,7 +50,8 @@ def create_twemproxy_cluster(
     region: str = "",
     cluster_type: str = ClusterType.TendisTwemproxyRedisInstance.value,
     disaster_tolerance_level: str = "",
-    zone_list: list = None,
+    cloud_zone_list: list = None,
+    bk_cloud_region: str = "",
 ):
     """
     兼容 TendisCache/TendisSSD 集群
@@ -87,8 +88,9 @@ def create_twemproxy_cluster(
             updater=creator,
             bk_cloud_id=bk_cloud_id,
             region=region,
+            bk_cloud_region=bk_cloud_region,
             disaster_tolerance_level=disaster_tolerance_level,
-            zone_list=zone_list,
+            cloud_zone_list=cloud_zone_list,
         )
         logger.info("cluster created {}".format(cluster))
         cluster.proxyinstance_set.add(*proxy_objs)
@@ -166,6 +168,7 @@ def pkg_create_twemproxy_cluster(
     machine_specs: Optional[Dict] = None,
     redis_password: str = "",
     redis_proxy_password: str = "",
+    bk_cloud_region: str = "",
 ):
     """
     这里打包从头开始创建一个 MongoSet
@@ -236,6 +239,7 @@ def pkg_create_twemproxy_cluster(
         creator=creator,
         bk_cloud_id=bk_cloud_id,
         region=region,
+        bk_cloud_region=bk_cloud_region,
         cluster_type=cluster_type,
     )
 
@@ -264,10 +268,11 @@ def pkg_create_tendisplus_cluster(
     region: str = "",
     machine_specs: Optional[Dict] = None,
     disaster_tolerance_level: str = "",
-    zone_list: list = None,
+    cloud_zone_list: list = None,
     redis_password: str = "",
     redis_proxy_password: str = "",
     redis_proxy_admin_password: str = "",
+    bk_cloud_region: str = "",
 ):
     """
     打包从头开始创建一个 Tendisplus（Predixy）集群
@@ -332,8 +337,9 @@ def pkg_create_tendisplus_cluster(
         creator=creator,
         bk_cloud_id=bk_cloud_id,
         region=region,
+        bk_cloud_region=bk_cloud_region,
         disaster_tolerance_level=disaster_tolerance_level,
-        zone_list=zone_list,
+        cloud_zone_list=cloud_zone_list,
     )
 
     # 写入集群密码

@@ -99,7 +99,8 @@ class ClusterDetailSerializer(BaseProxyPassSerializer):
 
 
 class BKCityNameSerializer(BaseProxyPassSerializer):
-    logic_city_name = serializers.CharField(help_text=_("逻辑城市名称"))
+    # 允许为空：资源池按「不限城市」查询时会传空串，空串等价于全量
+    logic_city_name = serializers.CharField(help_text=_("逻辑城市名称"), required=False, allow_blank=True, default="")
 
 
 class FakeTendbSingleCreateCluster(BaseProxyPassSerializer):

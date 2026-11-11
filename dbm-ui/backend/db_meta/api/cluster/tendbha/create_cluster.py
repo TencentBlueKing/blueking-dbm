@@ -78,7 +78,8 @@ def create(
     proxies: Optional[List] = None,
     storages: Optional[List] = None,
     creator: str = "",
-    zone_list: Optional[List] = None,
+    cloud_zone_list: Optional[List] = None,
+    bk_cloud_region: str = "",
 ) -> Cluster:
     """
     注册 TenDBHA 集群
@@ -112,8 +113,9 @@ def create(
         time_zone=time_zone,
         major_version=major_version,
         region=region,
+        bk_cloud_region=bk_cloud_region,
         disaster_tolerance_level=disaster_tolerance_level,
-        zone_list=zone_list if zone_list else [],
+        cloud_zone_list=cloud_zone_list if cloud_zone_list else [],
     )
     cluster.proxyinstance_set.add(*proxy_objs)
     cluster.storageinstance_set.add(*storage_objs)

@@ -122,6 +122,20 @@ class Cluster(AuditedModel):
     def __str__(self):
         return self.name
 
+    def save(self, *args, **kwargs):
+        """只做观测，不再兜底填充
+
+        `bk_cloud_region` 由各组件写入元数据时显式传入（地域选随机时传 "default"）。
+        这里只负责在漏传时打一条日志，方便发布后巡检哪些链路还没传。
+        """
+        if self._state.adding and not self.bk_cloud_region:
+            logger.warning(
+                "[cluster] %s created without bk_cloud_region, cloud_zone_list=%s",
+                self.name,
+                self.cloud_zone_list,
+            )
+        return super().save(*args, **kwargs)
+
     def to_dict(self):
         """将集群所有字段转为字段"""
         # 序列化集群信息请用这个方法代替model_to_dict

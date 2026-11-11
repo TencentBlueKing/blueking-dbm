@@ -35,6 +35,7 @@ def create(
     major_version: str = "",
     region: str = "",
     disaster_tolerance_level: str = "",
+    bk_cloud_region: str = "",
 ):
     """
     注册 ES 集群
@@ -58,6 +59,7 @@ def create(
         major_version=major_version,
         bk_cloud_id=bk_cloud_id,
         region=region,
+        bk_cloud_region=bk_cloud_region,
         disaster_tolerance_level=disaster_tolerance_level,
     )
 

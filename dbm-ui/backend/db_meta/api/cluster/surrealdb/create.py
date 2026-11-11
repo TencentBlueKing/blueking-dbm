@@ -27,6 +27,7 @@ def create(
     status: str,
     region: str,
     creator: str,
+    bk_cloud_region: str = "",
 ) -> dict:
     # get_or_create 的 defaults 只需要包含查询字段之外的属性，查询字段命中已存在记录时不会写入 defaults
     cluster, _ = Cluster.objects.get_or_create(
@@ -40,6 +41,7 @@ def create(
             "phase": phase,
             "status": status,
             "region": region,
+            "bk_cloud_region": bk_cloud_region,
             "creator": creator,
         },
     )

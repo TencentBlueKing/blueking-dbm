@@ -49,6 +49,7 @@ def create(
     creator: str = "",
     region: str = "",
     disaster_tolerance_level: str = "",
+    bk_cloud_region: str = "",
 ) -> Cluster:
     """
     注册 HDFS 集群
@@ -73,6 +74,7 @@ def create(
         creator=creator,
         bk_cloud_id=bk_cloud_id,
         region=region,
+        bk_cloud_region=bk_cloud_region,
         disaster_tolerance_level=disaster_tolerance_level,
     )
 

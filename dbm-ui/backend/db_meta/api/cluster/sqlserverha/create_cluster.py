@@ -76,7 +76,8 @@ def create(
     slave_domain: Optional[str] = None,
     storages: Optional[List] = None,
     creator: str = "",
-    zone_list: list = None,
+    cloud_zone_list: list = None,
+    bk_cloud_region: str = "",
 ) -> Cluster:
     """
     注册 sqlserver-HA 集群
@@ -115,8 +116,9 @@ def create(
         time_zone=get_instance_time_zone(master_storage_obj),
         major_version=major_version,
         region=region,
+        bk_cloud_region=bk_cloud_region,
         disaster_tolerance_level=disaster_tolerance_level,
-        zone_list=zone_list if zone_list else [],
+        cloud_zone_list=cloud_zone_list if cloud_zone_list else [],
     )
     cluster.storageinstance_set.add(*storage_objs)
 

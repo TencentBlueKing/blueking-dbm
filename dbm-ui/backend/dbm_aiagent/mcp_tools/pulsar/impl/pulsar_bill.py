@@ -16,6 +16,7 @@ from rest_framework import serializers
 
 from backend.db_meta.enums import ClusterPhase, ClusterType, InstanceRole
 from backend.db_meta.models import Cluster, Machine, Spec
+from backend.db_meta.models.city_map import resolve_logical_city
 from backend.ticket.builders.common.base import IpSource
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
@@ -159,7 +160,11 @@ def submit_pulsar_scale_up_bill(
             role_spec.setdefault("affinity", "MAX_EACH_ZONE_EQUAL")
             role_spec.setdefault(
                 "location_spec",
-                {"city": cluster_obj.region or "default", "sub_zone_ids": cluster_obj.zone_list or []},
+                {
+                    "city": resolve_logical_city(cluster_obj) or "default",
+                    "sub_zone_ids": cluster_obj.cloud_zone_list or [],
+                    "bk_cloud_region": cluster_obj.bk_cloud_region or "",
+                },
             )
             role_spec.setdefault("labels", [])
             role_spec.setdefault("label_names", [])

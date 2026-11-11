@@ -16,6 +16,7 @@ from django.utils.translation import gettext as _
 from backend.db_meta import api
 from backend.db_meta.enums import InstanceRole, MachineType
 from backend.db_meta.models import Cluster
+from backend.db_meta.models.city_map import resolve_apply_region
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.consts import HdfsRoleEnum, LevelInfoEnum
 from backend.flow.utils.hdfs.consts import DATANODE_DEFAULT_PORT, JOURNAL_NODE_DEFAULT_PORT, ZOOKEEPER_DEFAULT_PORT
@@ -75,6 +76,7 @@ class HdfsDBMeta(object):
             "storages": storage_instances,
             "creator": self.ticket_data["created_by"],
             "region": self.ticket_data["city_code"],
+            "bk_cloud_region": resolve_apply_region(self.ticket_data),
             "disaster_tolerance_level": self.ticket_data["disaster_tolerance_level"],
         }
 

@@ -16,6 +16,7 @@ from backend.configuration.constants import DBPrivSecurityType
 from backend.configuration.handlers.password import DBPasswordHandler
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster, Spec
+from backend.db_meta.models.city_map import resolve_logical_city
 from backend.ticket.builders.common.base import IpSource
 from backend.ticket.constants import TicketType
 from backend.ticket.models import Ticket
@@ -61,8 +62,9 @@ def submit_kafka_scale_up_bill(
                     resource_spec["broker"]["affinity"] = "MAX_EACH_ZONE_EQUAL"
                 if "location_spec" not in resource_spec["broker"]:
                     resource_spec["broker"]["location_spec"] = {
-                        "city": cluster_obj.region or "default",
-                        "sub_zone_ids": cluster_obj.zone_list or [],
+                        "city": resolve_logical_city(cluster_obj) or "default",
+                        "sub_zone_ids": cluster_obj.cloud_zone_list or [],
+                        "bk_cloud_region": cluster_obj.bk_cloud_region or "",
                     }
                 # 补充 labels 和 label_names 字段
                 if "labels" not in resource_spec["broker"]:
@@ -248,8 +250,9 @@ def submit_kafka_replace_bill(
                 resource_spec["broker"]["affinity"] = "MAX_EACH_ZONE_EQUAL"
             if "location_spec" not in resource_spec["broker"]:
                 resource_spec["broker"]["location_spec"] = {
-                    "city": cluster_obj.region or "default",
-                    "sub_zone_ids": cluster_obj.zone_list or [],
+                    "city": resolve_logical_city(cluster_obj) or "default",
+                    "sub_zone_ids": cluster_obj.cloud_zone_list or [],
+                    "bk_cloud_region": cluster_obj.bk_cloud_region or "",
                 }
             # 补充 labels 和 label_names 字段
             if "labels" not in resource_spec["broker"]:

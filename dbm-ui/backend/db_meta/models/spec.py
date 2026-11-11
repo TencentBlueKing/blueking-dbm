@@ -27,6 +27,17 @@ from backend.db_meta.enums.spec import SpecClusterType, SpecMachineType
 
 logger = logging.getLogger("root")
 
+# 资源申请里所有可能承载位置条件的字段。只要有一个非空，location_spec 就代表「有位置约束」，
+# 不再依赖 city="default" 这类哨兵值来判断随机。
+LOCATION_SPEC_FIELDS = (
+    "city",
+    "sub_zone_ids",
+    "bk_cloud_zone_list",
+    "bk_cloud_region",
+    "exclude_sub_zone_ids",
+    "exclude_bk_cloud_zone_list",
+)
+
 
 class Spec(AuditedModel):
     """
@@ -102,9 +113,16 @@ class Spec(AuditedModel):
         os_type=None,
         exclude_os_name=False,
     ):
-        # 如果没有城市信息，default表示无城市信息
-        if location_spec and location_spec["city"] == "default":
-            location_spec = None
+        # 位置条件只按「有没有真实字段」判断，不再依赖 city 的取值：
+        # - city="default" 是存量单据里「地域随机」的哨兵值，先把哨兵清掉再看其它字段；
+        # - 所有位置字段都为空时才视为「不限位置」（location_spec=None），
+        #   这样 v2 只需要云地域 + 云可用区，不受 Cluster.region 下线影响。
+        if location_spec:
+            if location_spec.get("city") == "default":
+                location_spec = dict(location_spec, city="")
+            has_location = any(location_spec.get(field) for field in LOCATION_SPEC_FIELDS)
+            if not has_location:
+                location_spec = None
 
         # 如果亲和性为空，则忽略current_hosts
         if affinity == AffinityEnum.NONE.value:
@@ -153,6 +171,9 @@ class Spec(AuditedModel):
         # 格式化参数，将bk_sub_zone_id/exclude_rack_ids/exclude_sub_zone_ids转成str，本身为空也不影响
         if location_spec:
             location_spec["sub_zone_ids"] = list(map(str, location_spec.get("sub_zone_ids") or []))
+            # 新的云可用区字段统一成字符串列表（值本身就是可用区名，这里只为口径一致）
+            if location_spec.get("bk_cloud_zone_list"):
+                location_spec["bk_cloud_zone_list"] = list(map(str, location_spec["bk_cloud_zone_list"]))
             location_spec["exclude_rack_ids"] = list(map(str, location_spec.get("exclude_rack_ids") or []))
             location_spec["exclude_sub_zone_ids"] = list(map(str, location_spec.get("exclude_sub_zone_ids") or []))
 
