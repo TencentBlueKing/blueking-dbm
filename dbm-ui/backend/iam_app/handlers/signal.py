@@ -16,6 +16,7 @@ from django.dispatch import receiver
 from backend import env
 from backend.db_meta.models import Cluster
 from backend.db_monitor.models import MonitorPolicy, NoticeGroup
+from backend.db_services.dns_domain.models import DnsDomain
 from backend.db_services.mysql.dumper.models import DumperSubscribeConfig
 from backend.db_services.mysql.open_area.models import TendbOpenAreaConfig
 from backend.flow.models import FlowTree
@@ -78,3 +79,8 @@ def post_save_openarea_config(sender, instance, created, **kwargs):
 def post_save_dumper_subscribe_config(sender, instance, created, **kwargs):
     resource_meta = ResourceEnum.DUMPER_SUBSCRIBE_CONFIG
     post_save_grant_iam(resource_meta, DumperSubscribeConfig, instance, instance.creator, created)
+
+
+@receiver(post_save, sender=DnsDomain)
+def post_save_dns_domain(sender, instance, created, **kwargs):
+    post_save_grant_iam(ResourceEnum.DNS_DOMAIN, DnsDomain, instance, instance.creator, created)

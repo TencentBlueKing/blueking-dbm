@@ -267,6 +267,8 @@ def assign_auth_to_group(iam: IAM, biz: AppCache, group_id):
         ActionEnum.GLOBAL_MANAGE.group,
         ActionEnum.RESOURCE_MANAGE.group,
         ActionEnum.PLATFORM_MANAGE.group,
+        # 域名服务在独立管理空间里直接授给用户，不进业务用户组
+        ActionEnum.DNS_MANAGE.group,
     ]
     biz_actions = [
         action
