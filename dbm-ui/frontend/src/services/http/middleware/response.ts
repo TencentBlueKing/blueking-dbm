@@ -72,7 +72,12 @@ export default (interceptors: AxiosInterceptorManager<AxiosResponse>) => {
         default: {
           // 文件的字节流
           if (response.headers['content-type'] === 'application/octet-stream') {
-            downloadFile(response);
+            downloadFile(response, {
+              // payload 由 lib/request 挂在 axios config 上，axios 类型里没有该字段
+              keepFileName: Boolean(
+                (response.config as { payload?: { keepFileName?: boolean } }).payload?.keepFileName,
+              ),
+            });
             return response.data;
           }
           // 后端逻辑处理报错
