@@ -57,6 +57,15 @@ class _DBResourceApi(BaseApi):
             default_timeout=60,
             max_retry_times=1,
         )
+        # v2 资源申请：入参按云地域 + 云可用区（bk_cloud_region / bk_cloud_zone_list），
+        # 与 v1 的 city / sub_zone_ids 不兼容，不要混用。切换开关见 env.RESOURCE_APPLY_API_VERSION。
+        self.resource_apply_v2 = self.generate_data_api(
+            method="POST",
+            url="v2/resource/apply",
+            description=_("资源池资源申请(v2)"),
+            default_timeout=60,
+            max_retry_times=1,
+        )
         self.get_mountpoints = self.generate_data_api(
             method="POST",
             url="resource/mountpoints",

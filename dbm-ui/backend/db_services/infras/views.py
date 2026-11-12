@@ -26,6 +26,7 @@ from .host import (
     list_cap_specs_ssd,
     list_cap_specs_tendisplus,
     list_cities,
+    list_cloud_zones,
     list_common_cities,
     list_host_specs,
     list_logic_cities,
@@ -100,6 +101,17 @@ class LogicalCityViewSet(viewsets.SystemViewSet):
         params = self.params_validate(self.get_serializer_class())
         serializer = serializers.SubzoneSLZ(list_subzones(params["city_code"]), many=True)
         return Response(serializer.data)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询云可用区信息"),
+        query_serializer=ListSubzoneSLZ(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=ListSubzoneSLZ)
+    def list_cloud_zones(self, requests, *args, **kwargs):
+        params = self.params_validate(self.get_serializer_class())
+        cloud_zones = list_cloud_zones(params["city_code"], params.get("region", ""))
+        return Response(cloud_zones)
 
 
 class HostSpecViewSet(viewsets.SystemViewSet):

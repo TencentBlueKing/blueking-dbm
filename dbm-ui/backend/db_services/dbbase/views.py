@@ -325,6 +325,19 @@ class DBBaseViewSet(viewsets.SystemViewSet):
                 for bk_cloud_id in existing_values["bk_cloud_id"]
             ]
 
+        if "bk_cloud_zone" in cluster_attrs:
+            # 选项取本页列表里已经出现过的可用区，去重后展示
+            cluster_zones = sorted({zone for cluster in clusters for zone in (cluster.cloud_zone_list or []) if zone})
+            cluster_attrs["bk_cloud_zone"] = [{"value": zone, "text": zone} for zone in cluster_zones]
+
+        if "bk_cloud_region" in cluster_attrs:
+            cluster_regions = sorted({cluster.bk_cloud_region for cluster in clusters if cluster.bk_cloud_region})
+            cluster_attrs["bk_cloud_region"] = [{"value": region, "text": region} for region in cluster_regions]
+
+        if "city" in cluster_attrs:
+            cluster_cities = sorted({cluster.region for cluster in clusters if cluster.region})
+            cluster_attrs["city"] = [{"value": city, "text": city} for city in cluster_cities]
+
         # 实例的部署角色
         if "role" in data["instances_attrs"]:
             query_filters = Q(bk_biz_id=data["bk_biz_id"], cluster_type__in=data["cluster_type"])
@@ -562,6 +575,29 @@ class DBBaseViewSet(viewsets.SystemViewSet):
             storage_zones = storage_queryset.values_list("machine__bk_sub_zone", flat=True)
             zones = set(proxy_zones) | (set(storage_zones))
             instance_attrs["bk_sub_zone"] = [{"value": zone, "text": zone if zone else "--"} for zone in zones]
+
+        if "bk_cloud_zone" in data["instances_attrs"]:
+            proxy_zones = proxy_query.values_list("machine__bk_cloud_zone", flat=True)
+            storage_zones = storage_queryset.values_list("machine__bk_cloud_zone", flat=True)
+            cloud_zones = set(proxy_zones) | (set(storage_zones))
+            instance_attrs["bk_cloud_zone"] = [
+                {"value": zone, "text": zone if zone else "--"} for zone in sorted(cloud_zones)
+            ]
+
+        if "bk_cloud_region" in data["instances_attrs"]:
+            proxy_regions = proxy_query.values_list("machine__bk_cloud_region", flat=True)
+            storage_regions = storage_queryset.values_list("machine__bk_cloud_region", flat=True)
+            cloud_regions = set(proxy_regions) | (set(storage_regions))
+            instance_attrs["bk_cloud_region"] = [
+                {"value": region, "text": region if region else "--"} for region in sorted(cloud_regions)
+            ]
+
+        if "city" in data["instances_attrs"]:
+            # 城市只出现在筛选里，取实例所在机器 IDC 城市名
+            proxy_cities = proxy_query.values_list("machine__bk_city__bk_idc_city_name", flat=True)
+            storage_cities = storage_queryset.values_list("machine__bk_city__bk_idc_city_name", flat=True)
+            cities = set(proxy_cities) | (set(storage_cities))
+            instance_attrs["city"] = [{"value": city, "text": city if city else "--"} for city in sorted(cities)]
 
         return Response(instance_attrs)
 

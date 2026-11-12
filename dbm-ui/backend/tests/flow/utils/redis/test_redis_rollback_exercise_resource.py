@@ -53,7 +53,7 @@ def test_all_infos_have_redis():
     assert all_infos_have_redis([]) is False
 
 
-@patch("backend.flow.utils.redis.redis_rollback_exercise_resource.DBResourceApi.resource_apply")
+@patch("backend.db_services.dbresource.apply_protocol.DBResourceApi.resource_apply")
 @patch("backend.flow.utils.redis.redis_rollback_exercise_resource.MachineEvent.host_event_trigger")
 @patch("backend.flow.utils.redis.redis_rollback_exercise_resource.get_instance_machine")
 @patch("backend.flow.utils.redis.redis_rollback_exercise_resource.Cluster.objects.get")

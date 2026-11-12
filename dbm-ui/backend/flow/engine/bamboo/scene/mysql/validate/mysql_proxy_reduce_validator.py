@@ -71,7 +71,7 @@ class MySQLProxyClusterReduceFlowValidator(MysqlBaseValidator):
 
             # 缩容后如果proxy数量还剩下两个以上，需要符合集群高可用特性
             check_hosts = [
-                {"ip": i.machine.ip, "sub_zone_id": i.machine.bk_sub_zone_id, "rack_id": i.machine.bk_rack_id}
+                {"ip": i.machine.ip, "bk_cloud_zone": i.machine.bk_cloud_zone, "rack_id": i.machine.bk_rack_id}
                 for i in remaining_proxy
             ]
             if not self.check_disaster_tolerance_level(cluster=cluster, hosts=check_hosts):

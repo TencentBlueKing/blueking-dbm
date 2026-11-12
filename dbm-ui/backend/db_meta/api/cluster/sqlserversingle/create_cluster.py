@@ -79,7 +79,7 @@ def create(
         time_zone=get_instance_time_zone(storage_objs[0]),
         major_version=major_version,
         region=region,
-        zone_list=zone_list if zone_list else [],
+        cloud_zone_list=zone_list if zone_list else [],
     )
     cluster.storageinstance_set.add(*storage_objs)
 

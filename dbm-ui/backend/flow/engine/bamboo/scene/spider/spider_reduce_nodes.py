@@ -120,7 +120,7 @@ class TenDBClusterReduceNodesFlow(object):
         # spider_slave 角色，不做容灾检查
         if reduce_spider_role == TenDBClusterSpiderRole.SPIDER_MASTER.value:
             check_hosts = [
-                {"ip": i.machine.ip, "sub_zone_id": i.machine.bk_sub_zone_id, "rack_id": i.machine.bk_rack_id}
+                {"ip": i.machine.ip, "bk_cloud_zone": i.machine.bk_cloud_zone, "rack_id": i.machine.bk_rack_id}
                 for i in remaining_spiders
             ]
             if len(check_hosts) > 1:

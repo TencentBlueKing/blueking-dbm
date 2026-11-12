@@ -24,13 +24,13 @@ class TestCheckAffinityRules:
     def test_normal_for_cross_subzone_with_consistent_zone_list(self, check_affinity_module):
         ret = check_affinity_module.CheckMongodbAffinityTask().check_affinity_rules(
             disaster_tolerance_level=AffinityEnum.CROS_SUBZONE,
-            zone_list={"1", "2"},
-            actual_sub_zone_set={"1", "2"},
+            cloud_zone_list={"1", "2"},
+            actual_cloud_zone_set={"1", "2"},
             actual_region_set={"南京"},
             actual_rack_set={"11", "12"},
             component_nodes=[
-                {"actual_sub_zone": "1", "actual_rack": "11"},
-                {"actual_sub_zone": "2", "actual_rack": "12"},
+                {"actual_cloud_zone": "1", "actual_rack": "11"},
+                {"actual_cloud_zone": "2", "actual_rack": "12"},
             ],
             cluster_region="南京",
         )
@@ -40,13 +40,13 @@ class TestCheckAffinityRules:
     def test_zone_list_mismatch_returns_abnormal(self, check_affinity_module):
         ret = check_affinity_module.CheckMongodbAffinityTask().check_affinity_rules(
             disaster_tolerance_level=AffinityEnum.CROS_SUBZONE,
-            zone_list={"1", "2"},
-            actual_sub_zone_set={"1", "3"},
+            cloud_zone_list={"1", "2"},
+            actual_cloud_zone_set={"1", "3"},
             actual_region_set={"南京"},
             actual_rack_set={"11", "12"},
             component_nodes=[
-                {"actual_sub_zone": "1", "actual_rack": "11"},
-                {"actual_sub_zone": "3", "actual_rack": "12"},
+                {"actual_cloud_zone": "1", "actual_rack": "11"},
+                {"actual_cloud_zone": "3", "actual_rack": "12"},
             ],
             cluster_region="南京",
         )
@@ -56,13 +56,13 @@ class TestCheckAffinityRules:
     def test_same_subzone_cross_switch_requires_two_racks(self, check_affinity_module):
         ret = check_affinity_module.CheckMongodbAffinityTask().check_affinity_rules(
             disaster_tolerance_level=AffinityEnum.SAME_SUBZONE_CROSS_SWTICH,
-            zone_list={"1"},
-            actual_sub_zone_set={"1", "2"},
+            cloud_zone_list={"1"},
+            actual_cloud_zone_set={"1", "2"},
             actual_region_set={"南京"},
             actual_rack_set={"11", "99"},
             component_nodes=[
-                {"actual_sub_zone": "1", "actual_rack": "11", "instance_role": "MONGO_DATA"},
-                {"actual_sub_zone": "2", "actual_rack": "99", "instance_role": "MONGO_BACKUP"},
+                {"actual_cloud_zone": "1", "actual_rack": "11", "instance_role": "MONGO_DATA"},
+                {"actual_cloud_zone": "2", "actual_rack": "99", "instance_role": "MONGO_BACKUP"},
             ],
             cluster_region="南京",
         )
@@ -72,14 +72,14 @@ class TestCheckAffinityRules:
     def test_same_subzone_cross_switch_allows_backup_outside_zone(self, check_affinity_module):
         ret = check_affinity_module.CheckMongodbAffinityTask().check_affinity_rules(
             disaster_tolerance_level=AffinityEnum.SAME_SUBZONE_CROSS_SWTICH,
-            zone_list={"1"},
-            actual_sub_zone_set={"1", "2"},
+            cloud_zone_list={"1"},
+            actual_cloud_zone_set={"1", "2"},
             actual_region_set={"南京"},
             actual_rack_set={"11", "12", "99"},
             component_nodes=[
-                {"actual_sub_zone": "1", "actual_rack": "11", "instance_role": "MONGO_DATA"},
-                {"actual_sub_zone": "1", "actual_rack": "12", "instance_role": "MONGO_DATA"},
-                {"actual_sub_zone": "2", "actual_rack": "99", "instance_role": "MONGO_BACKUP"},
+                {"actual_cloud_zone": "1", "actual_rack": "11", "instance_role": "MONGO_DATA"},
+                {"actual_cloud_zone": "1", "actual_rack": "12", "instance_role": "MONGO_DATA"},
+                {"actual_cloud_zone": "2", "actual_rack": "99", "instance_role": "MONGO_BACKUP"},
             ],
             cluster_region="南京",
         )
@@ -88,13 +88,13 @@ class TestCheckAffinityRules:
     def test_cross_subzone_weak_allows_empty_zone_list(self, check_affinity_module):
         ret = check_affinity_module.CheckMongodbAffinityTask().check_affinity_rules(
             disaster_tolerance_level=AffinityEnum.CROSS_SUBZONE_WEAK,
-            zone_list=set(),
-            actual_sub_zone_set={"1", "2"},
+            cloud_zone_list=set(),
+            actual_cloud_zone_set={"1", "2"},
             actual_region_set={"南京"},
             actual_rack_set={"11", "12"},
             component_nodes=[
-                {"actual_sub_zone": "1", "actual_rack": "11"},
-                {"actual_sub_zone": "2", "actual_rack": "12"},
+                {"actual_cloud_zone": "1", "actual_rack": "11"},
+                {"actual_cloud_zone": "2", "actual_rack": "12"},
             ],
             cluster_region="南京",
         )
@@ -104,12 +104,12 @@ class TestCheckAffinityRules:
     def test_single_node_skips_min_two_subzones_for_cross_subzone_weak(self, check_affinity_module):
         ret = check_affinity_module.CheckMongodbAffinityTask().check_affinity_rules(
             disaster_tolerance_level=AffinityEnum.CROSS_SUBZONE_WEAK,
-            zone_list=set(),
-            actual_sub_zone_set={"1"},
+            cloud_zone_list=set(),
+            actual_cloud_zone_set={"1"},
             actual_region_set={"南京"},
             actual_rack_set={"11"},
             component_nodes=[
-                {"actual_sub_zone": "1", "actual_rack": "11"},
+                {"actual_cloud_zone": "1", "actual_rack": "11"},
             ],
             cluster_region="南京",
             has_single_node_tag=True,
@@ -120,18 +120,36 @@ class TestCheckAffinityRules:
     def test_single_node_does_not_skip_min_two_subzones_when_flag_off(self, check_affinity_module):
         ret = check_affinity_module.CheckMongodbAffinityTask().check_affinity_rules(
             disaster_tolerance_level=AffinityEnum.CROSS_SUBZONE_WEAK,
-            zone_list=set(),
-            actual_sub_zone_set={"1"},
+            cloud_zone_list=set(),
+            actual_cloud_zone_set={"1"},
             actual_region_set={"南京"},
             actual_rack_set={"11"},
             component_nodes=[
-                {"actual_sub_zone": "1", "actual_rack": "11"},
+                {"actual_cloud_zone": "1", "actual_rack": "11"},
             ],
             cluster_region="南京",
             has_single_node_tag=False,
         )
         assert ret["state"] == ReportStateType.ABNORMAL.value
-        assert "requires at least 2 sub_zones" in ret["msg"]
+        assert "requires at least 2 cloud_zones" in ret["msg"]
+
+    def test_cross_subzone_same_cloud_zone_is_not_distributed(self, check_affinity_module):
+        """同一云可用区下的不同园区网络等同：不能算作已分散。"""
+        ret = check_affinity_module.CheckMongodbAffinityTask().check_affinity_rules(
+            disaster_tolerance_level=AffinityEnum.CROS_SUBZONE,
+            cloud_zone_list=set(),
+            actual_cloud_zone_set={"cz-1"},
+            actual_region_set={"南京"},
+            actual_rack_set={"11", "12"},
+            component_nodes=[
+                # 两台机器在不同园区（sub_zone 不同），但落在同一个云可用区
+                {"actual_cloud_zone": "cz-1", "actual_rack": "11"},
+                {"actual_cloud_zone": "cz-1", "actual_rack": "12"},
+            ],
+            cluster_region="南京",
+        )
+        assert ret["state"] == ReportStateType.ABNORMAL.value
+        assert "requires at least 2 cloud_zones" in ret["msg"]
 
 
 class TestTopologyHelpers:
@@ -152,7 +170,7 @@ class TestTopologyHelpers:
         machine_rows = [
             {
                 "ip": "127.0.0.10",
-                "bk_sub_zone_id": 1,
+                "bk_cloud_zone": "cz-1",
                 "bk_rack_id": 11,
                 "bk_cloud_id": 0,
                 "bk_city__logical_city__name": "MetroA",
@@ -171,7 +189,7 @@ class TestTopologyHelpers:
         machine_rows = [
             {
                 "ip": "127.0.0.11",
-                "bk_sub_zone_id": 1,
+                "bk_cloud_zone": "cz-1",
                 "bk_rack_id": 11,
                 "bk_cloud_id": 0,
                 "bk_city__logical_city__name": "",
@@ -194,14 +212,14 @@ class TestTopologyHelpers:
         machine_rows = [
             {
                 "ip": "127.0.0.10",
-                "bk_sub_zone_id": None,
+                "bk_cloud_zone": None,
                 "bk_rack_id": 11,
                 "bk_cloud_id": 0,
                 "bk_city__logical_city__name": "MetroA",
             },
             {
                 "ip": "127.0.0.11",
-                "bk_sub_zone_id": None,
+                "bk_cloud_zone": None,
                 "bk_rack_id": 12,
                 "bk_cloud_id": 0,
                 "bk_city__logical_city__name": "MetroA",
@@ -229,14 +247,14 @@ class TestTopologyHelpers:
         machine_rows = [
             {
                 "ip": "127.0.0.1",
-                "bk_sub_zone_id": "1",
+                "bk_cloud_zone": "cz-1",
                 "bk_rack_id": "11",
                 "bk_cloud_id": 0,
                 "bk_city__logical_city__name": "LC1",
             },
             {
                 "ip": "127.0.0.2",
-                "bk_sub_zone_id": "1",
+                "bk_cloud_zone": "cz-1",
                 "bk_rack_id": "12",
                 "bk_cloud_id": 0,
                 "bk_city__logical_city__name": "LC1",

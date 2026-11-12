@@ -88,7 +88,7 @@ def create_twemproxy_cluster(
             bk_cloud_id=bk_cloud_id,
             region=region,
             disaster_tolerance_level=disaster_tolerance_level,
-            zone_list=zone_list,
+            cloud_zone_list=zone_list,
         )
         logger.info("cluster created {}".format(cluster))
         cluster.proxyinstance_set.add(*proxy_objs)

@@ -54,14 +54,14 @@ def err(code: str, message: str) -> str:
 
 def affinity_display_name(affinity: str) -> str:
     affinity_cn_map = {
-        SAME_SUBZONE_CROSS_SWTICH: "指定园区",
-        SAME_SUBZONE: "指定园区(无机架要求)",
-        CROS_SUBZONE: "跨园区",
-        CROSS_SUBZONE_STRONG: "跨园区(强)",
-        CROSS_SUBZONE_WEAK: "跨园区(弱)",
-        MAJORITY_ELECTION_DISTRI: "最少跨2个园区，园区内跨机架",
-        MAX_EACH_ZONE_EQUAL: "每个subzone尽量均匀分布",
-        CROSS_RACK: "不限园区",
+        SAME_SUBZONE_CROSS_SWTICH: "指定可用区",
+        SAME_SUBZONE: "指定可用区(无机架要求)",
+        CROS_SUBZONE: "跨可用区",
+        CROSS_SUBZONE_STRONG: "跨可用区(强)",
+        CROSS_SUBZONE_WEAK: "跨可用区(弱)",
+        MAJORITY_ELECTION_DISTRI: "最少跨2个可用区，可用区内跨机架",
+        MAX_EACH_ZONE_EQUAL: "每个可用区尽量均匀分布",
+        CROSS_RACK: "不限可用区",
         NONE: "无",
     }
     if affinity in affinity_cn_map:
@@ -82,8 +82,8 @@ class ClusterEval:
     cluster_region: str
     has_single_node_tag: bool
     affinity: str
-    zone_list: set[str] = field(default_factory=set)
-    actual_sub_zones: set[str] = field(default_factory=set)
+    cloud_zone_list: set[str] = field(default_factory=set)
+    actual_cloud_zones: set[str] = field(default_factory=set)
     actual_regions: set[str] = field(default_factory=set)
     actual_racks: set[str] = field(default_factory=set)
     component_details: list[dict[str, Any]] = field(default_factory=list)
@@ -94,7 +94,7 @@ class ClusterEval:
 @dataclass
 class ComponentEval:
     set_name: str
-    sub_zones: set[str] = field(default_factory=set)
+    cloud_zones: set[str] = field(default_factory=set)
     regions: set[str] = field(default_factory=set)
     racks: set[str] = field(default_factory=set)
     nodes: list[dict[str, str]] = field(default_factory=list)
@@ -167,20 +167,23 @@ def normalize_to_str_set(values: Any) -> set[str]:
 def check_affinity_rules(  # noqa: C901
     disaster_tolerance_level: str,
     cluster_region: str,
-    zone_list: set[str],
-    actual_sub_zone_set: set[str],
+    cloud_zone_list: set[str],
+    actual_cloud_zone_set: set[str],
     actual_region_set: set[str],
     actual_rack_set: set[str],
     component_nodes: list[dict[str, str]],
-    zone_name_map: dict[str, str] | None = None,
     has_single_node_tag: bool = False,
 ) -> tuple[str, list[str]]:
-    """Evaluate affinity for one component (sub_zone / region / rack / zone_list rules).
+    """Evaluate affinity for one component (cloud_zone / region / rack rules).
 
-    When ``has_single_node_tag`` is True, skip **only** the minimum sub_zone **count**
+    判定单元是**云可用区**（``Machine.bk_cloud_zone`` / ``Cluster.cloud_zone_list``）：
+    同一云可用区下的多个园区网络等同，因此不再按园区（sub_zone）判断是否分散。
+    机架（rack）维度不变，仍按 ``Machine.bk_rack_id`` 判断。
+
+    When ``has_single_node_tag`` is True, skip **only** the minimum cloud_zone **count**
     checks for: ``CROS_SUBZONE`` (>=2 zones), ``CROSS_SUBZONE_STRONG`` (>=3 zones),
     ``CROSS_SUBZONE_WEAK`` (>=2 zones), ``MAJORITY_ELECTION_DISTRI`` (>=2 zones).
-    Zone tolerance, rack rules, region, zone_list, etc. still apply. Member-count checks
+    Zone tolerance, rack rules, region, cloud_zone_list, etc. still apply. Member-count checks
     are enforced in callers (``evaluate`` / ``CheckMongodbAffinityTask``), not here.
     """
     warnings = []
@@ -188,8 +191,8 @@ def check_affinity_rules(  # noqa: C901
     is_none = disaster_tolerance_level == NONE
     affinity_name = affinity_display_name(disaster_tolerance_level)
     non_backup_nodes = [node for node in component_nodes if not is_backup_role(node.get("instance_role", ""))]
-    non_backup_sub_zone_set = {
-        node.get("actual_sub_zone", "") for node in non_backup_nodes if node.get("actual_sub_zone", "")
+    non_backup_cloud_zone_set = {
+        node.get("actual_cloud_zone", "") for node in non_backup_nodes if node.get("actual_cloud_zone", "")
     }
     non_backup_rack_set = {node.get("actual_rack", "") for node in non_backup_nodes if node.get("actual_rack", "")}
 
@@ -217,69 +220,65 @@ def check_affinity_rules(  # noqa: C901
 
     if is_same_subzone:
         expected_zone_set = (
-            non_backup_sub_zone_set if disaster_tolerance_level == SAME_SUBZONE_CROSS_SWTICH else actual_sub_zone_set
+            non_backup_cloud_zone_set
+            if disaster_tolerance_level == SAME_SUBZONE_CROSS_SWTICH
+            else actual_cloud_zone_set
         )
-        if len(zone_list) != 1:
+        # cloud_zone_list 为空表示不指定可用区（随机），与旧 zone_list 为空语义一致，跳过配置校验；
+        # 是否真的落在同一可用区仍由下面的 same_subzone_violation 依据实际拓扑判定。
+        if len(cloud_zone_list) > 1:
             errors.append(
                 err(
                     "zone_list_required_single",
-                    f"config_error: affinity {affinity_name} requires zone_list to have exactly 1 value, "
-                    f"actual={sorted(zone_list)}",
+                    f"config_error: affinity {affinity_name} requires cloud_zone_list to have at most 1 value, "
+                    f"actual={sorted(cloud_zone_list)}",
                 )
             )
-        elif zone_list != expected_zone_set:
+        elif cloud_zone_list and cloud_zone_list != expected_zone_set:
             errors.append(
                 err(
                     "zone_list_mismatch",
-                    f"zone_list mismatch, expected={sorted(zone_list)}, actual={sorted(expected_zone_set)}",
+                    f"cloud_zone_list mismatch, expected={sorted(cloud_zone_list)}, "
+                    f"actual={sorted(expected_zone_set)}",
                 )
             )
     elif not is_none:
-        if zone_list and zone_list != actual_sub_zone_set:
+        if cloud_zone_list and cloud_zone_list != actual_cloud_zone_set:
             errors.append(
                 err(
                     "zone_list_mismatch",
-                    f"zone_list mismatch, expected={sorted(zone_list)}, actual={sorted(actual_sub_zone_set)}",
+                    f"cloud_zone_list mismatch, expected={sorted(cloud_zone_list)}, "
+                    f"actual={sorted(actual_cloud_zone_set)}",
                 )
             )
 
     zone_counter: dict[str, int] = {}
-    zone_rack_counter: dict[str, dict[str, int]] = {}
     rack_counter: dict[str, int] = {}
     for node in component_nodes:
-        zone = node.get("actual_sub_zone", "")
+        zone = node.get("actual_cloud_zone", "")
         rack = node.get("actual_rack", "")
         if not zone:
             continue
         zone_counter[zone] = zone_counter.get(zone, 0) + 1
         if rack:
             rack_counter[rack] = rack_counter.get(rack, 0) + 1
-            zone_rack_counter.setdefault(zone, {})
-            zone_rack_counter[zone][rack] = zone_rack_counter[zone].get(rack, 0) + 1
     node_num = sum(zone_counter.values())
-    zone_name_map = zone_name_map or {}
-
-    def display_zone_counts(counts: dict[str, int]) -> dict[str, int]:
-        return {
-            f"{zone_name_map.get(zone, zone)}({zone})" if zone_name_map.get(zone) else zone: cnt
-            for zone, cnt in counts.items()
-        }
 
     if disaster_tolerance_level == SAME_SUBZONE:
-        if len(actual_sub_zone_set) != 1:
+        if len(actual_cloud_zone_set) != 1:
             errors.append(
                 err(
                     "same_subzone_violation",
-                    f"affinity {affinity_name} requires single sub_zone, actual={sorted(actual_sub_zone_set)}",
+                    f"affinity {affinity_name} requires single cloud_zone, actual={sorted(actual_cloud_zone_set)}",
                 )
             )
     elif disaster_tolerance_level == SAME_SUBZONE_CROSS_SWTICH:
-        if len(non_backup_sub_zone_set) != 1:
+        if len(non_backup_cloud_zone_set) != 1:
             errors.append(
                 err(
                     "same_subzone_cross_zone_violation",
-                    f"affinity {affinity_name} requires single sub_zone for non-backup nodes, "
-                    f"actual={sorted(non_backup_sub_zone_set)}",
+                    f"affinity {affinity_name} requires single cloud_zone for non-backup nodes, "
+                    f"actual={sorted(non_backup_cloud_zone_set)}",
                 )
             )
         if len(non_backup_rack_set) < 2:
@@ -291,27 +290,28 @@ def check_affinity_rules(  # noqa: C901
                 )
             )
     elif disaster_tolerance_level == CROS_SUBZONE:
-        if len(actual_sub_zone_set) < 2 and not has_single_node_tag:
+        if len(actual_cloud_zone_set) < 2 and not has_single_node_tag:
             errors.append(
                 err(
                     "cross_subzone_min_violation",
-                    f"affinity {affinity_name} requires at least 2 sub_zones, actual={sorted(actual_sub_zone_set)}",
+                    f"affinity {affinity_name} requires at least 2 cloud_zones, "
+                    f"actual={sorted(actual_cloud_zone_set)}",
                 )
             )
     elif disaster_tolerance_level == CROSS_SUBZONE_STRONG:
-        zone_count_violation = len(actual_sub_zone_set) < 3 and not has_single_node_tag
+        zone_count_violation = len(actual_cloud_zone_set) < 3 and not has_single_node_tag
         zone_tolerance_violation = node_num > 0 and max(zone_counter.values() or [0]) > ceil(node_num / 3)
         if zone_count_violation or zone_tolerance_violation:
             reasons = []
             if zone_count_violation:
-                reasons.append("requires at least 3 sub_zones")
+                reasons.append("requires at least 3 cloud_zones")
             if zone_tolerance_violation:
                 reasons.append("zone tolerance(1/3) violated")
             errors.append(
                 err(
                     "strong_zone_constraint_violation",
                     f"affinity {affinity_name} {' and '.join(reasons)}, "
-                    f"actual={sorted(actual_sub_zone_set)}, zone_counts={display_zone_counts(zone_counter)}",
+                    f"actual={sorted(actual_cloud_zone_set)}, zone_counts={zone_counter}",
                 )
             )
         rack_count_violation = node_num > 1 and len(rack_counter) < 2
@@ -329,19 +329,19 @@ def check_affinity_rules(  # noqa: C901
                 )
             )
     elif disaster_tolerance_level == CROSS_SUBZONE_WEAK:
-        zone_count_violation = len(actual_sub_zone_set) < 2 and not has_single_node_tag
+        zone_count_violation = len(actual_cloud_zone_set) < 2 and not has_single_node_tag
         zone_tolerance_violation = node_num > 0 and max(zone_counter.values() or [0]) > ceil(node_num / 2)
         if zone_count_violation or zone_tolerance_violation:
             reasons = []
             if zone_count_violation:
-                reasons.append("requires at least 2 sub_zones")
+                reasons.append("requires at least 2 cloud_zones")
             if zone_tolerance_violation:
                 reasons.append("zone tolerance(1/2) violated")
             errors.append(
                 err(
                     "weak_zone_constraint_violation",
                     f"affinity {affinity_name} {' and '.join(reasons)}, "
-                    f"actual={sorted(actual_sub_zone_set)}, zone_counts={display_zone_counts(zone_counter)}",
+                    f"actual={sorted(actual_cloud_zone_set)}, zone_counts={zone_counter}",
                 )
             )
         rack_count_violation = node_num > 1 and len(rack_counter) < 2
@@ -359,18 +359,19 @@ def check_affinity_rules(  # noqa: C901
                 )
             )
     elif disaster_tolerance_level == MAJORITY_ELECTION_DISTRI:
-        if len(actual_sub_zone_set) < 2 and not has_single_node_tag:
+        if len(actual_cloud_zone_set) < 2 and not has_single_node_tag:
             errors.append(
                 err(
                     "majority_min_zone_violation",
-                    f"affinity {affinity_name} requires at least 2 sub_zones, actual={sorted(actual_sub_zone_set)}",
+                    f"affinity {affinity_name} requires at least 2 cloud_zones, "
+                    f"actual={sorted(actual_cloud_zone_set)}",
                 )
             )
         if node_num > 0 and max(zone_counter.values() or [0]) > ceil(node_num / 2):
             errors.append(
                 err(
                     "majority_zone_violation",
-                    f"affinity {affinity_name} zone majority violated, zone_counts={display_zone_counts(zone_counter)}",
+                    f"affinity {affinity_name} zone majority violated, zone_counts={zone_counter}",
                 )
             )
         if max(rack_counter.values() or [0]) > 1:
@@ -386,8 +387,7 @@ def check_affinity_rules(  # noqa: C901
                 errors.append(
                     err(
                         "majority_balance_violation",
-                        f"affinity {affinity_name} zone distribution should be near-even, "
-                        f"zone_counts={display_zone_counts(zone_counter)}",
+                        f"affinity {affinity_name} zone distribution should be near-even, zone_counts={zone_counter}",
                     )
                 )
     elif disaster_tolerance_level == CROSS_RACK:
@@ -407,8 +407,7 @@ def check_affinity_rules(  # noqa: C901
                 errors.append(
                     err(
                         "zone_equal_violation",
-                        f"affinity {affinity_name} requires near-equal zone distribution, "
-                        f"zone_counts={display_zone_counts(zone_counter)}",
+                        f"affinity {affinity_name} requires near-equal zone distribution, zone_counts={zone_counter}",
                     )
                 )
     elif not disaster_tolerance_level:
@@ -457,12 +456,6 @@ def evaluate(  # noqa: C901
     city_region_map = build_city_logical_region_map(cities)
 
     subzone_region_map = build_subzone_logical_region_map(subzones)
-    subzone_name_map: dict[str, str] = {}
-    for row in subzones:
-        zone_id = row.get("bk_sub_zone_id")
-        if zone_id in [None, ""]:
-            continue
-        subzone_name_map[str(zone_id)] = str(row.get("bk_sub_zone", "") or "")
 
     eval_map: dict[int, ClusterEval] = {}
     for row in cluster_defs:
@@ -474,7 +467,9 @@ def evaluate(  # noqa: C901
             cluster_region=str(row.get("cluster_region", "") or ""),
             has_single_node_tag=bool(row.get("has_single_node_tag", False)),
             affinity=str(row.get("disaster_tolerance_level", "") or ""),
-            zone_list=normalize_to_str_set(row.get("zone_list")),
+            # 判定单元已从园区（zone_list）改为云可用区（cloud_zone_list），
+            # 兼容旧版 dump 里只有 zone_list 的情况
+            cloud_zone_list=normalize_to_str_set(row.get("cloud_zone_list") or row.get("zone_list")),
         )
 
     for row in cluster_nodes:
@@ -488,12 +483,15 @@ def evaluate(  # noqa: C901
         set_name = str(row.get("set_name", "") or "unknown")
         city_id = row.get("bk_city_id")
         sub_zone = row.get("bk_sub_zone_id")
+        # 判定单元为云可用区；旧版 dump 没有 bk_cloud_zone 时退化为原来园区口径
+        cloud_zone = row.get("bk_cloud_zone") or sub_zone
         rack = row.get("bk_rack_id")
-        if not sub_zone:
+        if not cloud_zone:
             item.reasons.append(
                 err(
                     "node_subzone_missing",
-                    f"node {row.get('ip','')}:{row.get('port','')} set={row.get('set_name','')} has empty bk_sub_zone_id",
+                    f"node {row.get('ip','')}:{row.get('port','')} set={row.get('set_name','')} "
+                    "has empty bk_cloud_zone",
                 )
             )
         if not rack:
@@ -504,11 +502,11 @@ def evaluate(  # noqa: C901
                 )
             )
         resolved_region = ""
+        if cloud_zone:
+            item.actual_cloud_zones.add(str(cloud_zone))
         if sub_zone:
-            sub_zone_str = str(sub_zone)
-            item.actual_sub_zones.add(sub_zone_str)
-            # prefer subzone mapping first
-            resolved_region = subzone_region_map.get(sub_zone_str, "")
+            # region 仍按园区间接映射 logical city（云可用区不直接对应逻辑城市）
+            resolved_region = subzone_region_map.get(str(sub_zone), "")
 
         # fallback to machine city mapping when subzone mapping is unavailable
         if not resolved_region and city_id not in [None, ""]:
@@ -539,12 +537,13 @@ def evaluate(  # noqa: C901
 
             city_id = row.get("bk_city_id")
             sub_zone = row.get("bk_sub_zone_id")
+            cloud_zone = row.get("bk_cloud_zone") or sub_zone
             rack = row.get("bk_rack_id")
-            if not sub_zone:
+            if not cloud_zone:
                 comp.reasons.append(
                     err(
                         "node_subzone_missing",
-                        f"node {row.get('ip','')}:{row.get('port','')} has empty bk_sub_zone_id",
+                        f"node {row.get('ip','')}:{row.get('port','')} has empty bk_cloud_zone",
                     )
                 )
             if not rack:
@@ -553,10 +552,10 @@ def evaluate(  # noqa: C901
                 )
 
             resolved_region = ""
+            if cloud_zone:
+                comp.cloud_zones.add(str(cloud_zone))
             if sub_zone:
-                sub_zone_str = str(sub_zone)
-                comp.sub_zones.add(sub_zone_str)
-                resolved_region = subzone_region_map.get(sub_zone_str, "")
+                resolved_region = subzone_region_map.get(str(sub_zone), "")
 
             if not resolved_region and city_id not in [None, ""]:
                 resolved_region = city_region_map.get(str(city_id), "")
@@ -579,6 +578,7 @@ def evaluate(  # noqa: C901
                     "addr": f"{row.get('ip','')}:{row.get('port','')}",
                     "ip": str(row.get("ip", "") or ""),
                     "bk_cloud_id": str(row.get("bk_cloud_id", "") or ""),
+                    "actual_cloud_zone": str(cloud_zone) if cloud_zone not in [None, ""] else "",
                     "actual_sub_zone": str(sub_zone) if sub_zone not in [None, ""] else "",
                     "actual_rack": str(rack) if rack not in [None, ""] else "",
                     "instance_role": str(row.get("instance_role", "") or ""),
@@ -593,7 +593,7 @@ def evaluate(  # noqa: C901
                     continue
                 group_key = build_shardsvr_group_key(comp.nodes)
                 merged = grouped_components.setdefault(group_key, ComponentEval(set_name=group_key))
-                merged.sub_zones.update(comp.sub_zones)
+                merged.cloud_zones.update(comp.cloud_zones)
                 merged.regions.update(comp.regions)
                 merged.racks.update(comp.racks)
                 merged.nodes.extend(comp.nodes)
@@ -609,8 +609,8 @@ def evaluate(  # noqa: C901
                 item.component_details.append(
                     {
                         "set_name": set_name,
-                        "zone_list": sorted(item.zone_list),
-                        "actual_sub_zones": sorted(comp.sub_zones),
+                        "cloud_zone_list": sorted(item.cloud_zone_list),
+                        "actual_cloud_zones": sorted(comp.cloud_zones),
                         "actual_regions": sorted(comp.regions),
                         "actual_racks": sorted(comp.racks),
                         "nodes": comp.nodes,
@@ -633,8 +633,8 @@ def evaluate(  # noqa: C901
                     item.component_details.append(
                         {
                             "set_name": set_name,
-                            "zone_list": sorted(item.zone_list),
-                            "actual_sub_zones": sorted(comp.sub_zones),
+                            "cloud_zone_list": sorted(item.cloud_zone_list),
+                            "actual_cloud_zones": sorted(comp.cloud_zones),
                             "actual_regions": sorted(comp.regions),
                             "actual_racks": sorted(comp.racks),
                             "nodes": comp.nodes,
@@ -643,17 +643,16 @@ def evaluate(  # noqa: C901
                     )
                     continue
 
-            # has_single_node_tag: skip min sub_zone count for CROS_SUBZONE / CROSS_SUBZONE_STRONG /
+            # has_single_node_tag: skip min cloud_zone count for CROS_SUBZONE / CROSS_SUBZONE_STRONG /
             # CROSS_SUBZONE_WEAK / MAJORITY_ELECTION_DISTRI (see check_affinity_rules docstring).
             comp_state, comp_reasons = check_affinity_rules(
                 disaster_tolerance_level=item.affinity,
                 cluster_region=item.cluster_region,
-                zone_list=item.zone_list,
-                actual_sub_zone_set=comp.sub_zones,
+                cloud_zone_list=item.cloud_zone_list,
+                actual_cloud_zone_set=comp.cloud_zones,
                 actual_region_set=comp.regions,
                 actual_rack_set=comp.racks,
                 component_nodes=comp.nodes,
-                zone_name_map=subzone_name_map,
                 has_single_node_tag=item.has_single_node_tag,
             )
             component_states.append(comp_state)
@@ -662,8 +661,8 @@ def evaluate(  # noqa: C901
             item.component_details.append(
                 {
                     "set_name": set_name,
-                    "zone_list": sorted(item.zone_list),
-                    "actual_sub_zones": sorted(comp.sub_zones),
+                    "cloud_zone_list": sorted(item.cloud_zone_list),
+                    "actual_cloud_zones": sorted(comp.cloud_zones),
                     "actual_regions": sorted(comp.regions),
                     "actual_racks": sorted(comp.racks),
                     "nodes": comp.nodes,
@@ -726,7 +725,7 @@ def print_result(results: list[ClusterEval], summary_by_code: bool = False) -> i
             f"affinity={item.affinity or 'EMPTY'} cluster_region={item.cluster_region or 'EMPTY'}"
         )
         print(
-            f"  zone_list={sorted(item.zone_list)} actual_sub_zones={sorted(item.actual_sub_zones)} "
+            f"  cloud_zone_list={sorted(item.cloud_zone_list)} actual_cloud_zones={sorted(item.actual_cloud_zones)} "
             f"actual_regions={sorted(item.actual_regions)} actual_racks={sorted(item.actual_racks)}"
         )
         details_to_print = item.component_details
@@ -745,15 +744,16 @@ def print_result(results: list[ClusterEval], summary_by_code: bool = False) -> i
             for detail in details_to_print:
                 print(
                     f"    - {detail['set_name']} "
-                    f"zone_list={detail['zone_list']} "
-                    f"actual_sub_zones={detail['actual_sub_zones']} "
+                    f"cloud_zone_list={detail['cloud_zone_list']} "
+                    f"actual_cloud_zones={detail['actual_cloud_zones']} "
                     f"actual_regions={detail['actual_regions']} "
                     f"actual_racks={detail['actual_racks']}"
                 )
                 for node in detail["nodes"]:
                     print(
                         f"      instance={node['addr']} "
-                        f"actual_sub_zone={node['actual_sub_zone']} "
+                        f"actual_cloud_zone={node.get('actual_cloud_zone', '')} "
+                        f"actual_sub_zone={node.get('actual_sub_zone', '')} "
                         f"actual_rack={node.get('actual_rack', '')} "
                         f"instance_role={node.get('instance_role', '')}"
                     )
