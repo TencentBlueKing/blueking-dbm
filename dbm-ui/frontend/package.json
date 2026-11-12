@@ -129,7 +129,7 @@
   },
   "lint-staged": {
     "*.css": "stylelint --allow-empty-input",
-    "*.less": "stylelint --allow-empty-input --fix --customSyntax=postcss-less",
+    "*.less": "stylelint --allow-empty-input --fix --custom-syntax=postcss-less",
     "*.{js,ts,tsx,vue}": [
       "eslint --fix",
       "prettier --write"

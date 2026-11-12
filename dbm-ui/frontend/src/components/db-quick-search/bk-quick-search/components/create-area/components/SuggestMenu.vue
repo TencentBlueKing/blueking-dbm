@@ -13,8 +13,9 @@
         {{ getValuesText(item.values) }}
       </div>
     </div>
+    <!-- 关键字清空后面板处于收起动画中，不再提示「不支持搜索」 -->
     <div
-      v-if="renderList.length < 1"
+      v-if="keyword && renderList.length < 1"
       class="bk-quick-search-suggest-panel-empty">
       {{ t('不支持搜索') }} "
       <span>
@@ -53,6 +54,8 @@
   import { BK_QUICK_SEARCH } from '@components/db-quick-search/bk-quick-search/Index.vue';
   import { calcNeedShowValueMenu, getValuesText } from '@components/db-quick-search/bk-quick-search/utils';
 
+  import { isSearchKeywordMatch } from './value-menu/common/searchKeyword';
+
   interface Props {
     data: ContextProps['data'];
     keyword: string;
@@ -84,7 +87,8 @@
         if (_.isArray(dataItem.list)) {
           dataItem.list.forEach((childItem) => {
             if (dataItem.type && [comType.MULTIPLE, comType.SINGLE].includes(dataItem.type as comType)) {
-              if (childItem.label.indexOf(valueWord) > -1) {
+              // 匹配规则与值面板保持一致：不区分大小写，支持拼音
+              if (isSearchKeywordMatch(childItem.label, valueWord)) {
                 result.push({
                   id: dataItem.id,
                   name: dataItem.name,
@@ -99,13 +103,16 @@
             }
             if (dataItem.type && [comType.CASCADER, comType.MULTIPLE_CASCADER].includes(dataItem.type as comType)) {
               childItem.children?.forEach((grandChildItem) => {
-                if (grandChildItem.label.indexOf(valueWord) > -1) {
+                if (isSearchKeywordMatch(grandChildItem.label, valueWord)) {
                   result.push({
                     id: dataItem.id,
                     name: dataItem.name,
                     values: [
                       {
-                        label: grandChildItem.label,
+                        // 与值面板、回显保持一致：showAllLevels 时 label 带上父级
+                        label: dataItem.props?.showAllLevels
+                          ? `${childItem.label}/${grandChildItem.label}`
+                          : grandChildItem.label,
                         value: grandChildItem.value,
                       },
                     ],

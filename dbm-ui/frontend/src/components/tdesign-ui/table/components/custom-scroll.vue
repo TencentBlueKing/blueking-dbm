@@ -22,7 +22,7 @@
         ref="verticalScrollRef"
         class="t-table--scroll-vertical"
         :style="{ top: `${verticalPositionTop}px` }"
-        @scroll="handleVerticalScroll">
+        @scroll="handleScrollbarScroll($event, 'scrollTop')">
         <div
           class="t-table--scroll-bar"
           :style="{ height: `${scrollContentHeight}px` }">
@@ -33,7 +33,7 @@
         v-if="isSHowHorizontalScroll"
         ref="horizontalScrollRef"
         class="t-table--scroll-horizontal"
-        @scroll="handleHorizontalScroll">
+        @scroll="handleScrollbarScroll($event, 'scrollLeft')">
         <div
           class="t-table--scroll-bar"
           :style="{ width: `${scrollContentWidth}px` }">
@@ -101,53 +101,37 @@
     syncScrollPosition(horizontalScrollRef.value, 'scrollLeft', target.scrollLeft);
   };
 
-  const handleVerticalScroll = (event: Event) => {
+  // 自定义滚动条滚动时同步回表格内容区
+  const handleScrollbarScroll = (event: Event, key: 'scrollLeft' | 'scrollTop') => {
     const target = event.target as HTMLElement;
     if (programmaticScrollEls.delete(target)) {
       return;
     }
-    syncScrollPosition(tableContentEl.value, 'scrollTop', target.scrollTop);
+    syncScrollPosition(tableContentEl.value, key, target[key]);
   };
 
-  const handleHorizontalScroll = (event: Event) => {
-    const target = event.target as HTMLElement;
-    if (programmaticScrollEls.delete(target)) {
-      return;
-    }
-    syncScrollPosition(tableContentEl.value, 'scrollLeft', target.scrollLeft);
-  };
-
-  let resizeObserver: ResizeObserver;
-  let mutationObserver: MutationObserver;
+  let resizeObserver: ResizeObserver | undefined;
 
   onMounted(() => {
     tableEl.value = currentInstance?.proxy?.$el.parentNode.querySelector('.t-table');
-
-    mutationObserver = new MutationObserver(() => {
-      tableContentEl.value = tableEl.value!.querySelector('.t-table__content') as HTMLElement;
-      if (!tableContentEl.value) {
-        return;
-      }
-      mutationObserver.disconnect();
-      tableContentEl.value.addEventListener('scroll', handleTableContentScroll);
-      resizeObserver = new ResizeObserver(() => {
-        calcScrollStatus();
-      });
-
-      resizeObserver.observe(tableContentEl.value.querySelector('table') as HTMLElement);
-      // 容器尺寸（如 maxHeight）变化而表格本身不变时，也要重新计算滚动条是否显示
-      resizeObserver.observe(tableContentEl.value);
+    // tdesign 首次渲染就会输出 .t-table__content 及其内部的 table，挂载后可直接获取
+    const contentEl = tableEl.value?.querySelector<HTMLElement>('.t-table__content');
+    if (!contentEl) {
+      return;
+    }
+    tableContentEl.value = contentEl;
+    contentEl.addEventListener('scroll', handleTableContentScroll);
+    resizeObserver = new ResizeObserver(() => {
+      calcScrollStatus();
     });
 
-    mutationObserver.observe(tableEl.value as HTMLElement, {
-      childList: true,
-      subtree: true,
-    });
+    resizeObserver.observe(contentEl.querySelector('table') as HTMLElement);
+    // 容器尺寸（如 maxHeight）变化而表格本身不变时，也要重新计算滚动条是否显示
+    resizeObserver.observe(contentEl);
   });
 
   onBeforeUnmount(() => {
     tableContentEl.value?.removeEventListener('scroll', handleTableContentScroll);
     resizeObserver?.disconnect();
-    mutationObserver?.disconnect();
   });
 </script>

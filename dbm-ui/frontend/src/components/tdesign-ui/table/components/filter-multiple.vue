@@ -49,7 +49,7 @@
 <script setup lang="ts">
   import { SearchIcon } from 'tdesign-icons-vue-next';
   import { Checkbox, CheckboxGroup, Input } from 'tdesign-vue-next';
-  import { nextTick, onMounted, ref, shallowRef, useTemplateRef, watch } from 'vue';
+  import { computed, nextTick, onMounted, ref, shallowRef, useTemplateRef, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   type Emits = (e: 'change', value: Props['list'][number]['value'][]) => void;
@@ -74,25 +74,16 @@
 
   const wrapperRef = useTemplateRef('wrapper');
   const serachKey = ref('');
-  const renderList = shallowRef([...props.list]);
   const localValue = shallowRef(props.value);
   const contentMinWidth = ref(0);
 
-  watch(
-    () => [serachKey.value, props.list],
-    () => {
-      if (!serachKey.value.trim()) {
-        renderList.value = [...props.list];
-        return;
-      }
-      renderList.value = props.list.filter((item) =>
-        item.label.toLocaleLowerCase().includes(serachKey.value.toLocaleLowerCase()),
-      );
-    },
-    {
-      immediate: true,
-    },
-  );
+  const renderList = computed(() => {
+    if (!serachKey.value.trim()) {
+      return props.list;
+    }
+    return props.list.filter((item) => item.label.toLocaleLowerCase().includes(serachKey.value.toLocaleLowerCase()));
+  });
+
   watch(
     () => props.list,
     () => {
