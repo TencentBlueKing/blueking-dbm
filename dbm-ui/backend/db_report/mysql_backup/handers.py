@@ -666,7 +666,7 @@ class MySQLBackupHandler:
         # result["binlog_files"] = ",".join(binlog_files)
         return result
 
-    def get_local_backup_infos(
+    def get_local_backup_infos(  # noqa: C901
         self, latest_time: datetime = None, limit: int = 0, include_proxy: bool = False, start_time: datetime = None
     ) -> list[dict]:
         """
@@ -752,14 +752,75 @@ class MySQLBackupHandler:
         logger.info(str(storages.query))
         this_instances = [s.ip_port for s in storages]
         if include_proxy:
-            spider_masters = self.cluster.proxyinstance_set.filter(
-                tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
-            )
+            ins_conditions = Q(tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER)
+            if self.filter_ips is not None and len(self.filter_ips) > 0:
+                ins_conditions &= Q(machine__ip__in=self.filter_ips)
+            spider_masters = self.cluster.proxyinstance_set.filter(ins_conditions)
             this_instances.extend([p.ip_port for p in spider_masters])
-            primary_map = Cluster.get_cluster_id__primary_address_map([self.cluster.id])
-            this_instances.append(primary_map[self.cluster.id])
-        logger.info(this_instances)
+            dbctl_str = Cluster.get_cluster_id__primary_address_map([self.cluster.id])[self.cluster.id]
+            this_instances.append(dbctl_str)
+            dbctl_split = dbctl_str.split(IP_PORT_DIVIDER)
+            dbctl_ip = dbctl_split[0]
+            dbctl_port = dbctl_split[1]
 
+            # dbctl 节点的备份
+            conditions_tmp = f" {conditions} and backup_host='{dbctl_ip}' and backup_port={dbctl_port} "
+            query_cmds = cmds.format(condition=conditions_tmp, limit=limit_str)
+            self.query = query_cmds
+            logger.info(query_cmds)
+            res = DRSApi.rpc(
+                {
+                    "addresses": [dbctl_str],
+                    "cmds": [query_cmds],
+                    "force": False,
+                    "bk_cloud_id": self.cluster.bk_cloud_id,
+                }
+            )
+
+            if res[0]["error_msg"]:
+                logging.error("{} get backup info error {}".format(dbctl_ip, res[0]["error_msg"]))
+            else:
+                if (
+                    isinstance(res[0]["cmd_results"][0]["table_data"], list)
+                    and len(res[0]["cmd_results"][0]["table_data"]) > 0
+                ):
+                    backup_tmps = res[0]["cmd_results"][0]["table_data"]
+                    backup_tmps = [
+                        {"instance_ip": dbctl_ip, "instance_port": dbctl_port, **info} for info in backup_tmps
+                    ]
+                    backup_infos.extend(backup_tmps)
+
+            # spider_master 备份
+            for spider in spider_masters:
+                conditions_tmp = f" {conditions} and backup_host='{spider.machine.ip}' and backup_port={spider.port} "
+                query_cmds = cmds.format(condition=conditions_tmp, limit=limit_str)
+                self.query = query_cmds
+                logger.info(query_cmds)
+                res = DRSApi.rpc(
+                    {
+                        "addresses": [spider.ip_port],
+                        "cmds": [query_cmds],
+                        "force": False,
+                        "bk_cloud_id": self.cluster.bk_cloud_id,
+                    }
+                )
+
+                if res[0]["error_msg"]:
+                    logging.error("{} get backup info error {}".format(spider.ip_port, res[0]["error_msg"]))
+                    continue
+                if (
+                    isinstance(res[0]["cmd_results"][0]["table_data"], list)
+                    and len(res[0]["cmd_results"][0]["table_data"]) > 0
+                ):
+                    backup_tmps = res[0]["cmd_results"][0]["table_data"]
+                    backup_tmps = [
+                        {"instance_ip": spider.machine.ip, "instance_port": spider.port, **info}
+                        for info in backup_tmps
+                    ]
+                    backup_infos.extend(backup_tmps)
+
+        logger.info(this_instances)
+        # 存储节点备份
         for storage in storages:
             conditions_tmp = f" {conditions} and backup_host='{storage.machine.ip}' and backup_port={storage.port} "
             query_cmds = cmds.format(condition=conditions_tmp, limit=limit_str)

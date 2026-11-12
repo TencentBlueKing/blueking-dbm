@@ -1437,24 +1437,12 @@ class MySQLDBMeta(object):
             src_cluster = Cluster.objects.get(id=self.cluster["source_cluster_id"])
             dst_cluster = Cluster.objects.get(id=self.cluster["destination_cluster_id"])
             ClusterEntry.objects.filter(
-                cluster=src_cluster,
+                cluster_id=src_cluster.id,
                 cluster_entry_type__in=[ClusterEntryType.CLB.value, ClusterEntryType.CLBDNS.value],
-                role=ClusterEntryRole.MASTER_ENTRY,
+                role__in=(ClusterEntryRole.MASTER_ENTRY.value, ClusterEntryRole.SLAVE_ENTRY.value),
             ).update(cluster_id=dst_cluster.id)
             ClusterEntry.objects.filter(
-                cluster=dst_cluster,
+                cluster_id=dst_cluster.id,
                 cluster_entry_type__in=[ClusterEntryType.CLB.value, ClusterEntryType.CLBDNS.value],
-                role=ClusterEntryRole.MASTER_ENTRY,
+                role__in=(ClusterEntryRole.MASTER_ENTRY.value, ClusterEntryRole.SLAVE_ENTRY.value),
             ).update(cluster_id=src_cluster.id)
-            if src_cluster.cluster_type == ClusterType.TenDBCluster.value:
-                ClusterEntry.objects.filter(
-                    cluster=dst_cluster,
-                    cluster_entry_type__in=[ClusterEntryType.CLB.value, ClusterEntryType.CLBDNS.value],
-                    role=ClusterEntryRole.SLAVE_ENTRY,
-                ).update(cluster_id=src_cluster.id)
-                ClusterEntry.objects.filter(
-                    cluster=src_cluster,
-                    cluster_entry_type__in=[ClusterEntryType.CLB.value, ClusterEntryType.CLBDNS.value],
-                    role=ClusterEntryRole.SLAVE_ENTRY,
-                ).update(cluster_id=dst_cluster.id)
-            return True
