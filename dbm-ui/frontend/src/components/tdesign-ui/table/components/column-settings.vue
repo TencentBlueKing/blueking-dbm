@@ -68,9 +68,8 @@
                   <span>{{ t('全选') }}</span>
                 </div>
                 <CheckboxGroup
-                  class="content-check-group"
-                  :model-value="draftChecked"
-                  @change="handleCheckChange">
+                  v-model="draftChecked"
+                  class="content-check-group">
                   <Vuedraggable
                     v-model="draftColumns"
                     :animation="150"
@@ -137,27 +136,20 @@
 <script lang="ts" setup>
   import _ from 'lodash';
   import { SearchIcon, SettingIcon } from 'tdesign-icons-vue-next';
-  import type { CheckboxGroupValue, TableProps } from 'tdesign-vue-next';
   import { Checkbox, CheckboxGroup, Input, Popup, RadioButton, RadioGroup } from 'tdesign-vue-next';
   import { computed, ref, shallowRef } from 'vue';
+  import { useI18n } from 'vue-i18n';
   import Vuedraggable from 'vuedraggable';
 
-  import { t } from '../lang/lang';
-  import type { BkUiSettingsField, FontSizeEnum, RowSizeEnum } from '../types/table';
+  import type { BkUiSettingsChangePayload, BkUiSettingsField, FontSizeEnum, RowSizeEnum } from '../types/table';
 
   interface Props {
     columns?: BkUiSettingsField[];
-    displayColumns?: TableProps['displayColumns'];
+    displayColumns?: string[];
     fontSize?: FontSizeEnum;
     hasCheckAll?: boolean;
     onColumnControllerVisibleChange?: (visible: boolean, trigger: 'cancel' | 'confirm' | 'open') => void;
-    onConfirm?: (settings: {
-      columns: string[];
-      fontSize: FontSizeEnum;
-      order: string[];
-      rowSize: RowSizeEnum;
-    }) => void;
-    order?: string[];
+    onConfirm?: (settings: BkUiSettingsChangePayload) => void;
     rowSize?: RowSizeEnum;
   }
 
@@ -182,9 +174,10 @@
     hasCheckAll: true,
     onColumnControllerVisibleChange: undefined,
     onConfirm: undefined,
-    order: () => [],
     rowSize: 'medium',
   });
+
+  const { t } = useI18n();
 
   const keyword = shallowRef('');
   const activeTab = shallowRef(0);
@@ -210,21 +203,10 @@
       .map((column) => column.field);
   };
 
-  const handleCheckChange = (value: CheckboxGroupValue) => {
-    draftChecked.value = draftColumns.value
-      .filter((item) => value?.includes(item.field) || item.disabled)
-      .map((item) => item.field);
-  };
-
   const initDraft = () => {
-    const columnMap = new Map(props.columns.map((column) => [column.field, column]));
-    const orderedColumns = props.order.map((field) => columnMap.get(field)).filter((column) => column !== undefined);
-    const orderedSet = new Set(orderedColumns);
-    draftColumns.value = orderedColumns.concat(props.columns.filter((column) => !orderedSet.has(column)));
-    const displayColumns = (props.displayColumns ?? []).filter((field): field is string => typeof field === 'string');
-    draftChecked.value = Array.from(
-      new Set(displayColumns.concat(props.columns.filter((column) => column.disabled).map((column) => column.field))),
-    );
+    // columns / displayColumns 已由 resolveColumnSettings 归一化：按显示顺序排列，选中列已包含禁用列
+    draftColumns.value = [...props.columns];
+    draftChecked.value = [...props.displayColumns];
     draftFontSize.value = props.fontSize;
     draftRowSize.value = props.rowSize;
     keyword.value = '';
@@ -248,7 +230,10 @@
     // 未做任何调整时不提交，避免重建列（丢失拖拽列宽）和无效的配置保存请求
     const isChanged =
       !_.isEqual(settings.columns, props.displayColumns) ||
-      !_.isEqual(settings.order, props.order) ||
+      !_.isEqual(
+        settings.order,
+        props.columns.map((column) => column.field),
+      ) ||
       settings.fontSize !== props.fontSize ||
       settings.rowSize !== props.rowSize;
     if (!isChanged) {
@@ -293,7 +278,7 @@
       height: 42px;
       margin: 0.5px 0.5px 0;
 
-      &-title {
+      .settings-header-title {
         display: flex;
         flex: 1;
         align-items: center;
@@ -314,7 +299,7 @@
       padding: 12px 16px;
       overflow: auto;
 
-      &-search {
+      .settings-wrapper-search {
         .t-input {
           border: none;
           border-bottom: 1px solid #e1e3e6;
@@ -323,7 +308,7 @@
         }
       }
 
-      &-content {
+      .settings-wrapper-content {
         display: flex;
         flex: 1;
         flex-direction: column;
@@ -369,12 +354,12 @@
           display: flex;
           flex-direction: column;
 
-          &-title {
+          .appearance-settings-title {
             margin-bottom: 8px;
             color: #63656e;
           }
 
-          &-content {
+          .appearance-settings-content {
             display: flex;
             align-items: center;
             margin-bottom: 24px;

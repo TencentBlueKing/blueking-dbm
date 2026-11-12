@@ -20,8 +20,8 @@
 </template>
 <script lang="ts" setup>
   import _ from 'lodash';
-  import type { PrimaryTableCellParams, PrimaryTableCol, TableCol, TableRowData, TNode } from 'tdesign-vue-next';
-  import { onBeforeUnmount, onMounted, shallowRef, useId, watch } from 'vue';
+  import type { PrimaryTableCellParams, PrimaryTableCol, TableCol } from 'tdesign-vue-next';
+  import { computed, onBeforeUnmount, onMounted, useId, type VNode } from 'vue';
 
   import { useTableInject } from '../hooks/use-table-inject';
   import type { BkUiTableCol, IRegisteredColumnProps } from '../types/table';
@@ -34,16 +34,17 @@
     resizable: true,
   });
 
+  // 插槽函数返回的是渲染结果（VNode 数组），不是 tdesign 的渲染函数 TNode
   const slots = defineSlots<{
-    default(props: PrimaryTableCellParams<any>): TNode<PrimaryTableCellParams<TableRowData>>;
-    title(props: { col: PrimaryTableCol; colIndex: number }): TNode;
+    default(props: PrimaryTableCellParams<any>): VNode[];
+    title(props: { col: PrimaryTableCol; colIndex: number }): VNode[];
   }>();
   const tableInject = useTableInject();
   const id = useId();
 
   // 保持引用稳定，避免每次取值都生成新函数导致列配置被判定为变化
-  const renderCell = ((h, data) => slots.default(data)) as TableCol['cell'];
-  const renderTitle = ((h, data) => slots.title(data)) as TableCol['title'];
+  const renderCell: TableCol['cell'] = (h, data) => slots.default(data);
+  const renderTitle: TableCol['title'] = (h, data) => slots.title(data);
 
   const getColumnState = (): IRegisteredColumnProps => ({
     ...props,
@@ -53,20 +54,17 @@
     titleText: typeof props.title === 'string' ? props.title : props.colKey!,
   });
 
-  const state = shallowRef(getColumnState());
-
   // 模板上以字面量形式传入的对象（如 filter）每次渲染都是新引用，
-  // 深比较后再更新，避免反向使表格的列配置失效造成递归更新
-  watch(getColumnState, (latest) => {
-    if (!_.isEqual(latest, state.value)) {
-      state.value = latest;
-    }
+  // 深比较后内容不变则沿用旧引用，避免反向使表格的列配置失效造成递归更新
+  const state = computed<IRegisteredColumnProps>((oldValue) => {
+    const latest = getColumnState();
+    return oldValue && _.isEqual(latest, oldValue) ? oldValue : latest;
   });
 
   onMounted(() => {
-    tableInject.value?.addColumnProps(id, state);
+    tableInject?.addColumnProps(id, state);
   });
   onBeforeUnmount(() => {
-    tableInject.value?.deleteColumn(id);
+    tableInject?.deleteColumn(id);
   });
 </script>

@@ -47,8 +47,11 @@ export default function (
     tableLeft: 0,
   });
 
+  // 容器宽度：列宽按它推导，变化时（窗口缩放、侧栏折叠、容器从隐藏变为可见）触发重算
+  const containerWidth = ref(0);
+
   watch(
-    columnList,
+    [columnList, containerWidth],
     () => {
       if (!tableRef.value) {
         return;
@@ -267,7 +270,7 @@ export default function (
     const rect = target!.getBoundingClientRect();
 
     const bodyStyle = document.body.style;
-    if (rect.width > 12 && rect.right - event.pageX < 16) {
+    if (rect.width > 12 && rect.right - event.clientX < 16) {
       bodyStyle.cursor = 'col-resize';
       bodyStyle.userSelect = 'none';
       dragable = true;
@@ -300,12 +303,27 @@ export default function (
     document.body.style.cursor = '';
   }, 500);
 
+  // 停止变化后再同步，避免拖动窗口、侧栏动画期间逐帧重算全部单元格宽度
+  const handleTableResize = _.debounce(() => {
+    const width = tableRef.value?.getBoundingClientRect().width;
+    // 容器被隐藏时宽度为 0，保留隐藏前的列宽，重新显示时宽度没变就不用再算
+    if (width) {
+      containerWidth.value = width;
+    }
+  }, 100);
+  const resizeObserver = new ResizeObserver(handleTableResize);
+
   onMounted(() => {
     document.addEventListener('mousemove', handleOuterMousemove);
+    // 先同步记下初始宽度，ResizeObserver 的首次回调（宽度没变）就不会多触发一次重算
+    containerWidth.value = tableRef.value!.getBoundingClientRect().width;
+    resizeObserver.observe(tableRef.value!);
   });
 
   onBeforeUnmount(() => {
     document.removeEventListener('mousemove', handleOuterMousemove);
+    resizeObserver.disconnect();
+    handleTableResize.cancel();
   });
 
   return {

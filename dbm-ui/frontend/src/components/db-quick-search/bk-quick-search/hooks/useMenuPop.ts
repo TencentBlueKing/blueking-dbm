@@ -9,6 +9,7 @@ let singleMenuPop:
       isShow: Ref<boolean>;
       popInstance?: Instance;
       show: () => void;
+      updatePosition: () => void;
     }
   | undefined;
 
@@ -49,11 +50,17 @@ export default (
     popInstance.state.isVisible && popInstance.hide();
   };
 
+  // 面板保持显示，只按触发元素的最新位置重新定位；需要更新位置时不要先隐藏再显示，会闪动
+  const updatePosition = () => {
+    popInstance.popperInstance?.update();
+  };
+
   const currentMenuPop: typeof singleMenuPop = {
     hide,
     isShow,
     popInstance: undefined,
     show,
+    updatePosition,
   };
 
   useOutSideClick(() => {

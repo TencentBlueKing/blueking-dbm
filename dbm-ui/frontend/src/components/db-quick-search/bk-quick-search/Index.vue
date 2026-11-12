@@ -298,7 +298,7 @@
 
     &.is-focused {
       .bk-quick-search-wrapper {
-        border-color: #1890ff;
+        border-color: #3a84ff;
       }
 
       .bk-quick-search-tag-box {
