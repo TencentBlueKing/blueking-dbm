@@ -243,7 +243,11 @@
     });
   }
 
-  // 行的注册顺序不一定与 DOM 顺序一致，按 DOM 位置插入保证行序正确
+  // 已注册行对应的 tr，用于按 DOM 先后关系确定行序
+  const rowElementMap = new WeakMap<IColumnContext[], HTMLElement>();
+
+  // 行的注册顺序不一定与 DOM 顺序一致（整表替换时 Vue 从后往前挂载新行），按 DOM 先后关系插入保证行序正确。
+  // 不能直接拿 DOM 下标当插入位置：逆序挂载时已注册的行数少于 DOM 中的行数，下标会越界追加到末尾
   const registerRow = (rowColumnList: IColumnContext[], rowElement: HTMLElement) => {
     rowElementMap.set(rowColumnList, rowElement);
     const latestRowList = [...rowList.value];
