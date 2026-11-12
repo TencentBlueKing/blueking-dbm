@@ -1,4 +1,4 @@
-FROM node:24.22.2-slim AS frontend-installer
+FROM node:24.22.3-slim AS frontend-installer
 
 RUN yarn config set registry https://mirrors.tencent.com/npm/
 
