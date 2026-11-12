@@ -3696,6 +3696,22 @@
                   "value": [
                     "$database"
                   ]
+                },
+                {
+                  "condition": "and",
+                  "key": "app_kubernetes_io_instance",
+                  "method": "eq",
+                  "value": [
+                    "$cluster"
+                  ]
+                },
+                {
+                  "condition": "and",
+                  "key": "bk_monitor_namespace",
+                  "method": "eq",
+                  "value": [
+                    "$bk_monitor_namespace"
+                  ]
                 }
               ]
             }
@@ -5514,8 +5530,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -5701,8 +5716,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -5896,8 +5910,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -6396,7 +6409,7 @@
   "timepicker": {},
   "timezone": "",
   "title": "DBM(上云)-SurrealDB监控",
-  "version": 101,
+  "version": 102,
   "weekStart": "",
   "__inputs": [
     {
