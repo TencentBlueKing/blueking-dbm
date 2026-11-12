@@ -126,7 +126,9 @@ class KafkaMetricsMcpToolsViewSet(McpToolsViewSet):
                 "消费组: consumer_group_lag(积压量); "
                 "broker维度: broker_traffic_in/out, broker_produce/fetch_request_rate, "
                 "broker_cpu_usage, broker_tcp_established; "
-                "磁盘: disk_usage_detail(按挂载点)。"
+                "磁盘: disk_usage_detail(仅ext/xfs数据盘，排除/和/usr/local，"
+                "按主机和挂载点，返回ip、instance、mount_point及原始dimensions，"
+                "无法识别IP时ip为空)。"
                 "返回各维度条目的latest_value和统计信息，按值降序排列。"
             )
         ),

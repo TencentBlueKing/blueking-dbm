@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import copy
 import logging
 from datetime import datetime, timedelta
+from ipaddress import ip_address
 from typing import Dict, List, Optional
 
 from backend import env
@@ -347,14 +348,37 @@ KAFKA_DETAIL_METRICS_PROMQL = {
     },
     # Disk 维度
     "disk_usage_detail": {
-        "desc": "磁盘使用率按挂载点(%)",
+        "desc": "数据盘使用率按主机和挂载点(%)",
         "dimension": "disk",
         "label_key": "mount_point",
         "promql": """max_over_time(
-            bkmonitor:dbm_system:disk:in_use{{cluster_domain="{cluster_domain}",instance_role="broker"}}[5m]
+            bkmonitor:dbm_system:disk:in_use{{
+                cluster_domain="{cluster_domain}",instance_role="broker",
+                device_type=~"ext.?|xfs",mount_point!~"^(/|/usr/local)$"
+            }}[5m]
         )""",
     },
 }
+
+
+def _disk_host_ip(dimensions: Dict) -> Optional[str]:
+    """优先使用IP维度，兼容实例标识中的裸IP、IP-port及[IPv6]:port格式。"""
+    instance = dimensions.get("instance") or ""
+    candidates = [
+        dimensions.get("bk_target_ip"),
+        dimensions.get("ip"),
+        instance,
+        instance.split("-")[0],
+        instance.rpartition(":")[0].strip("[]"),
+    ]
+    for candidate in candidates:
+        if not candidate:
+            continue
+        try:
+            return str(ip_address(candidate))
+        except ValueError:
+            continue
+    return None
 
 
 def query_kafka_detail_metrics(
@@ -439,6 +463,13 @@ def query_kafka_detail_metrics(
                 values = [point[0] for point in datapoints if point[0] is not None]
 
                 item = {"label": label, "latest_value": 0, "statistics": {}}
+                if metric_config["dimension"] == "disk":
+                    item.update(
+                        ip=_disk_host_ip(dimensions),
+                        instance=dimensions.get("instance"),
+                        mount_point=dimensions.get("mount_point"),
+                        dimensions=dimensions,
+                    )
                 if values:
                     item["latest_value"] = values[-1]
                     item["statistics"] = {
@@ -452,6 +483,7 @@ def query_kafka_detail_metrics(
 
             # 按 latest_value 降序排序
             result["items"].sort(key=lambda x: x["latest_value"], reverse=True)
+            result["items"] = result["items"][:top_n]
 
     except Exception as e:
         logger.error(f"查询维度明细指标 {metric_name} 失败: {str(e)}")

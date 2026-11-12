@@ -132,7 +132,7 @@ class KafkaDetailMetricsInputSerializer(serializers.Serializer):
             ("broker_fetch_request_rate", "Broker消费请求速率"),
             ("broker_cpu_usage", "Broker CPU使用率"),
             ("broker_tcp_established", "Broker TCP连接数"),
-            ("disk_usage_detail", "磁盘使用率按挂载点"),
+            ("disk_usage_detail", _("数据盘使用率按主机和挂载点")),
         ],
         help_text=_(
             "指标名称，支持topic/broker/consumer_group/disk维度的明细查询。"
@@ -140,7 +140,8 @@ class KafkaDetailMetricsInputSerializer(serializers.Serializer):
             "消费组维度: consumer_group_lag; "
             "broker维度: broker_traffic_in, broker_traffic_out, broker_produce_request_rate, "
             "broker_fetch_request_rate, broker_cpu_usage, broker_tcp_established; "
-            "磁盘维度: disk_usage_detail"
+            "磁盘维度: disk_usage_detail(仅ext/xfs数据盘，排除/和/usr/local，"
+            "按主机和挂载点，返回ip，无法识别IP时为空)"
         ),
     )
     top_n = serializers.IntegerField(
@@ -170,7 +171,11 @@ class DetailMetricStatisticsSerializer(serializers.Serializer):
 
 
 class KafkaDetailMetricItemSerializer(serializers.Serializer):
-    label = serializers.CharField(help_text=_("维度标签(topic名/broker地址/消费组名/挂载点)"))
+    label = serializers.CharField(help_text=_("维度标签(topic名/broker地址/消费组名/挂载点)，磁盘挂载点请结合ip使用"))
+    ip = serializers.IPAddressField(required=False, allow_null=True, help_text=_("磁盘所在主机IP，无法识别时为空"))
+    instance = serializers.CharField(required=False, allow_null=True, allow_blank=True, help_text=_("磁盘所在实例"))
+    mount_point = serializers.CharField(required=False, allow_null=True, allow_blank=True, help_text=_("磁盘挂载点"))
+    dimensions = serializers.DictField(required=False, help_text=_("磁盘指标原始维度，用于主机标识缺失时排查"))
     latest_value = serializers.FloatField(help_text=_("最新值"))
     statistics = DetailMetricStatisticsSerializer(help_text=_("统计信息"))
 
@@ -181,4 +186,4 @@ class KafkaDetailMetricsOutputSerializer(serializers.Serializer):
     metric_name = serializers.CharField(help_text=_("指标名称"))
     metric_desc = serializers.CharField(help_text=_("指标描述"))
     items = KafkaDetailMetricItemSerializer(many=True, help_text=_("维度明细列表，按latest_value降序"))
-    total_series_count = serializers.IntegerField(help_text=_("总时间序列数量"))
+    total_series_count = serializers.IntegerField(help_text=_("监控查询返回的时间序列数量，Python TopN截取前计数，不代表集群全部序列数量"))
