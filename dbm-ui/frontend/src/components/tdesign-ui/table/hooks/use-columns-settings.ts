@@ -20,52 +20,54 @@ import FilterMultiple from '../components/filter-multiple.vue';
 import FilterSingle from '../components/filter-single.vue';
 import type {
   BkUiSettings,
+  BkUiSettingsChangePayload,
   BkUiTableCol,
   commonTableProps,
   FontSizeEnum,
   IRegisteredColumnProps,
   RowSizeEnum,
 } from '../types/table';
-import { getSettingsFields, reorderTableColumns, resolveColumnSettings } from '../utils/column-settings';
+import {
+  getSettingsFields,
+  reorderTableColumns,
+  resolveColumnSettings,
+  type ResolvedColumnSettings,
+} from '../utils/column-settings';
 import { BKUI_SETTINGS_COLUMN_NAME, BUILT_IN_COLUMN_KEYS, TABLE_COLUMN_ID_ATTRIBUTE } from '../utils/constant';
-import { deleteUndefinedProps, makeMap } from '../utils/utils';
+import { deleteUndefinedProps } from '../utils/utils';
 
 import { useTableProvide } from './use-table-inject';
 
 const customFilterComponent = (columnList: TableProps['columns']) => {
-  return columnList?.map((columnItem) => {
+  return columnList?.map((columnItem): BkUiTableCol => {
     const filter = columnItem.filter;
     if (!filter) {
       return columnItem;
     }
-    const latestColumn = Object.assign({}, columnItem);
+    const isSingle = filter.type === 'single';
 
-    if (['multiple', 'single'].includes(filter.type as string)) {
-      Object.assign(latestColumn, {
-        filter: {
-          ...filter,
-          component: filter.type === 'single' ? FilterSingle : FilterMultiple,
-          confirmEvents: filter.showConfirmAndReset ? undefined : filter.type === 'single' ? ['onChange'] : undefined,
+    return {
+      ...columnItem,
+      filter: {
+        ...filter,
+        // 单选 / 多选换成带搜索的自定义面板，type 置空后 tdesign 才会改用 component
+        ...((isSingle || filter.type === 'multiple') && {
+          component: isSingle ? FilterSingle : FilterMultiple,
+          // 单选且不带确认按钮时，选中即确认并收起弹层
+          confirmEvents: isSingle && !filter.showConfirmAndReset ? ['onChange'] : undefined,
           props: {
             list: filter.list || [],
-            ...(filter.props || { not: 'empty' }),
+            ...filter.props,
           },
           type: undefined,
-        },
-      });
-    }
-
-    Object.assign(latestColumn, {
-      filter: {
-        ...latestColumn.filter,
-        popupProps: Object.assign({}, filter.popupProps || {}, {
+        }),
+        popupProps: {
+          ...filter.popupProps,
           attach: 'body',
           placement: 'bottom',
-        }),
+        },
       },
-    });
-
-    return latestColumn;
+    };
   });
 };
 
@@ -117,49 +119,36 @@ export const useColumnsSettings = (
   });
 
   const settingsFields = computed(() => getSettingsFields(tableColumns.value, props.bkUiSettings));
-  const localColumnSettings = shallowRef(resolveColumnSettings([]));
   const fontSize = shallowRef<FontSizeEnum>(props.bkUiSettings?.fontSize || 'medium');
   const rowSize = shallowRef<RowSizeEnum>(props.bkUiSettings?.rowSize || props.size || 'medium');
-  // 组件内确认过、外部尚未回写的列配置；外部配置变化后以外部为准
-  let confirmedSettings: Pick<BkUiSettings, 'checked' | 'order'> | undefined;
+  // 当前生效的列配置来源：外部传入的配置，或组件内确认过、外部尚未回写的配置；外部配置变化后以外部为准
+  const rawSettings = shallowRef<Pick<BkUiSettings, 'checked' | 'order'>>();
 
-  // 内容不变时保持引用，避免列配置重建导致 tdesign 重置列宽
-  const updateLocalColumnSettings = (settings: Pick<BkUiSettings, 'checked' | 'order'>) => {
-    const latest = resolveColumnSettings(settingsFields.value, settings);
-    if (!_.isEqual(latest, localColumnSettings.value)) {
-      localColumnSettings.value = latest;
-    }
-  };
-
+  // 只监听外部配置本身：列定义变化（列 props 更新、列增删）不会重置 rawSettings，沿用组件内已确认的配置
   watch(
-    () => [props.displayColumns, props.bkUiSettings, settingsFields.value] as const,
-    ([displayColumns, bkUiSettings], oldValue) => {
-      // 仅列定义变化（列 props 更新、列增删）时沿用组件内状态，不回退到外部初始配置
-      const isPropsChanged = !oldValue || oldValue[0] !== displayColumns || oldValue[1] !== bkUiSettings;
-      if (isPropsChanged) {
-        confirmedSettings = undefined;
-        fontSize.value = bkUiSettings?.fontSize || 'medium';
-        rowSize.value = bkUiSettings?.rowSize || props.size || 'medium';
-      }
-      updateLocalColumnSettings(
-        confirmedSettings ?? {
-          checked: displayColumns?.length ? (displayColumns as string[]) : bkUiSettings?.checked,
-          order: bkUiSettings?.order,
-        },
-      );
+    () => props.bkUiSettings,
+    (bkUiSettings) => {
+      rawSettings.value = bkUiSettings;
+      fontSize.value = bkUiSettings?.fontSize || 'medium';
+      rowSize.value = bkUiSettings?.rowSize || props.size || 'medium';
     },
     {
       immediate: true,
     },
   );
 
-  const displayColumns = computed(() => {
-    if (isBkuiSettingsControl.value || props.displayColumns) {
-      return Array.from(new Set(localColumnSettings.value.checked.concat(BUILT_IN_COLUMN_KEYS)));
-    }
-
-    return undefined;
+  // 内容不变时保持引用，避免列配置重建导致 tdesign 重置列宽
+  const localColumnSettings = computed<ResolvedColumnSettings>((oldValue) => {
+    const latest = resolveColumnSettings(settingsFields.value, rawSettings.value);
+    return oldValue && _.isEqual(latest, oldValue) ? oldValue : latest;
   });
+
+  // 启用 bkUiSettings 时由设置面板决定显示哪些列；未启用时 displayColumns 原样交给 tdesign
+  const displayColumns = computed(() =>
+    isBkuiSettingsControl.value
+      ? Array.from(new Set(localColumnSettings.value.checked.concat(BUILT_IN_COLUMN_KEYS)))
+      : props.displayColumns,
+  );
 
   const orderedColumns = computed(() => reorderTableColumns(tableColumns.value, localColumnSettings.value.order));
 
@@ -167,8 +156,8 @@ export const useColumnsSettings = (
     if (!displayColumns.value) {
       return orderedColumns.value.at(-1)?.colKey;
     }
-    const displayColumnsMap = makeMap(displayColumns.value as string[]);
-    return orderedColumns.value.filter((item) => item.colKey && displayColumnsMap[item.colKey]).at(-1)?.colKey;
+    const displayColumnSet = new Set(displayColumns.value);
+    return orderedColumns.value.filter((item) => item.colKey && displayColumnSet.has(item.colKey)).at(-1)?.colKey;
   });
 
   // 列配置单独成 computed，只依赖列相关状态。
@@ -184,7 +173,7 @@ export const useColumnsSettings = (
         fixed: 'right',
         minWidth: '40px',
         resizable: false,
-        thClassName: '__table-custom-setting-col__',
+        thClassName: 'bkui-table-custom-setting-col',
         title: (createElement: typeof h) => {
           return createElement(
             ColumnSettings,
@@ -196,17 +185,11 @@ export const useColumnsSettings = (
               onColumnControllerVisibleChange: (v: boolean, trigger: 'cancel' | 'confirm' | 'open') => {
                 props.onColumnControllerVisibleChange?.(v, { trigger });
               },
-              onConfirm: (settings: {
-                columns: string[];
-                fontSize: FontSizeEnum;
-                order: string[];
-                rowSize: RowSizeEnum;
-              }) => {
-                confirmedSettings = {
+              onConfirm: (settings: BkUiSettingsChangePayload) => {
+                rawSettings.value = {
                   checked: settings.columns,
                   order: settings.order,
                 };
-                updateLocalColumnSettings(confirmedSettings);
                 fontSize.value = settings.fontSize;
                 rowSize.value = settings.rowSize;
                 props.onDisplayColumnsChange?.(localColumnSettings.value.checked);
@@ -217,7 +200,6 @@ export const useColumnsSettings = (
                   rowSize: rowSize.value,
                 });
               },
-              order: localColumnSettings.value.order,
               rowSize: rowSize.value,
             },
             {
@@ -272,12 +254,9 @@ export const useColumnsSettings = (
   const tableFontSizeClass = computed(() => {
     return `t-font-size-${fontSize.value.charAt(0).toLowerCase()}`;
   });
+  // 未启用 bkUiSettings 时走 tdesign 原生列控制，变更原样转给调用方
   const onDisplayColumnsChange = (columns: NonNullable<TableProps['displayColumns']>) => {
-    confirmedSettings = {
-      checked: columns as string[],
-      order: localColumnSettings.value.order,
-    };
-    updateLocalColumnSettings(confirmedSettings);
+    props.onDisplayColumnsChange?.(columns);
   };
   return {
     columnController,

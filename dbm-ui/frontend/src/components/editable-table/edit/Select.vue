@@ -102,7 +102,8 @@
   watch(modelValue, (newValue, oldValue) => {
     // 对于引用类型，实际值变化才校验
     if (!_.isEqual(newValue, oldValue)) {
-      columnContext?.validate('change');
+      // 校验不通过会 reject(false)，这里只触发校验并展示错误态，不处理结果（下方 blur 同理）
+      columnContext?.validate('change').catch(() => {});
     }
   });
 
@@ -112,7 +113,7 @@
 
   const handleBlur = () => {
     columnContext?.blur();
-    columnContext?.validate('blur');
+    columnContext?.validate('blur').catch(() => {});
     emits('blur');
   };
 

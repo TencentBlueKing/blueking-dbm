@@ -36,10 +36,8 @@ export const getSettingsFields = (columns: BkUiTableCol[], settings?: BkUiSettin
         // @ts-expect-error titleText 是 TableColumn 组件为设置面板注入的扩展属性
         column.titleText ?? (typeof column.title === 'string' ? column.title : column.colKey!),
     }));
-  const configuredFieldSet = new Set(settings?.fields?.map((field) => field.field));
-  const sourceFields = (settings?.fields ?? [])
-    .filter((field) => columnMap.has(field.field))
-    .concat(columnFields.filter((field) => !configuredFieldSet.has(field.field)));
+  // 外部配置的字段在前，其余列按定义顺序补在后面；同名字段由下方 fieldsMap 以先出现的为准
+  const sourceFields = (settings?.fields ?? []).filter((field) => columnMap.has(field.field)).concat(columnFields);
 
   const fieldsMap = new Map<string, BkUiSettingsField>();
   sourceFields.forEach((field) => {
@@ -60,26 +58,18 @@ export const resolveColumnSettings = (
   fields: BkUiSettingsField[],
   settings?: Pick<BkUiSettings, 'checked' | 'order'>,
 ): ResolvedColumnSettings => {
-  const definitionOrder = fields.map((field) => field.field);
-  const validFields = new Set(definitionOrder);
-  const disabledOrder = fields.filter((field) => field.disabled).map((field) => field.field);
-  const disabledSet = new Set(disabledOrder);
-  const savedOrder = unique(settings?.order ?? []).filter((field) => validFields.has(field));
-  const savedOrderSet = new Set(savedOrder);
-  const normalOrder =
-    savedOrder.length > 0
-      ? savedOrder
-          .filter((field) => !disabledSet.has(field))
-          .concat(definitionOrder.filter((field) => !disabledSet.has(field) && !savedOrderSet.has(field)))
-      : definitionOrder.filter((field) => !disabledSet.has(field));
-  const order = disabledOrder.concat(normalOrder);
-  const checkedSet = new Set((settings?.checked ?? definitionOrder).filter((field) => validFields.has(field)));
-
-  fields.forEach((field) => {
-    if (field.disabled) {
-      checkedSet.add(field.field);
-    }
-  });
+  const fieldKeys = fields.map((field) => field.field);
+  const validSet = new Set(fieldKeys);
+  const disabledKeys = fields.filter((field) => field.disabled).map((field) => field.field);
+  // 禁用列固定在最前，其后按已保存的顺序，未保存过的列按定义顺序补在最后
+  const order = unique(
+    disabledKeys.concat(
+      (settings?.order ?? []).filter((field) => validSet.has(field)),
+      fieldKeys,
+    ),
+  );
+  // 未配置选中列时默认全选，禁用列始终选中
+  const checkedSet = new Set((settings?.checked ?? fieldKeys).concat(disabledKeys));
 
   const fieldMap = new Map(fields.map((field) => [field.field, field]));
 

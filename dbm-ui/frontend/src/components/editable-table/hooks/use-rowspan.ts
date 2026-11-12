@@ -29,11 +29,22 @@ export default function () {
     _.remove(taskList, (item) => item.run === run);
   };
 
+  let isRunPending = false;
+
   // 按行序重新计算所有单元格的合并状态
   // 合并计数每一趟独立，不受上一趟计算残留的影响
+  // 延后到本轮渲染结束后执行，并把期间的多次触发合并成一次：每个单元格挂载、model 变化都会各自触发，
+  // 逐次全量计算的开销随单元格数平方增长，上百行时会长时间占用主线程
   const runRowspanTask = () => {
-    const rowspanNumMap = new Map<string, number>();
-    _.sortBy(taskList, (item) => item.getRowIndex()).forEach((item) => item.run(rowspanNumMap));
+    if (isRunPending) {
+      return;
+    }
+    isRunPending = true;
+    nextTick(() => {
+      isRunPending = false;
+      const rowspanNumMap = new Map<string, number>();
+      _.sortBy(taskList, (item) => item.getRowIndex()).forEach((item) => item.run(rowspanNumMap));
+    });
   };
 
   return {
