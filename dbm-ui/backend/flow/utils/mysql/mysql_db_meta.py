@@ -1436,13 +1436,16 @@ class MySQLDBMeta(object):
         with atomic():
             src_cluster = Cluster.objects.get(id=self.cluster["source_cluster_id"])
             dst_cluster = Cluster.objects.get(id=self.cluster["destination_cluster_id"])
-            ClusterEntry.objects.filter(
-                cluster_id=src_cluster.id,
+            entry_filter = dict(
                 cluster_entry_type__in=[ClusterEntryType.CLB.value, ClusterEntryType.CLBDNS.value],
                 role__in=(ClusterEntryRole.MASTER_ENTRY.value, ClusterEntryRole.SLAVE_ENTRY.value),
-            ).update(cluster_id=dst_cluster.id)
-            ClusterEntry.objects.filter(
-                cluster_id=dst_cluster.id,
-                cluster_entry_type__in=[ClusterEntryType.CLB.value, ClusterEntryType.CLBDNS.value],
-                role__in=(ClusterEntryRole.MASTER_ENTRY.value, ClusterEntryRole.SLAVE_ENTRY.value),
-            ).update(cluster_id=src_cluster.id)
+            )
+            # 先冻结两侧要交换的 entry id 列表，避免两次 update 的 WHERE 条件互相命中导致 swap 失效
+            src_entry_ids = list(
+                ClusterEntry.objects.filter(cluster_id=src_cluster.id, **entry_filter).values_list("id", flat=True)
+            )
+            dst_entry_ids = list(
+                ClusterEntry.objects.filter(cluster_id=dst_cluster.id, **entry_filter).values_list("id", flat=True)
+            )
+            ClusterEntry.objects.filter(id__in=src_entry_ids).update(cluster_id=dst_cluster.id)
+            ClusterEntry.objects.filter(id__in=dst_entry_ids).update(cluster_id=src_cluster.id)
