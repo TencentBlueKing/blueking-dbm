@@ -43,3 +43,37 @@ class NoticeSignalEnum(StrStructuredEnum):
 class FailoverDrillVersion(StrStructuredEnum):
     V1 = EnumField("v1", _("DBHA v1"))
     V2 = EnumField("v2", _("DBHA v2"))
+    V1_V2 = EnumField("v1,v2", _("DBHA v1+v2"))
+
+
+_FAILOVER_DRILL_VERSION_ATOMS = frozenset({FailoverDrillVersion.V1.value, FailoverDrillVersion.V2.value})
+
+
+def parse_failover_drill_versions(version: str | None) -> frozenset[str]:
+    """把配置里的 version 收成 {v1} / {v2} / {v1, v2}。空值或非法 token 视为仅 v1。"""
+    if not version:
+        return frozenset({FailoverDrillVersion.V1.value})
+    parsed = {part.strip() for part in str(version).split(",") if part.strip()}
+    if not parsed or parsed - _FAILOVER_DRILL_VERSION_ATOMS:
+        return frozenset({FailoverDrillVersion.V1.value})
+    return frozenset(parsed)
+
+
+def failover_drill_has_v2(version: str | None) -> bool:
+    return FailoverDrillVersion.V2.value in parse_failover_drill_versions(version)
+
+
+def failover_drill_queue_version(version: str | None) -> str:
+    """切换队列只认原子版本：含 v2 则查 v2，否则查 v1。"""
+    if failover_drill_has_v2(version):
+        return FailoverDrillVersion.V2.value
+    return FailoverDrillVersion.V1.value
+
+
+def canonical_failover_drill_version(version: str | None) -> str:
+    parsed = parse_failover_drill_versions(version)
+    if parsed == _FAILOVER_DRILL_VERSION_ATOMS:
+        return FailoverDrillVersion.V1_V2.value
+    if FailoverDrillVersion.V2.value in parsed:
+        return FailoverDrillVersion.V2.value
+    return FailoverDrillVersion.V1.value

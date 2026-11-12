@@ -17,6 +17,12 @@ from django.test import TestCase
 
 from backend.db_meta.enums import ClusterStatus, ClusterType
 from backend.db_meta.models import Cluster
+from backend.db_periodic_task.constants import (
+    canonical_failover_drill_version,
+    failover_drill_has_v2,
+    failover_drill_queue_version,
+    parse_failover_drill_versions,
+)
 from backend.db_periodic_task.models import FailoverDrillConfig
 from backend.db_report.enums import ReportStateType
 from backend.db_report.models import FailoverDrillReport
@@ -115,12 +121,52 @@ class TestModelDefaults:
         assert rpt.version == "v1"
         assert RedisFailoverDrillSerializer(rpt).data["version"] == "v1"
 
+    @pytest.mark.usefixtures("multi_db")
+    def test_config_and_report_accept_combined_version(self):
+        conf = FailoverDrillConfig.objects.create(
+            labels=[], cluster_type=ClusterType.TendisTwemproxyRedisInstance, version="v1,v2"
+        )
+        rpt = FailoverDrillReport.objects.create(
+            bk_biz_id=BIZ_ID,
+            cluster_type=ClusterType.TendisTwemproxyRedisInstance,
+            main_task_id="m-combo",
+            version="v1,v2",
+        )
+        conf.refresh_from_db()
+        rpt.refresh_from_db()
+        assert conf.version == "v1,v2"
+        assert rpt.version == "v1,v2"
+        assert RedisFailoverDrillSerializer(rpt).data["version"] == "v1,v2"
+
+
+class TestParseFailoverDrillVersions:
+    @pytest.mark.parametrize(
+        "raw, parsed, canonical, has_v2, queue",
+        [
+            ("v1", {"v1"}, "v1", False, "v1"),
+            ("v2", {"v2"}, "v2", True, "v2"),
+            ("v1,v2", {"v1", "v2"}, "v1,v2", True, "v2"),
+            ("v2,v1", {"v1", "v2"}, "v1,v2", True, "v2"),
+            (" v1 , v2 ", {"v1", "v2"}, "v1,v2", True, "v2"),
+            (None, {"v1"}, "v1", False, "v1"),
+            ("", {"v1"}, "v1", False, "v1"),
+        ],
+    )
+    def test_parse_canonical_queue(self, raw, parsed, canonical, has_v2, queue):
+        assert parse_failover_drill_versions(raw) == frozenset(parsed)
+        assert canonical_failover_drill_version(raw) == canonical
+        assert failover_drill_has_v2(raw) is has_v2
+        assert failover_drill_queue_version(raw) == queue
+
 
 class TestGetDbhaSwitchData:
-    @pytest.mark.parametrize("version, client_attr", [("v1", "HADBApi"), ("v2", "HADBApiV2")])
+    @pytest.mark.parametrize(
+        "version, client_attr",
+        [("v1", "HADBApi"), ("v2", "HADBApiV2"), ("v1,v2", "HADBApiV2"), ("v2,v1", "HADBApiV2")],
+    )
     def test_select_client_by_instance_version(self, version, client_attr):
         rfod = _drill(version=version)
-        resp = {"code": 0, "msg" if version == "v1" else "message": "ok", "data": []}
+        resp = {"code": 0, "msg" if client_attr == "HADBApi" else "message": "ok", "data": []}
         other = "HADBApiV2" if client_attr == "HADBApi" else "HADBApi"
         with patch.object(
             getattr(failover_drill_dbha, client_attr), "switch_queue", return_value=resp
@@ -192,6 +238,11 @@ class TestBuildDrillTargets:
     def test_v2_empty_domain_no_v1_fallback(self):
         assert _drill(version="v2", immute_domain="").get_immute_domain() == ""
 
+    def test_combined_version_uses_cluster_domain(self):
+        assert build_drill_targets(_conf(version="v2,v1", cluster_domain=V2_DOMAIN, city_map={"深圳": "sz"})) == [
+            DrillTarget("", V2_DOMAIN)
+        ]
+
 
 class TestRedisFailoverDrillReport:
     @pytest.mark.usefixtures("multi_db")
@@ -226,6 +277,35 @@ class TestRedisFailoverDrillReport:
         assert rfod.city == "深圳"
         details = create_ticket.call_args.kwargs["details"]
         assert details["drill_infos"][0]["dbha_version"] == "v2"
+
+    @pytest.mark.usefixtures("multi_db")
+    def test_combined_version_report_and_ticket_keep_canonical(self):
+        with patch.object(RedisFailoverDrill, "resolve_city_by_ip", return_value="深圳"):
+            rfod = RedisFailoverDrill(
+                city="",
+                labels=[],
+                bk_biz_id=BIZ_ID,
+                bk_cloud_id=CLOUD_ID,
+                city_map=CITY_MAP,
+                instance_type="proxy",
+                version="v2,v1",
+                immute_domain=V2_DOMAIN,
+            )
+            rpt = FailoverDrillReport.objects.get(main_task_id=rfod.main_task_id)
+            assert rpt.version == "v1,v2"
+            cluster = SimpleNamespace(
+                id=7, bk_cloud_id=CLOUD_ID, cluster_type=ClusterType.TendisTwemproxyRedisInstance
+            )
+            with patch.object(drill_mod.Cluster.objects, "get", return_value=cluster), patch.object(
+                rfod, "get_instance_info", return_value={"ip": DRILL_IP, "logical_city_id": 1}
+            ), patch.object(rfod, "get_drill_instances", return_value=set()), patch.object(
+                drill_mod.Ticket, "create_ticket"
+            ) as create_ticket:
+                rfod.get_failover_drill_params()
+                rfod.create_run_failover_drill_ticket()
+
+        details = create_ticket.call_args.kwargs["details"]
+        assert details["drill_infos"][0]["dbha_version"] == "v1,v2"
 
     @pytest.mark.usefixtures("multi_db")
     def test_v2_adopts_cluster_cloud(self):
@@ -273,6 +353,7 @@ class TestRedisFailoverDrillReport:
     def test_v1_cluster_filters_include_cloud(self):
         assert _drill().cluster_filters()["bk_cloud_id"] == CLOUD_ID
         assert "bk_cloud_id" not in _drill(version="v2", immute_domain=V2_DOMAIN).cluster_filters()
+        assert "bk_cloud_id" not in _drill(version="v1,v2", immute_domain=V2_DOMAIN).cluster_filters()
 
     def test_resolve_city_falls_back_to_dash(self):
         rfod = _drill()
@@ -281,16 +362,15 @@ class TestRedisFailoverDrillReport:
 
 
 class TestSendDrillAlert:
-    def test_alert_contains_version(self):
-        handler = MagicMock()
-        with patch.object(utils_mod.RedisAutofixCtl.objects, "filter") as ctl_filter, patch.object(
+    def _send(self, chat_ids, handler=None):
+        handler = handler or MagicMock()
+        with patch.object(utils_mod, "load_chat_ids_by_priority", return_value=chat_ids) as load_ids, patch.object(
             utils_mod.AppCache.objects,
             "get",
             return_value=SimpleNamespace(bk_biz_name="biz", bk_biz_id=BIZ_ID, db_app_abbr="test"),
         ), patch.object(utils_mod.DBAdministrator, "get_biz_db_type_admins", return_value=["dba"]), patch.object(
             utils_mod, "CmsiHandler", return_value=handler
         ) as cmsi:
-            ctl_filter.return_value.get.return_value = SimpleNamespace(ctl_value='["chat"]')
             utils_mod.send_drill_alert_to_qywx(
                 city="深圳",
                 bk_biz_id=BIZ_ID,
@@ -301,10 +381,25 @@ class TestSendDrillAlert:
                 task_status="y",
                 version="v2",
             )
+        return load_ids, cmsi, handler
 
+    def test_alert_contains_version(self):
+        _, cmsi, handler = self._send(["chat"])
         content = cmsi.call_args.args[1]
         assert "DBHA版本 : v2" in content
+        assert cmsi.call_args.args[2] == ["chat"]
         handler.send_wecom_robot.assert_called_once()
+
+    def test_alert_uses_l0_chat_ids(self):
+        load_ids, cmsi, handler = self._send(["wrk-l0"])
+        load_ids.assert_called_once_with("L0")
+        assert cmsi.call_args.args[2] == ["wrk-l0"]
+        handler.send_wecom_robot.assert_called_once()
+
+    def test_alert_skips_when_no_chat_ids(self):
+        _, cmsi, handler = self._send([])
+        cmsi.assert_not_called()
+        handler.send_wecom_robot.assert_not_called()
 
 
 @pytest.fixture
@@ -478,6 +573,8 @@ class TestFailoverDrillUnitResult:
             ("v1", True, False, True, ReportStateType.ABNORMAL, TaskStatus.SWITCHED_AUTOFIX_ERROR),
             ("v2", False, None, True, ReportStateType.WARNING, TaskStatus.SWITCHED_NO_AUTOFIX),
             ("v2", True, False, True, ReportStateType.WARNING, TaskStatus.SWITCHED_AUTOFIX_ERROR),
+            ("v1,v2", False, None, True, ReportStateType.WARNING, TaskStatus.SWITCHED_NO_AUTOFIX),
+            ("v2,v1", True, False, True, ReportStateType.WARNING, TaskStatus.SWITCHED_AUTOFIX_ERROR),
             ("v2", False, None, False, ReportStateType.ABNORMAL, TaskStatus.SWITCH_FAILED),
             ("v1", True, True, True, ReportStateType.NORMAL, TaskStatus.SUCCESS),
         ],
@@ -569,6 +666,56 @@ class TestDispatch:
             assert conf["target_type"] == "proxy"
             assert conf["version"] == ("v2" if target["immute_domain"] == V2_DOMAIN else "v1")
 
+    def test_combined_row_dispatches_once_with_canonical_version(self, db):
+        cluster_type = ClusterType.TendisTwemproxyRedisInstance.value
+        FailoverDrillConfig.objects.create(
+            labels=[], cluster_type=cluster_type, city_map={"深圳": "sz"}, switch_flag=True, bk_biz_id=BIZ_ID
+        )
+        FailoverDrillConfig.objects.create(
+            labels=[],
+            cluster_type=cluster_type,
+            switch_flag=True,
+            bk_biz_id=BIZ_ID,
+            version="v2",
+            cluster_domain="cache.v2-only.test.db",
+        )
+        FailoverDrillConfig.objects.create(
+            labels=[],
+            cluster_type=cluster_type,
+            switch_flag=True,
+            bk_biz_id=BIZ_ID,
+            version="v2,v1",
+            cluster_domain=V2_DOMAIN,
+        )
+        with patch.object(task_mod.env, "ENABLE_DBHA_V2", True), patch.object(
+            drill_mod.AppCache.objects, "get", return_value=SimpleNamespace(db_app_abbr="test")
+        ), patch.object(task_mod.failover_drill_unit, "apply_async") as apply_async:
+            task_mod.proxy_failover_drill_task()
+
+        calls = [c.kwargs["args"] for c in apply_async.call_args_list]
+        domains = [target["immute_domain"] for target, _ in calls]
+        assert domains.count(V2_DOMAIN) == 1
+        assert "cache.failover-drill-sz.test.db" in domains
+        assert "cache.v2-only.test.db" in domains
+        combined = [conf for target, conf in calls if target["immute_domain"] == V2_DOMAIN]
+        assert len(combined) == 1
+        assert combined[0]["version"] == "v1,v2"
+
+    def test_combined_skipped_when_v2_disabled(self, db):
+        FailoverDrillConfig.objects.create(
+            labels=[],
+            cluster_type=ClusterType.TendisTwemproxyRedisInstance.value,
+            switch_flag=True,
+            bk_biz_id=BIZ_ID,
+            version="v1,v2",
+            cluster_domain=V2_DOMAIN,
+        )
+        with patch.object(task_mod.env, "ENABLE_DBHA_V2", False), patch.object(
+            task_mod.failover_drill_unit, "apply_async"
+        ) as apply_async:
+            task_mod.proxy_failover_drill_task()
+        apply_async.assert_not_called()
+
     @pytest.mark.parametrize(
         "target_type, task_name, expected",
         [
@@ -641,6 +788,7 @@ class TestMysqlConfigRead:
         cluster_type = ClusterType.TenDBHA.value
         FailoverDrillConfig.objects.create(labels=[], cluster_type=cluster_type, switch_flag=False)
         FailoverDrillConfig.objects.create(labels=[], cluster_type=cluster_type, switch_flag=True, version="v2")
+        FailoverDrillConfig.objects.create(labels=[], cluster_type=cluster_type, switch_flag=True, version="v1,v2")
 
         with patch.object(mysql_unit_mod, "MysqlFailoverDrill") as drill:
             mysql_unit_mod.ha_failover_drill_unit("深圳")

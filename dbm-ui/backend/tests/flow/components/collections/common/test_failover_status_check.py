@@ -67,6 +67,19 @@ class TestFailoverStatusCheckSchedule:
         v1.assert_not_called()
         assert set(v2.call_args.kwargs["params"]["query_args"]) == {"app", "switch_start_time", "switch_finished_time"}
 
+    def test_combined_version_queries_v2_queue(self):
+        service = _service()
+        data = FakeData(_kwargs(dbha_version="v1,v2"))
+        resp = {"code": 0, "message": "ok", "data": [{"ip": "1.1.1.1", "port": 30000}]}
+        with patch.object(failover_drill_dbha.HADBApiV2, "switch_queue", return_value=resp) as v2, patch.object(
+            failover_drill_dbha.HADBApi, "switch_queue"
+        ) as v1:
+            assert service._schedule(data, None) is True
+
+        v1.assert_not_called()
+        v2.assert_called_once()
+        service.finish_schedule.assert_called_once()
+
     def test_v2_no_hit_keeps_polling(self):
         service = _service()
         data = FakeData(_kwargs(dbha_version="v2"))

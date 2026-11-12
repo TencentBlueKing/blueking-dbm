@@ -14,7 +14,7 @@ from typing import Dict, List
 from django.db.models import F, Value
 from django.db.models.functions import Concat
 
-from backend.db_periodic_task.constants import FailoverDrillVersion
+from backend.db_periodic_task.constants import FailoverDrillVersion, failover_drill_queue_version
 from backend.db_report.enums import ReportStateType
 from backend.db_report.models.failover_drill_report import FailoverDrillReport
 from backend.flow.utils.failover_drill_dbha import query_switch_queue
@@ -83,7 +83,7 @@ class BaseFailoverDrill:
         finished_time = datetime.now().astimezone(timezone.utc)
         start_time = finished_time - timedelta(hours=8)
         code, msg, data = query_switch_queue(
-            dbha_version=getattr(self, "version", FailoverDrillVersion.V1.value),
+            dbha_version=failover_drill_queue_version(getattr(self, "version", FailoverDrillVersion.V1.value)),
             app=str(self.bk_biz_id),
             start_time=start_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
             finished_time=finished_time.strftime("%Y-%m-%dT%H:%M:%SZ"),

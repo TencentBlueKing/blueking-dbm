@@ -14,7 +14,7 @@ from typing import List, Optional, Tuple
 
 from backend.components.hadb.client import HADBApi
 from backend.components.hadbv2.client import HADBApiV2
-from backend.db_periodic_task.constants import FailoverDrillVersion
+from backend.db_periodic_task.constants import failover_drill_has_v2
 
 logger = logging.getLogger("flow")
 
@@ -39,7 +39,7 @@ def query_switch_queue(
         "switch_start_time": start_time,
         "switch_finished_time": finished_time,
     }
-    if dbha_version == FailoverDrillVersion.V2:
+    if failover_drill_has_v2(dbha_version):
         client = HADBApiV2
     else:
         client = HADBApi

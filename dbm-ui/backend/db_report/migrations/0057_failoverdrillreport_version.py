@@ -2,6 +2,8 @@
 
 from django.db import migrations, models
 
+from backend.db_periodic_task.constants import FailoverDrillVersion
+
 
 class Migration(migrations.Migration):
 
@@ -14,7 +16,7 @@ class Migration(migrations.Migration):
             model_name="failoverdrillreport",
             name="version",
             field=models.CharField(
-                choices=[("v1", "DBHA v1"), ("v2", "DBHA v2")], default="v1", help_text="DBHA版本", max_length=16
+                choices=FailoverDrillVersion.get_choices(), default="v1", help_text="DBHA版本", max_length=16
             ),
         ),
     ]

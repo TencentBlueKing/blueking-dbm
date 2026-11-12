@@ -17,7 +17,7 @@ from pipeline.component_framework.component import Component
 from pipeline.core.flow import Service, StaticIntervalGenerator
 
 import backend.flow.utils.common_act_dataclass as flow_context
-from backend.db_periodic_task.constants import FailoverDrillVersion
+from backend.db_periodic_task.constants import FailoverDrillVersion, failover_drill_queue_version
 from backend.db_report.models.failover_drill_report import FailoverDrillReport
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.failover_drill_dbha import query_switch_queue
@@ -59,7 +59,7 @@ class FailoverStatusCheckService(BaseService):
 
     def _schedule(self, data, parent_data, callback_data=None) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
-        dbha_version = kwargs.get("dbha_version", FailoverDrillVersion.V1.value)
+        dbha_version = failover_drill_queue_version(kwargs.get("dbha_version", FailoverDrillVersion.V1.value))
         finished_time = datetime.now().astimezone(timezone.utc)
         start_time = finished_time - timedelta(minutes=10)
         kwargs["switch_start_time"] = start_time.strftime("%Y-%m-%dT%H:%M:%SZ")

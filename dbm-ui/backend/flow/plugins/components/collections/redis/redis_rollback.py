@@ -50,10 +50,111 @@ _PROGRESS_LOG_INTERVAL_SEC = 60
 # _query_bill result for a bill the backup system no longer knows; None means "unknown".
 BILL_LOST = object()
 
+# Recover rows that are still in flight or already finished successfully.
+_RECOVER_OK_STATUS_EN = {
+    "success",
+    "done",
+    "done, success",
+    "done,success",
+    "ok",
+    "todo",
+    "doing",
+    "waiting",
+    "pending",
+}
+_RECOVER_INFLIGHT_PREFIXES = ("todo,", "todo ", "doing,", "doing ")
+_MAX_FAIL_REASON_GROUPS = 5
+
 
 def is_bill_lost(exc: Exception) -> bool:
     message = str(exc)
     return all(re.search(pattern, message) for pattern in DOWNLOAD_BILL_LOST_PATTERNS)
+
+
+def _parse_bill_id(response) -> int:
+    if not isinstance(response, dict):
+        return -1
+    raw = response.get("bill_id")
+    if raw is None or isinstance(raw, bool):
+        return -1
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return -1
+
+
+def _is_ok_or_inflight_text(text: str) -> bool:
+    return text in _RECOVER_OK_STATUS_EN or text.startswith(_RECOVER_INFLIGHT_PREFIXES)
+
+
+def format_download_fail(response) -> str:
+    """Counts, grouped recover status_en, and one sample task_id from a failed bill."""
+    if not isinstance(response, dict):
+        return ""
+    total = response.get("total") if isinstance(response.get("total"), dict) else {}
+    parts = []
+    counts = []
+    for key in ("success", "fail"):
+        if total.get(key) is not None:
+            counts.append("{}={}".format(key, total[key]))
+    for key in ("doing", "todo"):
+        if total.get(key):
+            counts.append("{}={}".format(key, total[key]))
+    if counts:
+        parts.append(" ".join(counts))
+    reasons = {}
+    samples = {}
+    detail = response.get("detail")
+    for row in detail if isinstance(detail, list) else []:
+        if not _recover_row_failed(row):
+            continue
+        reason = str(row.get("status_en") or "").strip()
+        if not reason:
+            status = row.get("status")
+            reason = "status={}".format(status) if status is not None else _("未知原因")
+        reasons[reason] = reasons.get(reason, 0) + 1
+        samples.setdefault(reason, row)
+    sample = None
+    if reasons:
+        ranked = sorted(reasons.items(), key=lambda item: (-item[1], item[0]))
+        shown = ["{}×{}".format(reason, count) for reason, count in ranked[:_MAX_FAIL_REASON_GROUPS]]
+        if len(ranked) > _MAX_FAIL_REASON_GROUPS:
+            shown.append(_("其余{}种原因").format(len(ranked) - _MAX_FAIL_REASON_GROUPS))
+        parts.append(", ".join(shown))
+        sample = samples.get(ranked[0][0])
+    else:
+        top_msg = str(response.get("msg") or response.get("message") or "").strip()
+        if top_msg and not _is_ok_or_inflight_text(top_msg.lower()):
+            parts.append(top_msg)
+    if sample:
+        sample_parts = []
+        task_id = sample.get("task_id") or sample.get("taskid")
+        filename = sample.get("filename") or sample.get("file_name")
+        if task_id:
+            sample_parts.append("task_id={}".format(task_id))
+        if filename:
+            sample_parts.append("file={}".format(filename))
+        if sample_parts:
+            parts.append(_("样例 {}").format(" ".join(sample_parts)))
+    return "；".join(parts)
+
+
+def _recover_row_failed(row) -> bool:
+    if not isinstance(row, dict):
+        return False
+    lowered = str(row.get("status_en") or "").strip().lower()
+    if lowered:
+        if _is_ok_or_inflight_text(lowered):
+            return False
+        if any(marker in lowered for marker in ("fail", "err", "expire")):
+            return True
+    status = row.get("status")
+    if status is None or status == "" or isinstance(status, bool):
+        return bool(lowered)
+    try:
+        return not (0 <= int(status) <= 4)
+    except (TypeError, ValueError):
+        return not _is_ok_or_inflight_text(str(status).strip().lower())
 
 
 def decode_df_line(disk_line: str) -> dict:
@@ -241,6 +342,11 @@ class RedisRollbackDownloadService(BaseService):
             trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
         return ((getattr(trans_data, "disk_used", None) or {}).get(kwargs["dest_ip"]) or {}).get("backup_dir")
 
+    @staticmethod
+    def _slice_batches(task_ids, batch_size):
+        step = max(int(batch_size or DOWNLOAD_BATCH_SIZE), 1)
+        return [task_ids[i : i + step] for i in range(0, len(task_ids), step)]
+
     def _init_window(self, data, kwargs):
         backup_dir = self._backup_dir(data, kwargs)
         if not backup_dir:
@@ -248,14 +354,18 @@ class RedisRollbackDownloadService(BaseService):
             return False
         plan = RollbackPlan.load(kwargs["plan_id"])
         task_ids, total_bytes = self._download_targets(kwargs, plan)
-        self._batches = [task_ids[i : i + DOWNLOAD_BATCH_SIZE] for i in range(0, len(task_ids), DOWNLOAD_BATCH_SIZE)]
+        self._host_totals = {host.ip: len(host.task_ids) for host in plan.dest_hosts if host.task_ids}
+        self._batch_size = download_window.batch_size_for_hosts(len(self._host_totals))
+        self._batches = self._slice_batches(task_ids, self._batch_size)
         self._batch_sizes = [len(batch) for batch in self._batches]
         self._plan_id = int(kwargs["plan_id"])
         self._dest_ip = kwargs["dest_ip"]
         self._params = self._host_params(kwargs, backup_dir)
         self._total_bytes = total_bytes
         self._window_ready = True
+        data.outputs.batch_size = self._batch_size
         data.outputs.batch_sizes = self._batch_sizes
+        data.outputs.host_totals = self._host_totals
         return True
 
     def _restore_window(self, data, kwargs):
@@ -269,6 +379,16 @@ class RedisRollbackDownloadService(BaseService):
         self._dest_ip = kwargs["dest_ip"]
         self._batches = None
         self._batch_sizes = [int(size) for size in (data.get_one_of_outputs("batch_sizes") or [])]
+        raw_batch_size = data.get_one_of_outputs("batch_size")
+        self._batch_size = (
+            int(raw_batch_size)
+            if raw_batch_size
+            else (self._batch_sizes[0] if self._batch_sizes else DOWNLOAD_BATCH_SIZE)
+        )
+        raw_totals = data.get_one_of_outputs("host_totals")
+        self._host_totals = (
+            {str(ip): int(count) for ip, count in raw_totals.items()} if isinstance(raw_totals, dict) else None
+        )
         self._params = self._host_params(kwargs, backup_dir)
         self._total_bytes = data.get_one_of_outputs("download_bytes")
         self._window_ready = True
@@ -278,9 +398,7 @@ class RedisRollbackDownloadService(BaseService):
         """Load the plan once, only when a batch's task ids are needed for submission."""
         if self._batches is None:
             task_ids = RollbackPlan.load(self._plan_id).dest_host(self._dest_ip).task_ids
-            self._batches = [
-                task_ids[i : i + DOWNLOAD_BATCH_SIZE] for i in range(0, len(task_ids), DOWNLOAD_BATCH_SIZE)
-            ]
+            self._batches = self._slice_batches(task_ids, self._batch_size)
         return self._batches[index]
 
     def _execute(self, data, parent_data) -> bool:
@@ -321,10 +439,14 @@ class RedisRollbackDownloadService(BaseService):
         self.log_debug({k: v for k, v in params.items() if k != "login_passwd"})
         bill_ids = []
         for start in range(0, len(task_ids), DOWNLOAD_BATCH_SIZE):
-            response = RedisBackupApi.download(
-                params={**params, "taskid_list": task_ids[start : start + DOWNLOAD_BATCH_SIZE]}
-            )
-            bill_id = response.get("bill_id", -1)
+            try:
+                response = RedisBackupApi.download(
+                    params={**params, "taskid_list": task_ids[start : start + DOWNLOAD_BATCH_SIZE]}
+                )
+            except Exception as exc:  # pylint: disable=broad-except
+                self.log_error(_("提交下载失败: {}；已提交且仍在下载的单号: {}").format(exc, bill_ids))
+                return False
+            bill_id = _parse_bill_id(response)
             if bill_id <= 0:
                 # A retry resubmits every batch: bamboo rebuilds outputs on each execute.
                 self.log_error(_("提交下载失败: {}；已提交且仍在下载的单号: {}").format(response, bill_ids))
@@ -371,7 +493,10 @@ class RedisRollbackDownloadService(BaseService):
         return download_window.read_batches(self._plan_id, self._dest_ip)
 
     def _query_bill(self, bill_id):
-        """The bill's totals, None when its state is unknown, or BILL_LOST."""
+        """The bill's totals, None when its state is unknown, or BILL_LOST.
+
+        A failed bill copies ``total`` and adds ``fail_reason`` from recover ``detail``.
+        """
         try:
             response = RedisBackupApi.download_result({"bill_id": bill_id})
         except Exception as exc:  # pylint: disable=broad-except
@@ -379,9 +504,22 @@ class RedisRollbackDownloadService(BaseService):
                 return BILL_LOST
             self.log_error(_("查询下载结果异常: bill={}, {}").format(bill_id, exc))
             return None
-        if response is None or "total" not in response:
+        if not isinstance(response, dict) or not isinstance(response.get("total"), dict):
+            self.log_error(_("查询下载结果返回格式异常: bill={}, response={}").format(bill_id, response))
             return None
-        return response["total"]
+        total = response["total"]
+        if int(total.get("fail") or 0) > 0:
+            total = dict(total)
+            total["fail_reason"] = format_download_fail(response)
+        return total
+
+    def _batch_fail_message(self, index, bill_id, total):
+        extra = ""
+        if total and total.get("fail_reason"):
+            extra = " " + total["fail_reason"]
+        return _("{} 批次 {}/{} 下载失败: bill={}{}；已提交: {}").format(
+            self._dest_ip, index + 1, len(self._batch_sizes), bill_id, extra, self._submitted_bills()
+        )
 
     def _release_lost(self, data, index, entry):
         """Free a batch whose bill was lost so _advance resubmits it, at most
@@ -408,9 +546,11 @@ class RedisRollbackDownloadService(BaseService):
         try:
             response = RedisBackupApi.download(params={**self._params, "taskid_list": batch})
         except Exception as exc:  # pylint: disable=broad-except
-            self.log_error(_("提交下载异常: {}").format(exc))
-            return -1
-        return int((response or {}).get("bill_id", -1))
+            return -1, str(exc)
+        bill_id = _parse_bill_id(response)
+        if bill_id <= 0:
+            return -1, str(response)
+        return bill_id, ""
 
     def _submitted_bills(self):
         return sorted(
@@ -450,14 +590,14 @@ class RedisRollbackDownloadService(BaseService):
     def _submit_reserved(self, data, index, entry):
         """Resubmit a batch whose reservation is still counted (submitting without a bill id)."""
         batch = self._batch_at(index)
-        bill_id = self._call_download(batch)
+        bill_id, reason = self._call_download(batch)
         if bill_id <= 0:
             self._release(index, entry, download_window.DOWNLOAD_STATE_FAILED)
             self._mark_unknown(data, index)
             self._execute_failed(
                 data,
-                _("{} 批次 {}/{} 重新提交失败；已提交: {}").format(
-                    self._dest_ip, index + 1, len(self._batch_sizes), self._submitted_bills()
+                _("{} 批次 {}/{} 重新提交失败: {}；已提交: {}").format(
+                    self._dest_ip, index + 1, len(self._batch_sizes), reason, self._submitted_bills()
                 ),
             )
             return False
@@ -471,8 +611,23 @@ class RedisRollbackDownloadService(BaseService):
         )
         return True
 
+    def _align_ledger_batch_size(self, data, entries):
+        """Keep the batch boundaries of a ledger started before per-host batch sizing."""
+        if not entries or 0 not in entries or not self._batch_sizes:
+            return
+        recorded = int(entries[0].get("task_count") or 0)
+        if recorded <= 0 or recorded == self._batch_sizes[0]:
+            return
+        task_ids = [tid for batch in self._batches for tid in batch]
+        self._batch_size = recorded
+        self._batches = self._slice_batches(task_ids, self._batch_size)
+        self._batch_sizes = [len(batch) for batch in self._batches]
+        data.outputs.batch_size = self._batch_size
+        data.outputs.batch_sizes = self._batch_sizes
+
     def _reconcile(self, data):
         entries = self._read_entries()
+        self._align_ledger_batch_size(data, entries)
         for index in sorted(entries):
             if index >= len(self._batch_sizes):
                 self.log_error(_("{} 台账批次 {} 超出计划范围，已忽略").format(self._dest_ip, index))
@@ -507,16 +662,7 @@ class RedisRollbackDownloadService(BaseService):
                 continue
             if int(total.get("fail", 0)) > 0:
                 self._release(index, entry, download_window.DOWNLOAD_STATE_FAILED)
-                self._execute_failed(
-                    data,
-                    _("{} 批次 {}/{} 下载失败: bill={}；已提交: {}").format(
-                        self._dest_ip,
-                        index + 1,
-                        len(self._batch_sizes),
-                        bill_id,
-                        self._submitted_bills(),
-                    ),
-                )
+                self._execute_failed(data, self._batch_fail_message(index, bill_id, total))
             elif not total.get("todo") and not total.get("doing"):
                 self._release(index, entry, download_window.DOWNLOAD_STATE_CLOSED)
 
@@ -534,7 +680,13 @@ class RedisRollbackDownloadService(BaseService):
                 continue
             task_count = self._batch_sizes[index]
             result = download_window.reserve(
-                self._plan_id, self._dest_ip, index, task_count, DOWNLOAD_INFLIGHT_TASK_LIMIT
+                self._plan_id,
+                self._dest_ip,
+                index,
+                task_count,
+                DOWNLOAD_INFLIGHT_TASK_LIMIT,
+                host_totals=self._host_totals,
+                batch_size=self._batch_size,
             )
             if result == download_window.RESERVE_NO_WINDOW:
                 return
@@ -545,12 +697,14 @@ class RedisRollbackDownloadService(BaseService):
                 )
                 return
             batch = self._batch_at(index)
-            bill_id = self._call_download(batch)
+            bill_id, reason = self._call_download(batch)
             if bill_id <= 0:
                 download_window.release(self._plan_id, self._dest_ip, index, download_window.DOWNLOAD_STATE_FAILED)
                 self._execute_failed(
                     data,
-                    _("提交下载失败: 已提交: {}").format(self._submitted_bills()),
+                    _("{} 批次 {}/{} 提交下载失败: {}；已提交: {}").format(
+                        self._dest_ip, index + 1, len(self._batch_sizes), reason, self._submitted_bills()
+                    ),
                 )
                 return
             if not self._mark_open(data, index, bill_id):
@@ -683,16 +837,7 @@ class RedisRollbackDownloadService(BaseService):
             totals[index] = total
             if int(total.get("fail", 0)) > 0:
                 self._release(index, entry, download_window.DOWNLOAD_STATE_FAILED)
-                self._execute_failed(
-                    data,
-                    _("{} 批次 {}/{} 下载失败: bill={}；已提交: {}").format(
-                        self._dest_ip,
-                        index + 1,
-                        len(self._batch_sizes),
-                        entry.get("bill_id"),
-                        self._submitted_bills(),
-                    ),
-                )
+                self._execute_failed(data, self._batch_fail_message(index, entry.get("bill_id"), total))
             elif not total.get("todo") and not total.get("doing"):
                 self._release(index, entry, download_window.DOWNLOAD_STATE_CLOSED)
 
@@ -721,18 +866,25 @@ class RedisRollbackDownloadService(BaseService):
         bill_ids = data.get_one_of_outputs("backup_bill_ids") or [data.get_one_of_outputs("backup_bill_id")]
         todo = doing = 0
         for bill_id in bill_ids:
-            result_response = RedisBackupApi.download_result({"bill_id": bill_id})
-            if result_response is None or "total" not in result_response:
-                self.log_error(_("{} 查询下载结果失败").format(bill_id))
+            try:
+                result_response = RedisBackupApi.download_result({"bill_id": bill_id})
+            except Exception as exc:  # pylint: disable=broad-except
+                self.log_error(_("{} 查询下载结果异常: {}").format(bill_id, exc))
+                self.finish_schedule()
+                return False
+            if not isinstance(result_response, dict) or not isinstance(result_response.get("total"), dict):
+                self.log_error(_("{} 查询下载结果失败: {}").format(bill_id, result_response))
                 self.finish_schedule()
                 return False
             total = result_response["total"]
-            if total["fail"] > 0:
-                self.log_error(_("{} 下载失败").format(bill_id))
+            if int(total.get("fail") or 0) > 0:
+                reason = format_download_fail(result_response)
+                extra = " " + reason if reason else ""
+                self.log_error(_("{} 下载失败{}").format(bill_id, extra))
                 self.finish_schedule()
                 return False
-            todo += total["todo"]
-            doing += total["doing"]
+            todo += int(total.get("todo") or 0)
+            doing += int(total.get("doing") or 0)
         if todo == 0 and doing == 0:
             summary = self._download_summary(
                 data.get_one_of_outputs("download_started_at"), data.get_one_of_outputs("download_bytes"), time.time()
