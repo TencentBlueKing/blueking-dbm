@@ -26,6 +26,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"k8s-dbs/common/entity"
+	coreentity "k8s-dbs/core/entity"
 	metaentity "k8s-dbs/metadata/entity"
 )
 
@@ -67,6 +68,7 @@ func (m *mockConfigProvider) ListConfigsByLimit(_ int) ([]*metaentity.K8sCluster
 type mockClusterProvider struct {
 	unsyncedAll      []*metaentity.K8sCrdClusterEntity
 	unsyncedFiltered []*metaentity.K8sCrdClusterEntity
+	findByParamsRes  *metaentity.K8sCrdClusterEntity
 	filterArgs       struct {
 		configID     uint64
 		namespace    string
@@ -83,7 +85,10 @@ func (m *mockClusterProvider) FindClusterByID(_ uint64) (*metaentity.K8sCrdClust
 	return nil, nil
 }
 func (m *mockClusterProvider) FindByParams(_ *metaentity.ClusterQueryParams) (*metaentity.K8sCrdClusterEntity, error) {
-	return nil, nil
+	if m.err != nil {
+		return nil, m.err
+	}
+	return m.findByParamsRes, nil
 }
 func (m *mockClusterProvider) UpdateCluster(e *metaentity.K8sCrdClusterEntity) (uint64, error) {
 	return 1, nil
@@ -119,7 +124,7 @@ func TestSyncFilteredClusters_K8sClusterNameResolvesToConfigID(t *testing.T) {
 	}
 	p := NewSyncLegacyProvider(clusterMock, configMock, nil)
 
-	result, err := p.SyncFilteredClusters(&SyncFilteredRequest{
+	result, err := p.SyncFilteredClusters(&coreentity.SyncFilteredParams{
 		K8sClusterName: "bcs-test",
 	})
 
@@ -139,7 +144,7 @@ func TestSyncFilteredClusters_CombinedFilters(t *testing.T) {
 	}
 	p := NewSyncLegacyProvider(clusterMock, configMock, nil)
 
-	_, err := p.SyncFilteredClusters(&SyncFilteredRequest{
+	_, err := p.SyncFilteredClusters(&coreentity.SyncFilteredParams{
 		K8sClusterName: "bcs-prod",
 		Namespace:      "dbs-ns",
 		ClusterNames:   []string{"cluster-a"},
@@ -162,7 +167,7 @@ func TestSyncFilteredClusters_K8sClusterWithNamespace(t *testing.T) {
 	}
 	p := NewSyncLegacyProvider(clusterMock, configMock, nil)
 
-	result, err := p.SyncFilteredClusters(&SyncFilteredRequest{
+	result, err := p.SyncFilteredClusters(&coreentity.SyncFilteredParams{
 		K8sClusterName: "bcs-prod",
 		Namespace:      "production",
 	})
@@ -207,7 +212,7 @@ func TestSyncFilteredClusters_K8sClusterNameNotFound(t *testing.T) {
 	}
 	p := NewSyncLegacyProvider(&mockClusterProvider{}, configMock, nil)
 
-	_, err := p.SyncFilteredClusters(&SyncFilteredRequest{
+	_, err := p.SyncFilteredClusters(&coreentity.SyncFilteredParams{
 		K8sClusterName: "nonexistent",
 	})
 
@@ -221,7 +226,7 @@ func TestSyncFilteredClusters_ConfigProviderError(t *testing.T) {
 	}
 	p := NewSyncLegacyProvider(&mockClusterProvider{}, configMock, nil)
 
-	_, err := p.SyncFilteredClusters(&SyncFilteredRequest{
+	_, err := p.SyncFilteredClusters(&coreentity.SyncFilteredParams{
 		K8sClusterName: "some-cluster",
 	})
 
@@ -240,11 +245,131 @@ func TestSyncFilteredClusters_ClusterProviderError(t *testing.T) {
 	}
 	p := NewSyncLegacyProvider(clusterMock, configMock, nil)
 
-	_, err := p.SyncFilteredClusters(&SyncFilteredRequest{
+	_, err := p.SyncFilteredClusters(&coreentity.SyncFilteredParams{
 		K8sClusterName: "bcs-test",
 		Namespace:      "test-ns",
 	})
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "query timeout")
+}
+
+// --- SyncOneCluster ---
+
+func newSyncOneRequest() *coreentity.SyncOneParams {
+	return &coreentity.SyncOneParams{
+		K8sClusterName: "bcs-test",
+		Namespace:      "test-ns",
+		ClusterName:    "cluster-a",
+		Domain:         "k8s-qdrant.cluster-a.app.db",
+		Instances:      []string{"127.0.0.1#6333"},
+		ImmuteDomain:   "100_k8s_qdrant_ha_cluster-a",
+		Region:         "default",
+	}
+}
+
+func TestSyncOneCluster_ConfigNotFound(t *testing.T) {
+	configMock := &mockConfigProvider{
+		configs: map[string]*metaentity.K8sClusterConfigEntity{},
+	}
+	p := NewSyncLegacyProvider(&mockClusterProvider{}, configMock, nil)
+
+	_, err := p.SyncOneCluster(newSyncOneRequest())
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "不存在")
+}
+
+func TestSyncOneCluster_ConfigProviderError(t *testing.T) {
+	configMock := &mockConfigProvider{
+		err: fmt.Errorf("db connection refused"),
+	}
+	p := NewSyncLegacyProvider(&mockClusterProvider{}, configMock, nil)
+
+	_, err := p.SyncOneCluster(newSyncOneRequest())
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "db connection refused")
+}
+
+func TestSyncOneCluster_ClusterNotFound(t *testing.T) {
+	configMock := &mockConfigProvider{
+		configs: map[string]*metaentity.K8sClusterConfigEntity{
+			"bcs-test": {ID: 7},
+		},
+	}
+	clusterMock := &mockClusterProvider{
+		findByParamsRes: nil, // 定位不到集群
+	}
+	p := NewSyncLegacyProvider(clusterMock, configMock, nil)
+
+	_, err := p.SyncOneCluster(newSyncOneRequest())
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "不存在")
+}
+
+func TestSyncOneCluster_FindByParamsError(t *testing.T) {
+	configMock := &mockConfigProvider{
+		configs: map[string]*metaentity.K8sClusterConfigEntity{
+			"bcs-test": {ID: 7},
+		},
+	}
+	clusterMock := &mockClusterProvider{
+		err: fmt.Errorf("query timeout"),
+	}
+	p := NewSyncLegacyProvider(clusterMock, configMock, nil)
+
+	_, err := p.SyncOneCluster(newSyncOneRequest())
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "query timeout")
+}
+
+func TestSyncOneCluster_AddonInfoNil(t *testing.T) {
+	configMock := &mockConfigProvider{
+		configs: map[string]*metaentity.K8sClusterConfigEntity{
+			"bcs-test": {ID: 7},
+		},
+	}
+	clusterMock := &mockClusterProvider{
+		findByParamsRes: &metaentity.K8sCrdClusterEntity{
+			ID:          99,
+			ClusterName: "cluster-a",
+			AddonInfo:   nil, // 缺少 addon 信息，domain/cluster 同步前置校验失败
+		},
+	}
+	p := NewSyncLegacyProvider(clusterMock, configMock, nil)
+
+	detail, err := p.SyncOneCluster(newSyncOneRequest())
+
+	assert.NoError(t, err)
+	assert.NotNil(t, detail)
+	assert.Equal(t, statusFailed, detail.Status)
+	assert.Contains(t, detail.Error, "addon info is nil")
+}
+
+func TestSyncOneCluster_AlreadySyncedSkipped(t *testing.T) {
+	configMock := &mockConfigProvider{
+		configs: map[string]*metaentity.K8sClusterConfigEntity{
+			"bcs-test": {ID: 7},
+		},
+	}
+	clusterMock := &mockClusterProvider{
+		findByParamsRes: &metaentity.K8sCrdClusterEntity{
+			ID:           99,
+			ClusterName:  "cluster-a",
+			DbmClusterID: 12345, // 已同步
+			AddonInfo:    &metaentity.K8sCrdStorageAddonEntity{AddonType: "qdrant"},
+		},
+	}
+	p := NewSyncLegacyProvider(clusterMock, configMock, nil)
+
+	detail, err := p.SyncOneCluster(newSyncOneRequest())
+
+	assert.NoError(t, err)
+	assert.NotNil(t, detail)
+	assert.Equal(t, statusSkipped, detail.Status)
+	assert.Equal(t, uint64(12345), detail.DbmClusterID)
+	assert.Contains(t, detail.Error, "已同步")
 }
