@@ -33,6 +33,8 @@ export interface Config {
     catchError?: boolean;
     // 只有这些业务错误码不弹全局提示，交给调用方处理；其余错误码照常提示
     catchErrorCodes?: number[];
+    // 文件下载时沿用后端返回的文件名（支持 filename*=UTF-8'' 编码），不追加时间戳
+    keepFileName?: boolean;
     onUploadProgress?: (params: CancelTokenSource) => void;
     permission?: 'page' | 'dialog' | 'catch';
     timeout?: number;
