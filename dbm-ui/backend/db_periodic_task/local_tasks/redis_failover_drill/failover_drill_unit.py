@@ -16,7 +16,7 @@ from django.utils.translation import gettext as _
 
 from backend.db_meta.enums import ClusterStatus, ClusterType
 from backend.db_meta.models import Cluster
-from backend.db_periodic_task.constants import FailoverDrillVersion
+from backend.db_periodic_task.constants import FailoverDrillVersion, failover_drill_has_v2
 from backend.db_report.enums import ReportStateType
 from backend.flow.utils.failover_drill_dbha import get_dbha_v2_service_ips
 
@@ -40,9 +40,9 @@ def handle_drill_error(
 
 def handle_autofix_failure(rfod: RedisFailoverDrill, error_info: str, task_status: str, switch_success: bool) -> None:
     """
-    切换成功但自愈未生成或失败：v2 自愈尚未接入，记为预警；v1 维持异常
+    切换成功但自愈未生成或失败：含 v2 时自愈尚未接入，记为预警；仅 v1 维持异常
     """
-    if rfod.version == FailoverDrillVersion.V2 and switch_success:
+    if failover_drill_has_v2(rfod.version) and switch_success:
         handle_drill_error(rfod, _("{}（dbha-v2 自愈未发生）").format(error_info), task_status, state=ReportStateType.WARNING)
     else:
         handle_drill_error(rfod, error_info, task_status)
@@ -82,7 +82,7 @@ def failover_drill_unit(target: Union[Dict[str, str], str], conf: Dict[str, Any]
 
     log_with_context("info", rfod.city, _("容灾演练资源检查"))
 
-    if rfod.version == FailoverDrillVersion.V2 and not rfod.get_immute_domain():
+    if failover_drill_has_v2(rfod.version) and not rfod.get_immute_domain():
         error_info = _("v2 容灾演练配置未指定演练集群域名(cluster_domain)，退出演练")
         handle_drill_error(rfod, error_info, TaskStatus.NO_CLUSTER_DOMAIN)
         return
@@ -111,7 +111,7 @@ def failover_drill_unit(target: Union[Dict[str, str], str], conf: Dict[str, Any]
         handle_drill_error(rfod, error_info, TaskStatus.CLUSTER_ERROR)
         return
 
-    if rfod.version == FailoverDrillVersion.V2 and not get_dbha_v2_service_ips(
+    if failover_drill_has_v2(rfod.version) and not get_dbha_v2_service_ips(
         rfod.bk_cloud_id, rfod.get_drill_logical_city_id()
     ):
         error_info = _("拿不到 dbha-v2 服务 IP，退出演练")

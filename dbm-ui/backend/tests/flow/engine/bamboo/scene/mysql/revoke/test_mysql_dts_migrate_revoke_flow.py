@@ -872,8 +872,14 @@ class RemoteScriptTest(SimpleTestCase):
         """回收测试里起的进程，避免残留。"""
         for proc in self.procs:
             if proc.poll() is None:
-                proc.kill()
-            proc.wait(timeout=5)
+                try:
+                    proc.kill()
+                except OSError:
+                    continue
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                pass
 
     def _spawn_myloader(self, subdir):
         """在 subdir 下放一个名为 myloader 的 sleep 副本并启动，进程名是 myloader，命令行带 subdir 路径。"""

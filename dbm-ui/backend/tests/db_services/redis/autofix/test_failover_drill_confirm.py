@@ -43,11 +43,19 @@ def _need_manual_confirm(immute_domain):
     [
         ("cache.failover-drill-sz.test.db", [], False),
         (V2_DOMAIN, [{"cluster_domain": V2_DOMAIN}], False),
+        (V2_DOMAIN, [{"cluster_domain": V2_DOMAIN, "version": "v1,v2"}], False),
         (V2_DOMAIN, [{"cluster_domain": V2_DOMAIN, "switch_flag": False}], True),
         (V2_DOMAIN, [{"cluster_domain": V2_DOMAIN, "version": "v1"}], True),
         ("cache.normal.test.db", [{"cluster_domain": V2_DOMAIN}], True),
     ],
-    ids=["v1-prefix", "enabled-v2-domain", "disabled-v2-domain", "v1-row-domain", "normal-cluster"],
+    ids=[
+        "v1-prefix",
+        "enabled-v2-domain",
+        "enabled-combined-domain",
+        "disabled-v2-domain",
+        "v1-row-domain",
+        "normal-cluster",
+    ],
 )
 def test_need_manual_confirm(domain, configs, expected):
     for extra in configs:

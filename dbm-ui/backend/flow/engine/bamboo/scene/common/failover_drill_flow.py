@@ -16,7 +16,12 @@ from django.utils.translation import gettext as _
 
 from backend import env
 from backend.components.hadb.client import HADBApi
-from backend.db_periodic_task.constants import FailoverDrillVersion
+from backend.db_periodic_task.constants import (
+    FailoverDrillVersion,
+    failover_drill_has_v2,
+    failover_drill_queue_version,
+    parse_failover_drill_versions,
+)
 from backend.db_report.models import FailoverDrillReport
 from backend.exceptions import AppBaseException
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
@@ -40,7 +45,7 @@ class FailoverDrillFlow:
             "drill_infos": [{  # 演练目标集群和目标IP
                 "cluster_id": 7,
                 "bk_cloud_id": 1,
-                "dbha_version": "v1", # 可选，v1 / v2，缺省为 v1
+                "dbha_version": "v1", # 可选，v1 / v2 / v1,v2，缺省为 v1
                 "types": ["xxx"], # 可视 cluster_type 而配置
                 "xxx": {
                     "ip": "2.2.2.2",
@@ -93,6 +98,16 @@ class FailoverDrillFlow:
     def get_clean_shell_script(self):
         return ";".join(["iptables -D INPUT -s {} -j DROP".format(ip) for ip in self.hadb_ip_info])
 
+    @staticmethod
+    def _unique_ips(ips: List[str]) -> List[str]:
+        seen = set()
+        ordered: List[str] = []
+        for ip in ips:
+            if ip and ip not in seen:
+                seen.add(ip)
+                ordered.append(ip)
+        return ordered
+
     def get_exec_info(self, drill_info: dict, instance_role: str):
         return {
             "cluster_id": drill_info.get("cluster_id"),
@@ -125,12 +140,13 @@ class FailoverDrillFlow:
 
     def _create_sub_pipeline(self, drill_info, instance_role):
         """
-        创建一个演练流程单元，按 drill_info["dbha_version"] 选择 v1 / v2 动作，缺省为 v1
+        创建一个演练流程单元，按 drill_info["dbha_version"] 选择 v1 / v2 动作，缺省为 v1。
+        含 v2（包括 v1,v2）走 v2 动作；组合值时 iptables 并入 v1 GM/agent IP。
         """
         sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
         exec_info = self.get_exec_info(drill_info, instance_role)
 
-        if drill_info.get("dbha_version", FailoverDrillVersion.V1.value) == FailoverDrillVersion.V2:
+        if failover_drill_has_v2(drill_info.get("dbha_version", FailoverDrillVersion.V1.value)):
             self._build_v2_acts(sub_pipeline, drill_info, exec_info, instance_role)
         else:
             self._build_v1_acts(sub_pipeline, drill_info, exec_info, instance_role)
@@ -210,9 +226,22 @@ su - mysql -c "cd {PROBE_DIR} && ./stop-probe.sh"
 
         bk_cloud_id = exec_info.get("bk_cloud_id")
         exec_ip = exec_info.get("ip")
+        versions = parse_failover_drill_versions(drill_info.get("dbha_version", FailoverDrillVersion.V2.value))
+        v1_ips: List[str] = []
+        if FailoverDrillVersion.V1.value in versions:
+            self.hadb_ip_info = set()
+            self.get_dbha_ip_info(
+                db_type=exec_info["cluster_type"],
+                bk_cloud_id=bk_cloud_id,
+                logical_city_id=exec_info["logical_city_id"],
+            )
+            v1_ips = list(self.hadb_ip_info)
+            if not v1_ips:
+                raise AppBaseException(_("拿不到 dbha v1 GM/agent IP，退出演练"))
         service_ips = get_dbha_v2_service_ips(bk_cloud_id, exec_info.get("logical_city_id"))
         if not service_ips:
             raise AppBaseException(_("拿不到 dbha-v2 服务 IP，退出演练"))
+        block_ips = self._unique_ips(v1_ips + service_ips)
 
         start_probe = probe_start_sub_flow(
             root_id=self.root_id, data=self.data, bk_cloud_id=bk_cloud_id, ips=[exec_ip]
@@ -226,7 +255,7 @@ su - mysql -c "cd {PROBE_DIR} && ./stop-probe.sh"
             kwargs={
                 "bk_cloud_id": bk_cloud_id,
                 "exec_ip": exec_ip,
-                "cluster": {"shell_command": self.get_v2_trigger_script(service_ips)},
+                "cluster": {"shell_command": self.get_v2_trigger_script(block_ips)},
             },
         )
 
@@ -243,7 +272,9 @@ su - mysql -c "cd {PROBE_DIR} && ./stop-probe.sh"
                 "ip": exec_ip,
                 "main_task_id": drill_info.get("main_task_id", 0),
                 "instance_role": instance_role,
-                "dbha_version": FailoverDrillVersion.V2.value,
+                "dbha_version": failover_drill_queue_version(
+                    drill_info.get("dbha_version", FailoverDrillVersion.V2.value)
+                ),
             },
         )
 
@@ -256,7 +287,7 @@ su - mysql -c "cd {PROBE_DIR} && ./stop-probe.sh"
                 # 规则可能已被 trigger 脚本回滚或重跑时删除，清理失败会阻断后续拉起探针
                 "cluster": {
                     "shell_command": "; ".join(
-                        ["iptables -D INPUT -s {} -j DROP || true".format(shlex.quote(ip)) for ip in service_ips]
+                        ["iptables -D INPUT -s {} -j DROP || true".format(shlex.quote(ip)) for ip in block_ips]
                     )
                 },
             },

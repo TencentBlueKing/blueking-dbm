@@ -117,6 +117,75 @@ def test_concurrent_reservations_do_not_exceed_the_plan_limit():
 
 
 @pytest.mark.parametrize(
+    "host_count, expected",
+    [(0, 50), (1, 50), (2, 50), (3, 33), (4, 25), (5, 20), (10, 10), (20, 5), (25, 5), (50, 5)],
+)
+def test_batch_size_for_hosts_scales_within_bounds(host_count, expected):
+    assert download_window.batch_size_for_hosts(host_count, 100) == expected
+
+
+@pytest.mark.django_db
+def test_fair_share_prevents_monopoly_and_reclaims_finished_or_failed_hosts():
+    plan = _plan_row()
+    hosts = ["2.2.2.1", "2.2.2.2", "2.2.2.3", "2.2.2.4"]
+    totals = {ip: 100 for ip in hosts}
+
+    # First host gets its 25-task share and cannot hoard a second batch while 3 peers are unfinished.
+    assert download_window.reserve(plan.id, "2.2.2.1", 0, 25, 100, host_totals=totals, batch_size=25) == 25
+    assert (
+        download_window.reserve(plan.id, "2.2.2.1", 1, 25, 100, host_totals=totals, batch_size=25)
+        == download_window.RESERVE_NO_WINDOW
+    )
+    for idx, ip in enumerate(hosts[1:], start=2):
+        assert download_window.reserve(plan.id, ip, 0, 25, 100, host_totals=totals, batch_size=25) == 25 * idx
+
+    # Host 4 fails: its 25-task share opens up immediately for healthy peers, then returns on retry.
+    download_window.release(plan.id, "2.2.2.4", 0, download_window.DOWNLOAD_STATE_FAILED)
+    assert download_window.reserve(plan.id, "2.2.2.1", 1, 25, 100, host_totals=totals, batch_size=25) == 100
+    # Retry on Host 4 clears its failed marker even when the window is full, so the next release yields back to it.
+    assert (
+        download_window.reserve(plan.id, "2.2.2.4", 0, 25, 100, host_totals=totals, batch_size=25)
+        == download_window.RESERVE_NO_WINDOW
+    )
+    download_window.release(plan.id, "2.2.2.1", 0, download_window.DOWNLOAD_STATE_CLOSED)
+    assert (
+        download_window.reserve(plan.id, "2.2.2.1", 2, 25, 100, host_totals=totals, batch_size=25)
+        == download_window.RESERVE_NO_WINDOW
+    )
+    assert download_window.reserve(plan.id, "2.2.2.4", 0, 25, 100, host_totals=totals, batch_size=25) == 100
+
+    # Once Hosts 2, 3, and 4 finish all 100 tasks, Host 1 expands to fill the whole 100-task window.
+    totals_small = {"2.2.2.1": 200, "2.2.2.2": 25, "2.2.2.3": 25, "2.2.2.4": 25}
+    for ip in ("2.2.2.2", "2.2.2.3", "2.2.2.4"):
+        download_window.release(plan.id, ip, 0, download_window.DOWNLOAD_STATE_CLOSED)
+    assert download_window.reserve(plan.id, "2.2.2.1", 2, 25, 100, host_totals=totals_small, batch_size=25) == 50
+    assert download_window.reserve(plan.id, "2.2.2.1", 3, 25, 100, host_totals=totals_small, batch_size=25) == 75
+    assert download_window.reserve(plan.id, "2.2.2.1", 4, 25, 100, host_totals=totals_small, batch_size=25) == 100
+
+
+@pytest.mark.django_db
+def test_over_twenty_hosts_yields_to_starved_peers_without_deadlocking():
+    plan = _plan_row()
+    hosts = [f"1.1.1.{idx}" for idx in range(1, 26)]
+    totals = {ip: 20 for ip in hosts}
+
+    for idx, ip in enumerate(hosts[:20], start=1):
+        assert download_window.reserve(plan.id, ip, 0, 5, 100, host_totals=totals, batch_size=5) == 5 * idx
+    assert (
+        download_window.reserve(plan.id, hosts[20], 0, 5, 100, host_totals=totals, batch_size=5)
+        == download_window.RESERVE_NO_WINDOW
+    )
+
+    # Host 1 finishes batch 0 while 19 others are still running; it yields the freed slot to Host 21 (progress 0).
+    download_window.release(plan.id, hosts[0], 0, download_window.DOWNLOAD_STATE_CLOSED)
+    assert (
+        download_window.reserve(plan.id, hosts[0], 1, 5, 100, host_totals=totals, batch_size=5)
+        == download_window.RESERVE_NO_WINDOW
+    )
+    assert download_window.reserve(plan.id, hosts[20], 0, 5, 100, host_totals=totals, batch_size=5) == 100
+
+
+@pytest.mark.parametrize(
     "total, interval",
     [(0, 10), (499, 10), (500, 20), (999, 20), (1000, 30), (1999, 30), (2000, 60), (5000, 60)],
 )

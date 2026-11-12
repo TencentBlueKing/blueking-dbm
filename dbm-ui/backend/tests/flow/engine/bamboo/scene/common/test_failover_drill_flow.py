@@ -20,6 +20,7 @@ from backend.flow.plugins.components.collections.common.failover_status_check im
 ROOT_ID = "root"
 DRILL_IP = "1.1.1.1"
 SERVICE_IPS = ["2.2.2.2", "3.3.3.3"]
+V1_IPS = ["1.1.1.9"]
 START_PROBE = object()
 
 
@@ -166,3 +167,56 @@ class TestV2Acts:
                 flow._create_sub_pipeline(_drill_info(dbha_version="v2"), "proxy")
 
         assert all(not b.acts for b in RecordingSubBuilder.instances)
+
+
+class TestCombinedActs:
+    def test_combined_blocks_v1_and_v2_ips_and_monitors_v2_queue(self, flow):
+        with patch.object(mod.env, "ENABLE_DBHA_V2", True), patch.object(
+            mod, "get_dbha_v2_service_ips", return_value=SERVICE_IPS
+        ), patch.object(mod, "probe_start_sub_flow", return_value=START_PROBE), patch.object(
+            mod.HADBApi, "ha_status", return_value={"data": [{"ip": V1_IPS[0]}]}
+        ):
+            sub = flow._create_sub_pipeline(_drill_info(dbha_version="v1,v2"), "proxy")
+
+        trigger, check, clean, _probe = sub["acts"]
+        script = trigger[3]["cluster"]["shell_command"]
+        for ip in V1_IPS + SERVICE_IPS:
+            assert "iptables -I INPUT -s {} -j DROP".format(ip) in script
+            assert "iptables -D INPUT -s {} -j DROP".format(ip) in clean[3]["cluster"]["shell_command"]
+        assert check[3]["dbha_version"] == "v2"
+
+    def test_combined_missing_v1_ips_raises_without_acts(self, flow):
+        with patch.object(mod.env, "ENABLE_DBHA_V2", True), patch.object(
+            mod, "get_dbha_v2_service_ips", return_value=SERVICE_IPS
+        ), patch.object(mod, "probe_start_sub_flow", return_value=START_PROBE), patch.object(
+            mod.HADBApi, "ha_status", return_value={"data": []}
+        ):
+            with pytest.raises(AppBaseException):
+                flow._create_sub_pipeline(_drill_info(dbha_version="v1,v2"), "proxy")
+
+        assert all(not b.acts for b in RecordingSubBuilder.instances)
+
+    def test_combined_missing_v2_ips_raises_without_acts(self, flow):
+        with patch.object(mod.env, "ENABLE_DBHA_V2", True), patch.object(
+            mod, "get_dbha_v2_service_ips", return_value=[]
+        ), patch.object(mod, "probe_start_sub_flow", return_value=START_PROBE), patch.object(
+            mod.HADBApi, "ha_status", return_value={"data": [{"ip": V1_IPS[0]}]}
+        ):
+            with pytest.raises(AppBaseException):
+                flow._create_sub_pipeline(_drill_info(dbha_version="v1,v2"), "proxy")
+
+        assert all(not b.acts for b in RecordingSubBuilder.instances)
+
+    def test_pure_v2_still_skips_v1_ips(self, flow):
+        with patch.object(mod.env, "ENABLE_DBHA_V2", True), patch.object(
+            mod, "get_dbha_v2_service_ips", return_value=SERVICE_IPS
+        ), patch.object(mod, "probe_start_sub_flow", return_value=START_PROBE), patch.object(
+            mod.HADBApi, "ha_status"
+        ) as ha_status:
+            sub = flow._create_sub_pipeline(_drill_info(dbha_version="v2"), "proxy")
+
+        ha_status.assert_not_called()
+        script = sub["acts"][0][3]["cluster"]["shell_command"]
+        assert V1_IPS[0] not in script
+        for ip in SERVICE_IPS:
+            assert ip in script

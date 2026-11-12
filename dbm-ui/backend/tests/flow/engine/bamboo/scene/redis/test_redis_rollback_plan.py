@@ -334,15 +334,25 @@ class _FakeWindow:
         self.limit = limit
         self.inflight = 0
         self.entries = {}
+        self.by_host = {"2.2.2.2": self.entries}
+        self.failed_hosts = set()
 
-    def reserve(self, plan_id, dest_ip, index, count, limit):
-        entry = self.entries.get(index)
+    def _host(self, dest_ip):
+        return self.by_host.setdefault(dest_ip, {})
+
+    def reserve(self, plan_id, dest_ip, index, count, limit, host_totals=None, batch_size=None):
+        host_entries = self._host(dest_ip)
+        entry = host_entries.get(index)
         if entry and entry["state"] != download_window.DOWNLOAD_STATE_FAILED:
             return download_window.RESERVE_OCCUPIED
-        if self.inflight + count > limit:
+        self.failed_hosts.discard(dest_ip)
+        reserved = download_window.peer_headroom(
+            self.by_host, dest_ip, host_totals, batch_size, limit, self.failed_hosts
+        )
+        if self.inflight + count > limit or (self.inflight > 0 and self.inflight + count + reserved > limit):
             return download_window.RESERVE_NO_WINDOW
         history = {key: entry[key] for key in download_window.LOST_HISTORY_KEYS if entry and key in entry}
-        self.entries[index] = {
+        host_entries[index] = {
             "bill_id": None,
             "task_count": count,
             "state": download_window.DOWNLOAD_STATE_SUBMITTING,
@@ -352,30 +362,35 @@ class _FakeWindow:
         return self.inflight
 
     def mark_open(self, plan_id, dest_ip, index, bill_id):
-        self.entries[index].update({"bill_id": bill_id, "state": download_window.DOWNLOAD_STATE_OPEN})
+        self._host(dest_ip)[index].update({"bill_id": bill_id, "state": download_window.DOWNLOAD_STATE_OPEN})
         return True
 
-    def release(self, plan_id, dest_ip, index, state):
-        current = self.entries.get(index)
+    def _release_entry(self, dest_ip, index, state, mark_failed=True):
+        current = self._host(dest_ip).get(index)
         if not current or current["state"] not in (
             download_window.DOWNLOAD_STATE_OPEN,
             download_window.DOWNLOAD_STATE_SUBMITTING,
         ):
             return 0
         current["state"] = state
+        if state == download_window.DOWNLOAD_STATE_FAILED and mark_failed:
+            self.failed_hosts.add(dest_ip)
         self.inflight = max(self.inflight - current["task_count"], 0)
         return self.inflight
 
+    def release(self, plan_id, dest_ip, index, state):
+        return self._release_entry(dest_ip, index, state, mark_failed=True)
+
     def release_lost(self, plan_id, dest_ip, index):
-        current = self.entries.get(index)
+        current = self._host(dest_ip).get(index)
         if not current or current["state"] != download_window.DOWNLOAD_STATE_OPEN:
             return self.inflight
         current["lost_bills"] = list(current.get("lost_bills") or []) + [current["bill_id"]]
         current["lost_resubmits"] = int(current.get("lost_resubmits") or 0) + 1
-        return self.release(plan_id, dest_ip, index, download_window.DOWNLOAD_STATE_FAILED)
+        return self._release_entry(dest_ip, index, download_window.DOWNLOAD_STATE_FAILED, mark_failed=False)
 
     def read_batches(self, plan_id, dest_ip):
-        return {index: dict(entry) for index, entry in self.entries.items()}
+        return {index: dict(entry) for index, entry in self._host(dest_ip).items()}
 
     def patches(self):
         return [
@@ -475,6 +490,91 @@ def test_window_releases_finished_batches_and_submits_more():
 
     assert download.call_count == 2 * WINDOW_BILLS
     assert window.inflight == rollback_components.DOWNLOAD_INFLIGHT_TASK_LIMIT
+
+
+def _multi_host_plan(counts_by_ip):
+    plan = _plan(binlog_count=0, packed=False)
+    plan.dest_hosts = [
+        DestHost(
+            ip=ip,
+            ports=[30000],
+            task_ids=[f"{ip}-t{idx}" for idx in range(count)],
+            download_bytes=count * 10,
+        )
+        for ip, count in counts_by_ip.items()
+    ]
+    return plan
+
+
+def test_multi_host_window_interleaves_batches_and_scales_up_as_peers_finish():
+    plan = _multi_host_plan({"2.2.2.1": 125, "2.2.2.2": 25, "2.2.2.3": 25, "2.2.2.4": 25})
+    window = _FakeWindow()
+    bills = iter(range(100, 300))
+    datas = {ip: _window_data(_window_kwargs(ip)) for ip in ("2.2.2.1", "2.2.2.2", "2.2.2.3", "2.2.2.4")}
+
+    with ExitStack() as stack:
+        for patcher in window.patches():
+            stack.enter_context(patcher)
+        stack.enter_context(patch.object(RollbackPlan, "load", return_value=plan))
+        download = stack.enter_context(
+            patch.object(
+                rollback_components.RedisBackupApi,
+                "download",
+                side_effect=lambda params: {"bill_id": next(bills)},
+            )
+        )
+        stack.enter_context(
+            patch.object(
+                rollback_components.RedisBackupApi,
+                "download_result",
+                return_value={"total": {"todo": 0, "doing": 0, "fail": 0}},
+            )
+        )
+
+        # Host 1 starts first: batch_size=25, takes only 1 batch and leaves 75 for the 3 peers.
+        assert _download_service()._execute(datas["2.2.2.1"], None) is True
+        assert datas["2.2.2.1"].outputs.batch_sizes == [25, 25, 25, 25, 25]
+        assert window.inflight == 25
+
+        # Even if Host 1 polls before peers start, it advances to batch 1 (25) without hoarding 100.
+        assert _download_service()._schedule(datas["2.2.2.1"], None) is True
+        assert window.inflight == 25
+
+        # Every peer gets its 25-task batch immediately on _execute, so none is starved at 0%.
+        for ip in ("2.2.2.2", "2.2.2.3", "2.2.2.4"):
+            assert _download_service()._execute(datas[ip], None) is True
+            assert datas[ip].outputs.first_submit_at is not None
+        assert window.inflight == 100
+
+        # Peers finish their single batch; on the next poll a fresh worker for Host 1 expands to fill the window.
+        for ip in ("2.2.2.2", "2.2.2.3", "2.2.2.4"):
+            assert _download_service()._schedule(datas[ip], None) is True
+        assert window.inflight == 25
+
+        assert _download_service()._schedule(datas["2.2.2.1"], None) is True
+        assert window.inflight == 75  # all 3 remaining 25-task batches submitted at once
+        assert download.call_count == 5 + 3
+
+
+def test_pre_upgrade_fifty_task_ledger_keeps_its_boundaries_on_retry():
+    plan = _multi_host_plan({"2.2.2.2": 100, "2.2.2.3": 100, "2.2.2.4": 100, "3.3.3.3": 100})
+    window = _FakeWindow()
+    window.entries[0] = {"bill_id": 11, "task_count": 50, "state": download_window.DOWNLOAD_STATE_CLOSED}
+    data = _window_data(_window_kwargs("2.2.2.2"))
+
+    with ExitStack() as stack:
+        for patcher in window.patches():
+            stack.enter_context(patcher)
+        stack.enter_context(patch.object(RollbackPlan, "load", return_value=plan))
+        download = stack.enter_context(
+            patch.object(rollback_components.RedisBackupApi, "download", return_value={"bill_id": 12})
+        )
+        assert _download_service()._execute(data, None) is True
+
+    assert data.outputs.batch_sizes == [50, 50]
+    assert [call.kwargs["params"]["taskid_list"] for call in download.call_args_list] == [
+        plan.dest_host("2.2.2.2").task_ids[50:]
+    ]
 
 
 def test_schedule_restores_window_without_reloading_the_plan():
@@ -785,6 +885,167 @@ def test_reconcile_stops_resubmitting_after_the_first_failure():
     assert window.entries[1]["state"] == download_window.DOWNLOAD_STATE_SUBMITTING
 
 
+def test_format_download_fail_groups_hadoop_expired():
+    reason = rollback_components.format_download_fail(
+        {
+            "total": {"todo": 0, "doing": 0, "success": 2, "fail": 48},
+            "detail": [
+                {
+                    "task_id": "11111111111",
+                    "filename": None,
+                    "status": 41,
+                    "status_en": "fail,hadoop file expired",
+                },
+                {
+                    "task_id": "22222222222",
+                    "filename": None,
+                    "status": 41,
+                    "status_en": "fail,hadoop file expired",
+                },
+                {"task_id": "ok1", "status_en": "success"},
+            ],
+        }
+    )
+    assert "success=2 fail=48" in reason
+    assert "fail,hadoop file expired×2" in reason
+    assert "样例 task_id=11111111111" in reason
+    assert "ok1" not in reason
+
+
+def test_format_download_fail_without_detail_keeps_counts():
+    reason = rollback_components.format_download_fail({"total": {"todo": 0, "doing": 0, "fail": 1}})
+    assert reason == "fail=1"
+
+
+def test_format_download_fail_skips_inflight_rows_and_samples_top_reason():
+    reason = rollback_components.format_download_fail(
+        {
+            "total": {"todo": 39, "doing": 10, "success": 0, "fail": 3},
+            "detail": [
+                {"task_id": "q1", "status": 0, "status_en": "todo, submitted"},
+                {"task_id": "q2", "status": 1, "status_en": "todo, waiting"},
+                {"task_id": "q3", "status": 2, "status_en": ""},
+                {"task_id": "d1", "status": 3, "status_en": "doing"},
+                {"task_id": "md5-1", "status": 6, "status_en": "Fail: bad md5"},
+                {"task_id": "exp-1", "status": 41, "status_en": "fail,hadoop file expired"},
+                {"task_id": "exp-2", "status": 41, "status_en": "fail,hadoop file expired"},
+            ],
+        }
+    )
+    assert "success=0 fail=3 doing=10 todo=39" in reason
+    assert "todo" not in reason.split("；", 1)[1]
+    assert "q1" not in reason and "q2" not in reason and "q3" not in reason and "d1" not in reason
+    assert "fail,hadoop file expired×2, Fail: bad md5×1" in reason
+    assert "样例 task_id=exp-1" in reason
+
+
+def test_format_download_fail_caps_groups_and_uses_fallbacks():
+    many = rollback_components.format_download_fail(
+        {
+            "total": {"fail": 7},
+            "detail": [
+                {"filename": "only-file.tar", "status": 50 + idx, "status_en": f"fail,err-{idx}"} for idx in range(7)
+            ],
+        }
+    )
+    assert "其余2种原因" in many
+    assert "样例 file=only-file.tar" in many
+
+    assert rollback_components.format_download_fail({"total": {"fail": 1}, "msg": "ok"}) == "fail=1"
+    with_msg = rollback_components.format_download_fail({"total": {"fail": 1}, "msg": "ssh auth failed"})
+    assert with_msg == "fail=1；ssh auth failed"
+    expired_done = rollback_components.format_download_fail(
+        {"total": {"fail": 1}, "detail": [{"task_id": "e1", "status": 44, "status_en": "done, expired"}]}
+    )
+    assert "done, expired×1" in expired_done
+
+
+def test_window_submit_failure_logs_reason_and_releases_reservation():
+    plan = _plan(binlog_count=49)
+    window = _FakeWindow()
+    data = _window_data(_window_kwargs())
+    errors = []
+    svc = _download_service()
+    svc.log_error = errors.append
+    with ExitStack() as stack:
+        for patcher in window.patches():
+            stack.enter_context(patcher)
+        stack.enter_context(patch.object(RollbackPlan, "load", return_value=plan))
+        stack.enter_context(
+            patch.object(
+                rollback_components.RedisBackupApi,
+                "download",
+                return_value={"bill_id": None, "msg": "invalid login_passwd"},
+            )
+        )
+        assert svc._execute(data, None) is True
+
+    assert data.outputs.failed is True
+    assert window.inflight == 0
+    assert window.entries[0]["state"] == download_window.DOWNLOAD_STATE_FAILED
+    assert any("2.2.2.2" in line and "1/1" in line and "invalid login_passwd" in line for line in errors)
+
+
+def test_query_bill_logs_malformed_response():
+    svc = _download_service()
+    errors = []
+    svc.log_error = errors.append
+    with patch.object(
+        rollback_components.RedisBackupApi, "download_result", return_value={"code": 1, "msg": "bad payload"}
+    ):
+        assert svc._query_bill(11) is None
+
+    assert any("11" in line and "bad payload" in line for line in errors)
+
+
+def test_window_failure_logs_recover_reason():
+    plan = _plan(binlog_count=49)
+    window = _FakeWindow()
+    _open_batch(window, 7780597)
+    data = _window_data(_window_kwargs())
+    _window_outputs(data, plan, total=50)
+    errors = []
+    svc = _download_service()
+    svc.log_error = errors.append
+    payload = {
+        "total": {"todo": 0, "doing": 0, "success": 2, "fail": 48},
+        "detail": [
+            {
+                "task_id": "11111111111",
+                "filename": None,
+                "status": 41,
+                "status_en": "fail,hadoop file expired",
+            }
+        ],
+    }
+    with ExitStack() as stack:
+        for patcher in window.patches():
+            stack.enter_context(patcher)
+        stack.enter_context(patch.object(RollbackPlan, "load", return_value=plan))
+        stack.enter_context(patch.object(rollback_components.RedisBackupApi, "download_result", return_value=payload))
+        with patch.object(rollback_components.time, "time", return_value=1000.0 + 20):
+            assert svc._schedule(data, None) is False
+
+    assert window.entries[0]["state"] == download_window.DOWNLOAD_STATE_FAILED
+    assert any("hadoop file expired" in line and "7780597" in line for line in errors)
+    assert any("success=2 fail=48" in line for line in errors)
+    assert any("11111111111" in line for line in errors)
+
+
+def test_query_bill_does_not_mutate_a_failed_total():
+    svc = _download_service()
+    payload = {
+        "total": {"todo": 0, "doing": 0, "success": 2, "fail": 48},
+        "detail": [{"task_id": "t1", "status": 41, "status_en": "fail,hadoop file expired"}],
+    }
+    with patch.object(rollback_components.RedisBackupApi, "download_result", return_value=payload):
+        total = svc._query_bill(11)
+
+    assert total["fail"] == 48
+    assert "fail,hadoop file expired" in total["fail_reason"]
+    assert "fail_reason" not in payload["total"]
+
+
 def test_window_failure_drains_open_batches_then_fails():
     plan = _plan(binlog_count=99)  # 100 task ids, two batches
     window = _FakeWindow()
@@ -912,6 +1173,25 @@ def test_schedule_waits_for_every_bill_and_fails_on_any():
     assert _schedule({"backup_bill_ids": [11, 12]}, {11: busy, 12: failed}) == (False, True)
     # Nodes started before batching recorded a single bill.
     assert _schedule({"backup_bill_id": 11}, {11: done}) == (True, True)
+
+
+def test_legacy_schedule_logs_the_recover_fail_reason():
+    data = SimpleNamespace(get_one_of_outputs={"backup_bill_id": 11}.get, outputs=SimpleNamespace())
+    errors = []
+    svc = _download_service()
+    svc.log_error = errors.append
+    with patch.object(
+        rollback_components.RedisBackupApi,
+        "download_result",
+        return_value={
+            "total": {"todo": 0, "doing": 0, "success": 0, "fail": 1},
+            "detail": [{"task_id": "t1", "status": 41, "status_en": "fail,hadoop file expired"}],
+        },
+    ):
+        assert svc._schedule(data, None) is False
+    assert svc.finish_schedule.called
+    assert "hadoop file expired" in errors[0]
+    assert "11" in errors[0]
 
 
 def test_schedule_logs_the_host_download_time_and_throughput():

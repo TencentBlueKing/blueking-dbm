@@ -57,6 +57,22 @@ class TestQuerySwitchQueue:
             "switch_finished_time": END,
         }
 
+    def test_combined_version_uses_v2_client(self):
+        with patch.object(
+            mod.HADBApiV2, "switch_queue", return_value={"code": 0, "message": "ok", "data": [RECORD]}
+        ) as v2, patch.object(mod.HADBApi, "switch_queue") as v1:
+            code, msg, data = mod.query_switch_queue(
+                "v1,v2", 3, START, END, extra_v1_args={"cloud_id": 0, "ip": "1.1.1.1"}
+            )
+
+        assert (code, msg, data) == (0, "ok", [RECORD])
+        v1.assert_not_called()
+        assert set(v2.call_args.kwargs["params"]["query_args"]) == {
+            "app",
+            "switch_start_time",
+            "switch_finished_time",
+        }
+
     def test_missing_data_returns_empty_list(self):
         with patch.object(mod.HADBApiV2, "switch_queue", return_value={"code": 1, "message": "bad", "data": None}):
             assert mod.query_switch_queue("v2", 3, START, END) == (1, "bad", [])

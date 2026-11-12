@@ -8,7 +8,6 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import datetime
-import json
 import logging
 import time
 from typing import List, Tuple
@@ -19,8 +18,8 @@ from backend.configuration.constants import DBType
 from backend.configuration.models.dba import DBAdministrator
 from backend.core.notify.handlers import CmsiHandler
 from backend.db_meta.models import AppCache
-from backend.db_services.redis.autofix.enums import AutofixItem
-from backend.db_services.redis.autofix.models import RedisAutofixCtl
+from backend.db_services.redis.autofix.enums import MsgPriority
+from backend.db_services.redis.autofix.message import load_chat_ids_by_priority
 from backend.ticket.constants import TicketStatus, TicketType
 from backend.ticket.models import Ticket
 from backend.utils.time import date2str
@@ -147,18 +146,12 @@ def send_drill_alert_to_qywx(
 ):
     """
     发送容灾告警信息到群聊（同自愈配置）
-    """
-    msg_ids = []
-    try:
-        msg_item = RedisAutofixCtl.objects.filter(ctl_name=AutofixItem.CHAT_IDS.value).get()
-        if msg_item:
-            msg_ids = json.loads(msg_item.ctl_value)
-    except RedisAutofixCtl.DoesNotExist:
-        RedisAutofixCtl.objects.create(
-            bk_cloud_id=0, bk_biz_id=0, ctl_value=json.dumps("[]"), ctl_name=AutofixItem.CHAT_IDS.value
-        ).save()
 
-    if len(msg_ids) == 0:
+    CHAT_IDS 新格式是 {"L0": [...], "L1": [...]}。演练异常走 L0；
+    load_chat_ids_by_priority 同时兼容旧的纯数组。
+    """
+    msg_ids = load_chat_ids_by_priority(MsgPriority.L0.value)
+    if not msg_ids:
         logger.warning(_("No chat IDs configured for drill alerts"))
         return
 
