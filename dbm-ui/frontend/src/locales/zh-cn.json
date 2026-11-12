@@ -1,4 +1,5 @@
 {
+  "加载失败": "加载失败",
   "仅支持存储节点均为 is_stand_by 的集群回档": "仅支持存储节点均为 is_stand_by 的集群回档",
   "请输入查询 SQL，例如\nUSE game_main;\nSELECT id, name FROM user WHERE id < 100;": "请输入查询 SQL，例如\nUSE game_main;\nSELECT id, name FROM user WHERE id < 100;",
   "只读": "只读",
