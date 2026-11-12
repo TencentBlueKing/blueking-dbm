@@ -18,8 +18,10 @@ from rest_framework.response import Response
 
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.bk_web.viewsets import SystemViewSet
+from backend.db_meta.api.db_module.version import storage_version_series
 from backend.db_meta.models.cluster import Cluster
 from backend.db_meta.models.db_module import DBModule
+from backend.db_services.cmdb.biz import module_deploy_charsets
 from backend.db_services.dbbase.resources.constants import ResourceNodeType
 from backend.db_services.dbbase.resources.serializers import SearchResourceTreeSLZ
 from backend.db_services.dbbase.resources.views import BaseListResourceViewSet
@@ -70,11 +72,13 @@ class ResourceTreeViewSet(SystemViewSet):
     def get_resource_tree(self, request, bk_biz_id):
         cluster_type = self.params_validate(SearchResourceTreeSLZ)["cluster_type"]
 
-        db_module_qset = DBModule.objects.filter(bk_biz_id=bk_biz_id, cluster_type=cluster_type)
+        modules = list(DBModule.objects.filter(bk_biz_id=bk_biz_id, cluster_type=cluster_type))
+        version_series = storage_version_series(modules)
+        charsets = module_deploy_charsets(bk_biz_id, cluster_type, modules)
         cluster_qset = Cluster.objects.filter(
             bk_biz_id=bk_biz_id,
             cluster_type=cluster_type,
-            db_module_id__in=[db_module.db_module_id for db_module in db_module_qset],
+            db_module_id__in=[module.db_module_id for module in modules],
         )
 
         module_clusters = defaultdict(list)
@@ -99,8 +103,11 @@ class ResourceTreeViewSet(SystemViewSet):
                 "instance_id": db_module.db_module_id,
                 "instance_name": db_module.alias_name,
                 "children": module_clusters[db_module.db_module_id],
-                "extra": {},
+                "extra": {
+                    "version_series": version_series.get(db_module.db_module_id, ""),
+                    "charset": charsets.get(db_module.db_module_id, ""),
+                },
             }
-            for db_module in db_module_qset
+            for db_module in modules
         ]
         return Response(tree)

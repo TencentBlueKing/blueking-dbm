@@ -93,6 +93,7 @@ class MysqlMigrateUpgradeParamBuilder(MysqlMasterSlaveSwitchParamBuilder):
 class MysqlMigrateUpgradeResourceParamBuilder(BaseOperateResourceParamBuilder):
     def format(self):
         self.patch_info_common_affinity("backend_group")
+        self.patch_info_package_os_params(role="backend_group")
 
     def post_callback(self):
         # 通过资源池获取到的节点

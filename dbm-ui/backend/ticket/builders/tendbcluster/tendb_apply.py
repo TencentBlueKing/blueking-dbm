@@ -16,7 +16,8 @@ from rest_framework import serializers
 from backend.components import DBConfigApi
 from backend.components.dbconfig import constants as dbconf_const
 from backend.configuration.constants import AffinityEnum
-from backend.db_meta.enums import ClusterType
+from backend.db_meta.enums import AccessLayer, ClusterType
+from backend.db_meta.models import DBModule
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.engine.controller.spider import SpiderController
@@ -117,7 +118,13 @@ class TenDBClusterApplyFlowParamBuilder(builders.FlowParamBuilder):
 
 class TenDBClusterApplyResourceParamBuilder(builders.ResourceApplyParamBuilder):
     def format(self):
-        self.ticket_data["resource_spec"]["spider"].update(tolerance=0.5)
+        # 补充spider亲和性参数
+        resource_spec = self.ticket_data["resource_spec"]
+        resource_spec["spider"].update(tolerance=0.5)
+        # 补充模块约束的操作系统参数
+        db_module = DBModule.objects.get(db_module_id=self.ticket_data["db_module_id"])
+        self.patch_module_os_params(resource_spec, "backend_group", db_module, AccessLayer.STORAGE)
+        self.patch_module_os_params(resource_spec, "spider", db_module, AccessLayer.PROXY)
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()

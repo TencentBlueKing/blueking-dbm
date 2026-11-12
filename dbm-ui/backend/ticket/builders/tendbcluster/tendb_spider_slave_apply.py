@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import TenDBClusterSpiderRole
+from backend.db_meta.enums import AccessLayer, TenDBClusterSpiderRole
 from backend.db_meta.models import AppCache, Cluster
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
@@ -70,6 +70,7 @@ class SpiderSlaveApplyResourceParamBuilder(TendbBaseOperateResourceParamBuilder)
     def format(self):
         # spider slave 无亲和性要求
         self.patch_info_common_affinity(role="spider_slave_ip_list", no_need_affinity=True)
+        self.patch_info_module_os_params(role="spider_slave_ip_list", access_layer=AccessLayer.PROXY)
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()

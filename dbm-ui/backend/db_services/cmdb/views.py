@@ -70,7 +70,32 @@ class CMDBViewSet(viewsets.SystemViewSet):
         cluster_type = validated_data["cluster_type"]
         db_module_name = validated_data["db_module_name"]
         alias_name = validated_data["alias_name"]
-        return Response(db_module.apis.create(bk_biz_id, db_module_name, cluster_type, alias_name))
+        return Response(
+            db_module.apis.create(
+                bk_biz_id,
+                db_module_name,
+                cluster_type,
+                alias_name,
+                creator=request.user.username,
+                db_versions=validated_data.get("db_versions"),
+            )
+        )
+
+    @common_swagger_auto_schema(
+        operation_summary=_("修改模块组件的操作系统约束"),
+        request_body=serializers.UpdateModuleVersionOsSLZ(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=True, serializer_class=serializers.UpdateModuleVersionOsSLZ)
+    def update_module_version_os(self, request, bk_biz_id):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(
+            db_module.apis.update_permit_os(
+                bk_biz_id=bk_biz_id,
+                db_module_id=validated_data["db_module_id"],
+                db_versions=validated_data["db_versions"],
+            )
+        )
 
     @common_swagger_auto_schema(
         operation_summary=_("校验DB模块名是否唯一"),
