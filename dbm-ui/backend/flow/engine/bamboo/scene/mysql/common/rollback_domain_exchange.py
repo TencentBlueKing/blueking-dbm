@@ -528,8 +528,9 @@ def rollback_clb_exchange_subflow(root_id: str, ticket_data: dict, src_cluster: 
         dst_spider_masters = dst_cluster.proxyinstance_set.filter(
             tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER
         )
-        dst_spider_master_ips = [i.machine.ip for i in dst_spider_masters]
-        src_spider_master_ips = [i.machine.ip for i in scr_spider_masters]
+        # CLB 名字服务要求 ips 为 "ip:port" 列表
+        dst_spider_master_ips = [i.ip_port for i in dst_spider_masters]
+        src_spider_master_ips = [i.ip_port for i in scr_spider_masters]
         if len(src_master_entrys) == 1:
             if len(dst_spider_master_ips) == 0:
                 raise Exception(_("目标集群没有查询到 spider master"))
@@ -596,8 +597,8 @@ def rollback_clb_exchange_subflow(root_id: str, ticket_data: dict, src_cluster: 
         dst_spider_slaves = dst_cluster.proxyinstance_set.filter(
             tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_SLAVE
         )
-        src_spider_slave_ips = [i.machine.ip for i in scr_spider_slaves]
-        dst_spider_slave_ips = [i.machine.ip for i in dst_spider_slaves]
+        src_spider_slave_ips = [i.ip_port for i in scr_spider_slaves]
+        dst_spider_slave_ips = [i.ip_port for i in dst_spider_slaves]
         if len(src_slave_entrys) == 1:
             if len(dst_spider_slave_ips) == 0:
                 raise Exception(_("目标集群没有查询到 spider slave"))
@@ -661,8 +662,8 @@ def rollback_clb_exchange_subflow(root_id: str, ticket_data: dict, src_cluster: 
     elif src_cluster.cluster_type == ClusterType.TenDBHA.value:
         src_proxys = src_cluster.proxyinstance_set.filter()
         dst_proxys = dst_cluster.proxyinstance_set.filter()
-        src_proxy_ips = [i.machine.ip for i in src_proxys]
-        dst_proxy_ips = [i.machine.ip for i in dst_proxys]
+        src_proxy_ips = [i.ip_port for i in src_proxys]
+        dst_proxy_ips = [i.ip_port for i in dst_proxys]
         if len(src_master_entrys) == 1:
             if len(dst_proxy_ips) == 0:
                 raise Exception(_("目标集群没有查询到 master proxy"))
