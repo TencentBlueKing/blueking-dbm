@@ -16,15 +16,29 @@
     <DbTab
       v-model="dbTypeActive"
       :exclude="excludeDbTypes" />
+    <BkException
+      v-if="pkgTypeListError && !pkgTypeListLoading"
+      class="pkg-type-empty-main"
+      :description="t('加载失败')"
+      type="500">
+      <BkButton
+        text
+        theme="primary"
+        @click="handleGetPkgTypeList()">
+        {{ t('重试') }}
+      </BkButton>
+    </BkException>
     <!-- 包类型还在请求中时先展示骨架，避免闪一下「暂无包类型」空态 -->
     <div
-      v-if="pkgTypeListLoading || renderPkgTypeList.length > 0"
+      v-else-if="pkgTypeListLoading || renderPkgTypeList.length > 0"
       class="version-content-main">
       <div
         ref="pkgTabContainerRef"
         v-bk-loading="{ loading: pkgTypeListLoading }"
         class="pkg-tab-main-container">
+        <!-- 等当前 DB 的包类型就绪再挂载，避免 Tab 缓存上一个 DB 的同数量面板 -->
         <BkTab
+          v-if="loadedDbType === dbTypeActive"
           :key="dbTypeActive"
           v-model:active="pkgActive"
           class="pkg-tab-main"
@@ -102,7 +116,7 @@
       </div>
       <div class="content-main">
         <List
-          v-if="pkgActive && loadedDbType === dbTypeActive"
+          v-if="activePkgType"
           :db-type="dbTypeActive"
           :has-package-manage-permission="hasPackageManagePermission"
           :pkg-label-map="pkgLabelMap"
@@ -138,7 +152,6 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
-  import { useRoute, useRouter } from 'vue-router';
 
   import type { FunctionKeys } from '@services/model/function-controller/functionController';
   import { simpleCheckAllowed } from '@services/source/iam';
@@ -196,11 +209,12 @@
   // 包类型列表按 DB 类型请求，切换 DB 类型后到响应回来之前 pkgTypeList 还是上一个类型的，用它标记列表的归属
   const loadedDbType = ref('');
   const pkgTabContainerRef = ref<HTMLElement>();
+  let dbTypeRequestController = new AbortController();
 
   const enabledFunctionMap = computed(() => getFunctionMap(dbTypeActive.value));
 
   const renderPkgTypeList = computed(() => {
-    if (!enabledFunctionMap.value[dbTypeActive.value]) {
+    if (loadedDbType.value !== dbTypeActive.value || !enabledFunctionMap.value[dbTypeActive.value]) {
       return [];
     }
     return (pkgTypeList.value || []).filter((item) => {
@@ -216,10 +230,11 @@
     ),
   );
 
-  const activePkgType = computed(() => (pkgTypeList.value || []).find((item) => item.value === pkgActive.value));
+  const activePkgType = computed(() => renderPkgTypeList.value.find((item) => item.value === pkgActive.value));
 
   const {
     data: pkgTypeList,
+    error: pkgTypeListError,
     loading: pkgTypeListLoading,
     run: fetchPkgTypeList,
   } = useRequest(getPkgTypeList, {
@@ -265,39 +280,58 @@
   };
 
   const handleGetPkgTypeList = (data?: { name: string; value: string }) => {
+    if (dbTypeRequestController.signal.aborted) {
+      return;
+    }
     if (data) {
       newCreatePkgType = data.value;
     }
-    fetchPkgTypeList({
-      db_type: dbTypeActive.value,
-    });
+    fetchPkgTypeList(
+      {
+        db_type: dbTypeActive.value,
+      },
+      {
+        signal: dbTypeRequestController.signal,
+      },
+    );
   };
 
   const checkPackagePermission = async () => {
     const dbType = dbTypeActive.value;
+    const { signal } = dbTypeRequestController;
     hasPackageManagePermission.value = false;
 
-    const hasPackageViewPermission = await simpleCheckAllowed(
-      {
-        action_id: 'package_view',
-        is_raise_exception: true,
-        resource_id: dbType,
-      },
-      {
-        permission: 'page',
-      },
-    );
-    if (!hasPackageViewPermission) {
-      return;
-    }
+    try {
+      const hasPackageViewPermission = await simpleCheckAllowed(
+        {
+          action_id: 'package_view',
+          is_raise_exception: true,
+          resource_id: dbType,
+        },
+        {
+          permission: 'page',
+          signal,
+        },
+      );
+      if (signal.aborted || !hasPackageViewPermission) {
+        return;
+      }
 
-    const hasManagePermission = await simpleCheckAllowed({
-      action_id: 'package_manage',
-      resource_id: dbType,
-    });
-    // 连续切换 DB 类型时响应可能乱序，只认当前选中类型的结果
-    if (dbType === dbTypeActive.value) {
-      hasPackageManagePermission.value = hasManagePermission;
+      const hasManagePermission = await simpleCheckAllowed(
+        {
+          action_id: 'package_manage',
+          resource_id: dbType,
+        },
+        {
+          signal,
+        },
+      );
+      // A → B → A 时也只接受最后一次切换发起的请求
+      if (!signal.aborted && dbType === dbTypeActive.value) {
+        hasPackageManagePermission.value = hasManagePermission;
+      }
+    } catch {
+      // 请求层统一处理错误与取消，这里避免未捕获的 Promise 拒绝
     }
   };
 
@@ -310,42 +344,40 @@
 
   watch(
     dbTypeActive,
-    () => {
+    (_dbType, oldDbType) => {
+      dbTypeRequestController.abort();
+      dbTypeRequestController = new AbortController();
+      loadedDbType.value = '';
+      newCreatePkgType = undefined;
+      if (oldDbType) {
+        pkgActive.value = '';
+      }
       handleGetPkgTypeList();
       checkPackagePermission();
     },
     {
+      flush: 'sync',
       immediate: true,
     },
   );
 
   watch(
     renderPkgTypeList,
-    () => {
-      nextTick(() => {
-        checkPkgTabScroll();
-      });
+    (list) => {
+      nextTick(checkPkgTabScroll);
 
       // 列表还没归属当前 DB 类型时不能动选中项，否则会把 URL 上带过来的初始值清掉
       if (loadedDbType.value !== dbTypeActive.value) {
         return;
       }
 
-      const valueList = renderPkgTypeList.value.map((item) => item.value);
-      if (valueList.length === 0) {
-        pkgActive.value = '';
-        return;
-      }
-
+      const valueList = list.map((item) => item.value);
       if (newCreatePkgType && valueList.includes(newCreatePkgType)) {
         pkgActive.value = newCreatePkgType;
         newCreatePkgType = undefined;
-        return;
-      }
-
-      // 选中项在新列表里不存在（切换 DB 类型、包类型被删除、URL 上的值失效）时回落到第一项
-      if (!valueList.includes(pkgActive.value)) {
-        pkgActive.value = valueList[0];
+      } else if (!valueList.includes(pkgActive.value)) {
+        // 选中项失效时回落到第一项，空列表则清空选中
+        pkgActive.value = valueList[0] || '';
       }
     },
     {
@@ -353,13 +385,15 @@
     },
   );
 
-  watch([dbTypeActive, pkgActive], () => {
-    if (!dbTypeActive.value || !pkgActive.value) {
+  watch([dbTypeActive, pkgActive, loadedDbType, pkgTypeListLoading], () => {
+    // 等请求结束与选中项回落后再同步，保留 URL 带来的初始包类型
+    if (pkgTypeListLoading.value) {
       return;
     }
 
+    const validPkgType = activePkgType.value?.value;
     const { dbType, pkgType } = route.query;
-    if (dbType === dbTypeActive.value && pkgType === pkgActive.value) {
+    if (dbType === dbTypeActive.value && pkgType === validPkgType) {
       return;
     }
 
@@ -367,7 +401,7 @@
       query: {
         ...route.query,
         dbType: dbTypeActive.value,
-        pkgType: pkgActive.value,
+        pkgType: validPkgType,
       },
     });
   });
@@ -377,6 +411,7 @@
   });
 
   onBeforeUnmount(() => {
+    dbTypeRequestController.abort();
     window.removeEventListener('resize', checkPkgTabScroll);
   });
 </script>
