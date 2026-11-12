@@ -20,11 +20,3 @@ export const deleteUndefinedProps = <T extends Record<string, any>>(obj: T) => {
   });
   return result;
 };
-
-export const makeMap = (list: Array<number | string> = []): Record<number | string, boolean> => {
-  const map = Object.create(null);
-  list.forEach((item) => {
-    map[item] = true;
-  });
-  return map;
-};

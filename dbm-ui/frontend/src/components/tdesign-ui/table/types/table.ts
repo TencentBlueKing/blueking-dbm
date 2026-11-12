@@ -11,14 +11,7 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import type {
-  ErrorListObjectType,
-  ScrollToElementParams,
-  TableCol,
-  TableErrorListMap,
-  TableRowData,
-  TableValidateTrigger,
-} from 'tdesign-vue-next';
+import type { TableCol, TableInstanceFunctions } from 'tdesign-vue-next';
 import type { PropType, Ref } from 'vue';
 
 export type BkUiTableCol = TableCol;
@@ -64,19 +57,8 @@ export type BkUiSettings = {
   rowSize?: RowSizeEnum;
 };
 
-export const FontSize = {
-  large: 14,
-  medium: 12,
-} as const;
-export const RowSize = {
-  large: 56,
-  medium: 42,
-  mini: 36,
-  small: 32,
-} as const;
-
-export type FontSizeEnum = keyof typeof FontSize;
-export type RowSizeEnum = keyof typeof RowSize;
+export type FontSizeEnum = 'large' | 'medium';
+export type RowSizeEnum = 'large' | 'medium' | 'mini' | 'small';
 
 export interface BkUiSettingsChangePayload {
   columns: string[];
@@ -113,17 +95,7 @@ export type EnhancedTableRefExpose = {
   'clearValidateData' | 'refreshTable' | 'scrollToElement' | 'validateRowData' | 'validateTableData'
 >;
 
-export type PrimaryTableRefExpose = {
-  clearValidateData: () => void;
-  refreshTable: () => void;
-  scrollColumnIntoView: (colKey: string) => void;
-  scrollToElement: (data: ScrollToElementParams) => void;
-  validateRowData: (
-    rowValue: any,
-  ) => Promise<{ result: ErrorListObjectType<TableRowData>[]; trigger: TableValidateTrigger }>;
-  validateTableCellData: () => Promise<{ result: TableErrorListMap }>;
-  validateTableData: () => Promise<{ result: TableErrorListMap }>;
-};
+export type PrimaryTableRefExpose = TableInstanceFunctions;
 
 export type IRegisteredColumnProps = {
   titleText: string;

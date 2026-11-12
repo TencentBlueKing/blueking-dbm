@@ -51,6 +51,16 @@
     return getValuesText(value.values, tagConfig);
   };
 
+  // 清掉 calcTagSize 写入的截断宽度，让已渲染的 tag 恢复自然宽度
+  const resetTagTextMaxWidth = () => {
+    const tagBoxEl = currentInstance?.proxy?.$el?.parentNode as HTMLElement | null;
+    tagBoxEl
+      ?.querySelectorAll<HTMLElement>('[role="search-value"] .bk-quick-search-value-tag-text')
+      .forEach((textEl) => {
+        textEl.style.removeProperty('max-width');
+      });
+  };
+
   const calcTagSize = _.throttle(
     () => {
       if (!currentInstance?.proxy?.$el || !rootRef.value) {
@@ -74,6 +84,8 @@
         isShow.value = false;
         return;
       }
+      // 先恢复自然宽度再测量：上一轮写入的截断宽度会让长 tag 被误判成短 tag，容器变宽后仍按旧宽度截断
+      resetTagTextMaxWidth();
       const { width: maxWidth } = rootRef.value.getBoundingClientRect();
 
       const spaceWidth =
@@ -144,6 +156,8 @@
 
         if (calcRealNeedRenderTagCount === props.valueList.length) {
           modelValue.value = props.valueList.length;
+          // 全部放得下时不再走 calcTagSize，之前写入的截断宽度要在这里清掉
+          resetTagTextMaxWidth();
           return;
         }
 
