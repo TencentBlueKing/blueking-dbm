@@ -450,6 +450,32 @@ func BuildCreateRequest(
 	}
 }
 
+// BuildManualCreateRequest 构建创建集群请求，immuteDomain 与 region 由调用方手动指定。
+// 其余字段仍从集群元数据派生，适用于精确单集群同步场景。
+func BuildManualCreateRequest(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmClusterType string,
+	immuteDomain string,
+	region string,
+) *infreq.CreateClusterRequest {
+	alias := clusterEntity.ClusterAlias
+	if alias == "" {
+		alias = clusterEntity.ClusterName
+	}
+	return &infreq.CreateClusterRequest{
+		Name:         clusterEntity.ClusterName,
+		Alias:        alias,
+		BkBizID:      clusterEntity.BkBizID,
+		ClusterType:  dbmClusterType,
+		ImmuteDomain: immuteDomain,
+		MajorVersion: clusterEntity.ServiceVersion,
+		Phase:        string(coreconst.PhaseOnline),
+		Status:       string(coreconst.StatusNormal),
+		Region:       region,
+		Operator:     clusterEntity.CreatedBy,
+	}
+}
+
 // buildUpdateStatusRequest 构建更新请求
 func buildUpdateStatusRequest(
 	clusterEntity *metaentity.K8sCrdClusterEntity,
@@ -527,6 +553,70 @@ func BuildCreateDomainRequest(
 		Role:        "master_entry",
 		Operator:    clusterEntity.CreatedBy,
 	}, nil
+}
+
+// SanitizeInstances 清洗手动传入的 instances 列表：去除空白、过滤空项。
+func SanitizeInstances(instances []string) []string {
+	cleaned := make([]string, 0, len(instances))
+	for _, inst := range instances {
+		inst = strings.TrimSpace(inst)
+		if inst != "" {
+			cleaned = append(cleaned, inst)
+		}
+	}
+	return cleaned
+}
+
+// BuildManualCreateDomainRequest 使用手动传入的 domain 与 instances 组装域名创建请求，不依赖 service。
+// 适用于精确单集群同步场景：domain 与 instances 完全由调用方指定，不读取也不回写本地 service。
+func BuildManualCreateDomainRequest(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmClusterType string,
+	domain string,
+	instances []string,
+) (*infreq.CreateDomainRequest, error) {
+	cleaned := SanitizeInstances(instances)
+	if len(cleaned) == 0 {
+		return nil, fmt.Errorf("instances is empty")
+	}
+	return &infreq.CreateDomainRequest{
+		BkCloudID:   0,
+		BkBizID:     clusterEntity.BkBizID,
+		ClusterType: dbmClusterType,
+		Name:        clusterEntity.ClusterName,
+		Domain:      domain,
+		Instances:   cleaned,
+		Role:        "master_entry",
+		Operator:    clusterEntity.CreatedBy,
+	}, nil
+}
+
+// SyncDomainCreateBlocking 阻塞执行一次 DBM 创建域名请求，返回 error 供上层汇总同步结果。
+// 与 fire-and-forget 的 AsyncDomainCreate 不同，本函数同步等待结果，便于精确同步场景把
+// domain 同步结果计入返回明细。
+func SyncDomainCreateBlocking(
+	clusterEntity *metaentity.K8sCrdClusterEntity,
+	dbmAPIService *thirdapi.DbmAPIService,
+	dbmClusterType string,
+	domain string,
+	instances []string,
+) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if err := checkContextCancelled(ctx); err != nil {
+		return err
+	}
+	createReq, err := BuildManualCreateDomainRequest(clusterEntity, dbmClusterType, domain, instances)
+	if err != nil {
+		return fmt.Errorf("BuildManualCreateDomainRequest failed: %w", err)
+	}
+	if _, createErr := dbmAPIService.SyncDomainCreated(createReq); createErr != nil {
+		return fmt.Errorf("SyncDomainCreated failed: %w", createErr)
+	}
+	slog.Info("DBM API 创建域名成功",
+		"cluster_name", clusterEntity.ClusterName,
+		"domain", domain)
+	return nil
 }
 
 // BuildGetDomainRequest 组装域名查询请求。

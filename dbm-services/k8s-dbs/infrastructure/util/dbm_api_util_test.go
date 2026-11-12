@@ -238,3 +238,99 @@ func TestBuildCreateDomainRequest_AllSupportedAddonTypes(t *testing.T) {
 		})
 	}
 }
+
+// --- SanitizeInstances ---
+
+func TestSanitizeInstances(t *testing.T) {
+	cases := []struct {
+		name  string
+		input []string
+		want  []string
+	}{
+		{"normal", []string{testAddr1 + "#6333"}, []string{testAddr1 + "#6333"}},
+		{"trim_space", []string{"  " + testAddr1 + "#6333  "}, []string{testAddr1 + "#6333"}},
+		{"filter_empty", []string{"", testAddr2 + "#80", "   "}, []string{testAddr2 + "#80"}},
+		{"all_empty", []string{"", "  "}, []string{}},
+		{"nil", nil, []string{}},
+		{"multi", []string{testAddr1 + "#80", testAddr2 + "#80"}, []string{testAddr1 + "#80", testAddr2 + "#80"}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			assert.Equal(t, c.want, SanitizeInstances(c.input))
+		})
+	}
+}
+
+// --- BuildManualCreateDomainRequest ---
+
+func TestBuildManualCreateDomainRequest_Success(t *testing.T) {
+	cluster := newTestClusterEntity("qdrant", "my-cluster", "bkapp", 100)
+
+	req, err := BuildManualCreateDomainRequest(
+		cluster, "k8s_qdrant", "custom.domain.db", []string{testAddr1 + "#6333"})
+	require.NoError(t, err)
+	require.NotNil(t, req)
+
+	assert.Equal(t, "k8s_qdrant", req.ClusterType)
+	assert.Equal(t, "custom.domain.db", req.Domain)
+	assert.Equal(t, "my-cluster", req.Name)
+	assert.Equal(t, uint64(100), req.BkBizID)
+	assert.Equal(t, uint64(0), req.BkCloudID)
+	assert.Equal(t, "master_entry", req.Role)
+	assert.Equal(t, "admin", req.Operator)
+	require.Len(t, req.Instances, 1)
+	assert.Equal(t, testAddr1+"#6333", req.Instances[0])
+}
+
+func TestBuildManualCreateDomainRequest_MultipleInstances(t *testing.T) {
+	cluster := newTestClusterEntity("qdrant", "my-cluster", "bkapp", 1)
+
+	req, err := BuildManualCreateDomainRequest(
+		cluster, "k8s_qdrant", "custom.domain.db",
+		[]string{"  " + testAddr1 + "#80", "", testAddr2 + "#80"})
+	require.NoError(t, err)
+	// 空项被过滤、空白被裁剪
+	require.Len(t, req.Instances, 2)
+	assert.Equal(t, testAddr1+"#80", req.Instances[0])
+	assert.Equal(t, testAddr2+"#80", req.Instances[1])
+}
+
+func TestBuildManualCreateDomainRequest_EmptyInstances(t *testing.T) {
+	cluster := newTestClusterEntity("qdrant", "my-cluster", "bkapp", 1)
+
+	req, err := BuildManualCreateDomainRequest(cluster, "k8s_qdrant", "custom.domain.db", []string{"", "  "})
+	assert.Error(t, err)
+	assert.Nil(t, req)
+	assert.Contains(t, err.Error(), "instances is empty")
+}
+
+// --- BuildManualCreateRequest ---
+
+func TestBuildManualCreateRequest_Success(t *testing.T) {
+	cluster := newTestClusterEntity("qdrant", "my-cluster", "bkapp", 100)
+	cluster.ServiceVersion = "v1.10.0"
+
+	req := BuildManualCreateRequest(cluster, "k8s_qdrant_ha", "100_k8s_qdrant_ha_my-cluster", "shenzhen")
+
+	assert.Equal(t, "my-cluster", req.Name)
+	assert.Equal(t, "my-cluster", req.Alias) // ClusterAlias 为空时回退为 Name
+	assert.Equal(t, uint64(100), req.BkBizID)
+	assert.Equal(t, "k8s_qdrant_ha", req.ClusterType)
+	assert.Equal(t, "100_k8s_qdrant_ha_my-cluster", req.ImmuteDomain)
+	assert.Equal(t, "v1.10.0", req.MajorVersion)
+	assert.Equal(t, "shenzhen", req.Region)
+	assert.Equal(t, "admin", req.Operator)
+	assert.NotEmpty(t, req.Phase)
+	assert.NotEmpty(t, req.Status)
+}
+
+func TestBuildManualCreateRequest_AliasPreserved(t *testing.T) {
+	cluster := newTestClusterEntity("qdrant", "my-cluster", "bkapp", 1)
+	cluster.ClusterAlias = "my-alias"
+
+	req := BuildManualCreateRequest(cluster, "k8s_qdrant_ha", "immute", "default")
+
+	assert.Equal(t, "my-alias", req.Alias)
+	assert.Equal(t, "immute", req.ImmuteDomain)
+	assert.Equal(t, "default", req.Region)
+}

@@ -36,6 +36,7 @@ func BuildSyncLegacyRouter(db *gorm.DB, baseRouter *gin.RouterGroup) {
 	{
 		clusterGroup.POST("/sync_all_to_dbm", syncLegacyController.SyncLegacyClusters)
 		clusterGroup.POST("/sync_to_dbm_by_filter", syncLegacyController.SyncFilteredClusters)
+		clusterGroup.POST("/sync_one_to_dbm", syncLegacyController.SyncOneCluster)
 	}
 }
 
