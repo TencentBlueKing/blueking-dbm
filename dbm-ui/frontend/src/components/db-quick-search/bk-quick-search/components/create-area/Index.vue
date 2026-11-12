@@ -13,7 +13,7 @@
     <div
       v-if="data.length > 0"
       class="edit-area-input">
-      <div :style="inputValueBoxStyles">{{ inputValue }}\u200B</div>
+      <div :style="inputValueBoxStyles">{{ `${inputValue}\u200B` }}</div>
       <textarea
         ref="textarea"
         v-model="inputValue"
@@ -72,7 +72,7 @@
   import type { CSSProperties, StyleValue } from 'vue';
   import { useI18n } from 'vue-i18n';
 
-  import useMenuPop, { update as updateMenuPop } from '@components/db-quick-search/bk-quick-search/hooks/useMenuPop';
+  import useMenuPop from '@components/db-quick-search/bk-quick-search/hooks/useMenuPop';
   import useOutSideClick from '@components/db-quick-search/bk-quick-search/hooks/useOutSideClick';
   import type { IValue, Props as ContextProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
   import { BK_QUICK_SEARCH } from '@components/db-quick-search/bk-quick-search/Index.vue';
@@ -162,7 +162,12 @@
     return baseStyles;
   });
 
-  const { hide: hideKeyMenu, isShow: isShowKeyMenu, show: showKeyMenu } = useMenuPop(textareaRef, keyMenuRef);
+  const {
+    hide: hideKeyMenu,
+    isShow: isShowKeyMenu,
+    show: showKeyMenu,
+    updatePosition: updateKeyMenuPosition,
+  } = useMenuPop(textareaRef, keyMenuRef);
 
   const { hide: hideValueMenu, isShow: isShowValueMenu, show: showValueMenu } = useMenuPop(textareaRef, valueMenuRef);
 
@@ -170,6 +175,7 @@
     hide: hideSuggestMenu,
     isShow: isShowSuggestMenu,
     show: showSuggestMenu,
+    updatePosition: updateSuggestMenuPosition,
   } = useMenuPop(rootRef, suggestMenuRef);
 
   const hideMenuPop = () => {
@@ -220,6 +226,29 @@
   useOutSideClick(() => {
     hideMenuPop();
   });
+
+  // 未选搜索项时，面板跟随输入值切换：有内容显示建议面板，清空后回到搜索项面板。
+  // 剪切、Delete、右键粘贴、鼠标点选输入法候选词都不走 keyup 里的按键分支，统一在这里处理；
+  // 等 DOM 更新后再执行，面板才能按输入框的最新高度定位
+  watch(
+    inputValue,
+    () => {
+      if (currentDataConfig.value) {
+        return;
+      }
+      if (inputValue.value) {
+        hideKeyMenu();
+        showSuggestMenu();
+        updateSuggestMenuPosition();
+        return;
+      }
+      hideSuggestMenu();
+      showKeyMenu();
+    },
+    {
+      flush: 'post',
+    },
+  );
 
   // 获得焦点自动弹框 key 选择面板
   const handleFocus = () => {
@@ -365,14 +394,13 @@
           if (!inputValue.value && !latestInputValue) {
             // 已经清空输入框，继续删除则是删除已选 key
             emits('remove');
-            restartSelect();
-          } else if (!inputValue.value && latestInputValue) {
-            // 删除输入框最后一个字符，弹出 key 面板重新选择
-            restartSelect();
-          } else if (inputValue.value && latestInputValue) {
-            // 编辑输入框更新当前弹出面板位置
-            updateMenuPop();
+            // 此时输入框和已选 key 都是空的，无需重置；key 面板保持显示，等 tag 移除后的布局生效再更新位置，
+            // 先隐藏再重新弹出会闪动
+            hideSuggestMenu();
+            showKeyMenu();
+            nextTick(updateKeyMenuPosition);
           }
+          // 删字符（含删到空）时的面板切换与定位由 inputValue 的 watch 处理，这里再处理一次会让面板闪动
         }
       } else if (!currentDataConfig.value) {
         if (inputValue.value) {

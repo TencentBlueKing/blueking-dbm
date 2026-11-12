@@ -395,9 +395,7 @@
   watch(
     () => [tableContext?.props.model, props.rowspan],
     () => {
-      setTimeout(() => {
-        tableContext?.runRowspanTask();
-      });
+      tableContext?.runRowspanTask();
     },
   );
 
@@ -503,13 +501,6 @@
       validateState.errorMessage = '';
     }
 
-    const rowIndex = rowContext!.getRowIndex();
-    const rowDataValue = {
-      rowData: tableContext.props.model[rowIndex]!,
-      rowIndex,
-    };
-    const value = _.get(rowDataValue.rowData, field || '_');
-
     const setValidateError = (errorMessage: string) => {
       validateState.isError = true;
       validateState.errorMessage = errorMessage;
@@ -519,6 +510,10 @@
     };
 
     const doValidate = (stepIndex: number): Promise<boolean> => {
+      // 前一条规则可能是异步的（如等待 loading 结束），期间单元格被卸载就不再往下验证，也不阻塞整表验证
+      if (currentInstance.isUnmounted) {
+        return Promise.resolve(true);
+      }
       // 验证通过
       if (stepIndex >= finalRuleList.length) {
         emits('validate', true, '');
@@ -526,6 +521,13 @@
         return Promise.resolve(true);
       }
       const rule = finalRuleList[stepIndex]!;
+      // 每条规则执行前重新取值：等待前一条异步规则期间，单元格的值（如查询回填）、所在行都可能已经变化
+      const rowIndex = rowContext!.getRowIndex();
+      const rowDataValue = {
+        rowData: tableContext.props.model[rowIndex]!,
+        rowIndex,
+      };
+      const value = _.get(rowDataValue.rowData, field || '_');
 
       return Promise.resolve()
         .then(() => rule.validator(value, rowDataValue))
@@ -540,7 +542,8 @@
             }
             return doValidate(stepIndex + 1);
           },
-          (errorMessage: string) => setValidateError(errorMessage),
+          // reject 的不一定是字符串（请求失败的错误对象、validator 内部抛出的异常），此时回退到规则的 message
+          (error: unknown) => setValidateError(typeof error === 'string' ? error : getRuleMessage(rule)),
         );
     };
 
@@ -650,14 +653,12 @@
       validate,
     });
 
-    // setTimeout 确保 registerColumn 结束
-    setTimeout(() => {
-      tableContext?.pushRowspanTask({
-        getRowIndex,
-        run: calcRowspanRender,
-      });
-      tableContext?.runRowspanTask();
+    // runRowspanTask 延后到本轮渲染结束后执行，届时所在行已注册到 table（Row 的 onMounted 晚于 Column）
+    tableContext?.pushRowspanTask({
+      getRowIndex,
+      run: calcRowspanRender,
     });
+    tableContext?.runRowspanTask();
 
     // 初始化 tips 弹框
     setTimeout(() => {

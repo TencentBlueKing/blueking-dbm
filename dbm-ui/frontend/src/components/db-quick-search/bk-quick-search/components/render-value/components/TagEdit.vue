@@ -25,7 +25,9 @@
         @keydown="handleKeydown"
         @keyup="handleKeyup" />
       <div ref="valueMenuPopContent">
+        <!-- 面板弹出后再渲染：提前渲染时，关键字输入框的自动聚焦会在节点被移入弹层时丢失 -->
         <ValueMenu
+          v-if="isShowValueMenu"
           :config="config"
           :model-value="lastValue.values"
           @change="handleValueMenuChange" />
@@ -118,7 +120,7 @@
     };
   });
 
-  const { show: showValueMenu } = useMenuPop(editTextareaRef, popContentRef);
+  const { isShow: isShowValueMenu, show: showValueMenu } = useMenuPop(editTextareaRef, popContentRef);
 
   const endEditCallback = () => {
     emits('change', props.lastValue);
