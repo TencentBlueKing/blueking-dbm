@@ -1,4 +1,5 @@
 {
+  "加载失败": "Failed to load",
   "仅支持存储节点均为 is_stand_by 的集群回档": "Rollback is only supported for clusters where all storage nodes have is_stand_by set to true",
   "请输入查询 SQL，例如\nUSE game_main;\nSELECT id, name FROM user WHERE id < 100;": "Enter query SQL, for example\nUSE game_main;\nSELECT id, name FROM user WHERE id < 100;",
   "只读": "Read only",
