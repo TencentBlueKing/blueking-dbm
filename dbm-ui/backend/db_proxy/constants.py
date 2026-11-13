@@ -27,6 +27,8 @@ CLEAN_DELETED_NGINX_CONF_JOB_REQUEST_INTERVAL = 1
 
 # 缓存inst_id和nginx id，用于回调job，默认缓存时间5min
 JOB_INSTANCE_EXPIRE_TIME = 5 * 60
+# 每个 JOB 回调凭证的有效期（秒），成功处理回调后删除
+JOB_CALLBACK_TOKEN_EXPIRE_TIME = 24 * 60 * 60
 # 定义token过期时间1天，防止废弃的token复用
 DB_CLOUD_TOKEN_EXPIRE_TIME = 1 * 24 * 60 * 60
 # 云区域 token 进程内缓存：命中则跳过 redis，缩短于 redis TTL 以便进程间最终收敛

@@ -29,8 +29,9 @@ from backend.tests.mock_data.components.nodeman import NodemanApiMock
 from backend.tests.mock_data.iam_app.permission import PermissionMock
 from backend.tests.mock_data.ticket.inner import mock_inner_flow_run
 from backend.tests.mock_data.ticket.ticket_flow import PASSWORD
-from backend.ticket.constants import TicketFlowStatus, TicketStatus
+from backend.ticket.constants import FlowType, TicketFlowStatus, TicketStatus
 from backend.ticket.flow_manager.inner import InnerFlow
+from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.flow_manager.pause import PauseFlow
 from backend.ticket.handler import TicketHandler
 from backend.ticket.models import ClusterOperateRecordManager, Ticket, TicketFlowsConfig
@@ -56,6 +57,7 @@ class BaseTicketTest:
         patch.object(settings, "MIDDLEWARE", return_value=[]),
         patch.object(ClusterOperateRecordManager, "get_exclusive_ticket_map", return_value=[]),
         patch("backend.ticket.flow_manager.itsm.ItsmApi", ItsmApiMock()),
+        patch("backend.components.itsm.backends.v3.ItsmApi", ItsmApiMock()),
         patch("backend.db_services.cmdb.biz.Permission", PermissionMock),
         patch("backend.ticket.flow_manager.resource.DBResourceApi", DBResourceApiMock),
         patch("backend.db_services.dbresource.handlers.CCApi", CCApiMock()),
@@ -121,6 +123,14 @@ class BaseTicketTest:
             last_flow, current_flow = current_flow, ticket.current_flow()
             assert not last_flow or (last_flow and last_flow.id != current_flow.id), f"flow[{current_flow.id}]流转失败"
 
-            resp = self.client.post(f"/apis/tickets/{current_flow.ticket_id}/callback/")
-            assert status.is_success(resp.status_code), f"response 请求错误: {resp.status_code}"
+            if current_flow.flow_type == FlowType.BK_ITSM:
+                resp = self.client.post(
+                    f"/apis/tickets/{current_flow.ticket_id}/callback/",
+                    data={"token": ItsmApiMock.callback_token},
+                    format="json",
+                )
+                assert status.is_success(resp.status_code), f"response 请求错误: {resp.status_code}"
+            else:
+                # 非 ITSM 流程由内部事件推进，不使用 ITSM 回调接口。
+                TicketFlowManager(ticket=ticket).run_next_flow()
             assert ticket.current_flow().status != TicketFlowStatus.FAILED
