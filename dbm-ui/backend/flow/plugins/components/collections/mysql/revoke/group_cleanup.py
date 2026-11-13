@@ -22,9 +22,15 @@ specific language governing permissions and limitations under the License.
         - ``pending_clear_ips`` 已废弃；段 4 自主基于 ``group_verdict`` 筛选 F4=yes 的 IP
         - FlowSummary 写入已前移至段 2 Judge：决策产出瞬间同步追加（语义=决策派发，而非清理完成）
   - :class:`ResourceGroupMachineClearService` · 机器脚本下发（继承自 ClearMachineScriptService）
-      * 直接读 ``trans_data.group_verdict`` + ``group_verdict_decision``，自主筛选 F4=yes 的 IP
-      * 筛选结果为空（含非 RECYCLE / verdicts 空 / 全部 F4=no） -> 直接 return True 跳过
-      * 非空 -> 回填 kwargs["exec_ips"] 后走父类 BkJobService 的 Job 下发 + 轮询逻辑
+      * 直接读 ``trans_data.group_verdict`` + ``group_verdict_decision``；GROUP_RECYCLE 契约下
+        组内全部机器均为清机对象（**不再按 F4 筛选**：清机脚本是"杀进程 + 清目录 + 清
+        crontab + 清配置"的全量幂等清理，门控依据是"机器要还池"这一组决策，而非
+        "机器上有活进程"这一探针快照——F4=NO 只能证明无需杀进程，不能证明机器干净，
+        如"install 铺完目录但 mysqld 启动失败"的机器正是 F4=NO 但必须清理的场景）
+      * 下发前做 **F2 红线全量复检**（F2.a~F2.d，按角色路由，与段 2 判定同源同口径；
+        fail-closed）：任一机器命中红线或无法确认 -> return False 节点挂起，
+        由 DBA 介入排查；复检通过 -> 全组下发清机脚本
+      * F4 状态仅作为清前观测快照输出日志，不再参与门控
 
 设计要点：
   - **判据 evidence = 清理清单**：判据里有什么才清什么，不做无差别清理
@@ -46,9 +52,12 @@ from pipeline.component_framework.component import Component
 
 from backend.db_meta.models import StorageInstanceTuple
 from backend.flow.consts import DBA_ROOT_USER
+from backend.flow.engine.bamboo.scene.mysql.revoke.base.host_check import HostRevokeChecker
 from backend.flow.engine.bamboo.scene.mysql.revoke.base.log_utils import group_decision_zh
+from backend.flow.engine.bamboo.scene.mysql.revoke.base.models import FactState, ResourceGroup
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.plugins.components.collections.common.exec_clear_machine import ClearMachineScriptService
+from backend.ticket.models import Ticket
 
 logger = logging.getLogger("flow")
 
@@ -226,34 +235,59 @@ class ResourceGroupCleanupComponent(Component):
 
 
 class ResourceGroupMachineClearService(ClearMachineScriptService):
-    """组级 · 机器脚本清理 Service（继承自 ClearMachineScriptService，支持从 trans_data 动态取 exec_ips）。
+    """组级 · 机器脚本清理 Service（继承自 ClearMachineScriptService）。
 
-    kwargs 契约：
-      - 无必填字段；node_name / root_id / node_id 等由 add_act 自动注入
+    门控设计（两道闸，方向相反）：
+      - **闸 1 · 组决策门控（决定"要不要清"）**：仅 GROUP_RECYCLE 组下发，
+        且**对组内全部机器下发，不按 F4 筛选**。GROUP_RECYCLE 契约保证组内全部单机结论
+        均为 RECYCLE（G1 一致性），即"整组机器还回资源池"——"清干净再入池"是还池语义
+        的一部分：
+          * 清机脚本是"杀进程 + 清目录 + 清 crontab + 清配置"的**全量幂等**清理，
+            对干净机器 no-op，对"目录已铺但进程没起来"（F4=NO）的机器也能清干净
+          * F4 探针只覆盖进程维度，天然存在"进程死了目录还在"的盲区；拿它当门控
+            会产生漏报（脏机器入池），而幂等脚本没有误报代价
+          * F4 状态仅作为清前观测快照输出日志（供审计），不参与门控
+      - **闸 2 · 红线复检门控（决定"能不能清"，fail-closed）**：下发前对组内每台机器
+        **全量复跑** :meth:`HostRevokeChecker.check_f2_traffic`（F2.a~F2.d 按角色路由：
+        REMOTE_* 走 F2.c tdbctl 路由 / BACKEND_MASTER / BACKEND_REPEATER 走 F2.d proxy
+        后端 / 其余走 F2.a+F2.b DNS/CLB，与段 2 判定同源同口径、独立采样一次），
+        用于兜住"段 2 判定 bug"与"段 2~段 4 之间外部状态变化"两类风险；
+        任一机器 F2=YES（红线命中）或 UNKNOWN（无法确认）-> return False 节点挂起，
+        绝不带疑下发。**必须全量而非子集**：只复检 DNS/CLB 会形成保护倒挂——
+        无状态 proxy 被保护、承载数据的 master / remote 零保护
+
+    kwargs 契约（上层建节点时传入；root_id / node_id / node_name 由 add_act 自动注入）：
+      - ``ticket_id``     (int, 必填)  原 apply 单据 id，构造红线复检器用
+      - ``group_dict``    (dict, 必填)  ``asdict(group)`` 序列化的 ResourceGroup
+        （units / clb_regions / access_layer_proxies），复检输入与段 2 完全同源
 
     trans_data 输入（由段 2 :class:`ResourceGroupJudgeService` 写入）：
       - ``group_verdict``            asdict 序列化的 :class:`GroupVerdict` dict
       - ``group_verdict_decision``   :class:`GroupDecision` 的 .value 字符串
 
-    行为（**自主筛选 F4=yes 的 IP**，不再依赖段 3 产出的 ``pending_clear_ips``）：
-      - 非 GROUP_RECYCLE 决策 -> 直接 return True 跳过
+    行为：
+      - 非 GROUP_RECYCLE 决策 -> 直接 return True 跳过（no-op）
       - verdicts 为空 / 缺失 -> 直接 return True 跳过（log_error 作异常观测点）
-      - 遍历 verdicts 筛选 ``facts.f4_process.state == "yes"`` 的条目组成 ``exec_ips``
-      - 筛选结果为空（全部 F4=no，无进程可清）-> 直接 return True 跳过
-      - 非空 -> 回填 kwargs["exec_ips"] + kwargs["account_alias"] 后走父类逻辑
+      - GROUP_RECYCLE -> 组内全部 units 组成 exec_ips（F4 仅作观测日志）
+      - 红线复检任一机器 YES / UNKNOWN -> return False 节点挂起
+      - 复检通过 -> 回填 kwargs["exec_ips"] + kwargs["account_alias"] 后走父类逻辑
 
     边界：
-      - trans_data.group_verdict 缺失 / decision 非 GROUP_RECYCLE / verdicts 空 / 筛选结果空
+      - trans_data.group_verdict 缺失 / decision 非 GROUP_RECYCLE / verdicts 空
         -> 均视作 no-op，设置 ``data.outputs.ext_result = True`` 后 return True
+      - unit 关键字段（ip / bk_cloud_id）缺失 -> 单机跳过并 log_error（不阻塞整组）
+      - ticket_id / group_dict 缺失 / Ticket 不存在 / 反序列化失败 / 复检器构造异常
+        -> return False 节点挂起
       - 父类下发失败 -> 继承父类的 return False 语义
     """
 
     def _execute(self, data, parent_data) -> bool:
-        """从 trans_data.group_verdict 自主筛选 F4=yes 的 IP 作为 exec_ips 后走父类逻辑。
+        """组决策门控 + 红线复检 + 全组下发清机脚本。
 
         :param data: bamboo 节点数据
         :param parent_data: 父节点数据
-        :return: True 跳过（no-op）或 父类 _execute 结果
+        :return: True 跳过（no-op）或 父类 _execute 结果；
+            False 红线复检未通过 / 复检器异常（节点挂起等待 DBA 介入）
         """
         kwargs: Dict[str, Any] = data.get_one_of_inputs("kwargs") or {}
         node_name: str = kwargs.get("node_name") or self.__class__.__name__
@@ -285,35 +319,151 @@ class ResourceGroupMachineClearService(ClearMachineScriptService):
             data.outputs.ext_result = True
             return True
 
-        # ---- 分支 C：遍历 verdicts 筛选 F4=yes 的 unit，组装 exec_ips ----
+        # ---- 分支 C：GROUP_RECYCLE 契约 -> 组内全部机器纳入清机（不再按 F4 筛选）----
+        # F4 状态仅作清前观测快照打进日志，供审计"清了什么/为什么清"，不参与门控
         exec_ips: List[Dict[str, Any]] = []
         for v in verdicts:
-            f4_state: str = ((v.get("facts") or {}).get("f4_process") or {}).get("state") or ""
-            if f4_state != "yes":
-                continue
             unit_dict: Dict[str, Any] = v.get("unit") or {}
             ip_val = unit_dict.get("ip")
             bk_cloud_id_val = unit_dict.get("bk_cloud_id")
             if not ip_val or bk_cloud_id_val is None:
                 self.log_error(
-                    _("[{node}] verdict.unit 关键字段缺失，跳过本机 F4 清理；unit={unit}").format(node=node_name, unit=unit_dict)
+                    _("[{node}] verdict.unit 关键字段缺失，跳过本机清机；unit={unit}").format(node=node_name, unit=unit_dict)
                 )
                 continue
+            f4_state: str = ((v.get("facts") or {}).get("f4_process") or {}).get("state") or ""
+            self.log_info(
+                _("[{node}] ip={ip} 纳入清机下发（F4={f4}，仅观测不参与门控）").format(
+                    node=node_name, ip=ip_val, f4=f4_state.upper() or "UNKNOWN"
+                )
+            )
             exec_ips.append({"ip": ip_val, "bk_cloud_id": bk_cloud_id_val})
 
-        # ---- 分支 D：筛选结果为空（所有机器 F4=no，无进程可清） -> no-op ----
+        # ---- 分支 D：组内全部 unit 关键字段缺失（理论不可达） -> no-op ----
         if not exec_ips:
-            self.log_info(_("[{node}] 所有机器 F4=no，无需脚本清理（no-op）").format(node=node_name))
+            self.log_info(_("[{node}] 组内无有效清机对象（no-op）").format(node=node_name))
             data.outputs.ext_result = True
             return True
 
-        # ---- 分支 E：有需要清进程的机器 -> 回填 kwargs 后走父类下发逻辑 ----
+        # ---- 分支 E：清理前红线复检（fail-closed：命中 / 无法确认 -> 节点挂起）----
+        if not self._redline_recheck(kwargs=kwargs, trans_data=trans_data, node_name=node_name):
+            return False
+
+        # ---- 分支 F：复检通过 -> 回填 kwargs 后走父类下发逻辑 ----
         kwargs["exec_ips"] = exec_ips
         kwargs.setdefault("account_alias", DBA_ROOT_USER)
         self.log_info(
-            _("[{node}] 准备下发机器脚本清理 · 机器数={n} · exec_ips={ips}").format(node=node_name, n=len(exec_ips), ips=exec_ips)
+            _("[{node}] 红线复检通过，准备下发机器脚本清理 · 机器数={n} · exec_ips={ips}").format(
+                node=node_name, n=len(exec_ips), ips=exec_ips
+            )
         )
         return super()._execute(data=data, parent_data=parent_data)
+
+    def _redline_recheck(self, kwargs: Dict[str, Any], trans_data: Any, node_name: str) -> bool:
+        """清机下发前的 F2 红线全量复检（fail-closed）。
+
+        怎么做：
+          - 从 kwargs 取 ticket_id / group_dict / root_id（root_id 由 add_act 自动注入）
+          - ``group_dict`` 反序列化回 :class:`ResourceGroup`（units / clb_regions /
+            access_layer_proxies 与段 2 判定完全同源）
+          - 从 ``trans_data.host_process_check`` 取段 1 的进程扫描快照 ``{ip: <ctx>}``
+          - 逐台机器构造 :class:`HostRevokeChecker` 并**原样复跑**
+            :meth:`HostRevokeChecker.check_f2_traffic`：角色路由（REMOTE_* 走 F2.c /
+            BACKEND_MASTER / BACKEND_REPEATER 走 F2.d / 其余走 F2.a+F2.b）、接入层
+            存活性预判、子判据聚合全部与段 2 一致——**每个角色复检自己的红线，
+            无保护盲区**（master / remote 恰是承载数据的机器，绝不能跳过）
+          - 任一机器 F2=YES（红线命中）或 UNKNOWN（无法确认）-> log_error 并
+            return False 让节点挂起，由 DBA 在 bamboo 页面排查后原地重试
+          - 全部 F2=NO -> return True 放行下发
+
+        设计要点：
+          - **fail-closed 方向**：与段 3"清理失败挂起"同一哲学——宁可挂起人工确认，
+            绝不带着红线疑点下发破坏性清机脚本（kill 进程 + rm 数据目录）
+          - **全量对齐而非子集**：复检范围 = 段 2 F2 的全部红线（F2.a~F2.d）。
+            只复检 DNS/CLB 会形成保护倒挂——无状态 proxy 被保护、承载数据的
+            master / remote 零保护
+          - **代价有界**：F2.c / F2.d 的重探测（DRS SQL / proxyrpc）仅在接入层
+            有存活进程时才真正发起（复用段 2 内建的"接入层全死 → 短路判 NO"逻辑）；
+            部署失败类场景（全组进程都没起来）复检零 RPC 开销
+          - **复检的价值边界**：同源代码重跑主要兜"段 2~段 4 之间外部状态变化"
+            与"段 2 汇编/解析类 bug"；对探针自身的确定性逻辑 bug 无额外防护
+            （那需要独立实现的第二套探针，代价大于收益）
+
+        :param kwargs: bamboo 节点 kwargs（含 ticket_id / group_dict / root_id）
+        :param trans_data: bamboo trans_data（读 host_process_check 进程扫描快照）
+        :param node_name: 日志前缀节点名
+        :return: True 复检通过；False 命中红线 / 无法确认 / 复检器异常
+        边界：
+          - ticket_id / group_dict 缺失、Ticket 不存在、group_dict 反序列化失败
+            -> return False（无法构造复检，保守挂起）
+          - 复检器构造 / 执行异常（RevokeFlowBaseException 等）-> return False
+          - host_process_check 缺失 / 非 dict -> 按 {} 处理（F2.c/F2.d 的接入层
+            存活性预判保守视为活，探测失败则 UNKNOWN 挂起，仍 fail-closed）
+        """
+        ticket_id = kwargs.get("ticket_id")
+        group_dict = kwargs.get("group_dict")
+        root_id: str = kwargs.get("root_id") or "unknown-root"
+
+        if not isinstance(ticket_id, int):
+            self.log_error(_("[{node}] kwargs 缺失 ticket_id，无法构造红线复检器，节点挂起等待 DBA 介入").format(node=node_name))
+            return False
+        if not isinstance(group_dict, dict):
+            self.log_error(_("[{node}] kwargs 缺失 group_dict，无法反序列化资源组，节点挂起等待 DBA 介入").format(node=node_name))
+            return False
+        try:
+            group = ResourceGroup.from_dict(group_dict)
+        except Exception as err:
+            self.log_error(_("[{node}] group_dict 反序列化失败：{err} · 节点挂起等待 DBA 介入").format(node=node_name, err=err))
+            return False
+        try:
+            ticket: Ticket = Ticket.objects.get(id=ticket_id)
+        except Ticket.DoesNotExist:
+            self.log_error(
+                _("[{node}] 单据 ticket_id={ticket_id} 不存在，红线复检器构造失败，节点挂起").format(node=node_name, ticket_id=ticket_id)
+            )
+            return False
+
+        # 段 1 进程扫描快照 {ip: <ctx>}；缺失 / 非 dict 按 {} 处理（保守，仍 fail-closed）
+        ctx_by_ip: Dict[str, Any] = getattr(trans_data, "host_process_check", None) if trans_data is not None else None
+        if not isinstance(ctx_by_ip, dict):
+            ctx_by_ip = {}
+
+        for u in group.units:
+            try:
+                checker = HostRevokeChecker(
+                    root_id=root_id,
+                    ticket=ticket,
+                    bk_biz_id=u.bk_biz_id,
+                    bk_cloud_id=u.bk_cloud_id,
+                    ip=u.ip,
+                    bk_host_id=u.bk_host_id,
+                )
+                f2 = checker.check_f2_traffic(
+                    unit=u,
+                    clb_regions=list(group.clb_regions),
+                    access_layer_proxies=group.access_layer_proxies,
+                    group_units=group.units,
+                    host_process_check_ctx_by_ip=ctx_by_ip,
+                )
+            except Exception as err:
+                self.log_error(
+                    _("[{node}] ip={ip} 红线复检器构造/执行异常：{err} · 节点挂起等待 DBA 介入").format(node=node_name, ip=u.ip, err=err)
+                )
+                logger.exception(err)
+                return False
+
+            if f2.state == FactState.NO:
+                continue
+            # YES（红线命中）/ UNKNOWN（无法确认）一律 fail-closed：拦截下发，节点挂起
+            self.log_error(
+                _("[{node}] ip={ip} 清理前红线复检未通过（F2={state}）：{reason} · " "已拦截清机下发，节点挂起等待 DBA 介入排查（处置后可原地重试）").format(
+                    node=node_name, ip=u.ip, state=f2.state.value, reason=f2.reason
+                )
+            )
+            return False
+
+        self.log_info(_("[{node}] 清理前红线复检通过（F2 全量红线无客户端流量残留）").format(node=node_name))
+        return True
 
 
 class ResourceGroupMachineClearComponent(Component):
