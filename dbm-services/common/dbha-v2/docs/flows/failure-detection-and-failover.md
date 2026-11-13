@@ -53,7 +53,7 @@ sequenceDiagram
     alt 未命中
       AM->>AM: 结束本 group
     else action=notify
-      AM->>AM: TriggerWithBizId 仅告警
+      AM->>AM: TriggerWorkflowAlarm 仅告警
     else action=switch
       alt EnableSwitching=false
         AM->>AM: 跳过切换

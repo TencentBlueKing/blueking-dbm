@@ -229,7 +229,7 @@ func (w *Workflow) filterByWhitelistForSwitch(
 			strings.Join(instanceAddrs, ", "), bkBizID, group.BkCloudID, err,
 		)
 		logger.Warn("%s", msg)
-		w.alarm.TriggerWithBizId(bkBizID, msg)
+		w.alarm.TriggerWorkflowAlarm(bkBizID, msg)
 
 		req.InstData = make([]*dbm.DbInstMetadata, 0)
 		return gerrors.Newf(gerrors.InternalServerFailure, "%s", msg)
@@ -279,6 +279,6 @@ func (w *Workflow) filterByWhitelistForSwitch(
 			"bkCloudId: %d, dbType: %s, instances: [%s]",
 		len(remaining), bkBizID, group.BkCloudID, group.DbType, strings.Join(instanceInfos, ", "))
 	logger.Info("%s", log)
-	w.alarm.TriggerWithBizId(bkBizID, log)
+	w.alarm.TriggerWorkflowAlarm(bkBizID, log)
 	return nil
 }

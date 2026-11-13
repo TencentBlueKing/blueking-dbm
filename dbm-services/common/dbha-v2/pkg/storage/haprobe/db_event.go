@@ -75,6 +75,7 @@ const (
 	DbEventNameUptimeFailure                   DbEventName = "dbha_uptime_failure"
 	DbEventNameRedisUnbindProxySuccess         DbEventName = "dbha_redis_unbind_proxy_success"
 	DbEventNameRedisUnbindProxyFailure         DbEventName = "dbha_redis_unbind_proxy_failure"
+	DbEventNameWorkflowAlarm                   DbEventName = "dbha_workflow_alarm"
 )
 
 // DbEventNameMap db event name map

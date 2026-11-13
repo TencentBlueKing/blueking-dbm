@@ -118,7 +118,7 @@ analysis 通过 `pkg/monitor` 经 `bkmonitorbeat` 向 BKMonitor 上报事件。
 | 入口 | 主要调用方 | 用途 |
 | --- | --- | --- |
 | `AlarmNotifier.TriggerWithDetectorResponse` | 二次探测处理 | 上报探测/二次探测事件 |
-| `AlarmNotifier.TriggerWithBizId` | 扫描/切换流程 | 业务级异常告警 |
+| `AlarmNotifier.TriggerWorkflowAlarm` | 扫描/切换流程 | 业务级通用告警（`dbha_workflow_alarm`） |
 | `SwitchExecutor.postSuccessAlarms` / `postFailureAlarms` | 切换成败 | `dbha_mysql_switch_ok` / `_err` |
 | `PostBKMonitor` | monitor 包统一出口 | 经 `bkmonitorbeat -report` 投递 |
 
@@ -135,6 +135,8 @@ analysis 通过 `pkg/monitor` 经 `bkmonitorbeat` 向 BKMonitor 上报事件。
 | `DbEventNameDoubleCheckSshFailureV1` | `dbha_doublecheck_ssh_fail` | **是**（唯一入窗路径） |
 | `DbEventNameTendbhaProxyBackendFailure` | `dbha_tendbha_proxy_backend_failure` | 否（非 emit；Pop 时按窗内角色组合计数命中策略，详见 §5） |
 | `DbEventNameTendbclusterSpiderRemoteFailure` | `dbha_tendbcluster_spider_remote_failure` | 否（非 emit；Pop 时按窗内角色组合计数命中策略，详见 §5） |
+
+直发 BKMonitor、不入窗：`dbha_workflow_alarm`（业务级通用告警，经 `TriggerWorkflowAlarm`）。
 
 V1 兼容事件（部分）：`dbha_mysql_switch_ok` / `dbha_mysql_switch_err` 等。`auth failure` / `ssh auth failure` 为 Reason 枚举已定义；当前主路径未写入（SSH 鉴权失败仍落为 dial/session → `DoubleCheckSshFailureV1` + `connection exception`）。
 
