@@ -166,6 +166,8 @@
     // 字符内容转变成blob地址
     const blob = new Blob([props.modelValue], { type: 'sql' });
     link.href = URL.createObjectURL(blob);
+    // 避免下载链接的点击冒泡触发外层详情关闭
+    link.addEventListener('click', (event) => event.stopPropagation());
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
