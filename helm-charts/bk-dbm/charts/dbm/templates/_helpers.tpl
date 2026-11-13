@@ -150,6 +150,10 @@ environment variables
 {{- printf "%s-%s" (include "dbm.fullname" .) "backend-api" -}}
 {{- end -}}
 
+{{- define "dbm.dbm-ws.fullname" -}}
+{{- printf "%s-%s" (include "dbm.fullname" .) "dbm-ws" -}}
+{{- end -}}
+
 {{- define "dbm.celery-beater.fullname" -}}
 {{- printf "%s-%s" (include "dbm.fullname" .) "celery-beater" -}}
 {{- end -}}

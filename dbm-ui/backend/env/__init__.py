@@ -84,6 +84,10 @@ BK_COMPONENT_API_URL = get_type_env(key="BK_COMPONENT_API_URL", _type=str, defau
 
 # 开启外部路由，供外部环境使用(DBConsole)
 ENABLE_EXTERNAL_PROXY = get_type_env(key="ENABLE_EXTERNAL_PROXY", _type=bool, default=False)
+# 向前端声明 WebConsole 是否支持 WebSocket；部署链路就绪后显式开启。
+ENABLE_WEBCONSOLE_WEBSOCKET = get_type_env(key="ENABLE_WEBCONSOLE_WEBSOCKET", _type=bool, default=False)
+# 向前端声明 HTTP 模式是否启用，未配置时保留原有 HTTP 模式。
+ENABLE_WEBCONSOLE_HTTP = get_type_env(key="ENABLE_WEBCONSOLE_HTTP", _type=bool, default=True)
 # 开启所有路由，不屏蔽。！！这里只用在合作伙伴环境！！
 ENABLE_OPEN_EXTERNAL_PROXY = get_type_env(key="ENABLE_OPEN_EXTERNAL_PROXY", _type=bool, default=False)
 

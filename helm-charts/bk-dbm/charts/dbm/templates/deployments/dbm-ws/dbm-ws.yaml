@@ -1,0 +1,93 @@
+{{- if .Values.saas.ws.enabled | default .Values.enabled -}}
+{{- $fullName := ( include "dbm.dbm-ws.fullname" .) -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $fullName }}
+  labels:
+    {{- include "dbm.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.saas.ws.autoscaling.enabled }}
+  replicas: {{ .Values.saas.ws.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "dbm.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: "{{ $fullName }}"
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "dbm.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: "{{ $fullName }}"
+    spec:
+      terminationGracePeriodSeconds: {{ .Values.saas.ws.terminationGracePeriodSeconds | default 60 }}
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "dbm.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}-ws
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.global.imageRegistry | default .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /bin/bash
+            - -c
+          args:
+            - >-
+              uvicorn backend.asgi:application
+              --host 0.0.0.0
+              --port 8000
+              --workers {{ .Values.saas.ws.workers }}
+              --ws websockets
+              --proxy-headers
+              --timeout-keep-alive {{ .Values.saas.ws.timeoutKeepAlive | default 75 }}
+              --ws-ping-interval {{ .Values.saas.ws.wsPingInterval | default 30 }}
+              --ws-ping-timeout {{ .Values.saas.ws.wsPingTimeout | default 30 }}
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.livenessProbe.path | default "/ping"}}
+              port: http
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds | default 15}}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds | default 30}}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds | default 15}}
+            successThreshold: {{ .Values.livenessProbe.successThreshold | default 1}}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold | default 3}}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.readinessProbe.path | default "/ping"}}
+              port: http
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds | default 15}}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds | default 30}}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds | default 15}}
+            successThreshold: {{ .Values.readinessProbe.successThreshold | default 1}}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold | default 3}}
+          {{- include "dbm.container_env" . | nindent 10 }}
+          resources:
+            {{- toYaml .Values.saas.ws.resources | nindent 12 }}
+      {{- include "dbm.initContainersWaitForMigrate" . | nindent 6 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end -}}

@@ -177,6 +177,8 @@ dbm:
     reverseReportKafkaOptions: ""
     dbmEnableAI: true
     bkaiAgentMetricsPushMode: "direct"
+    # WebConsole WS 链路部署就绪后开启，供前端查询可用模式。
+    ENABLE_WEBCONSOLE_WEBSOCKET: "true"
 
   ingress:
     enabled: true
@@ -193,6 +195,21 @@ dbm:
     paths:
       - path: /
         pathType: ImplementationSpecific
+    tls: []
+
+  ingressWs:
+    enabled: true
+    className: ""
+    annotations:
+      kubernetes.io/ingress.class: "qcloud"
+      # 复用现网 CLB 时，在此配置 kubernetes.io/ingress.existLbId。
+      # 使用 ClusterIP 后端时，如集群支持 CLB 直连 Pod，可启用以下配置：
+      # ingress.cloud.tencent.com/direct-access: "true"
+      # 空闲超时在 CLB 侧配置；应用默认每 30 秒发送一次 WebSocket Ping。
+    hostname: "bkdbm.example.com"
+    paths:
+      - path: /ws
+        pathType: Prefix
     tls: []
 
   ingressBackendApi:
@@ -232,6 +249,11 @@ dbm:
     backendApi:
       enabled: true
       replicaCount: 1
+    ws:
+      enabled: true
+      replicaCount: 1
+      workers: 4
+      terminationGracePeriodSeconds: 60
     celeryBeat:
       enabled: true
       replicaCount: 1
