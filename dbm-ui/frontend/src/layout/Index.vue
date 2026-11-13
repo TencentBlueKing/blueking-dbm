@@ -72,6 +72,7 @@
 
   import ConfigManage from './components/ConfigManage.vue';
   import DatabaseManage from './components/database-manage/Index.vue';
+  import DnsDomain from './components/DnsDomain.vue';
   import GlobalConfigManage from './components/GlobalConfigManage.vue';
   import { sideMenuCollapseKey } from './components/menu/common/context';
   import ObservableManage from './components/ObservableManage.vue';
@@ -93,6 +94,8 @@
   enum menuEnum {
     configManage = 'configManage',
     databaseManage = 'databaseManage',
+    // 域名服务：只有左侧菜单，不进顶栏 menuList（DBM 不设入口，仅 URL 访问）
+    dnsDomain = 'dnsDomain',
     globalConfigManage = 'globalConfigManage',
     observableManage = 'observableManage',
     personalWorkbench = 'personalWorkbench',
@@ -181,6 +184,7 @@
       'DBPasswordTemporaryModify',
       'BussinessServiceApply',
     ],
+    [menuEnum.dnsDomain]: ['DnsDomain'],
     [menuEnum.globalConfigManage]: [
       'PlatformVersionFiles',
       'PlatformVersionFilesV1',
@@ -236,6 +240,7 @@
       configManage: ConfigManage,
       databaseManage: DatabaseManage,
       globalConfigManage: GlobalConfigManage,
+      [menuEnum.dnsDomain]: DnsDomain,
       [menuEnum.platformManage]: PlatformManage,
       observableManage: ObservableManage,
       personalWorkbench: PersonalWorkbench,

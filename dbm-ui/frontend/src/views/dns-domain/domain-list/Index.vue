@@ -80,8 +80,8 @@
       <TableColumn
         col-key="row-operation"
         fixed="right"
-        :min-width="140"
-        :title="t('操作')">
+        :title="t('操作')"
+        :width="140">
         <template #default="{ row }: { row: DnsDomainModel }">
           <AuthButton
             v-if="row.isSelfMaintain"
@@ -145,9 +145,9 @@
 
   import { searchUserRemoteMethod } from '@views/dns-domain/utils';
 
-  import DomainCreate from '../domain-create/Index.vue';
-  import DomainDelete from '../domain-delete/Index.vue';
-  import DomainDetail from '../domain-detail/Index.vue';
+  import DomainCreate from './components/domain-create/Index.vue';
+  import DomainDelete from './components/domain-delete/Index.vue';
+  import DomainDetail from './components/domain-detail/Index.vue';
 
   const route = useRoute();
   const { t } = useI18n();
@@ -244,10 +244,6 @@
       row.remark = detail.remark;
     }
   };
-
-  onMounted(() => {
-    fetchData();
-  });
 </script>
 <style lang="less">
   .dns-domain-list {

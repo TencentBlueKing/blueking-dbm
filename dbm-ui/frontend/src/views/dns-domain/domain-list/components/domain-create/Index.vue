@@ -17,7 +17,7 @@
     v-model:is-show="isShow"
     class="dns-domain-create"
     :title="t('新建域名')"
-    :width="640">
+    :width="980">
     <DbForm
       ref="form"
       class="dns-domain-create-form"
@@ -89,7 +89,7 @@
 
   import { messageSuccess } from '@utils';
 
-  import DomainInput from '../DomainInput.vue';
+  import DomainInput from './components/DomainInput.vue';
 
   type Emits = (e: 'success') => void;
 

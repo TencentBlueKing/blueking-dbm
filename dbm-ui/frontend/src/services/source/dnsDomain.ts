@@ -44,11 +44,6 @@ interface AuditParams {
 }
 
 /**
- * 当前环境是否开放域名服务
- */
-export const getDnsDomainEnabled = () => http.get<{ enabled: boolean }>(`${path}/enabled/`, {}, { catchError: true });
-
-/**
  * 域名列表
  */
 export const getDnsDomainList = (
