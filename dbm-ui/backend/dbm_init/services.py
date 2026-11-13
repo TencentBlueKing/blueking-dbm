@@ -560,7 +560,7 @@ class Services:
             )
             logger.info("dbm同步dbconfig成功")
         except Exception as e:
-            logger.info("dbm同步dbconfig异常: %s" % str(e))
+            raise Exception("dbm同步dbconfig异常: %s" % str(e))
 
     @classmethod
     def auto_create_dbm_access_token(cls):
