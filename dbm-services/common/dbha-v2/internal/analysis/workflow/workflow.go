@@ -365,7 +365,7 @@ func (w *Workflow) ScanBusinesses(ctx context.Context) {
 				}
 
 				logger.Warn("failed to check the business, bizId: %d", bizId)
-				w.alarm.TriggerWithBizId(bizId, err.Error())
+				w.alarm.TriggerWorkflowAlarm(bizId, err.Error())
 			}, safe.WithLabel("ScanBusinesses"))
 		}(bizID)
 	}
@@ -712,7 +712,7 @@ func (w *Workflow) handleNotifyGroup(
 			FormatInstanceNotifySummary(group.Instances))
 	}
 	logger.Info("%s", log)
-	w.alarm.TriggerWithBizId(group.BkBizID, log)
+	w.alarm.TriggerWorkflowAlarm(group.BkBizID, log)
 }
 
 func (w *Workflow) handleStrategySwitch(

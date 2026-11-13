@@ -131,22 +131,26 @@ func (n *AlarmNotifier) TriggerWithEvent(event *haprobe.DbEvent, meta *hamodel.D
 	}
 }
 
-// TriggerWithBizId posts an alarm event for a business ID.
-func (n *AlarmNotifier) TriggerWithBizId(bizId int, content string) {
+// TriggerWorkflowAlarm posts a generic business-level alarm with no dedicated
+// event type (e.g. notify-only strategy, whitelist skip, scan biz failure).
+func (n *AlarmNotifier) TriggerWorkflowAlarm(bizId int, content string) {
 	target := fmt.Sprintf("BizId: %d", bizId)
+	eventName := haprobe.DbEventNameWorkflowAlarm
 
 	monitorEvent := &monitor.EventData{
-		Name:      "",
+		Name:      eventName.String(),
 		Target:    target,
 		Timestamp: uint64(time.Now().UnixMilli()),
 	}
 
 	monitorEvent.Content.Content = content
-
 	monitorEvent.Dimension.BkBizId = bizId
+	monitorEvent.Dimension.DbEventName = eventName
+
+	logger.Info("the workflow triggers a generic alarm, biz_id: %d, content: %s", bizId, content)
 
 	if err := monitor.PostBKMonitor(config.Cfg.Monitor.Timeout, monitorEvent); err != nil {
-		logger.Warn("%s", err)
+		logger.Warn("failed to post the workflow alarm to BkMonitor, errmsg: %s", err)
 	}
 }
 
