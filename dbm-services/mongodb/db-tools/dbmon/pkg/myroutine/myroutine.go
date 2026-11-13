@@ -36,17 +36,21 @@ func (r *MyRoutine) Run() {
 	r.deletedMutex.Unlock()
 
 	r.stoppedMutex.Lock()
-	defer r.stoppedMutex.Unlock()
 	if !r.stopped {
+		r.stoppedMutex.Unlock()
 		return
 	}
+	// 先标记再启动。StartAll 每几秒调用一次，若等协程里才改 stopped，
+	// 中间窗口会被再次启动，且对 stopped 的读写没有同一把锁。
+	r.stopped = false
+	r.stoppedMutex.Unlock()
 
 	go func() {
-		r.stopped = false
 		r.j.Run()
+		r.stoppedMutex.Lock()
 		r.stopped = true
+		r.stoppedMutex.Unlock()
 	}()
-
 }
 
 // IsStopped stops the routine.
