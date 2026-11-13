@@ -1,4 +1,5 @@
-{{- if .Values.saas.aidevApi.enabled -}}
+{{- $aiEnabled := eq (.Values.envs.dbmEnableAI | toString | lower) "true" -}}
+{{- if and $aiEnabled .Values.saas.aidevApi.enabled -}}
 {{- $fullName := ( include "dbm.aidev-api.fullname" .) -}}
 apiVersion: apps/v1
 kind: Deployment
