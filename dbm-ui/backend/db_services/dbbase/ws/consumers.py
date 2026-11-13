@@ -320,7 +320,7 @@ class WebConsoleConsumer(AsyncJsonWebsocketConsumer):
     async def _desensitize_response(self, response):
         """外部请求返回前复用旧接口的 BKBase 脱敏逻辑。"""
         # 与 HTTP 一致：配置 V2 地址或 V1 Token 均可启用脱敏，版本由公共 API 选择。
-        if not self.local_request.is_external or not (env.BKDATA_SENSI_AGENT_URL or env.BKDATA_DATA_TOKEN):
+        if not self.local_request.is_external or not BKBaseApi.sensi_text_enabled():
             return response
 
         username = self.scope["user"].username

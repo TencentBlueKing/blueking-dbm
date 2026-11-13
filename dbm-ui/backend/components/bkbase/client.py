@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+import time
 from urllib.parse import urljoin
 
 from django.utils.translation import gettext_lazy as _
@@ -35,9 +36,12 @@ class _BKBaseApi(BaseApi):
     BASE = BKBASE_APIGW_DOMAIN
 
     def __init__(self):
-        self.sensitive_text_classification_normal = self.generate_data_api(
+        # 敏感文本分类走插件网关，地址只读 BKDATA_SENSI_TEXT_APIGW_DOMAIN
+        self.sensitive_text_classification_normal = DataAPI(
             method="POST",
-            url="v3/aiops/serving/processing/sensitive_text_classification_normal/execute/",
+            base=env.BKDATA_SENSI_TEXT_APIGW_DOMAIN,
+            url="bk_plugin/openapi/serving/v3/execute/",
+            module=self.MODULE,
             description=_("敏感信息识别"),
         )
         # 敏感信息检测 V2，部署在独立网关上，不复用 BKBASE_APIGW_DOMAIN
@@ -66,11 +70,16 @@ class _BKBaseApi(BaseApi):
         """
         if env.BKDATA_SENSI_AGENT_URL:
             return self._data_desensitization_v2(text)
-        if env.BKDATA_DATA_TOKEN:
+        if env.BKDATA_SENSI_TEXT_APIGW_DOMAIN:
             return self._data_desensitization_v1(user, text, bk_biz_id)
 
-        logger.warning("未配置 BKDATA_SENSI_AGENT_URL 和 BKDATA_DATA_TOKEN，跳过敏感信息识别")
+        logger.warning("未配置敏感信息识别网关，跳过敏感信息识别")
         return text
+
+    @staticmethod
+    def sensi_text_enabled() -> bool:
+        """V2 直连或插件网关地址任一配置即可脱敏。"""
+        return bool(env.BKDATA_SENSI_AGENT_URL or env.BKDATA_SENSI_TEXT_APIGW_DOMAIN)
 
     def _data_desensitization_v2(self, text):
         """敏感信息识别V2"""
@@ -90,25 +99,20 @@ class _BKBaseApi(BaseApi):
 
         detect_texts = self.sensitive_text_classification_normal(
             {
-                "bkdata_authentication_method": "token",
-                "bkdata_data_token": env.BKDATA_DATA_TOKEN,
-                "bk_app_code": env.APP_CODE,
-                "bk_app_secret": env.SECRET_KEY,
-                "data": {"inputs": [{"target_content": text}]},
+                "data": {
+                    "inputs": [{"target_content": text, "timestamp": int(time.time() * 1000)}],
+                },
                 "config": {
-                    # 心跳超时时间
-                    "timeout": 30,
                     # 返回结果不包含输入文本
                     "passthrough_input": False,
                     "predict_args": {
-                        # 填入可选参数，也可不填入，保持为空即按默认配置检测
                         "input_config": "1,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22",
+                        "custom_keywords": "-",
+                        "custom_regex": "-",
                         "is_masked": "yes",
-                        # 必填参数，暂时去掉bk_app_secret
-                        # "bk_app_secret": env.SECRET_KEY,
+                        # 算法参数，不是网关凭证。网关凭证只放在 X-Bkapi-Authorization
                         "bk_app_code": env.APP_CODE,
                         "biz_name": f"{app['bk_biz_name']}(#{app['bk_biz_id']})",
-                        # 额外参数
                         "extra_info": {"username": user},
                     },
                 },
