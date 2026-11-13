@@ -61,7 +61,7 @@ def _domain_ids(request, view):
 class DnsDomainViewSet(viewsets.SystemViewSet):
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
-        if self.action != "service_status" and not env.DNS_DOMAIN_SERVICE_ENABLED:
+        if not env.DNS_DOMAIN_SERVICE_ENABLED:
             raise NotFound(_("当前环境未开放域名服务"))
 
     def _get_custom_permissions(self):
@@ -69,7 +69,6 @@ class DnsDomainViewSet(viewsets.SystemViewSet):
             [ActionEnum.DNS_MANAGE], ResourceEnum.DNS_DOMAIN, instance_ids_getter=_domain_ids
         )
         return {
-            "service_status": [],
             "list_domains": [],
             "retrieve_domain": [domain_manage],
             "create_domain": [ResourceActionPermission([ActionEnum.DNS_DOMAIN_CREATE])],
@@ -81,11 +80,6 @@ class DnsDomainViewSet(viewsets.SystemViewSet):
 
     def _handler(self) -> DnsDomainHandler:
         return DnsDomainHandler(username=self.request.user.username, request=self.request)
-
-    @common_swagger_auto_schema(operation_summary=_("域名服务是否开放"), tags=SWAGGER_TAG)
-    @action(methods=["GET"], detail=False, url_path="enabled")
-    def service_status(self, request, *args, **kwargs):
-        return Response({"enabled": env.DNS_DOMAIN_SERVICE_ENABLED})
 
     @common_swagger_auto_schema(
         operation_summary=_("域名列表"), query_serializer=DnsDomainListSerializer(), tags=SWAGGER_TAG
