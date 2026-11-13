@@ -511,11 +511,20 @@ class RoleEnum:
     #     actions=_make_dba_actions(DBType.Oracle),
     # )
 
-    # ---------------- 平台管理员：含全部已注册操作，随注册面自动增减 ----------------
+    # 只含 dns_manage。创建自主维护域名时，把该域名的 dns_manage 写到创建人这个用户上。
+    DNS_DOMAIN_MANAGER = RoleMeta(
+        id="dns_domain_manager",
+        name=_("域名创建者"),
+        description=_("创建自主维护域名后，拥有该域名的 dns_manage。"),
+        actions=[ActionEnum.DNS_MANAGE],
+    )
+
+    # actions=None 含全部已注册操作，因此包含域名服务的三项。
+    # 授予该角色时，dns_manage 的资源范围是 dns_domain 无限制（*）。
     PLATFORM_ADMIN = RoleMeta(
         id="dbm_platform_admin",
         name=_("平台管理员"),
-        description=_("拥有平台全部已注册操作（含全局设置、全部组件）。"),
+        description=_("拥有平台全部已注册操作（含全局设置、全部组件、域名服务）。"),
         # None表示所有已注册操作，[]表示无动作
         actions=None,
     )

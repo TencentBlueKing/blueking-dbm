@@ -90,6 +90,8 @@ ENABLE_WEBCONSOLE_WEBSOCKET = get_type_env(key="ENABLE_WEBCONSOLE_WEBSOCKET", _t
 ENABLE_WEBCONSOLE_HTTP = get_type_env(key="ENABLE_WEBCONSOLE_HTTP", _type=bool, default=True)
 # 开启所有路由，不屏蔽。！！这里只用在合作伙伴环境！！
 ENABLE_OPEN_EXTERNAL_PROXY = get_type_env(key="ENABLE_OPEN_EXTERNAL_PROXY", _type=bool, default=False)
+# 域名服务只在内部上云环境开放。其他环境接口返回 404，由页面跳回数据库管理。
+DNS_DOMAIN_SERVICE_ENABLED = get_type_env(key="DNS_DOMAIN_SERVICE_ENABLED", _type=bool, default=False)
 
 # ITSM 服务ID
 BK_ITSM_PROJECT_KEY = get_type_env(key="BK_ITSM_PROJECT_KEY", _type=str, default="0")

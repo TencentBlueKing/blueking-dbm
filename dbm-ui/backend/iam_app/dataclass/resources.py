@@ -897,6 +897,35 @@ class DumperSubscribeConfigResourceMeta(ResourceMeta):
         return resource
 
 
+@dataclass
+class DnsDomainResourceMeta(ResourceMeta):
+    """域名服务里的完整域名。无父资源，平台管理员的授权范围是该资源无限制。"""
+
+    system_id: str = BK_IAM_SYSTEM_ID
+    id: str = "dns_domain"
+    name: str = _("完整域名")
+    selection_mode: str = "instance"
+
+    attribute: str = "creator"
+    attribute_display: str = _("创建者")
+    lookup_field: str = "domain"
+    display_fields: list = ResourceMeta.Field(["domain"])
+    # 创建自主维护域名后，把创建者授予该域名的管理角色
+    creator_role_v4: str = "dns_domain_manager"
+
+    def create_instance(self, instance_id: str, attr=None) -> Resource:
+        from backend.db_services.dns_domain.models import DnsDomain
+
+        try:
+            resource, __ = self.create_model_instance(DnsDomain, instance_id, attr)
+            return resource
+        except ResourceNotExistError:
+            # 集群托管域名不在域名表里，鉴权时按域名本身构造资源
+            resource = self._create_simple_instance(instance_id, attr)
+            resource.attribute.update({"id": str(instance_id), "name": str(instance_id)})
+            return resource
+
+
 class ResourceEnum:
     """
     resource 枚举类
@@ -939,6 +968,7 @@ class ResourceEnum:
     K8S_MILVUS = K8sMilvusResourceMeta()
     K8S_QDRANT = K8sQdrantResourceMeta()
     K8S_GREPTIMEDB = K8sGreptimedbResourceMeta()
+    DNS_DOMAIN = DnsDomainResourceMeta()
 
     @classmethod
     def get_resource_by_id(cls, resource_id: Union[ResourceMeta, str]):

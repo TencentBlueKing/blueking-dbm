@@ -3094,6 +3094,40 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    # 管理空间「域名服务」。分组同名，label 为空，无依赖动作，授权直接写到用户。
+    # 新建入口看 dns_domain_create；域名、编辑、删除看该域名的 dns_manage；
+    # 全局操作日志入口常驻，查看看 dns_audit_view。
+    DNS_DOMAIN_CREATE = ActionMeta(
+        id="dns_domain_create",
+        name=_("创建域名"),
+        name_en="Create DNS Domain",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[],
+        group=_("域名服务"),
+        common_labels=[],
+    )
+    DNS_MANAGE = ActionMeta(
+        id="dns_manage",
+        name=_("域名管理"),
+        name_en="DNS Domain Manage",
+        type="manage",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.DNS_DOMAIN],
+        group=_("域名服务"),
+        common_labels=[],
+    )
+    DNS_AUDIT_VIEW = ActionMeta(
+        id="dns_audit_view",
+        name=_("域名服务全局操作日志查看"),
+        name_en="DNS Audit View",
+        type="view",
+        related_actions=[],
+        related_resource_types=[],
+        group=_("域名服务"),
+        common_labels=[],
+    )
+
     @classmethod
     def get_action_by_id(cls, action_id: Union[(ActionMeta, str)]) -> ActionMeta:
         if isinstance(action_id, ActionMeta):
