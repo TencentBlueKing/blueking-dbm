@@ -76,7 +76,11 @@ class TendbClusterRestoreSlaveResourceParamBuilder(MysqlRestoreSlaveResourcePara
 
 
 @builders.BuilderFactory.register(
-    TicketType.TENDBCLUSTER_RESTORE_SLAVE, is_apply=True, is_recycle=True, iam=ActionEnum.TENDBCLUSTER_MANAGE
+    TicketType.TENDBCLUSTER_RESTORE_SLAVE,
+    is_apply=True,
+    is_recycle=True,
+    async_build=True,
+    iam=ActionEnum.TENDBCLUSTER_MANAGE,
 )
 class TendbClusterRestoreSlaveFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbClusterRestoreSlaveDetailSerializer

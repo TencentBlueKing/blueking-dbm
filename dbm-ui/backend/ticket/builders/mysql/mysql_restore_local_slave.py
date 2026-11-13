@@ -66,7 +66,7 @@ class MysqlRestoreLocalSlaveParamBuilder(builders.FlowParamBuilder):
             )
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_RESTORE_LOCAL_SLAVE, iam=ActionEnum.MYSQL_MANAGE)
+@builders.BuilderFactory.register(TicketType.MYSQL_RESTORE_LOCAL_SLAVE, async_build=True, iam=ActionEnum.MYSQL_MANAGE)
 class MysqlRestoreLocalSlaveFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MysqlRestoreLocalSlaveDetailSerializer
     inner_flow_builder = MysqlRestoreLocalSlaveParamBuilder

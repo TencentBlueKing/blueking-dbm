@@ -145,7 +145,7 @@ class TendbFixPointRollbackResourceParamBuilder(BaseOperateResourceParamBuilder)
         next_flow.save(update_fields=["details"])
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_ROLLBACK_CLUSTER, is_apply=True)
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_ROLLBACK_CLUSTER, is_apply=True, async_build=True)
 class TendbFixPointRollbackFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbFixPointRollbackDetailSerializer
     inner_flow_builder = TendbFixPointRollbackFlowParamBuilder
@@ -267,19 +267,25 @@ class TendbFixPointRollbackFlowBuilder(BaseTendbTicketFlowBuilder):
 
 
 @builders.BuilderFactory.register(
-    TicketType.TENDBCLUSTER_FIXPOINT_NEW, is_apply=True, iam=ActionEnum.TENDBCLUSTER_ROLLBACK_CLUSTER
+    TicketType.TENDBCLUSTER_FIXPOINT_NEW,
+    is_apply=True,
+    async_build=True,
+    iam=ActionEnum.TENDBCLUSTER_ROLLBACK_CLUSTER,
 )
 class TendbFixPointFlowNewClusterBuilder(TendbFixPointRollbackFlowBuilder):
     inner_flow_name = _("定点构造执行")
 
 
 @builders.BuilderFactory.register(
-    TicketType.TENDBCLUSTER_FIXPOINT_EXIST, is_apply=True, iam=ActionEnum.TENDBCLUSTER_ROLLBACK_CLUSTER
+    TicketType.TENDBCLUSTER_FIXPOINT_EXIST,
+    is_apply=True,
+    async_build=True,
+    iam=ActionEnum.TENDBCLUSTER_ROLLBACK_CLUSTER,
 )
 class TendbFixPointFlowExistClusterBuilder(TendbFixPointRollbackFlowBuilder):
     inner_flow_name = _("定点构造执行")
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_ROLLBACK, is_apply=True)
+@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_ROLLBACK, is_apply=True, async_build=True)
 class TendbRollbackFlowBuilder(TendbFixPointRollbackFlowBuilder):
     inner_flow_name = _("定点回档执行")

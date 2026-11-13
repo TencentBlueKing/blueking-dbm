@@ -102,7 +102,11 @@ class MysqlRestoreSlaveResourceParamBuilder(BaseOperateResourceParamBuilder):
 
 
 @builders.BuilderFactory.register(
-    TicketType.MYSQL_RESTORE_SLAVE, is_apply=True, is_recycle=True, iam=ActionEnum.MYSQL_MANAGE
+    TicketType.MYSQL_RESTORE_SLAVE,
+    is_apply=True,
+    is_recycle=True,
+    async_build=True,
+    iam=ActionEnum.MYSQL_MANAGE,
 )
 class MysqlRestoreSlaveFlowBuilder(BaseMySQLHATicketFlowBuilder):
     serializer = MysqlRestoreSlaveDetailSerializer

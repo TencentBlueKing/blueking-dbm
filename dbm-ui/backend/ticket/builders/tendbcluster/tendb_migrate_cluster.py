@@ -67,7 +67,11 @@ class TendbClusterMigrateClusterResourceParamBuilder(MysqlMigrateClusterResource
 
 
 @builders.BuilderFactory.register(
-    TicketType.TENDBCLUSTER_MIGRATE_CLUSTER, is_apply=True, is_recycle=True, iam=ActionEnum.TENDBCLUSTER_MANAGE
+    TicketType.TENDBCLUSTER_MIGRATE_CLUSTER,
+    is_apply=True,
+    is_recycle=True,
+    async_build=True,
+    iam=ActionEnum.TENDBCLUSTER_MANAGE,
 )
 class TendbClusterMigrateClusterFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbClusterMigrateClusterDetailSerializer

@@ -53,7 +53,11 @@ class MysqlMigrateSingleResourceParamBuilder(BaseOperateResourceParamBuilder):
 
 
 @builders.BuilderFactory.register(
-    TicketType.MYSQL_MIGRATE_SINGLE, is_apply=True, is_recycle=True, iam=ActionEnum.MYSQL_MANAGE
+    TicketType.MYSQL_MIGRATE_SINGLE,
+    is_apply=True,
+    is_recycle=True,
+    async_build=True,
+    iam=ActionEnum.MYSQL_MANAGE,
 )
 class MysqlMigrateSingleFlowBuilder(BaseMySQLSingleTicketFlowBuilder):
     serializer = MysqlMigrateSingleDetailSerializer
