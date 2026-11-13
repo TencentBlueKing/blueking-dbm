@@ -52,6 +52,8 @@ export function getSystemEnviron() {
     DBA_APP_BK_BIZ_NAME: number;
     // DB 模块主 DBA 配置
     DBA_ROBOT?: Record<DBTypes, string>;
+    // 当前环境是否开放域名服务（仅内部上云环境）
+    DNS_DOMAIN_SERVICE_ENABLED?: boolean;
     ENABLE_DBM_AI: boolean;
     ENABLE_EXTERNAL_PROXY: boolean;
     RES0URCE_INDEPENDENT_BIZ_NAME: string;

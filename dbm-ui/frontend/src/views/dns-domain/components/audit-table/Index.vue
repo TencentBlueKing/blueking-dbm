@@ -187,7 +187,7 @@
         ...params,
         ...baseParams.value,
       },
-      // 全局日志无权限时在本区域展示申请，保留页面内导航
+      // 全局日志无权限时在本区域展示申请，保留左侧菜单
       isGlobal ? { ...payload, permission: 'catch' } : payload,
     );
 
@@ -212,10 +212,6 @@
       isExporting.value = false;
     });
   };
-
-  onMounted(() => {
-    fetchData();
-  });
 
   defineExpose<Exposes>({
     // 本域日志未开启 URL 联动，查询条件不变时 DbTable 保留当前页码

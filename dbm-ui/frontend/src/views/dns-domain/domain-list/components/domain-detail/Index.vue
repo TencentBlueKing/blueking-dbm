@@ -77,9 +77,9 @@
 
   import { type DnsDomainDetail, getDnsDomainDetail, updateDnsDomain } from '@services/source/dnsDomain';
 
-  import { messageSuccess } from '@utils';
+  import AuditTable from '@views/dns-domain/components/audit-table/Index.vue';
 
-  import AuditTable from '../audit-table/Index.vue';
+  import { messageSuccess } from '@utils';
 
   import DetailForm from './components/DetailForm.vue';
   import DetailView from './components/DetailView.vue';
