@@ -64,6 +64,8 @@ GROUP_USER_EMPTY_TEMPLATE = _("{username}：{empty_text}")
 GROUP_LINK_TEMPLATE = _("{text}：{url}")
 TODO_EMPTY_TEXT = _("待办已清空")
 
+USER_TODO_SEPARATOR = "\n\u200b\n"
+
 # 计算待办的并发线程数
 CALC_TODO_THREAD_NUM = 10
 
@@ -143,20 +145,23 @@ class CalcPersonalTodoClass:
     def get_alarm_todo_count(cls, username, infos):
         """获取告警待办"""
 
-        now_time = int(datetime.now().timestamp())
-        start_time = int((datetime.now() - timedelta(days=7)).timestamp())
+        # 主负责的业务：DBA 人员列表的第一个是该用户
+        biz_cluster_type_conditions = [
+            f'(tags.appid : "{dba.bk_biz_id}" AND labels: "DBM_{dba.db_type.upper()}")'
+            for dba in DBAdministrator.objects.filter(users__contains=username)
+            if dba.users and dba.users[0] == username
+        ]
+        if not biz_cluster_type_conditions:
+            return 0
+
+        now = datetime.now()
         params = {
             "bk_biz_ids": [env.DBA_APP_BK_BIZ_ID],
             "page": 1,
             "page_size": 20,
-            "start_time": start_time,
-            "end_time": now_time,
+            "start_time": int((now - timedelta(days=7)).timestamp()),
+            "end_time": int(now.timestamp()),
         }
-        biz_cluster_type_conditions = [
-            f'(tags.appid : "{info["bk_biz_id"]}" AND labels: "DBM_{info["db_type"].upper()}")' for info in infos
-        ]
-        if not biz_cluster_type_conditions:
-            return 0
         conditions = []
         biz_cluster_type_query_string = " OR ".join(set(biz_cluster_type_conditions))
         conditions.append(f"({biz_cluster_type_query_string})")
@@ -347,8 +352,8 @@ def get_group_context(user_items):
             user_contexts.append(GROUP_USER_EMPTY_TEMPLATE.format(username=username, empty_text=TODO_EMPTY_TEXT))
 
     contexts = [GROUP_HEADER_TEMPLATE.format(user_count=len(user_items), todo_count=todo_total)]
-    # 一人一行，相邻两行之间空一行
-    contexts.append("\n\n".join(user_contexts))
+    # 一人一块，相邻两个用户之间空一行
+    contexts.append(USER_TODO_SEPARATOR.join(user_contexts))
     # 只 @ 本条消息中待办条数大于 0 的人
     if receivers:
         contexts.append(" ".join(f"<@{staff}>" for staff in receivers))
