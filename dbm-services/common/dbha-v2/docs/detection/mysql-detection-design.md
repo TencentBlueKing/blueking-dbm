@@ -146,23 +146,7 @@ Probe 的 MySQL 采集分成三个独立定时循环（采集组），各自按�
 
 ### 4.1 普通存储探测主流程（默认组）
 
-```mermaid
----
-config:
-  flowchart:
-    curve: stepAfter
----
-flowchart TD
-  start["开始 MySQL 探测"] --> host["obtainHostStatus: 主机指标(best-effort, 建连前)"]
-  host --> open["open: GORM 建连(tcp)"]
-  open --> connOk{"连接成功?"}
-  connOk -->|"否"| event["DbEvent: DetectFailure / connection exception"]
-  connOk -->|"是"| global["obtainGlobalStatus: SHOW GLOBAL STATUS / VERSION"]
-  global --> value["填充 MySqlStatus 并上报 harvest_type=default"]
-
-  linkStyle 0,1,2,4,5 stroke:#2563eb,stroke-width:2px
-  linkStyle 3 stroke:#64748b,stroke-width:2px
-```
+![MySQL 普通存储探测主流程](../assets/diagrams/mysql-storage-detection.svg)
 
 > 色例：蓝=主路径；灰=建连失败。
 
@@ -170,32 +154,7 @@ flowchart TD
 
 ### 4.1.1 心跳与复制延迟组
 
-```mermaid
----
-config:
-  flowchart:
-    curve: stepAfter
----
-flowchart TD
-  hbTimer["heartbeat 定时器"] --> hbOpen["open: GORM 建连"]
-  hbOpen --> hbTable["confirmHeartbeatTable: 查 information_schema.TABLES\n缺失才建库建表"]
-  hbTable --> hbWrite["sql_log_bin=OFF\nREPLACE INTO dbha_heartbeat"]
-  hbWrite --> hbOk{"写入成功?"}
-  hbOk -->|"否(重试 3 次仍失败)"| hbEvent["DbEvent: dbha_heartbeat_write_failure"]
-  hbOk -->|"是"| hbDelay["读本机 dbha_heartbeat 算 delay"]
-  hbEvent --> hbReport["上报 harvest_type=heartbeat"]
-  hbDelay --> hbReport
-
-  rdTimer["repldelay 定时器"] --> rdRole{"主库还是从库?"}
-  rdRole -->|"主库"| rdWrite["sql_log_bin=ON\nREPLACE INTO dbha_repl_heartbeat\n(MasterStatus)"]
-  rdRole -->|"从库"| rdRead["SHOW SLAVE STATUS + 读复制来的\ndbha_repl_heartbeat 行算 delay(SlaveStatus)"]
-  rdWrite --> rdReport["上报 harvest_type=repldelay"]
-  rdRead --> rdReport
-
-  linkStyle 0,1,2,3,5,6,7 stroke:#2563eb,stroke-width:2px
-  linkStyle 4 stroke:#dc2626,stroke-width:2px
-  linkStyle 8,9,10,11,12 stroke:#0891b2,stroke-width:2px
-```
+![心跳组与复制延迟组双定时循环](../assets/diagrams/mysql-heartbeat-repl-loops.svg)
 
 > 色例：蓝=心跳组主路径；红=心跳写失败产出事件；青=复制延迟组。
 >
@@ -250,50 +209,7 @@ SELECT GREATEST(CAST(TIMESTAMPDIFF(SECOND, update_time, SYSDATE()) AS SIGNED), 0
 本节将异常事件分层叠在故障诊断流程上：在产出（或改写）事件的节点标注事件名；图下说明含义与影响。
 探测侧建连失败细节见 §4.1。Push 与 PopAndSwitch 分属不同定时循环，下图表示数据因果而非同一次调用栈。
 
-```mermaid
----
-config:
-  flowchart:
-    curve: stepAfter
----
-flowchart TD
-  harvest["Probe: MySQL Harvest"] --> openOk{"连接成功?"}
-  openOk -->|"否"| eDetect["产出: DbEventNameDetectFailure\nreason: connection exception"]
-  openOk -->|"是"| report["上报 HarvestData 含 Events"]
-  eDetect --> report
-  report --> scan["Analysis: RunBusinessChecks"]
-  scan --> missed["CheckMissedProbe"]
-  scan --> evChk["CheckEventWithBizId"]
-  scan --> stubHosts["CheckDbHosts stub\n不产生事件"]
-  scan --> stubStatus["CheckDbStatus stub\n不产生事件"]
-  missed --> ssh["LivenessDoubleCheck\nSSH + health -j"]
-  evChk --> ssh
-  ssh --> dial{"SSH dial/session?"}
-  dial -->|"失败"| eSsh["产出: DbEventNameDoubleCheckSshFailureV1\n入窗"]
-  dial -->|"其它 resp.Err"| eOtherErr["告警: 默认 ProbeOffline\n不入窗\n防御分支"]
-  dial -->|"成功"| exitCode{"ExitCode==0 且 health 可解析?"}
-  exitCode -->|"否"| ePost["告警: 默认 ProbeOffline\n不入窗"]
-  exitCode -->|"是"| health{"Pid?"}
-  health -->|"InvalidPid"| eOff["告警: 默认 ProbeOffline\n不入窗"]
-  health -->|"有效 Pid"| eNoTgt["改写: DbEventNameDetectFailure\nreason: no target\n不入窗"]
-  eSsh --> push["Push 滑动窗口"]
-  push -.->|"成熟后由 Pop 循环"| pop["PopAndSwitch 成熟弹出"]
-  pop --> match["MatchStrategyForGroup"]
-  match --> byName["普通: 按 EventName 计数"]
-  match --> special["special: 非入窗 EventName\ntendbha proxy+backend_master\n或 tendbcluster spider+remote_master\n非 emit"]
-  byName --> act{"action?"}
-  special --> act
-  act -->|"switch"| sw["TriggerSwitching"]
-  act -->|"notify"| notify["仅告警"]
-  sw --> eOk["切换结果: DbEventNameMysqlSwitchSuccessV1"]
-  sw --> eErr["切换结果: DbEventNameMysqlSwitchFailureV1"]
-
-  linkStyle 0,2,4,5,6,14,16,21,22,23,24,25,26,28 stroke:#2563eb,stroke-width:2px
-  linkStyle 1,3,7,8,13,15,17,18,27,29 stroke:#64748b,stroke-width:2px
-  linkStyle 9,10,11 stroke:#7c3aed,stroke-width:2px
-  linkStyle 12,19 stroke:#16a34a,stroke-width:2px
-  linkStyle 20 stroke:#ea580c,stroke-width:2px,stroke-dasharray:5
-```
+![异常事件分层与入窗](../assets/diagrams/mysql-event-layers.svg)
 
 > 色例：蓝=主路径；紫=SSH 二次探测；绿=入窗；灰=仅告警/stub；橙虚线=异步 Pop。
 
@@ -338,33 +254,7 @@ flowchart TD
 
 仅当策略 `action=switch` 且配置 `EnableSwitching` 开启时执行；整次切换超时默认 `SwitchTimeout=10m`。
 
-```mermaid
-sequenceDiagram
-  participant SE as SwitchExecutor
-  participant Snap as SnapshotLog
-  participant My as Mysql_Switcher
-  participant Core as switchcore
-  participant Impl as tendbha_or_tendbcluster
-  participant DBM as DBM_API
-  participant BKM as BKMonitor
-
-  SE->>SE: TriggerSwitching
-  Note over SE: EnableSwitching；SwitchTimeout 默认 10m
-  SE->>Snap: ReportBeforeSwitchingSnapshot
-  SE->>My: Switch(ctx, req)
-  Note over My: 按 ActionScope 分发 Instance/Host/Cluster
-  My->>Core: SwitchSingle/Host/Cluster 编排
-  Note over Core: checkStatus→setUnavailable→锁→CheckBefore→DoSwitch→UpdateMeta→DoFinal；失败 RollBack
-  Core->>Impl: DoSwitch / UpdateMetaInfo / DoFinal
-  Impl->>DBM: SwapMySQLRole / DeleteNameService / Dumper 等
-  My-->>SE: Response
-  SE->>Snap: ReportAfterSwitchingSnapshot
-  alt 成功
-    SE->>BKM: dbha_mysql_switch_ok
-  else 失败
-    SE->>BKM: dbha_mysql_switch_err
-  end
-```
+![切换触发时序](../assets/diagrams/mysql-switch-trigger-sequence.svg)
 
 ### 7.2 Switcher 注册与接口
 
@@ -398,37 +288,7 @@ type Switcher interface {
 | `host` | `HostLevelSwitch` | `SwitchSameHostInstances` | 按 host 分组，bounded sem（默认 32） |
 | `cluster` | `ClusterLevelSwitch` | `SwitchSameClusterInstances` | 按 cluster 分组，bounded sem（默认 32） |
 
-```mermaid
----
-config:
-  flowchart:
-    curve: stepAfter
----
-flowchart TD
-  switch["Mysql.Switch"] --> scope{"ActionScope"}
-  scope -->|"db_instance"| inst["InstanceLevelSwitch"]
-  scope -->|"host"| host["HostLevelSwitch"]
-  scope -->|"cluster"| cluster["ClusterLevelSwitch"]
-  inst --> factory["NewSwitchInstance"]
-  host --> factoryHost["NewSwitchInstancesOnSameHost"]
-  cluster --> factoryCluster["NewSwitchCluster"]
-  factory --> ct{"ClusterType / MachineType"}
-  factoryHost --> ct
-  factoryCluster --> ctHaC["tendbha: MySQLSwitchCluster"]
-  factoryCluster --> ctTcC["tendbcluster: TenDBClusterSwitchCluster"]
-  ct -->|"tendbha + backend"| haBackend["MySQLStorageSwitchInstance"]
-  ct -->|"tendbha + proxy"| haProxy["MySQLProxySwitchInstance"]
-  ct -->|"tendbcluster + remote"| tcRemote["TenDBClusterRemoteSwitchInstance"]
-  ct -->|"tendbcluster + spider"| tcSpider["TenDBClusterSpiderSwitchInstance"]
-  haBackend --> core["switchcore 编排"]
-  haProxy --> core
-  tcRemote --> core
-  tcSpider --> core
-  ctHaC --> core
-  ctTcC --> core
-
-  linkStyle 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19 stroke:#2563eb,stroke-width:2px
-```
+![ActionScope 分发](../assets/diagrams/mysql-actionscope-dispatch.svg)
 
 > 色例：蓝=分发与编排主路径。
 
@@ -456,93 +316,15 @@ type SwitchableInstance interface {
 
 单实例路径（Host/Cluster 编排同序，另有完整性校验）。`GateEnable` 与切换前后快照为 `TriggerSwitching` 请求级；其后为 `SwitchSingleInstance` 单实例编排。告警写在状态节点上；边只表示判断条件。
 
-```mermaid
-stateDiagram-v2
-  [*] --> GateEnable: TriggerSwitching
-
-  GateEnable: GateEnable\nEnableSwitching 门闩\n开启则写切换前快照\n告警:无
-  CheckStatus: CheckStatus\nstatus=Running|Available\n告警:无
-  SetUnavailable: SetUnavailable\nDBM 置 unavailable\n告警:无
-  LockCluster: LockCluster\n加集群锁\n告警:无
-  DoSwitch: DoSwitch\n业务切换\n告警:无
-  UpdateMetaInfo: UpdateMetaInfo\n元数据换角等\n告警:无
-  DoFinal: DoFinal\nDumper/修复复制等\n告警:无
-  Rollback: Rollback\ndefer RollBack\n告警:无
-  Succeeded: Succeeded\n写切换后快照\n告警:dbha_mysql_switch_ok
-  Skipped: Skipped\nunavailable 且不回滚\n写切换后快照\n告警:dbha_mysql_switch_ok
-  Failed: Failed\n写切换后快照\n告警:dbha_mysql_switch_err
-
-  GateEnable --> CheckStatus: EnableSwitching=true
-  GateEnable --> [*]: EnableSwitching=false
-
-  CheckStatus --> SetUnavailable: status_ok
-  CheckStatus --> Rollback: bad_status_or_timeout
-
-  SetUnavailable --> LockCluster: ok
-  SetUnavailable --> Rollback: fail_or_timeout
-
-  LockCluster --> CheckBeforeSwitch: lock_ok
-  LockCluster --> Rollback: lock_fail_or_timeout
-
-  state CheckBeforeSwitch {
-    [*] --> RoleBranch
-    RoleBranch: 按 ClusterType/InstanceRole 分支\n告警:无
-    MasterChecks: tendbha backend_master /\ntendbcluster remote_master\nstandby 非空且可用\nSlaveChecker 延迟与 checksum\nProxy/路由前置条件\n告警:无
-    DirectRequired: spider / proxy\n直接 SwitchRequired\n无 SlaveChecker\n告警:无
-    RoleBranch --> MasterChecks: backend_master_or_remote_master
-    RoleBranch --> DirectRequired: spider_or_proxy
-    RoleBranch --> DoSwitch: tendbha_backend_slave_SwitchRequired
-    RoleBranch --> Skipped: tendbha_repeater_or_tendbcluster_remote_slave
-    MasterChecks --> DoSwitch: standby_ok_and_SlaveChecker_ok_and_proxy_nonempty
-    MasterChecks --> Rollback: standby_or_checker_or_proxy_fail_or_timeout
-    DirectRequired --> DoSwitch
-  }
-
-  DoSwitch --> UpdateMetaInfo: ok
-  DoSwitch --> Rollback: error_or_timeout
-  UpdateMetaInfo --> DoFinal: ok
-  UpdateMetaInfo --> Rollback: error_or_timeout
-  DoFinal --> Succeeded: ok
-  DoFinal --> Rollback: error_or_timeout
-
-  Rollback --> Failed
-  Succeeded --> [*]
-  Skipped --> [*]
-  Failed --> [*]
-```
+![单实例切换状态机](../assets/diagrams/mysql-switch-state-machine.svg)
 
 ### 7.5 tendbha / tendbcluster 切换副作用
 
 流量切换载体不同：tendbha 依赖 **MySQL Proxy backends**；tendbcluster 依赖 **primary tdbctl 路由表**。域名侧共性为 `DeleteNameService`（DNS / CLB / Polaris）。
 
-```mermaid
----
-config:
-  flowchart:
-    curve: stepAfter
----
-flowchart TD
-  doSwitch["DoSwitch"] --> family{"ClusterType"}
-  family -->|tendbha| haRole{"角色"}
-  family -->|tendbcluster| tcRole{"角色"}
+![两家族切换副作用](../assets/diagrams/mysql-switch-side-effects.svg)
 
-  haRole -->|"backend master"| haMaster["Proxy backends 摘到占位 → standby RESET SLAVE → Proxy 指新主"]
-  haMaster --> haSwap["UpdateMetaInfo: SwapMySQLRole"]
-  haSwap --> haFinal["DoFinal: 可选 SwitchBinlogDumper"]
-  haRole -->|"proxy / 非 standby slave"| haDns["DeleteNameService DNS/CLB/Polaris"]
-  haRole -->|"standby slave"| haNoop["noop"]
-
-  tcRole -->|spider| tcSpider["DeleteNameService → primary tdbctl drop 故障节点 → flush routing"]
-  tcSpider --> tcRepair["DoFinal: RepairTdbctlReplication"]
-  tcRole -->|"remote master"| tcRemote["经 tdbctl: standby RESET SLAVE → UpdateMasterRouteToSlave → flush"]
-  tcRemote --> tcSwap["UpdateMetaInfo: SwapMySQLRole"]
-  tcRole -->|"remote slave"| tcSkip["CheckBeforeSwitch: SwitchNotNeeded 不切"]
-
-  linkStyle 0,1,3,4,5,6,7 stroke:#2563eb,stroke-width:2px
-  linkStyle 2,8,9,10,11,12 stroke:#0891b2,stroke-width:2px
-```
-
-> 色例：蓝=tendbha 分支；青=tendbcluster 分支。
+> 色例：蓝=tendbha 分支（含共用入口）；青=tendbcluster 分支。
 
 ### 7.6 从库切换校验参数
 

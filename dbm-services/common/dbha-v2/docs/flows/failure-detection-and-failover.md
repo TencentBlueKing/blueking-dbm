@@ -20,52 +20,7 @@ Analysis 的 `Workflow` 在服务启动后并行运行：DBM 元数据同步、e
 
 编排入口 [`Workflow.Run`](../../internal/analysis/workflow/workflow.go)：启动后并行跑元数据同步、etcd 分片 watch、Scan、Pop。Scan 与 Pop 分别使用 ScanLock / SwitchLock，避免多 AM 实例踩踏，并允许扫描与切换流水线化。
 
-```mermaid
-sequenceDiagram
-  participant AM as dbha_analysis
-  participant Etcd as etcd
-  participant Meta as t_dbm_metadata
-  participant Status as t_dbha_status
-  participant Win as SlidingWindow
-  participant Strat as t_db_switching_strategy
-  participant Switcher as switcher
-  participant DBM as DBM_API
-
-  AM->>Meta: Synchronizer.Run
-  AM->>Etcd: InstanceDiscovery.RunWatch
-
-  loop Scan
-    AM->>AM: CheckBusinessWithBizID
-    AM->>Status: 读近期探测状态
-    AM->>AM: LivenessDoubleCheck
-    alt SSH dial/session 失败
-      AM->>Win: Push DoubleCheckSshFailureV1
-    else 仅告警不入窗
-      AM->>AM: ProbeOffline / DetectFailure no target 等
-    end
-  end
-
-  loop Pop
-    AM->>AM: popAndSwitchForBiz
-    AM->>Win: PopAndMarkStart
-    AM->>AM: 建 req；白名单再过滤
-    AM->>Strat: MatchStrategyForGroup
-    alt 未命中
-      AM->>AM: 结束本 group
-    else action=notify
-      AM->>AM: TriggerWithBizId 仅告警
-    else action=switch
-      alt EnableSwitching=false
-        AM->>AM: 跳过切换
-      else EnableSwitching=true
-        AM->>Switcher: TriggerSwitching
-        Switcher->>DBM: SwapRole / CLB 等
-        Switcher->>AM: 写日志、快照、告警
-      end
-    end
-    AM->>Win: MarkDone
-  end
-```
+![Scan 与 Pop 双循环时序](../assets/diagrams/flow-scan-pop-sequence.svg)
 
 图下要点：
 
@@ -93,40 +48,7 @@ probe 侧 `DetectFailure`（建连失败）只写入 `HarvestData.Events`，经 
 
 `BizWindowManager` 按 BizID 隔离窗口，把「二次探测确认故障后入窗」与「成熟后触发切换」解耦。
 
-```mermaid
----
-config:
-  flowchart:
-    curve: linear
-    padding: 24
-    nodeSpacing: 40
-    rankSpacing: 56
----
-flowchart TD
-  startNode["Scan: 二次探测确认故障"] --> push["Push FailureInstanceInfo"]
-
-  discard["丢弃本次 Push"]
-  push --> inflightChk{"实例是否 inflight?"}
-  inflightChk -->|"是且未过期"| discard
-  inflightChk -->|"否 / TTL 已过期"| merge{"窗口内是否已有同实例?"}
-  discard --> endDiscard["结束"]
-
-  merge -->|"是"| countUp["Count++；FirstAt 不变"]
-  merge -->|"否"| newEntry["新建条目 Count=1；记录 FirstAt"]
-  countUp --> waitMature["窗口等待至成熟\nFirstAt + windowDuration 小于 now"]
-  newEntry --> waitMature
-
-  waitMature --> popMark["PopAndMarkStart：弹出并打 inflight"]
-  popMark --> handle["handleFailureGroup：匹配策略 / notify / switch"]
-  handle --> doneNode["MarkDone 解除 inflight"]
-  doneNode --> endOk["本次流程结束"]
-
-  popMark -.->|"inflightTTL 超时未 MarkDone"| autoClean["自动清理 inflight"]
-  autoClean --> endClean["可再次 Push"]
-
-  linkStyle 0,1,3,5,6,7,8,9,10,11,12 stroke:#2563eb,stroke-width:2px
-  linkStyle 2,4,13,14 stroke:#64748b,stroke-width:2px,stroke-dasharray:5
-```
+![滑动窗口](../assets/diagrams/flow-sliding-window.svg)
 
 > 色例：蓝=Push/成熟主路径；灰虚线=丢弃 / inflight 超时清理。
 
@@ -141,46 +63,9 @@ flowchart TD
 
 Pop 成熟故障组后进入策略匹配与切换边界（对齐 [`MatchStrategyForGroup`](../../internal/analysis/workflow/switch_flow.go) / [`strategy.go`](../../internal/analysis/workflow/strategy.go)）。
 
-```mermaid
----
-config:
-  flowchart:
-    curve: stepAfter
----
-flowchart TD
-  startNode["开始: Pop 成熟故障组"] --> enterHint["入窗 EventName\nDoubleCheckSshFailureV1"]
-  enterHint --> popMark["PopAndMarkStart"]
-  popMark --> excl["excludeUnavailableInstances"]
-  excl --> wl["白名单再过滤"]
-  wl --> readSt["读 t_db_switching_strategy\n业务级 + 全局"]
+![策略匹配](../assets/diagrams/flow-strategy-matching.svg)
 
-  readSt --> eachEval["对每条策略求 count\nthreshold=TriggerCount 默认 1"]
-  eachEval --> isSpecial{"该策略注册为 special?"}
-  isSpecial -->|"是"| spCount["special 角色组合计数\n非入窗 EventName\nproxy+backend_master\n或 spider+remote_master"]
-  isSpecial -->|"否"| nmCount["普通: EventName 计数"]
-  spCount --> collect["达阈值者加入 candidates"]
-  nmCount --> collect
-
-  collect --> hasCand{"candidates 非空?"}
-  hasCand -->|"否"| endMiss["结束: 未命中本 group"]
-  hasCand -->|"是"| sortCand["SortCandidates\n业务级优先；Priority 升序"]
-  sortCand --> pick["取 candidates 0 为命中策略"]
-
-  pick --> act{"action?"}
-  act -->|"notify"| endNotify["结束: 仅告警"]
-  act -->|"switch"| enSw{"EnableSwitching?"}
-  enSw -->|"false"| endSkip["结束: 跳过切换"]
-  enSw -->|"true"| trigger["TriggerSwitching"]
-  trigger --> dbType{"DbType 已注册?"}
-  dbType -->|"MySQL"| endSw["结束: 执行切换"]
-  dbType -->|"其它"| endType["结束: 仅告警跳过"]
-
-  linkStyle 0,1,2,3,4,5,6,7,8,9,10,11,14,15,19,20,21 stroke:#2563eb,stroke-width:2px
-  linkStyle 13,17 stroke:#16a34a,stroke-width:2px
-  linkStyle 12,16,18,22 stroke:#64748b,stroke-width:2px
-```
-
-> 色例：蓝=主路径；绿=命中后进入 action；灰=未命中 / 仅告警 / 跳过。
+> 色例：蓝=主路径；绿=命中(candidates 非空) 与 action=switch 两条判定分支；灰=未命中 / 仅告警 / 跳过。
 
 配置要点：
 

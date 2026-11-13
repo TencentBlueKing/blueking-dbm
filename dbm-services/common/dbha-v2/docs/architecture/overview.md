@@ -27,64 +27,11 @@ DBHA v2 负责数据库实例的**持续探测**、**故障判定**与**自动�
 
 ## 3. 系统架构图
 
-```mermaid
----
-config:
-  flowchart:
-    curve: stepAfter
-    padding: 16
-    nodeSpacing: 24
-    rankSpacing: 48
----
-flowchart LR
-  subgraph edge [边缘节点]
-    direction TB
-    Probe[dbha_probe]
-    KA[keepalive_HTTP]
-  end
-  subgraph server [服务端]
-    direction TB
-    Admin[dbha_admin]
-    Recv[dbha_receiver]
-    MySQL[(MySQL_dbha_data)]
-    AM[dbha_analysis]
-    Etcd[(etcd)]
-  end
-  subgraph platform [周边平台]
-    direction TB
-    DBInst[(MySQL_Redis_Proxy)]
-    GSE[GSE_Agent]
-    Kafka[Kafka]
-    DBM[DBM_API]
-  end
-
-  Probe -->|配置与心跳| Admin
-  Probe -->|采集| DBInst
-  Probe -->|gRPC上报| Recv
-  Recv -->|sink| MySQL
-  AM -->|读状态与元数据| MySQL
-  AM -->|同步与换角| DBM
-  Admin -.->|配置回退| DBM
-  Probe -.->|GSE上报| GSE
-  GSE -.->|可选| Kafka
-  Kafka -.-> Recv
-  Admin -.->|Register/Watch| Etcd
-  Recv -.->|Register/Watch| Etcd
-  AM -.->|Register/Watch| Etcd
-  AM -->|"SSH + health -j"| Probe
-  Probe -.->|运维可选| KA
-
-  linkStyle 0,1,2,3,4,5 stroke:#2563eb,stroke-width:2px
-  linkStyle 6 stroke:#64748b,stroke-width:2px,stroke-dasharray:5
-  linkStyle 7,8,9 stroke:#ea580c,stroke-width:2px,stroke-dasharray:5
-  linkStyle 10,11,12 stroke:#16a34a,stroke-width:2px,stroke-dasharray:5
-  linkStyle 13 stroke:#7c3aed,stroke-width:2px
-  linkStyle 14 stroke:#64748b,stroke-width:2px,stroke-dasharray:5
-```
+![DBHA v2 系统架构图](../assets/diagrams/architecture-system-overview.svg)
 
 
 
-> 层次：左=边缘，中=服务端，右=周边。连线为横竖直角折线（无斜线、无中继断点）。
+> 层次：上=边缘节点，中=服务端，下=周边平台。连线为横竖直角折线（无斜线、无中继断点）。
 >
 > 色例：蓝实线=主路径；橙虚线=GSE 旁路；绿虚线=etcd Register/Watch；紫实线=SSH 二次探测；灰虚线=keepalive / 配置回退。
 >

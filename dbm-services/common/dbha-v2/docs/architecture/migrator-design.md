@@ -66,17 +66,7 @@ schema 收敛可能锁住受管表，执行前要停止这些表的写入。每�
 
 ## 3. 一次执行
 
-```mermaid
-flowchart TD
-  identity[读取服务器身份并排序] --> dedup[按 uuid 去重]
-  dedup --> lock[逐个目标获取 GET_LOCK]
-  lock --> precheck[全端点预检查]
-  precheck -->|任一端点冲突| zeroWrite[所有端点零写入]
-  precheck -->|全部通过| schema[按端点执行 schema]
-  schema --> data[需要时执行 data]
-  data --> unlock[逆序解锁]
-  schema -->|中途失败| unlock
-```
+![migrate 单次执行流程](../assets/diagrams/migrator-single-run.svg)
 
 身份优先读 `@@server_uuid`。只有服务器不认识这个变量（错误码 1193，例如 MariaDB 或老版本）时才用 `@@server_id`，并记一条警告；其他读取错误直接失败。这种回退身份不参与跨端点去重或冲突判断；`server_id`、主机和端口都相同的回退连接只保留一条，复用时记警告。容器场景下不同实例常有相同的主机名和端口，靠 `server_id` 区分。端口使用服务器内部的 `@@port`，不是客户端看到的映射端口。真实 `server_uuid` 的排序键是 `server_uuid|hostname|port`。排序后每个 uuid 只保留一条连接；排序键完全相同时保持配置里的相对顺序。uuid 相同但主机或端口不同则冲突。其余别名连接只用于识别，随后关闭，不迁移。
 

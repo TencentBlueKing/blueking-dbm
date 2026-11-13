@@ -1,0 +1,915 @@
+<?xml version="1.0" ?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" id="my-svg" width="1061" class="flowchart" style="max-width:100%;height:auto;background-color:#ffffff;" viewBox="4 4 1061.0625 2308.778076171875" role="graphics-document document" aria-roledescription="flowchart-v2" height="2309" preserveAspectRatio="xMidYMid meet">
+  <title>异常事件分层与入窗</title>
+  <desc>从探测事件、二次探测、入窗、策略匹配到切换结果的事件分层</desc>
+  <rect x="4" y="4" width="1061.06" height="2308.78" fill="#ffffff" stroke="none"/>
+  <style>#my-svg{font-family:Noto Sans CJK SC,PingFang SC,Microsoft YaHei,sans-serif;font-size:14px;fill:#0f172a;}@keyframes edge-animation-frame{from{stroke-dashoffset:0;}}@keyframes dash{to{stroke-dashoffset:0;}}#my-svg .edge-animation-slow{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 50s linear infinite;stroke-linecap:round;}#my-svg .edge-animation-fast{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 20s linear infinite;stroke-linecap:round;}#my-svg .error-icon{fill:hsl(33.75, 100%, 100%);}#my-svg .error-text{fill:#000000;stroke:#000000;}#my-svg .edge-thickness-normal{stroke-width:1px;}#my-svg .edge-thickness-thick{stroke-width:3.5px;}#my-svg .edge-pattern-solid{stroke-dasharray:0;}#my-svg .edge-thickness-invisible{stroke-width:0;fill:none;}#my-svg .edge-pattern-dashed{stroke-dasharray:3;}#my-svg .edge-pattern-dotted{stroke-dasharray:2;}#my-svg .marker{fill:#334155;stroke:#334155;}#my-svg .marker.cross{stroke:#334155;}#my-svg svg{font-family:Noto Sans CJK SC,PingFang SC,Microsoft YaHei,sans-serif;font-size:14px;}#my-svg p{margin:0;}#my-svg .label{font-family:Noto Sans CJK SC,PingFang SC,Microsoft YaHei,sans-serif;color:#0f172a;}#my-svg .cluster-label text{fill:#000000;}#my-svg .cluster-label span{color:#000000;}#my-svg .cluster-label span p{background-color:transparent;}#my-svg .label text,#my-svg span{fill:#0f172a;color:#0f172a;}#my-svg .node rect,#my-svg .node circle,#my-svg .node ellipse,#my-svg .node polygon,#my-svg .node path{fill:#eff6ff;stroke:#93c5fd;stroke-width:1px;}#my-svg .rough-node .label text,#my-svg .node .label text,#my-svg .image-shape .label,#my-svg .icon-shape .label{text-anchor:middle;}#my-svg .node .katex path{fill:#000;stroke:#000;stroke-width:1px;}#my-svg .rough-node .label,#my-svg .node .label,#my-svg .image-shape .label,#my-svg .icon-shape .label{text-align:center;}#my-svg .node.clickable{cursor:pointer;}#my-svg .root .anchor path{fill:#334155!important;stroke-width:0;stroke:#334155;}#my-svg .arrowheadPath{fill:#000000;}#my-svg .edgePath .path{stroke:#334155;stroke-width:1px;}#my-svg .flowchart-link{stroke:#334155;fill:none;}#my-svg .edgeLabel{background-color:hsl(93.75, 100%, 96.862745098%);text-align:center;}#my-svg .edgeLabel p{background-color:hsl(93.75, 100%, 96.862745098%);}#my-svg .edgeLabel rect{opacity:0.5;background-color:hsl(93.75, 100%, 96.862745098%);fill:hsl(93.75, 100%, 96.862745098%);}#my-svg .labelBkg{background-color:rgba(245.9999999999, 255, 238.9999999998, 0.5);}#my-svg .cluster rect{fill:hsl(33.75, 100%, 100%);stroke:hsl(33.75, 60%, 90%);stroke-width:1px;}#my-svg .cluster text{fill:#000000;}#my-svg .cluster span{color:#000000;}#my-svg div.mermaidTooltip{position:absolute;text-align:center;max-width:200px;padding:2px;font-family:Noto Sans CJK SC,PingFang SC,Microsoft YaHei,sans-serif;font-size:12px;background:hsl(33.75, 100%, 100%);border:1px solid hsl(33.75, 60%, 90%);border-radius:2px;pointer-events:none;z-index:100;}#my-svg .flowchartTitleText{text-anchor:middle;font-size:18px;fill:#0f172a;}#my-svg rect.text{fill:none;stroke-width:0;}#my-svg .icon-shape,#my-svg .image-shape{background-color:hsl(93.75, 100%, 96.862745098%);text-align:center;}#my-svg .icon-shape p,#my-svg .image-shape p{background-color:hsl(93.75, 100%, 96.862745098%);padding:2px;}#my-svg .icon-shape .label rect,#my-svg .image-shape .label rect{opacity:0.5;background-color:hsl(93.75, 100%, 96.862745098%);fill:hsl(93.75, 100%, 96.862745098%);}#my-svg .label-icon{display:inline-block;height:1em;overflow:visible;vertical-align:-0.125em;}#my-svg .node .label-icon path{fill:currentColor;stroke:revert;stroke-width:revert;}#my-svg .node .neo-node{stroke:#93c5fd;}#my-svg [data-look=&quot;neo&quot;].node rect,#my-svg [data-look=&quot;neo&quot;].cluster rect,#my-svg [data-look=&quot;neo&quot;].node polygon{stroke:url(#my-svg-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#my-svg [data-look=&quot;neo&quot;].node path{stroke:url(#my-svg-gradient);stroke-width:1px;}#my-svg [data-look=&quot;neo&quot;].node .outer-path{filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#my-svg [data-look=&quot;neo&quot;].node .neo-line path{stroke:#93c5fd;filter:none;}#my-svg [data-look=&quot;neo&quot;].node circle{stroke:url(#my-svg-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#my-svg [data-look=&quot;neo&quot;].node circle .state-start{fill:#000000;}#my-svg [data-look=&quot;neo&quot;].icon-shape .icon{fill:url(#my-svg-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#my-svg [data-look=&quot;neo&quot;].icon-shape .icon-neo path{stroke:url(#my-svg-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#my-svg :root{--mermaid-font-family:&quot;trebuchet ms&quot;,verdana,arial,sans-serif;}#my-svg .edgeLabel rect.background{opacity:1;fill:#ffffff;}#my-svg .labelBkg{background-color:#ffffff;}</style>
+  <g>
+    <marker id="my-svg_flowchart-v2-pointEnd" class="marker flowchart-v2" viewBox="0 0 10 10" refX="5" refY="5" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/>
+    </marker>
+    <marker id="my-svg_flowchart-v2-pointStart" class="marker flowchart-v2" viewBox="0 0 10 10" refX="4.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 0 5 L 10 10 L 10 0 z" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/>
+    </marker>
+    <marker id="my-svg_flowchart-v2-pointEnd-margin" class="marker flowchart-v2" viewBox="0 0 11.5 14" refX="11.5" refY="7" markerUnits="userSpaceOnUse" markerWidth="10.5" markerHeight="14" orient="auto">
+      <path d="M 0 0 L 11.5 7 L 0 14 z" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"/>
+    </marker>
+    <marker id="my-svg_flowchart-v2-pointStart-margin" class="marker flowchart-v2" viewBox="0 0 11.5 14" refX="1" refY="7" markerUnits="userSpaceOnUse" markerWidth="11.5" markerHeight="14" orient="auto">
+      <polygon points="0,7 11.5,14 11.5,0" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"/>
+    </marker>
+    <marker id="my-svg_flowchart-v2-circleEnd" class="marker flowchart-v2" viewBox="0 0 10 10" refX="11" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto">
+      <circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/>
+    </marker>
+    <marker id="my-svg_flowchart-v2-circleStart" class="marker flowchart-v2" viewBox="0 0 10 10" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto">
+      <circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/>
+    </marker>
+    <marker id="my-svg_flowchart-v2-circleEnd-margin" class="marker flowchart-v2" viewBox="0 0 10 10" refY="5" refX="12.25" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto">
+      <circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"/>
+    </marker>
+    <marker id="my-svg_flowchart-v2-circleStart-margin" class="marker flowchart-v2" viewBox="0 0 10 10" refX="-2" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto">
+      <circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"/>
+    </marker>
+    <marker id="my-svg_flowchart-v2-crossEnd" class="marker cross flowchart-v2" viewBox="0 0 11 11" refX="12" refY="5.2" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto">
+      <path d="M 1,1 l 9,9 M 10,1 l -9,9" class="arrowMarkerPath" style="stroke-width: 2; stroke-dasharray: 1, 0;"/>
+    </marker>
+    <marker id="my-svg_flowchart-v2-crossStart" class="marker cross flowchart-v2" viewBox="0 0 11 11" refX="-1" refY="5.2" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto">
+      <path d="M 1,1 l 9,9 M 10,1 l -9,9" class="arrowMarkerPath" style="stroke-width: 2; stroke-dasharray: 1, 0;"/>
+    </marker>
+    <marker id="my-svg_flowchart-v2-crossEnd-margin" class="marker cross flowchart-v2" viewBox="0 0 15 15" refX="17.7" refY="7.5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto">
+      <path d="M 1,1 L 14,14 M 1,14 L 14,1" class="arrowMarkerPath" style="stroke-width: 2.5;"/>
+    </marker>
+    <marker id="my-svg_flowchart-v2-crossStart-margin" class="marker cross flowchart-v2" viewBox="0 0 15 15" refX="-3.5" refY="7.5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto">
+      <path d="M 1,1 L 14,14 M 1,14 L 14,1" class="arrowMarkerPath" style="stroke-width: 2.5; stroke-dasharray: 1, 0;"/>
+    </marker>
+    <marker id="my-svg_flowchart-v2-pointEnd__2563eb" class="marker flowchart-v2" viewBox="0 0 10 10" refX="5" refY="5" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;" stroke="#2563eb" fill="#2563eb"/>
+    </marker>
+    <marker id="my-svg_flowchart-v2-pointEnd__64748b" class="marker flowchart-v2" viewBox="0 0 10 10" refX="5" refY="5" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;" stroke="#64748b" fill="#64748b"/>
+    </marker>
+    <marker id="my-svg_flowchart-v2-pointEnd__7c3aed" class="marker flowchart-v2" viewBox="0 0 10 10" refX="5" refY="5" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;" stroke="#7c3aed" fill="#7c3aed"/>
+    </marker>
+    <marker id="my-svg_flowchart-v2-pointEnd__16a34a" class="marker flowchart-v2" viewBox="0 0 10 10" refX="5" refY="5" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;" stroke="#16a34a" fill="#16a34a"/>
+    </marker>
+    <marker id="my-svg_flowchart-v2-pointEnd__ea580c" class="marker flowchart-v2" viewBox="0 0 10 10" refX="5" refY="5" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;" stroke="#ea580c" fill="#ea580c"/>
+    </marker>
+  </g>
+  <defs>
+    <filter id="my-svg-drop-shadow" height="130%" width="130%">
+      <feDropShadow dx="4" dy="4" stdDeviation="0" flood-opacity="0.06" flood-color="#000000"/>
+    </filter>
+  </defs>
+  <defs>
+    <filter id="my-svg-drop-shadow-small" height="150%" width="150%">
+      <feDropShadow dx="2" dy="2" stdDeviation="0" flood-opacity="0.06" flood-color="#000000"/>
+    </filter>
+  </defs>
+  <linearGradient id="my-svg-gradient" gradientUnits="objectBoundingBox" x1="0%" y1="0%" x2="100%" y2="0%">
+    <stop offset="0%" stop-color="#93c5fd" stop-opacity="1"/>
+    <stop offset="100%" stop-color="hsl(93.75, 60%, 86.862745098%)" stop-opacity="1"/>
+  </linearGradient>
+  <g class="subgraphs"/>
+  <g class="nodes">
+    <g class="node default" id="my-svg-flowchart-harvest-0" data-look="classic" transform="translate(502.68896484375, 37)">
+      <rect class="basic label-container" style="" x="-102.68896484375" y="-25" width="205.3779296875" height="50"/>
+      <g class="label" style="" transform="translate(0, -10)">
+        <rect/>
+        <g>
+          <rect class="background" style="stroke: none"/>
+          <text y="-10.1" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">Probe:</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> MySQL</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> Harvest</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="node default" id="my-svg-flowchart-openOk-1" data-look="classic" transform="translate(503.3203125, 158.3203125)">
+      <polygon points="56.3203125,0 112.640625,-56.3203125 56.3203125,-112.640625 0,-56.3203125" class="label-container" transform="translate(-55.8203125, 56.3203125)"/>
+      <g class="label" style="" transform="translate(0, -10)">
+        <rect/>
+        <g>
+          <rect class="background" style="stroke: none"/>
+          <text y="-10.1" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">连接成功?</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="node default" id="my-svg-flowchart-eDetect-3" data-look="classic" transform="translate(484.97076416015625, 351.34062576293945)">
+      <rect class="basic label-container" style="" x="-137.97076416015625" y="-32.70000076293945" width="275.9415283203125" height="65.4000015258789"/>
+      <g class="label" style="" transform="translate(0, -17.700000762939453)">
+        <rect/>
+        <g>
+          <rect class="background" style="stroke: none"/>
+          <text y="-10.1" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">产出:</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> DbEventNameDetectFailure</tspan>
+            </tspan>
+            <tspan class="text-outer-tspan row" x="0" y="1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">reason:</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> connection</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> exception</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="node default" id="my-svg-flowchart-report-5" data-look="classic" transform="translate(523.8804168701172, 449.0406265258789)">
+      <rect class="basic label-container" style="" x="-117.88041687011719" y="-25" width="235.76083374023438" height="50"/>
+      <g class="label" style="" transform="translate(0, -10)">
+        <rect/>
+        <g>
+          <rect class="background" style="stroke: none"/>
+          <text y="-10.1" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">上报</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> HarvestData</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> 含</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> Events</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="node default" id="my-svg-flowchart-scan-9" data-look="classic" transform="translate(524.3608169555664, 539.0406265258789)">
+      <rect class="basic label-container" style="" x="-125.3608169555664" y="-25" width="250.7216339111328" height="50"/>
+      <g class="label" style="" transform="translate(0, -10)">
+        <rect/>
+        <g>
+          <rect class="background" style="stroke: none"/>
+          <text y="-10.1" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">Analysis:</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> RunBusinessChecks</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="node default" id="my-svg-flowchart-missed-11" data-look="classic" transform="translate(266.0297546386719, 656.7406272888184)">
+      <rect class="basic label-container" style="" x="-92.02975463867188" y="-25" width="184.05950927734375" height="50"/>
+      <g class="label" style="" transform="translate(0, -10)">
+        <rect/>
+        <g>
+          <rect class="background" style="stroke: none"/>
+          <text y="-10.1" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">CheckMissedProbe</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="node default" id="my-svg-flowchart-evChk-13" data-look="classic" transform="translate(498.6640625, 656.7406272888184)">
+      <rect class="basic label-container" style="" x="-99.6640625" y="-25" width="199.328125" height="50"/>
+      <g class="label" style="" transform="translate(0, -10)">
+        <rect/>
+        <g>
+          <rect class="background" style="stroke: none"/>
+          <text y="-10.1" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">CheckEventWithBizId</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="node default" id="my-svg-flowchart-stubHosts-15" data-look="classic" transform="translate(732.359375, 656.7406272888184)">
+      <rect class="basic label-container" style="" x="-93.359375" y="-32.70000076293945" width="186.71875" height="65.4000015258789"/>
+      <g class="label" style="" transform="translate(0, -17.700000762939453)">
+        <rect/>
+        <g>
+          <rect class="background" style="stroke: none"/>
+          <text y="-10.1" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">CheckDbHosts</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> stub</tspan>
+            </tspan>
+            <tspan class="text-outer-tspan row" x="0" y="1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">不产生事件</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="node default" id="my-svg-flowchart-stubStatus-17" data-look="classic" transform="translate(961.53125, 656.7406272888184)">
+      <rect class="basic label-container" style="" x="-95.53125" y="-32.70000076293945" width="191.0625" height="65.4000015258789"/>
+      <g class="label" style="" transform="translate(0, -17.700000762939453)">
+        <rect/>
+        <g>
+          <rect class="background" style="stroke: none"/>
+          <text y="-10.1" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">CheckDbStatus</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> stub</tspan>
+            </tspan>
+            <tspan class="text-outer-tspan row" x="0" y="1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">不产生事件</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="node default" id="my-svg-flowchart-ssh-19" data-look="classic" transform="translate(299.5847396850586, 762.1406288146973)">
+      <rect class="basic label-container" style="" x="-101.5847396850586" y="-32.70000076293945" width="203.1694793701172" height="65.4000015258789"/>
+      <g class="label" style="" transform="translate(0, -17.700000762939453)">
+        <rect/>
+        <g>
+          <rect class="background" style="stroke: none"/>
+          <text y="-10.1" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">LivenessDoubleCheck</tspan>
+            </tspan>
+            <tspan class="text-outer-tspan row" x="0" y="1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">SSH</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> +</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> health</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> -j</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="node default" id="my-svg-flowchart-dial-23" data-look="classic" transform="translate(300.2890625, 917.1296920776367)">
+      <polygon points="82.2890625,0 164.578125,-82.2890625 82.2890625,-164.578125 0,-82.2890625" class="label-container" transform="translate(-81.7890625, 82.2890625)"/>
+      <g class="label" style="" transform="translate(0, -10)">
+        <rect/>
+        <g>
+          <rect class="background" style="stroke: none"/>
+          <text y="-10.1" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">SSH</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> dial/session?</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="node default" id="my-svg-flowchart-eSsh-25" data-look="classic" transform="translate(258.7109375, 1245.8093795776367)">
+      <rect class="basic label-container" style="" x="-179.7109375" y="-32.70000076293945" width="359.421875" height="65.4000015258789"/>
+      <g class="label" style="" transform="translate(0, -17.700000762939453)">
+        <rect/>
+        <g>
+          <rect class="background" style="stroke: none"/>
+          <text y="-10.1" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">产出:</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> DbEventNameDoubleCheckSshFailureV1</tspan>
+            </tspan>
+            <tspan class="text-outer-tspan row" x="0" y="1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">入窗</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="node default" id="my-svg-flowchart-eOtherErr-27" data-look="classic" transform="translate(583.4922714233398, 1163.8187522888184)">
+      <rect class="basic label-container" style="" x="-104.49227142333984" y="-40.39999961853027" width="208.9845428466797" height="80.79999923706055"/>
+      <g class="label" style="" transform="translate(0, -25.399999618530273)">
+        <rect/>
+        <g>
+          <rect class="background" style="stroke: none"/>
+          <text y="-10.1" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">告警:</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> 默认</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> ProbeOffline</tspan>
+            </tspan>
+            <tspan class="text-outer-tspan row" x="0" y="1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">不入窗</tspan>
+            </tspan>
+            <tspan class="text-outer-tspan row" x="0" y="2.1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">防御分支</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="node default" id="my-svg-flowchart-exitCode-29" data-look="classic" transform="translate(850.390625, 1245.8093795776367)">
+      <polygon points="122.390625,0 244.78125,-122.390625 122.390625,-244.78125 0,-122.390625" class="label-container" transform="translate(-121.890625, 122.390625)"/>
+      <g class="label" style="" transform="translate(0, -10)">
+        <rect/>
+        <g>
+          <rect class="background" style="stroke: none"/>
+          <text y="-10.1" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">ExitCode==0</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> 且</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> health</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> 可解析?</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="node default" id="my-svg-flowchart-ePost-31" data-look="classic" transform="translate(707.4922714233398, 1530.9000053405762)">
+      <rect class="basic label-container" style="" x="-104.49227142333984" y="-32.70000076293945" width="208.9845428466797" height="65.4000015258789"/>
+      <g class="label" style="" transform="translate(0, -17.700000762939453)">
+        <rect/>
+        <g>
+          <rect class="background" style="stroke: none"/>
+          <text y="-10.1" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">告警:</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> 默认</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> ProbeOffline</tspan>
+            </tspan>
+            <tspan class="text-outer-tspan row" x="0" y="1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">不入窗</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="node default" id="my-svg-flowchart-health-33" data-look="classic" transform="translate(891.0078125, 1537.2078170776367)">
+      <polygon points="39.0078125,0 78.015625,-39.0078125 39.0078125,-78.015625 0,-39.0078125" class="label-container" transform="translate(-38.5078125, 39.0078125)"/>
+      <g class="label" style="" transform="translate(0, -10)">
+        <rect/>
+        <g>
+          <rect class="background" style="stroke: none"/>
+          <text y="-10.1" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">Pid?</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="node default" id="my-svg-flowchart-eOff-35" data-look="classic" transform="translate(621.4922714233398, 1738.9156303405762)">
+      <rect class="basic label-container" style="" x="-104.49227142333984" y="-32.70000076293945" width="208.9845428466797" height="65.4000015258789"/>
+      <g class="label" style="" transform="translate(0, -17.700000762939453)">
+        <rect/>
+        <g>
+          <rect class="background" style="stroke: none"/>
+          <text y="-10.1" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">告警:</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> 默认</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> ProbeOffline</tspan>
+            </tspan>
+            <tspan class="text-outer-tspan row" x="0" y="1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">不入窗</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="node default" id="my-svg-flowchart-eNoTgt-37" data-look="classic" transform="translate(903.9707641601562, 1746.6156272888184)">
+      <rect class="basic label-container" style="" x="-137.97076416015625" y="-40.39999961853027" width="275.9415283203125" height="80.79999923706055"/>
+      <g class="label" style="" transform="translate(0, -25.399999618530273)">
+        <rect/>
+        <g>
+          <rect class="background" style="stroke: none"/>
+          <text y="-10.1" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">改写:</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> DbEventNameDetectFailure</tspan>
+            </tspan>
+            <tspan class="text-outer-tspan row" x="0" y="1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">reason:</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> no</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> target</tspan>
+            </tspan>
+            <tspan class="text-outer-tspan row" x="0" y="2.1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">不入窗</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="node default" id="my-svg-flowchart-push-39" data-look="classic" transform="translate(258.7734375, 1433.2000045776367)">
+      <rect class="basic label-container" style="" x="-75.7734375" y="-25" width="151.546875" height="50"/>
+      <g class="label" style="" transform="translate(0, -10)">
+        <rect/>
+        <g>
+          <rect class="background" style="stroke: none"/>
+          <text y="-10.1" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">Push</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> 滑动窗口</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="node default" id="my-svg-flowchart-pop-41" data-look="classic" transform="translate(259.3203125, 1641.2156295776367)">
+      <rect class="basic label-container" style="" x="-107.3203125" y="-25" width="214.640625" height="50"/>
+      <g class="label" style="" transform="translate(0, -10)">
+        <rect/>
+        <g>
+          <rect class="background" style="stroke: none"/>
+          <text y="-10.1" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">PopAndSwitch</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> 成熟弹出</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="node default" id="my-svg-flowchart-match-43" data-look="classic" transform="translate(258.9296875, 1751.7489598592122)">
+      <rect class="basic label-container" style="" x="-107.9296875" y="-25" width="215.859375" height="50"/>
+      <g class="label" style="" transform="translate(0, -10)">
+        <rect/>
+        <g>
+          <rect class="background" style="stroke: none"/>
+          <text y="-10.1" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">MatchStrategyForGroup</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="node default" id="my-svg-flowchart-byName-45" data-look="classic" transform="translate(223.4765625, 1875.115623474121)">
+      <rect class="basic label-container" style="" x="-109.4765625" y="-25" width="218.953125" height="50"/>
+      <g class="label" style="" transform="translate(0, -10)">
+        <rect/>
+        <g>
+          <rect class="background" style="stroke: none"/>
+          <text y="-10.1" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">普通:</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> 按</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> EventName</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> 计数</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="node default" id="my-svg-flowchart-special-47" data-look="classic" transform="translate(529.3090515136719, 1875.115623474121)">
+      <rect class="basic label-container" style="" x="-156.3090591430664" y="-48.099998474121094" width="312.6181182861328" height="96.19999694824219"/>
+      <g class="label" style="" transform="translate(0, -33.099998474121094)">
+        <rect/>
+        <g>
+          <rect class="background" style="stroke: none"/>
+          <text y="-10.1" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">special:</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> 非入窗</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> EventName</tspan>
+            </tspan>
+            <tspan class="text-outer-tspan row" x="0" y="1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">tendbha</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> proxy+backend_master</tspan>
+            </tspan>
+            <tspan class="text-outer-tspan row" x="0" y="2.1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">或</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> tendbcluster</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> spider+remote_master</tspan>
+            </tspan>
+            <tspan class="text-outer-tspan row" x="0" y="3.2em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">非</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> emit</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="node default" id="my-svg-flowchart-act-49" data-look="classic" transform="translate(238.78125, 2011.9968719482422)">
+      <polygon points="48.78125,0 97.5625,-48.78125 48.78125,-97.5625 0,-48.78125" class="label-container" transform="translate(-48.28125, 48.78125)"/>
+      <g class="label" style="" transform="translate(0, -10)">
+        <rect/>
+        <g>
+          <rect class="background" style="stroke: none"/>
+          <text y="-10.1" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">action?</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="node default" id="my-svg-flowchart-sw-53" data-look="classic" transform="translate(223.1068115234375, 2189.778121948242)">
+      <rect class="basic label-container" style="" x="-85.1068115234375" y="-25" width="170.213623046875" height="50"/>
+      <g class="label" style="" transform="translate(0, -10)">
+        <rect/>
+        <g>
+          <rect class="background" style="stroke: none"/>
+          <text y="-10.1" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">TriggerSwitching</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="node default" id="my-svg-flowchart-notify-55" data-look="classic" transform="translate(400, 2189.778121948242)">
+      <rect class="basic label-container" style="" x="-51" y="-25" width="102" height="50"/>
+      <g class="label" style="" transform="translate(0, -10)">
+        <rect/>
+        <g>
+          <rect class="background" style="stroke: none"/>
+          <text y="-10.1" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">仅告警</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="node default" id="my-svg-flowchart-eOk-57" data-look="classic" transform="translate(194.9609375, 2279.778121948242)">
+      <rect class="basic label-container" style="" x="-182.9609375" y="-25" width="365.921875" height="50"/>
+      <g class="label" style="" transform="translate(0, -10)">
+        <rect/>
+        <g>
+          <rect class="background" style="stroke: none"/>
+          <text y="-10.1" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">切换结果:</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> DbEventNameMysqlSwitchSuccessV1</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="node default" id="my-svg-flowchart-eErr-59" data-look="classic" transform="translate(597.4921875, 2279.778121948242)">
+      <rect class="basic label-container" style="" x="-179.4921875" y="-25" width="358.984375" height="50"/>
+      <g class="label" style="" transform="translate(0, -10)">
+        <rect/>
+        <g>
+          <rect class="background" style="stroke: none"/>
+          <text y="-10.1" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">切换结果:</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> DbEventNameMysqlSwitchFailureV1</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+  </g>
+  <g class="edges edgePaths">
+    <path d="M503,62L503,98" id="my-svg-L_harvest_openOk_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style="stroke:#2563eb;stroke-width:2px;fill:none;;;stroke:#2563eb;stroke-width:2px;fill:none" data-edge="true" data-et="edge" data-id="L_harvest_openOk_0" data-points="W3sieCI6NTAzLCJ5Ijo2Mn0seyJ4Ijo1MDMsInkiOjEwMn1d" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd__2563eb)"/>
+    <path d="M489.49666451878807,200.81697701878812L487.24833225939403,207.72880100939406Q485,214.640625 485,221.9089335257677L485,314.640625" id="my-svg-L_openOk_eDetect_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style="stroke:#64748b;stroke-width:2px;fill:none;;;stroke:#64748b;stroke-width:2px;fill:none" data-edge="true" data-et="edge" data-id="L_openOk_eDetect_0" data-points="W3sieCI6NDg5LjQ5NjY2NDUxODc4ODA3LCJ5IjoyMDAuODE2OTc3MDE4Nzg4MTJ9LHsieCI6NDg1LCJ5IjoyMTQuNjQwNjI1fSx7IngiOjQ4NSwieSI6MzE4LjY0MDYyNX1d" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd__64748b)"/>
+    <path d="M517.3475903320314,200.6133471679687L519.6737951660157,207.62698608398435Q522,214.640625 522,222.0299659566687L522,227.56955718813452Q522,234.640625 529.0710678118655,234.640625L635.9289321881345,234.640625Q643,234.640625 643,241.71169281186548L643,351.34062576293945L643,396.96955871401343Q643,404.0406265258789 635.9289321881345,404.0406265258789L570.0710678118655,404.0406265258789Q563,404.0406265258789 563,411.1116943377444L563,420.0406265258789" id="my-svg-L_openOk_report_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style="stroke:#2563eb;stroke-width:2px;fill:none;;;stroke:#2563eb;stroke-width:2px;fill:none" data-edge="true" data-et="edge" data-id="L_openOk_report_0" data-points="W3sieCI6NTE3LjM0NzU5MDMzMjAzMTQsInkiOjIwMC42MTMzNDcxNjc5Njg3fSx7IngiOjUyMiwieSI6MjE0LjY0MDYyNX0seyJ4Ijo1MjIsInkiOjIzNC42NDA2MjV9LHsieCI6NjQzLCJ5IjoyMzQuNjQwNjI1fSx7IngiOjY0MywieSI6MzUxLjM0MDYyNTc2MjkzOTQ1fSx7IngiOjY0MywieSI6NDA0LjA0MDYyNjUyNTg3ODl9LHsieCI6NTYzLCJ5Ijo0MDQuMDQwNjI2NTI1ODc4OX0seyJ4Ijo1NjMsInkiOjQyNC4wNDA2MjY1MjU4Nzg5fV0=" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd__2563eb)"/>
+    <path d="M485,384.0406265258789L485,420.0406265258789" id="my-svg-L_eDetect_report_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style="stroke:#64748b;stroke-width:2px;fill:none;;;stroke:#64748b;stroke-width:2px;fill:none" data-edge="true" data-et="edge" data-id="L_eDetect_report_0" data-points="W3sieCI6NDg1LCJ5IjozODQuMDQwNjI2NTI1ODc4OX0seyJ4Ijo0ODUsInkiOjQyNC4wNDA2MjY1MjU4Nzg5fV0=" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd__64748b)"/>
+    <path d="M524,474.0406265258789L524,510.0406265258789" id="my-svg-L_report_scan_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style="stroke:#2563eb;stroke-width:2px;fill:none;;;stroke:#2563eb;stroke-width:2px;fill:none" data-edge="true" data-et="edge" data-id="L_report_scan_0" data-points="W3sieCI6NTI0LCJ5Ijo0NzQuMDQwNjI2NTI1ODc4OX0seyJ4Ijo1MjQsInkiOjUxNC4wNDA2MjY1MjU4Nzg5fV0=" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd__2563eb)"/>
+    <path d="M449.00000000000017,564.0406265258789L449.00000000000006,576.9695587140134Q449,584.0406265258789 441.92893218813447,584.0406265258789L273.0710678118655,584.0406265258789Q266,584.0406265258789 266,591.1116943377444L266,627.7406272888184" id="my-svg-L_scan_missed_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style="stroke:#2563eb;stroke-width:2px;fill:none;;;stroke:#2563eb;stroke-width:2px;fill:none" data-edge="true" data-et="edge" data-id="L_scan_missed_0" data-points="W3sieCI6NDQ5LjAwMDAwMDAwMDAwMDE3LCJ5Ijo1NjQuMDQwNjI2NTI1ODc4OX0seyJ4Ijo0NDksInkiOjU4NC4wNDA2MjY1MjU4Nzg5fSx7IngiOjI2NiwieSI6NTg0LjA0MDYyNjUyNTg3ODl9LHsieCI6MjY2LCJ5Ijo2MzEuNzQwNjI3Mjg4ODE4NH1d" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd__2563eb)"/>
+    <path d="M499.00000000000006,564.0406265258789L499,627.7406272888184" id="my-svg-L_scan_evChk_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style="stroke:#2563eb;stroke-width:2px;fill:none;;;stroke:#2563eb;stroke-width:2px;fill:none" data-edge="true" data-et="edge" data-id="L_scan_evChk_0" data-points="W3sieCI6NDk5LjAwMDAwMDAwMDAwMDA2LCJ5Ijo1NjQuMDQwNjI2NTI1ODc4OX0seyJ4Ijo0OTksInkiOjYzMS43NDA2MjcyODg4MTg0fV0=" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd__2563eb)"/>
+    <path d="M549,564.0406265258789L549,596.9695587140134Q549,604.0406265258789 556.0710678118655,604.0406265258789L724.9289321881345,604.0406265258789Q732,604.0406265258789 732,611.1116943377444L732,620.0406265258789" id="my-svg-L_scan_stubHosts_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style="stroke:#64748b;stroke-width:2px;fill:none;;;stroke:#64748b;stroke-width:2px;fill:none" data-edge="true" data-et="edge" data-id="L_scan_stubHosts_0" data-points="W3sieCI6NTQ5LCJ5Ijo1NjQuMDQwNjI2NTI1ODc4OX0seyJ4Ijo1NDksInkiOjYwNC4wNDA2MjY1MjU4Nzg5fSx7IngiOjczMiwieSI6NjA0LjA0MDYyNjUyNTg3ODl9LHsieCI6NzMyLCJ5Ijo2MjQuMDQwNjI2NTI1ODc4OX1d" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd__64748b)"/>
+    <path d="M600.0000000000001,564.0406265258789L600,576.9695587140135Q600,584.0406265258789 607.0710678118654,584.0406265258789L954.9289321881345,584.0406265258789Q962,584.0406265258789 962,591.1116943377444L962,620.0406265258789" id="my-svg-L_scan_stubStatus_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style="stroke:#64748b;stroke-width:2px;fill:none;;;stroke:#64748b;stroke-width:2px;fill:none" data-edge="true" data-et="edge" data-id="L_scan_stubStatus_0" data-points="W3sieCI6NjAwLjAwMDAwMDAwMDAwMDEsInkiOjU2NC4wNDA2MjY1MjU4Nzg5fSx7IngiOjYwMCwieSI6NTg0LjA0MDYyNjUyNTg3ODl9LHsieCI6OTYyLCJ5Ijo1ODQuMDQwNjI2NTI1ODc4OX0seyJ4Ijo5NjIsInkiOjYyNC4wNDA2MjY1MjU4Nzg5fV0=" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd__64748b)"/>
+    <path d="M266,681.7406272888184L266,725.4406280517578" id="my-svg-L_missed_ssh_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style="stroke:#7c3aed;stroke-width:2px;fill:none;;;stroke:#7c3aed;stroke-width:2px;fill:none" data-edge="true" data-et="edge" data-id="L_missed_ssh_0" data-points="W3sieCI6MjY2LCJ5Ijo2ODEuNzQwNjI3Mjg4ODE4NH0seyJ4IjoyNjYsInkiOjcyOS40NDA2MjgwNTE3NTc4fV0=" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd__7c3aed)"/>
+    <path d="M499,681.7406272888184L499,702.3695602398923Q499,709.4406280517578 491.9289321881345,709.4406280517578L340.0710678118655,709.4406280517578Q333,709.4406280517578 333,716.5116958636233L333,725.4406280517578" id="my-svg-L_evChk_ssh_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style="stroke:#7c3aed;stroke-width:2px;fill:none;;;stroke:#7c3aed;stroke-width:2px;fill:none" data-edge="true" data-et="edge" data-id="L_evChk_ssh_0" data-points="W3sieCI6NDk5LCJ5Ijo2ODEuNzQwNjI3Mjg4ODE4NH0seyJ4Ijo0OTksInkiOjcwOS40NDA2MjgwNTE3NTc4fSx7IngiOjMzMywieSI6NzA5LjQ0MDYyODA1MTc1Nzh9LHsieCI6MzMzLCJ5Ijo3MjkuNDQwNjI4MDUxNzU3OH1d" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd__7c3aed)"/>
+    <path d="M300,794.8406295776367L300,830.8406295776367" id="my-svg-L_ssh_dial_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style="stroke:#7c3aed;stroke-width:2px;fill:none;;;stroke:#7c3aed;stroke-width:2px;fill:none" data-edge="true" data-et="edge" data-id="L_ssh_dial_0" data-points="W3sieCI6MzAwLCJ5Ijo3OTQuODQwNjI5NTc3NjM2N30seyJ4IjozMDAsInkiOjgzNC44NDA2Mjk1Nzc2MzY3fV0=" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd__7c3aed)"/>
+    <path d="M272.7952140164688,971.9249060941054L265.8976070082344,985.671830335871Q259,999.4187545776367 259,1014.7990962041705L259,1209.1093788146973" id="my-svg-L_dial_eSsh_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style="stroke:#16a34a;stroke-width:2px;fill:none;;;stroke:#16a34a;stroke-width:2px;fill:none" data-edge="true" data-et="edge" data-id="L_dial_eSsh_0" data-points="W3sieCI6MjcyLjc5NTIxNDAxNjQ2ODgsInkiOjk3MS45MjQ5MDYwOTQxMDU0fSx7IngiOjI1OSwieSI6OTk5LjQxODc1NDU3NzYzNjd9LHsieCI6MjU5LCJ5IjoxMjEzLjEwOTM3ODgxNDY5NzN9XQ==" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd__16a34a)"/>
+    <path d="M300.0010118554872,999.130703933124L300.0005059277436,999.2747292553804Q300,999.4187545776367 300,999.5627807884941L300,1032.3476867657712Q300,1039.4187545776367 307.0710678118655,1039.4187545776367L331.9289321881345,1039.4187545776367Q339,1039.4187545776367 339,1046.4898223895023L339,1096.3476867657712Q339,1103.4187545776367 346.0710678118655,1103.4187545776367L575.9289321881345,1103.4187545776367Q583,1103.4187545776367 583,1110.4898223895023L583,1119.4187545776367" id="my-svg-L_dial_eOtherErr_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style="stroke:#64748b;stroke-width:2px;fill:none;;;stroke:#64748b;stroke-width:2px;fill:none" data-edge="true" data-et="edge" data-id="L_dial_eOtherErr_0" data-points="W3sieCI6MzAwLjAwMTAxMTg1NTQ4NzIsInkiOjk5OS4xMzA3MDM5MzMxMjR9LHsieCI6MzAwLCJ5Ijo5OTkuNDE4NzU0NTc3NjM2N30seyJ4IjozMDAsInkiOjEwMzkuNDE4NzU0NTc3NjM2N30seyJ4IjozMzksInkiOjEwMzkuNDE4NzU0NTc3NjM2N30seyJ4IjozMzksInkiOjExMDMuNDE4NzU0NTc3NjM2N30seyJ4Ijo1ODMsInkiOjExMDMuNDE4NzU0NTc3NjM2N30seyJ4Ijo1ODMsInkiOjExMjMuNDE4NzU0NTc3NjM2N31d" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd__64748b)"/>
+    <path d="M327.5253623404153,972.1824547372216L336.5656862384837,990.4556713210544Q341,999.4187545776367 341,1009.4187545776367L341,1012.3476867657712Q341,1019.4187545776367 348.0710678118655,1019.4187545776367L842.9289321881345,1019.4187545776367Q850,1019.4187545776367 850,1026.4898223895023L850,1119.4187545776367" id="my-svg-L_dial_exitCode_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style="stroke:#2563eb;stroke-width:2px;fill:none;;;stroke:#2563eb;stroke-width:2px;fill:none" data-edge="true" data-et="edge" data-id="L_dial_exitCode_0" data-points="W3sieCI6MzI3LjUyNTM2MjM0MDQxNTMsInkiOjk3Mi4xODI0NTQ3MzcyMjE2fSx7IngiOjM0MSwieSI6OTk5LjQxODc1NDU3NzYzNjd9LHsieCI6MzQxLCJ5IjoxMDE5LjQxODc1NDU3NzYzNjd9LHsieCI6ODUwLCJ5IjoxMDE5LjQxODc1NDU3NzYzNjd9LHsieCI6ODUwLCJ5IjoxMTIzLjQxODc1NDU3NzYzNjd9XQ==" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd__2563eb)"/>
+    <path d="M820.0220546770015,1337.8314342546382L813.1338948026099,1358.7037577734422Q810,1368.2000045776367 810,1378.2000045776367L810,1381.1289367657712Q810,1388.2000045776367 802.9289321881345,1388.2000045776367L714.0710678118655,1388.2000045776367Q707,1388.2000045776367 707,1395.2710723895023L707,1494.2000045776367" id="my-svg-L_exitCode_ePost_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style="stroke:#64748b;stroke-width:2px;fill:none;;;stroke:#64748b;stroke-width:2px;fill:none" data-edge="true" data-et="edge" data-id="L_exitCode_ePost_0" data-points="W3sieCI6ODIwLjAyMjA1NDY3NzAwMTUsInkiOjEzMzcuODMxNDM0MjU0NjM4Mn0seyJ4Ijo4MTAsInkiOjEzNjguMjAwMDA0NTc3NjM2N30seyJ4Ijo4MTAsInkiOjEzODguMjAwMDA0NTc3NjM2N30seyJ4Ijo3MDcsInkiOjEzODguMjAwMDA0NTc3NjM2N30seyJ4Ijo3MDcsInkiOjE0OTguMjAwMDA0NTc3NjM2N31d" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd__64748b)"/>
+    <path d="M880.882691178585,1337.707938399052L885.9413455892925,1352.9539714883445Q891,1368.2000045776367 891,1384.26336379689L891,1494.2000045776367" id="my-svg-L_exitCode_health_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style="stroke:#2563eb;stroke-width:2px;fill:none;;;stroke:#2563eb;stroke-width:2px;fill:none" data-edge="true" data-et="edge" data-id="L_exitCode_health_0" data-points="W3sieCI6ODgwLjg4MjY5MTE3ODU4NSwieSI6MTMzNy43MDc5MzgzOTkwNTJ9LHsieCI6ODkxLCJ5IjoxMzY4LjIwMDAwNDU3NzYzNjd9LHsieCI6ODkxLCJ5IjoxNDk4LjIwMDAwNDU3NzYzNjd9XQ==" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd__2563eb)"/>
+    <path d="M881.2529299808502,1566.460747058487L879.6264649904251,1571.3381883180618Q878,1576.2156295776367 878,1581.3571100653642L878,1589.1445617657712Q878,1596.2156295776367 870.9289321881345,1596.2156295776367L628.0710678118655,1596.2156295776367Q621,1596.2156295776367 621,1603.2866973895023L621,1702.2156295776367" id="my-svg-L_health_eOff_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style="stroke:#64748b;stroke-width:2px;fill:none;;;stroke:#64748b;stroke-width:2px;fill:none" data-edge="true" data-et="edge" data-id="L_health_eOff_0" data-points="W3sieCI6ODgxLjI1MjkyOTk4MDg1MDIsInkiOjE1NjYuNDYwNzQ3MDU4NDg3fSx7IngiOjg3OCwieSI6MTU3Ni4yMTU2Mjk1Nzc2MzY3fSx7IngiOjg3OCwieSI6MTU5Ni4yMTU2Mjk1Nzc2MzY3fSx7IngiOjYyMSwieSI6MTU5Ni4yMTU2Mjk1Nzc2MzY3fSx7IngiOjYyMSwieSI6MTcwNi4yMTU2Mjk1Nzc2MzY3fV0=" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd__64748b)"/>
+    <path d="M900.7539050762456,1566.469537001391L902.3769525381229,1571.3425832895139Q904,1576.2156295776367 904,1581.3518600231769L904,1702.2156295776367" id="my-svg-L_health_eNoTgt_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style="stroke:#64748b;stroke-width:2px;fill:none;;;stroke:#64748b;stroke-width:2px;fill:none" data-edge="true" data-et="edge" data-id="L_health_eNoTgt_0" data-points="W3sieCI6OTAwLjc1MzkwNTA3NjI0NTYsInkiOjE1NjYuNDY5NTM3MDAxMzkxfSx7IngiOjkwNCwieSI6MTU3Ni4yMTU2Mjk1Nzc2MzY3fSx7IngiOjkwNCwieSI6MTcwNi4yMTU2Mjk1Nzc2MzY3fV0=" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd__64748b)"/>
+    <path d="M259,1278.5093803405762L259,1404.2000045776367" id="my-svg-L_eSsh_push_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style="stroke:#16a34a;stroke-width:2px;fill:none;;;stroke:#16a34a;stroke-width:2px;fill:none" data-edge="true" data-et="edge" data-id="L_eSsh_push_0" data-points="W3sieCI6MjU5LCJ5IjoxMjc4LjUwOTM4MDM0MDU3NjJ9LHsieCI6MjU5LCJ5IjoxNDA4LjIwMDAwNDU3NzYzNjd9XQ==" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd__16a34a)"/>
+    <path d="M259,1458.2000045776367L259,1612.2156295776367" id="my-svg-L_push_pop_0" class="edge-thickness-normal edge-pattern-dotted edge-thickness-normal edge-pattern-solid flowchart-link" style="stroke:#ea580c;stroke-width:2px;stroke-dasharray:5;fill:none;;;stroke:#ea580c;stroke-width:2px;stroke-dasharray:5;fill:none" data-edge="true" data-et="edge" data-id="L_push_pop_0" data-points="W3sieCI6MjU5LCJ5IjoxNDU4LjIwMDAwNDU3NzYzNjd9LHsieCI6MjU5LCJ5IjoxNjE2LjIxNTYyOTU3NzYzNjd9XQ==" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd__ea580c)"/>
+    <path d="M259,1666.2156295776367L259,1722.7489598592122" id="my-svg-L_pop_match_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style="stroke:#2563eb;stroke-width:2px;fill:none;;;stroke:#2563eb;stroke-width:2px;fill:none" data-edge="true" data-et="edge" data-id="L_pop_match_0" data-points="W3sieCI6MjU5LCJ5IjoxNjY2LjIxNTYyOTU3NzYzNjd9LHsieCI6MjU5LCJ5IjoxNzI2Ljc0ODk1OTg1OTIxMjJ9XQ==" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd__2563eb)"/>
+    <path d="M223.0000000000001,1776.7489598592122L223,1846.115623474121" id="my-svg-L_match_byName_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style="stroke:#2563eb;stroke-width:2px;fill:none;;;stroke:#2563eb;stroke-width:2px;fill:none" data-edge="true" data-et="edge" data-id="L_match_byName_0" data-points="W3sieCI6MjIzLjAwMDAwMDAwMDAwMDEsInkiOjE3NzYuNzQ4OTU5ODU5MjEyMn0seyJ4IjoyMjMsInkiOjE4NTAuMTE1NjIzNDc0MTIxfV0=" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd__2563eb)"/>
+    <path d="M295.00000000000006,1776.7489598592122L295,1799.9445571881345Q295,1807.015625 302.0710678118655,1807.015625L521.9289321881345,1807.015625Q529,1807.015625 529,1814.0866928118655L529,1823.015625" id="my-svg-L_match_special_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style="stroke:#2563eb;stroke-width:2px;fill:none;;;stroke:#2563eb;stroke-width:2px;fill:none" data-edge="true" data-et="edge" data-id="L_match_special_0" data-points="W3sieCI6Mjk1LjAwMDAwMDAwMDAwMDA2LCJ5IjoxNzc2Ljc0ODk1OTg1OTIxMjJ9LHsieCI6Mjk1LCJ5IjoxODA3LjAxNTYyNX0seyJ4Ijo1MjksInkiOjE4MDcuMDE1NjI1fSx7IngiOjUyOSwieSI6MTgyNy4wMTU2MjV9XQ==" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd__2563eb)"/>
+    <path d="M223,1900.115623474121L223,1958.9495103527117Q223,1963.2156219482422 224.3131264573434,1967.2746128391589L225.62625291468677,1971.3336037300755" id="my-svg-L_byName_act_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style="stroke:#2563eb;stroke-width:2px;fill:none;;;stroke:#2563eb;stroke-width:2px;fill:none" data-edge="true" data-et="edge" data-id="L_byName_act_0" data-points="W3sieCI6MjIzLCJ5IjoxOTAwLjExNTYyMzQ3NDEyMX0seyJ4IjoyMjMsInkiOjE5NjMuMjE1NjIxOTQ4MjQyMn0seyJ4IjoyMjYuODU3NDY5MTQzMjcyMTcsInkiOjE5NzUuMTM5NDAyODA0OTcwMX1d" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd__2563eb)"/>
+    <path d="M529,1923.2156219482422L529,1936.1445541363767Q529,1943.2156219482422 521.9289321881345,1943.2156219482422L262.0710678118655,1943.2156219482422Q255,1943.2156219482422 255,1950.2866897601077L255,1958.8021304237081Q255,1963.2156219482422 253.60755138184174,1967.4036995839747L252.21510276368352,1971.5917772197072" id="my-svg-L_special_act_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style="stroke:#2563eb;stroke-width:2px;fill:none;;;stroke:#2563eb;stroke-width:2px;fill:none" data-edge="true" data-et="edge" data-id="L_special_act_0" data-points="W3sieCI6NTI5LCJ5IjoxOTIzLjIxNTYyMTk0ODI0MjJ9LHsieCI6NTI5LCJ5IjoxOTQzLjIxNTYyMTk0ODI0MjJ9LHsieCI6MjU1LCJ5IjoxOTQzLjIxNTYyMTk0ODI0MjJ9LHsieCI6MjU1LCJ5IjoxOTYzLjIxNTYyMTk0ODI0MjJ9LHsieCI6MjUwLjk1MzEwOTk3NTk2MTc4LCJ5IjoxOTc1LjM4NzQ4MTkyNDIwNH1d" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd__2563eb)"/>
+    <path d="M226.85746914327228,2048.8543410915145L224.92873457163614,2054.8162315198783Q223,2060.778121948242 223,2067.0442335437724L223,2160.778121948242" id="my-svg-L_act_sw_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style="stroke:#2563eb;stroke-width:2px;fill:none;;;stroke:#2563eb;stroke-width:2px;fill:none" data-edge="true" data-et="edge" data-id="L_act_sw_0" data-points="W3sieCI6MjI2Ljg1NzQ2OTE0MzI3MjI4LCJ5IjoyMDQ4Ljg1NDM0MTA5MTUxNDV9LHsieCI6MjIzLCJ5IjoyMDYwLjc3ODEyMTk0ODI0Mn0seyJ4IjoyMjMsInkiOjIxNjQuNzc4MTIxOTQ4MjQyfV0=" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd__2563eb)"/>
+    <path d="M250.9531099759621,2048.60626197228L252.97655498798105,2054.692191960261Q255,2060.778121948242 255,2067.191613472776L255,2073.707054136377Q255,2080.778121948242 262.0710678118655,2080.778121948242L392.9289321881345,2080.778121948242Q400,2080.778121948242 400,2087.8491897601075L400,2160.778121948242" id="my-svg-L_act_notify_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style="stroke:#64748b;stroke-width:2px;fill:none;;;stroke:#64748b;stroke-width:2px;fill:none" data-edge="true" data-et="edge" data-id="L_act_notify_0" data-points="W3sieCI6MjUwLjk1MzEwOTk3NTk2MjEsInkiOjIwNDguNjA2MjYxOTcyMjh9LHsieCI6MjU1LCJ5IjoyMDYwLjc3ODEyMTk0ODI0Mn0seyJ4IjoyNTUsInkiOjIwODAuNzc4MTIxOTQ4MjQyfSx7IngiOjQwMCwieSI6MjA4MC43NzgxMjE5NDgyNDJ9LHsieCI6NDAwLCJ5IjoyMTY0Ljc3ODEyMTk0ODI0Mn1d" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd__64748b)"/>
+    <path d="M194.9999999999999,2214.778121948242L195,2250.778121948242" id="my-svg-L_sw_eOk_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style="stroke:#2563eb;stroke-width:2px;fill:none;;;stroke:#2563eb;stroke-width:2px;fill:none" data-edge="true" data-et="edge" data-id="L_sw_eOk_0" data-points="W3sieCI6MTk0Ljk5OTk5OTk5OTk5OTksInkiOjIyMTQuNzc4MTIxOTQ4MjQyfSx7IngiOjE5NSwieSI6MjI1NC43NzgxMjE5NDgyNDJ9XQ==" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd__2563eb)"/>
+    <path d="M251.00000000000014,2214.778121948242L251.00000000000006,2227.707054136377Q251,2234.778121948242 258.0710678118655,2234.778121948242L589.9289321881345,2234.778121948242Q597,2234.778121948242 597,2241.8491897601075L597,2250.778121948242" id="my-svg-L_sw_eErr_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style="stroke:#64748b;stroke-width:2px;fill:none;;;stroke:#64748b;stroke-width:2px;fill:none" data-edge="true" data-et="edge" data-id="L_sw_eErr_0" data-points="W3sieCI6MjUxLjAwMDAwMDAwMDAwMDE0LCJ5IjoyMjE0Ljc3ODEyMTk0ODI0Mn0seyJ4IjoyNTEsInkiOjIyMzQuNzc4MTIxOTQ4MjQyfSx7IngiOjU5NywieSI6MjIzNC43NzgxMjE5NDgyNDJ9LHsieCI6NTk3LCJ5IjoyMjU0Ljc3ODEyMTk0ODI0Mn1d" data-look="classic" marker-end="url(#my-svg_flowchart-v2-pointEnd__64748b)"/>
+  </g>
+  <g class="edgeLabels">
+    <g class="edgeLabel">
+      <g class="label" data-id="L_harvest_openOk_0" transform="translate(0, 0)">
+        <text y="-10.1" text-anchor="middle">
+          <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em" text-anchor="middle"/>
+        </text>
+      </g>
+    </g>
+    <g>
+      <rect class="background" style="stroke: none"/>
+    </g>
+    <g class="edgeLabel" transform="translate(485, 266.640625)">
+      <g class="label" data-id="L_openOk_eDetect_0" transform="translate(0, -8.000000953674316)">
+        <g>
+          <rect class="background" style="fill:#ffffff;opacity:1;stroke:none;" x="-12.00" y="-3.92" width="24.59" height="23.90" rx="3"/>
+          <text y="-10.1" text-anchor="middle" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em" text-anchor="middle">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">否</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="edgeLabel" transform="translate(643, 266.640625)">
+      <g class="label" data-id="L_openOk_report_0" transform="translate(0, -8.000000953674316)">
+        <g>
+          <rect class="background" style="fill:#ffffff;opacity:1;stroke:none;" x="-12.00" y="-3.92" width="24.59" height="23.90" rx="3"/>
+          <text y="-10.1" text-anchor="middle" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em" text-anchor="middle">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">是</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="edgeLabel">
+      <g class="label" data-id="L_eDetect_report_0" transform="translate(0, 0)">
+        <text y="-10.1" text-anchor="middle">
+          <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em" text-anchor="middle"/>
+        </text>
+      </g>
+    </g>
+    <g>
+      <rect class="background" style="stroke: none"/>
+    </g>
+    <g class="edgeLabel">
+      <g class="label" data-id="L_report_scan_0" transform="translate(0, 0)">
+        <text y="-10.1" text-anchor="middle">
+          <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em" text-anchor="middle"/>
+        </text>
+      </g>
+    </g>
+    <g>
+      <rect class="background" style="stroke: none"/>
+    </g>
+    <g class="edgeLabel">
+      <g class="label" data-id="L_scan_missed_0" transform="translate(0, 0)">
+        <text y="-10.1" text-anchor="middle">
+          <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em" text-anchor="middle"/>
+        </text>
+      </g>
+    </g>
+    <g>
+      <rect class="background" style="stroke: none"/>
+    </g>
+    <g class="edgeLabel">
+      <g class="label" data-id="L_scan_evChk_0" transform="translate(0, 0)">
+        <text y="-10.1" text-anchor="middle">
+          <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em" text-anchor="middle"/>
+        </text>
+      </g>
+    </g>
+    <g>
+      <rect class="background" style="stroke: none"/>
+    </g>
+    <g class="edgeLabel">
+      <g class="label" data-id="L_scan_stubHosts_0" transform="translate(0, 0)">
+        <text y="-10.1" text-anchor="middle">
+          <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em" text-anchor="middle"/>
+        </text>
+      </g>
+    </g>
+    <g>
+      <rect class="background" style="stroke: none"/>
+    </g>
+    <g class="edgeLabel">
+      <g class="label" data-id="L_scan_stubStatus_0" transform="translate(0, 0)">
+        <text y="-10.1" text-anchor="middle">
+          <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em" text-anchor="middle"/>
+        </text>
+      </g>
+    </g>
+    <g>
+      <rect class="background" style="stroke: none"/>
+    </g>
+    <g class="edgeLabel">
+      <g class="label" data-id="L_missed_ssh_0" transform="translate(0, 0)">
+        <text y="-10.1" text-anchor="middle">
+          <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em" text-anchor="middle"/>
+        </text>
+      </g>
+    </g>
+    <g>
+      <rect class="background" style="stroke: none"/>
+    </g>
+    <g class="edgeLabel">
+      <g class="label" data-id="L_evChk_ssh_0" transform="translate(0, 0)">
+        <text y="-10.1" text-anchor="middle">
+          <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em" text-anchor="middle"/>
+        </text>
+      </g>
+    </g>
+    <g>
+      <rect class="background" style="stroke: none"/>
+    </g>
+    <g class="edgeLabel">
+      <g class="label" data-id="L_ssh_dial_0" transform="translate(0, 0)">
+        <text y="-10.1" text-anchor="middle">
+          <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em" text-anchor="middle"/>
+        </text>
+      </g>
+    </g>
+    <g>
+      <rect class="background" style="stroke: none"/>
+    </g>
+    <g class="edgeLabel" transform="translate(259, 1071.4187545776367)">
+      <g class="label" data-id="L_dial_eSsh_0" transform="translate(0, -8.000000953674316)">
+        <g>
+          <rect class="background" style="fill:#ffffff;opacity:1;stroke:none;" x="-19.00" y="-3.92" width="38.58" height="23.90" rx="3"/>
+          <text y="-10.1" text-anchor="middle" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em" text-anchor="middle">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">失败</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="edgeLabel" transform="translate(338.4018859863281, 1071.4187545776367)">
+      <g class="label" data-id="L_dial_eOtherErr_0" transform="translate(-0.276885986328125, -8.000000953674316)">
+        <g>
+          <rect class="background" style="fill:#ffffff;opacity:1;stroke:none;" x="-46.10" y="-3.92" width="93.39" height="23.90" rx="3"/>
+          <text y="-10.1" text-anchor="middle" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em" text-anchor="middle">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">其它</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> resp.Err</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="edgeLabel" transform="translate(850, 1071.4187545776367)">
+      <g class="label" data-id="L_dial_exitCode_0" transform="translate(0, -8.000000953674316)">
+        <g>
+          <rect class="background" style="fill:#ffffff;opacity:1;stroke:none;" x="-19.00" y="-3.92" width="38.00" height="23.90" rx="3"/>
+          <text y="-10.1" text-anchor="middle" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em" text-anchor="middle">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">成功</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="edgeLabel" transform="translate(707, 1433.2000045776367)">
+      <g class="label" data-id="L_exitCode_ePost_0" transform="translate(0, -8.000000953674316)">
+        <g>
+          <rect class="background" style="fill:#ffffff;opacity:1;stroke:none;" x="-12.00" y="-3.92" width="24.59" height="23.90" rx="3"/>
+          <text y="-10.1" text-anchor="middle" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em" text-anchor="middle">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">否</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="edgeLabel" transform="translate(891, 1433.2000045776367)">
+      <g class="label" data-id="L_exitCode_health_0" transform="translate(0, -8.000000953674316)">
+        <g>
+          <rect class="background" style="fill:#ffffff;opacity:1;stroke:none;" x="-12.00" y="-3.92" width="24.59" height="23.90" rx="3"/>
+          <text y="-10.1" text-anchor="middle" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em" text-anchor="middle">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">是</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="edgeLabel" transform="translate(620.71875, 1641.2156295776367)">
+      <g class="label" data-id="L_health_eOff_0" transform="translate(0, -8.000000953674316)">
+        <g>
+          <rect class="background" style="fill:#ffffff;opacity:1;stroke:none;" x="-37.69" y="-3.92" width="75.38" height="23.90" rx="3"/>
+          <text y="-10.1" text-anchor="middle" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em" text-anchor="middle">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">InvalidPid</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="edgeLabel" transform="translate(903.2578125, 1641.2156295776367)">
+      <g class="label" data-id="L_health_eNoTgt_0" transform="translate(0, -8.000000953674316)">
+        <g>
+          <rect class="background" style="fill:#ffffff;opacity:1;stroke:none;" x="-31.25" y="-3.92" width="62.49" height="23.90" rx="3"/>
+          <text y="-10.1" text-anchor="middle" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em" text-anchor="middle">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">有效</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> Pid</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="edgeLabel">
+      <g class="label" data-id="L_eSsh_push_0" transform="translate(0, 0)">
+        <text y="-10.1" text-anchor="middle">
+          <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em" text-anchor="middle"/>
+        </text>
+      </g>
+    </g>
+    <g>
+      <rect class="background" style="stroke: none"/>
+    </g>
+    <g class="edgeLabel" transform="translate(258.9609375, 1537.2078170776367)">
+      <g class="label" data-id="L_push_pop_0" transform="translate(0, -8.000000953674316)">
+        <g>
+          <rect class="background" style="fill:#ffffff;opacity:1;stroke:none;" x="-62.93" y="-3.92" width="125.87" height="23.90" rx="3"/>
+          <text y="-10.1" text-anchor="middle" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em" text-anchor="middle">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">成熟后由</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> Pop</tspan>
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal"> 循环</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="edgeLabel">
+      <g class="label" data-id="L_pop_match_0" transform="translate(0, 0)">
+        <text y="-10.1" text-anchor="middle">
+          <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em" text-anchor="middle"/>
+        </text>
+      </g>
+    </g>
+    <g>
+      <rect class="background" style="stroke: none"/>
+    </g>
+    <g class="edgeLabel">
+      <g class="label" data-id="L_match_byName_0" transform="translate(0, 0)">
+        <text y="-10.1" text-anchor="middle">
+          <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em" text-anchor="middle"/>
+        </text>
+      </g>
+    </g>
+    <g>
+      <rect class="background" style="stroke: none"/>
+    </g>
+    <g class="edgeLabel">
+      <g class="label" data-id="L_match_special_0" transform="translate(0, 0)">
+        <text y="-10.1" text-anchor="middle">
+          <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em" text-anchor="middle"/>
+        </text>
+      </g>
+    </g>
+    <g>
+      <rect class="background" style="stroke: none"/>
+    </g>
+    <g class="edgeLabel">
+      <g class="label" data-id="L_byName_act_0" transform="translate(0, 0)">
+        <text y="-10.1" text-anchor="middle">
+          <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em" text-anchor="middle"/>
+        </text>
+      </g>
+    </g>
+    <g>
+      <rect class="background" style="stroke: none"/>
+    </g>
+    <g class="edgeLabel">
+      <g class="label" data-id="L_special_act_0" transform="translate(0, 0)">
+        <text y="-10.1" text-anchor="middle">
+          <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em" text-anchor="middle"/>
+        </text>
+      </g>
+    </g>
+    <g>
+      <rect class="background" style="stroke: none"/>
+    </g>
+    <g class="edgeLabel" transform="translate(222.1640625, 2112.778121948242)">
+      <g class="label" data-id="L_act_sw_0" transform="translate(0, -8.000000953674316)">
+        <g>
+          <rect class="background" style="fill:#ffffff;opacity:1;stroke:none;" x="-26.15" y="-3.92" width="52.30" height="23.90" rx="3"/>
+          <text y="-10.1" text-anchor="middle" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em" text-anchor="middle">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">switch</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="edgeLabel" transform="translate(399.2249450683594, 2112.778121948242)">
+      <g class="label" data-id="L_act_notify_0" transform="translate(-0.349945068359375, -8.000000953674316)">
+        <g>
+          <rect class="background" style="fill:#ffffff;opacity:1;stroke:none;" x="-23.86" y="-3.92" width="48.38" height="23.90" rx="3"/>
+          <text y="-10.1" text-anchor="middle" style="">
+            <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em" text-anchor="middle">
+              <tspan font-style="normal" class="text-inner-tspan" font-weight="normal">notify</tspan>
+            </tspan>
+          </text>
+        </g>
+      </g>
+    </g>
+    <g class="edgeLabel">
+      <g class="label" data-id="L_sw_eOk_0" transform="translate(0, 0)">
+        <text y="-10.1" text-anchor="middle">
+          <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em" text-anchor="middle"/>
+        </text>
+      </g>
+    </g>
+    <g>
+      <rect class="background" style="stroke: none"/>
+    </g>
+    <g class="edgeLabel">
+      <g class="label" data-id="L_sw_eErr_0" transform="translate(0, 0)">
+        <text y="-10.1" text-anchor="middle">
+          <tspan class="text-outer-tspan row" x="0" y="-0.1em" dy="1.1em" text-anchor="middle"/>
+        </text>
+      </g>
+    </g>
+    <g>
+      <rect class="background" style="stroke: none"/>
+    </g>
+  </g>
+  <g class="cluster-titles"/>
+</svg>

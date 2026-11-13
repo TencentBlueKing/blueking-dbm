@@ -67,6 +67,10 @@ Discovery、APM 指标服务、Storage、gRPC 和 Web 服务。单个资源更�
 | [HA Server 列表（HTTP）](api/http/meta-ha-servers.md) | `GET /api/admin/meta/ha-servers`，列出存活的 HA Server 实例及其 IP |
 | [HA Server 列表（gRPC）](api/grpc/list-ha-servers.md) | `AdminService/ListHaServers`，与 HTTP 接口返回相同数据 |
 
+## 7. 配图维护
+
+全部配图为 SVG 图片，统一存放于 [assets/diagrams/](assets/diagrams/)；图片是唯一图源，正文中不再保留图源码。修改配图请直接编辑 SVG，并遵循该目录 README 中的结构契约、图清单与**逐图**配色对照；文档中涉及颜色的「色例」说明必须与图片实际配色保持一致。
+
 ---
 
 返回：[项目 README](../README.md)
