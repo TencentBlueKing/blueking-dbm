@@ -131,8 +131,8 @@ func (w *Workflow) queryWhitelistClusters(
 // keeping only instances whose clusters are on the whitelist.
 // Whitelist query failure skips the entire business scan.
 func (w *Workflow) filterByWhitelistForScan(ctx context.Context, bizID int, bizMeta *BusinessMetadata) error {
-	if !config.Cfg.Workflow.EnableWhiteList {
-		logger.Warn("whitelist is disabled, skip filtering instances for scan, bizId: %d", bizID)
+	if !config.Cfg.Workflow.EnableWhiteListForScan {
+		logger.Warn("whitelist for scan is disabled, skip filtering instances for scan, bizId: %d", bizID)
 		return nil
 	}
 	if len(bizMeta.MetaInsts) == 0 {
@@ -202,8 +202,8 @@ func (w *Workflow) filterByWhitelistForSwitch(
 	req *switcher.Request,
 	strategies []*hamodel.DbSwitchingStrategy,
 ) error {
-	if !config.Cfg.Workflow.EnableWhiteList {
-		logger.Warn("whitelist is disabled, skip filtering whitelisted instances")
+	if !config.Cfg.Workflow.EnableWhiteListForSwitch {
+		logger.Warn("whitelist for switch is disabled, skip filtering whitelisted instances")
 		return nil
 	}
 	if !config.Cfg.Workflow.EnableSwitching {

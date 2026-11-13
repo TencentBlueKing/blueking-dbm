@@ -58,12 +58,12 @@ func setupEnableSwitchingForTest(t *testing.T) {
 	})
 }
 
-func setupEnableWhiteListForTest(t *testing.T) {
+func setupEnableWhiteListForSwitchTest(t *testing.T) {
 	t.Helper()
-	old := config.Cfg.Workflow.EnableWhiteList
-	config.Cfg.Workflow.EnableWhiteList = true
+	old := config.Cfg.Workflow.EnableWhiteListForSwitch
+	config.Cfg.Workflow.EnableWhiteListForSwitch = true
 	t.Cleanup(func() {
-		config.Cfg.Workflow.EnableWhiteList = old
+		config.Cfg.Workflow.EnableWhiteListForSwitch = old
 	})
 }
 
@@ -300,7 +300,7 @@ func TestMarkDoneAllReleasesAllKeys(t *testing.T) {
 
 func TestFilterWhitelistedInstances_NoWhitelistNotifiesAll(t *testing.T) {
 	setupEnableSwitchingForTest(t)
-	setupEnableWhiteListForTest(t)
+	setupEnableWhiteListForSwitchTest(t)
 
 	// dbha-v1 returns an empty whitelist
 	server := testutil.NewDbhaV1BlackWhiteListTestServer(t, nil)
@@ -325,7 +325,7 @@ func TestFilterWhitelistedInstances_NoWhitelistNotifiesAll(t *testing.T) {
 
 func TestFilterWhitelistedInstances_WhitelistedInstanceKept(t *testing.T) {
 	setupEnableSwitchingForTest(t)
-	setupEnableWhiteListForTest(t)
+	setupEnableWhiteListForSwitchTest(t)
 
 	// dbha-v1 whitelist contains cluster 200
 	server := testutil.NewDbhaV1BlackWhiteListTestServer(t, []*dbm.Dbhav1BlackWhiteListItem{
@@ -358,7 +358,7 @@ func TestFilterWhitelistedInstances_WhitelistedInstanceKept(t *testing.T) {
 
 func TestFilterWhitelistedInstances_PartialWhitelisted(t *testing.T) {
 	setupEnableSwitchingForTest(t)
-	setupEnableWhiteListForTest(t)
+	setupEnableWhiteListForSwitchTest(t)
 
 	// dbha-v1 whitelist contains only cluster 200
 	server := testutil.NewDbhaV1BlackWhiteListTestServer(t, []*dbm.Dbhav1BlackWhiteListItem{
@@ -396,7 +396,7 @@ func TestFilterWhitelistedInstances_PartialWhitelisted(t *testing.T) {
 
 func TestFilterWhitelistedInstances_V1SwitchVersionNotWhitelisted(t *testing.T) {
 	setupEnableSwitchingForTest(t)
-	setupEnableWhiteListForTest(t)
+	setupEnableWhiteListForSwitchTest(t)
 
 	// dbha-v1 filters out v1 switch version, so the whitelist is empty
 	server := testutil.NewDbhaV1BlackWhiteListTestServer(t, nil)
@@ -421,7 +421,7 @@ func TestFilterWhitelistedInstances_V1SwitchVersionNotWhitelisted(t *testing.T) 
 
 func TestFilterWhitelistedInstances_DisabledWhitelistNotWhitelisted(t *testing.T) {
 	setupEnableSwitchingForTest(t)
-	setupEnableWhiteListForTest(t)
+	setupEnableWhiteListForSwitchTest(t)
 
 	// dbha-v1 filters out disabled entries, so the whitelist is empty
 	server := testutil.NewDbhaV1BlackWhiteListTestServer(t, nil)
@@ -449,10 +449,11 @@ func TestFilterWhitelistedInstances_DisabledWhitelistNotWhitelisted(t *testing.T
 
 func TestFilterWhitelistedInstances_WhiteListDisabledSkipsFiltering(t *testing.T) {
 	setupEnableSwitchingForTest(t)
+	setupEnableWhiteListForSwitchTest(t)
 	w := newWorkflowForHandleFailureGroupTests(t, &dbm.Client{})
 
 	// whitelist feature is disabled: filtering is skipped, all instances proceed to switching
-	config.Cfg.Workflow.EnableWhiteList = false
+	config.Cfg.Workflow.EnableWhiteListForSwitch = false
 
 	group := buildSingleFailureGroup()
 	req := &switcher.Request{
@@ -472,7 +473,7 @@ func TestFilterWhitelistedInstances_WhiteListDisabledSkipsFiltering(t *testing.T
 
 func TestFilterWhitelistedInstances_SwitchingDisabledSkipsFiltering(t *testing.T) {
 	setupEnableSwitchingForTest(t)
-	setupEnableWhiteListForTest(t)
+	setupEnableWhiteListForSwitchTest(t)
 	w := newWorkflowForHandleFailureGroupTests(t, &dbm.Client{})
 
 	// switching is disabled: filtering is skipped, req.InstData is unchanged
@@ -495,7 +496,7 @@ func TestFilterWhitelistedInstances_SwitchingDisabledSkipsFiltering(t *testing.T
 
 func TestFilterWhitelistedInstances_MatchByClusterNameAfterRebuild(t *testing.T) {
 	setupEnableSwitchingForTest(t)
-	setupEnableWhiteListForTest(t)
+	setupEnableWhiteListForSwitchTest(t)
 
 	// whitelist still has the pre-rebuild cluster_id; the instance carries the new id
 	// and the same cluster_name (domain), which is how v1 matches.
@@ -531,7 +532,7 @@ func TestFilterWhitelistedInstances_MatchByClusterNameAfterRebuild(t *testing.T)
 
 func TestFilterWhitelistedInstances_MatchByClusterNameIgnoresCloud(t *testing.T) {
 	setupEnableSwitchingForTest(t)
-	setupEnableWhiteListForTest(t)
+	setupEnableWhiteListForSwitchTest(t)
 
 	// v1 matches by cluster_name only. A whitelist hit must still apply when the
 	// instance lives in a different cloud than the failure group.
@@ -564,7 +565,7 @@ func TestFilterWhitelistedInstances_MatchByClusterNameIgnoresCloud(t *testing.T)
 
 func TestFilterWhitelistedInstances_NoneWhitelisted(t *testing.T) {
 	setupEnableSwitchingForTest(t)
-	setupEnableWhiteListForTest(t)
+	setupEnableWhiteListForSwitchTest(t)
 
 	// dbha-v1 whitelist contains cluster 999, which does not match the instance (cluster 200)
 	server := testutil.NewDbhaV1BlackWhiteListTestServer(t, []*dbm.Dbhav1BlackWhiteListItem{
