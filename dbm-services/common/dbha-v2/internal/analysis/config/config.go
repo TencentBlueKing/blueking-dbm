@@ -59,7 +59,7 @@ var Cfg = Configuration{
 		InflightTTL:                30 * time.Second,
 		SwitchTimeout:              10 * time.Minute,
 		DbmApiMetadataHashCnt:      minDbmApiMetadataHashCnt,
-		EnableWhiteList:            true,
+		EnableWhiteListForSwitch:   true,
 		SwitchFlow: SwitchFlowConfig{
 			Common: SwitchFlowCommonConfig{
 				HostLevelSwitchMaxHostNum:        32,
@@ -165,7 +165,8 @@ type WorkflowConfig struct {
 	ReadDbMetricOffsetDuration time.Duration    `yaml:"readDbMetricOffsetDuration" mapstructure:"readDbMetricOffsetDuration"`
 	ReadDbEventOffsetDuration  time.Duration    `yaml:"readDbEventOffsetDuration"  mapstructure:"readDbEventOffsetDuration"`
 	EnableSwitching            bool             `yaml:"enableSwitching"            mapstructure:"enableSwitching"`
-	EnableWhiteList            bool             `yaml:"enableWhiteList"            mapstructure:"enableWhiteList"`
+	EnableWhiteListForSwitch   bool             `yaml:"enableWhiteListForSwitch"   mapstructure:"enableWhiteListForSwitch"`
+	EnableWhiteListForScan     bool             `yaml:"enableWhiteListForScan"     mapstructure:"enableWhiteListForScan"`
 	WindowDuration             time.Duration    `yaml:"windowDuration"             mapstructure:"windowDuration"`
 	PopInterval                time.Duration    `yaml:"popInterval"                mapstructure:"popInterval"`
 	PopSwitchSemSize           int              `yaml:"popSwitchSemSize"           mapstructure:"popSwitchSemSize"`

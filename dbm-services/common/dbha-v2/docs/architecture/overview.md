@@ -120,7 +120,7 @@ flowchart LR
 | **MySQL**            | 探测状态、元数据缓存、策略、切换日志等                                                                | [pkg/storage/hamodel](../../pkg/storage/hamodel)、[hamysql](../../pkg/storage/hamysql)           |
 | **DBM API**          | 元数据拉取、实例状态更新、MySQL/Tendis 角色交换、域名增删、CLB 摘除、Polaris 解绑、Dumper 切换；admin 在本地无元数据时回退查询 | [internal/analysis/dbm](../../internal/analysis/dbm)、analysis 配置中的 `dbmApi`*                    |
 | **BKMonitor**        | analysis 经 `bkmonitorbeat` 上报告警/事件（切换成败、策略 Notify、扫描失败、二次探测结果等）                    | [pkg/monitor](../../pkg/monitor)、[workflow/alarm.go](../../internal/analysis/workflow/alarm.go) |
-| **DBHA v1 API**      | 扫描前拉取黑白名单（`dbhav1ApiBlackWhitelistGet`）                                            | [workflow/dbhav1_whitelist.go](../../internal/analysis/workflow/dbhav1_whitelist.go)            |
+| **DBHA v1 API**      | 按需拉取黑白名单（`dbhav1ApiBlackWhitelistGet`）；Scan/Switch 分别由 `enableWhiteListForScan` / `enableWhiteListForSwitch` 控制 | [workflow/dbhav1_whitelist.go](../../internal/analysis/workflow/dbhav1_whitelist.go)            |
 | **GSE**              | probe 可选上报通道                                                                       | [internal/probe/client/gse.go](../../internal/probe/client/gse.go)                              |
 | **Kafka**            | receiver 可选 source（与 probe gRPC 并存，常承接 GSE 链路）                                     | [internal/receiver/source](../../internal/receiver/source)                                      |
 | **Prometheus / APM** | admin / analysis / receiver 暴露 `/metrics`，供 Prometheus 或 BKMonitor 抓取              | [pkg/haapm](../../pkg/haapm)；指标清单见 [analysis](../observability/analysis-metrics.md)、[admin](../observability/admin-metrics.md)、[receiver](../observability/receiver-metrics.md) |
@@ -133,7 +133,7 @@ flowchart LR
 
 - **DBHA → DBM**：analysis 主动调用 DBM HTTP API——周期性同步元数据到 `t_dbm_metadata`；切换时执行换角、更新实例状态，并按集群类型触发域名 / CLB / Polaris / Dumper 等副作用。admin 在 `GetProbeConfig` 本地无元数据时也会回退访问 DBM。CLB、Polaris 等不单独成系统，统一经 DBM API 完成。
 - **DBHA → BKMonitor**：analysis 通过本机/配置的 `bkmonitorbeat` 将事件投递到 BKMonitor（`PostBKMonitor`），用于故障与切换相关告警；不是业务探测数据主通道。
-- **DBHA → DBHA v1**：analysis 在 Scan 阶段查询 v1 黑白名单 API，决定哪些集群/实例进入探测与后续窗口。
+- **DBHA → DBHA v1**：analysis 查询 v1 黑白名单 API。`enableWhiteListForScan`（默认关闭）控制探测前是否过滤；`enableWhiteListForSwitch`（默认开启）控制切换前是否过滤。旧配置键 `enableWhiteList` 不再解析。
 - **Probe → GSE →（可选 Kafka）→ Receiver**：边缘上报的旁路；直连路径为 Probe gRPC → Receiver。
 - **服务端 → Prometheus / BKMonitor 抓取**：各服务 haapm 暴露 `/metrics`，由外部抓取做容量与延迟观测，与 BKMonitor 事件上报互补。
 - **Analysis → Probe（SSH +** `dbha-probe health -j`**）**：二次探测主路径为 SSH 远端执行 `dbha-probe health -j`。**仅 SSH dial/session 失败**时确认故障并入滑动窗口；其余二次探测结果（含 probe 进程不可用、存活但无指标等）只告警不入窗。入窗细则见 [MySQL 探测设计 §5](../detection/mysql-detection-design.md)；Scan/Pop/窗口/锁/白名单运行时见 [故障判定与切换](../flows/failure-detection-and-failover.md)。边缘 keepalive HTTP 为运维可选探活，analysis **不调用**、**不参与入窗**，亦非二次探测组成。
@@ -174,7 +174,7 @@ flowchart LR
 | `t_skip_dbinstance`           | 跳过实例                               |
 
 
-运行时 Scan/Switch 白名单来自 **DBHA v1 API**（`EnableWhiteList` 可关，见 [dbhav1_whitelist.go](../../internal/analysis/workflow/dbhav1_whitelist.go)），**不是** analysis 直读 `t_db_black_white_list`。admin `migrate` 的 `tables` **不含**该表；本地表模型见 [hamodel](../../pkg/storage/hamodel)，运维工具见 `dbha-bwmgr`。
+运行时 Scan/Switch 白名单来自 **DBHA v1 API**（`enableWhiteListForScan` / `enableWhiteListForSwitch` 分别可关，见 [dbhav1_whitelist.go](../../internal/analysis/workflow/dbhav1_whitelist.go)），**不是** analysis 直读 `t_db_black_white_list`。admin `migrate` 的 `tables` **不含**该表；本地表模型见 [hamodel](../../pkg/storage/hamodel)，运维工具见 `dbha-bwmgr`。
 
 探测载荷类型见 [pkg/storage/haprobe](../../pkg/storage/haprobe)（如 `HarvestData`、各 DB 状态结构、事件名常量）。  
 表结构迁移由 admin：`dbha-admin migrate`（[internal/admin/migrator](../../internal/admin/migrator)）。常规 `--type schema` 和 `--type all` 会按模型收敛主键和列定义，可能锁住受管表，执行窗口需要先停止这些表的写入。维护规则见 [migrator 设计](migrator-design.md)。

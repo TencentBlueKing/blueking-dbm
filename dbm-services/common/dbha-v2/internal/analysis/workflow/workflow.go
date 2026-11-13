@@ -290,8 +290,8 @@ func (w *Workflow) CheckBusinessWithBizID(ctx context.Context, bizId int) error 
 		return err
 	}
 
-	// Whitelist filter for scan: only instances in whitelisted clusters are probed.
-	// This step is independent of the later t_skip_dbinstance-based skip filtering in RunBusinessChecks.
+	// Optional whitelist filter for scan (enableWhiteListForScan). Independent of
+	// the later t_skip_dbinstance-based skip filtering in RunBusinessChecks.
 	if err := w.filterByWhitelistForScan(ctx, bizId, bizMeta); err != nil {
 		return err
 	}
