@@ -55,7 +55,7 @@ https://gateway.example.com/api/bkdbm/prod/
 
 - CONNECT 的集群查询、IAM 校验和选址在内网执行，外部不访问云区域。
 - 每条 COMMAND 在内网执行 SQL 校验、Redis 速率／并发限制、DRS 调用、数据脱敏及审计。
-- 内网需配置 `BKDATA_SENSI_AGENT_URL` 或 `BKDATA_DATA_TOKEN`，才能进行 SQL 结果脱敏。
+- 内网需配置 `BKDATA_SENSI_AGENT_URL` 或 `BKDATA_SENSI_TEXT_APIGW_DOMAIN`，才能进行 SQL 结果脱敏。
 - 普通外部代理按 HTTP `after_response` 的规则，将返回 JSON 中的 IPv4 替换为 `*.*.*.*`。
   `ENABLE_OPEN_EXTERNAL_PROXY=True` 时与 HTTP 一致跳过这层 IP 替换。
 - 外部代理不处理单据过滤和内部页面跳转，因为该路由只允许 WebConsole 协议。
