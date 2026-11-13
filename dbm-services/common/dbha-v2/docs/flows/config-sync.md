@@ -23,31 +23,7 @@ Probe 经 Admin 拉取 `ProbeConfigPayload` 后在本机渲染为 `probe.yaml`�
 
 运行期 `Heartbeat`（见 [admin.proto](../../pkg/proto/idl/admin.proto)）侧重轻量 ack，当前无配置增量，不替代全量下发。写入 `probe.yaml` 后可用 `gen-config -o ... --reload` 或 `dbha-probe reload` 通知运行中的 probe 热加载（见 [gen-config-design.md](gen-config-design.md) §6.5）。
 
-```mermaid
-sequenceDiagram
-  participant Probe as dbha_probe
-  participant Admin as dbha_admin
-  participant Meta as MySQL_or_DBM
-
-  Probe->>Admin: GetProbeConfig(bkCloudId, ip, clientID)
-  Note over Probe,Admin: bkCloudId+ip 参与 GenProbeConfig；clientID 仅日志
-
-  Admin->>Meta: loadProbeMetadata
-  Note over Admin,Meta: 本地 DBHA 库整机行均在 cacheMaxAge 内才采用<br/>否则整机回退 DBM API（回源按 IP 合并并发请求）
-
-  alt 无元数据
-    Admin-->>Probe: PROBE_CONFIG_NO_DATA
-    Note over Probe,Admin: 该 ip 无可用元数据，下发失败
-  else 有元数据
-    Admin->>Admin: GenProbeConfig 组装 ProbeConfigPayload
-    Note over Admin: payload：GSE 默认块 + 探测元数据 + Harvester 公共配置
-    Admin-->>Probe: ProbeConfigResponse.payload JSON
-    Note over Admin,Probe: gRPC 返回 JSON 字符串
-
-    Probe->>Probe: genconfig 渲染 probe.yaml
-    Note over Probe: 供本机 harvester/reporter；改 gRPC 上报见采集与上报
-  end
-```
+![配置下发时序](../assets/diagrams/flow-config-sync-sequence.svg)
 
 代码入口：[GenProbeConfig](../../internal/admin/config/probe_config.go) · [pkg/probeconfig](../../pkg/probeconfig) · [genconfig](../../internal/probe/config/genconfig.go)
 

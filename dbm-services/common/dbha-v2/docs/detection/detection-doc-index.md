@@ -24,27 +24,7 @@ v2 由 probe / receiver / analysis / admin 组成：边缘采集上报 → recei
 
 Probe 启动时由 factory 加载插件实例，每个插件独立 `Harvest` 协程周期采集，产出 `HarvestData`（含 `Events` 与具体 DB `Value`），经 reporter 上报。
 
-```mermaid
----
-config:
-  flowchart:
-    curve: stepAfter
----
-flowchart TD
-  start["Probe 启动"] --> factory["factory 按配置加载插件"]
-  factory --> plugins["mysql / mysqlProxyAdmin / redis"]
-  plugins --> harvest["Plugin.Harvest: 周期采集"]
-  harvest --> collect["collector 采集: 连接/状态/心跳/主机指标"]
-  collect --> connOk{"建连成功?"}
-  connOk -->|"否"| event["生成 DbEvent DetectFailure\nreason: connection exception"]
-  connOk -->|"是"| value["填充 DB Value(如 MySqlStatus)"]
-  event --> report["reporter.Post"]
-  value --> report
-  report --> sink["gRPC 或 GSE(经 Kafka) -> Receiver -> t_dbha_status"]
-
-  linkStyle 0,1,2,3,4,6,8,9 stroke:#2563eb,stroke-width:2px
-  linkStyle 5,7 stroke:#64748b,stroke-width:2px
-```
+![Probe 通用采集流程](../assets/diagrams/probe-generic-harvest.svg)
 
 > 色例：蓝=主路径；灰=建连失败分支。
 
@@ -68,36 +48,7 @@ type Plugin interface {
 
 analysis 的 `Workflow` 启动后并行运行元数据同步、分片 watch、Scan 定时、Pop 定时。单业务判定入口为 `RunBusinessChecks`（四路并发）：其中 `CheckMissedProbe` / `CheckEventWithBizId` **内部**触发 `LivenessDoubleCheck`；`CheckDbHosts` / `CheckDbStatus` 当前 stub。**仅 SSH dial/session 失败入窗**，再由 Pop 匹配策略并触发切换。下图表示数据因果；Push 与 PopAndSwitch 分属不同定时循环，非同一次调用栈。
 
-```mermaid
----
-config:
-  flowchart:
-    curve: stepAfter
----
-flowchart TD
-  scan["ScanBusinesses"] --> extract["ExtractDbStatusData"]
-  extract --> checks["RunBusinessChecks 四路并发"]
-  checks --> missed["CheckMissedProbe: 有元数据无指标"]
-  checks --> eventc["CheckEventWithBizId: probe 上报 Events"]
-  checks --> hosts["CheckDbHosts stub ParseHostStatus TODO"]
-  checks --> status["CheckDbStatus stub MySQL parser"]
-  missed --> ssh["LivenessDoubleCheck: SSH + health -j"]
-  eventc --> ssh
-  ssh --> confirm{"SSH dial/session 失败?"}
-  confirm -->|"是"| push["BizWindowManager.Push 入滑动窗口"]
-  confirm -->|"否"| alarmonly["仅告警, 不入窗"]
-  push -.->|"成熟后由 Pop 循环"| pop["PopAndSwitch"]
-  pop --> match["MatchStrategyForGroup"]
-  match --> hit{"策略命中且 action=switch?"}
-  hit -->|"是"| trigger["SwitchExecutor.TriggerSwitching"]
-  hit -->|"notify"| notify["仅发告警事件"]
-
-  linkStyle 0,1,2,3,6,7,8,12,13,14 stroke:#2563eb,stroke-width:2px
-  linkStyle 4,5 stroke:#64748b,stroke-width:2px,stroke-dasharray:5
-  linkStyle 9 stroke:#16a34a,stroke-width:2px
-  linkStyle 10,15 stroke:#64748b,stroke-width:2px
-  linkStyle 11 stroke:#ea580c,stroke-width:2px,stroke-dasharray:5
-```
+![Analysis 四路检查与入窗](../assets/diagrams/analysis-generic-decision.svg)
 
 > 色例：蓝=主路径；绿=入窗；灰=stub / 仅告警；橙虚线=异步 Pop。
 

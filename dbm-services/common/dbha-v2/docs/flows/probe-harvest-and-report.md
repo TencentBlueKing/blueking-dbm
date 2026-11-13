@@ -76,26 +76,7 @@ MySQL harvester 分成三个独立定时循环，各自按自己的间隔上报�
 
 ## 3. 交互顺序图
 
-```mermaid
-sequenceDiagram
-  participant Harvester as harvester_plugin
-  participant Probe as dbha_probe
-  participant Reporter as reporter
-  participant Recv as dbha_receiver
-  participant Status as t_dbha_status
-
-  loop 周期采集
-    Harvester->>Probe: HarvestData
-    Probe->>Reporter: JSON Post
-    alt gRPC
-      Reporter->>Recv: PushDataUnary
-      Recv->>Status: sink
-    else GSE
-      Reporter->>Reporter: 写入 GSE Agent
-      Note over Recv,Status: 可选经 Kafka 再入 receiver
-    end
-  end
-```
+![采集与上报时序](../assets/diagrams/flow-harvest-report-sequence.svg)
 
 ## 4. 关键代码路径
 

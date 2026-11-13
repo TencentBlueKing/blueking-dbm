@@ -41,24 +41,7 @@ dbha-probe gen-config --admin-endpoints 127.0.0.1:19001 -o etc/probe.yaml --relo
 
 fetch 期间若文件的 admin 三字段或 `clearPorts` 被另一个写入者改过，gen-config 放弃本次写入并以非 0 退出，提示重试。不在锁内重新决议，以免打破与已完成 fetch 的同源关系。
 
-```mermaid
-flowchart TD
-  A[读取 flag] --> B{admin-endpoints 为空?}
-  B -- 是 --> E1[报错退出 1]
-  B -- 否 --> C{clear-port 合法?<br/>reload 是否有 -o?}
-  C -- 否 --> E1
-  C -- 是 --> D[决议 cloud-id / local-ip / clearPorts]
-  D --> F[gRPC 拉取 ProbeConfigPayload]
-  F --> H[持锁读文件、校验基线、LocalFields 渲染]
-  H --> I{有 -o?}
-  I -- 否 --> J[打印到 stdout]
-  I -- 是 --> K[WriteFileLocked 原子写]
-  K --> L[打印 Config written to]
-  L --> M{--reload?}
-  M -- 否 --> N[退出 0]
-  M -- 是 --> O[ReloadCmdRunE 发信号]
-  O --> N
-```
+![gen-config 执行流程](../assets/diagrams/flow-gen-config.svg)
 
 ## 3. 写入模型：旁路锁 + 临时文件 + 原子替换
 
