@@ -21,6 +21,7 @@ package provider
 
 import (
 	commentity "k8s-dbs/common/entity"
+	coreconst "k8s-dbs/core/constant"
 	"k8s-dbs/metadata/dbaccess"
 	metaentity "k8s-dbs/metadata/entity"
 	metamodel "k8s-dbs/metadata/model"
@@ -70,11 +71,21 @@ func (k *K8sCrdStorageAddonProviderImpl) FindVersionsByParams(params *metaentity
 	error,
 ) {
 	versionModels, err := k.dbAccess.FindVersionsByParams(params)
+
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to find addon versions with params %+v", params)
 	}
+	// 排除 addonVersion 为 1.0.0 且 addonType 为 victoriametrics 的版本
+	filteredModels := make([]*metamodel.AddonVersionModel, 0, len(versionModels))
+	for _, m := range versionModels {
+		if m.AddonVersion == "1.0.0" && params.AddonType == string(coreconst.Victoriametrics) {
+			continue
+		}
+		filteredModels = append(filteredModels, m)
+	}
+
 	var versionEntities []*metaentity.AddonVersionEntity
-	if err = copier.Copy(&versionEntities, versionModels); err != nil {
+	if err = copier.Copy(&versionEntities, filteredModels); err != nil {
 		return nil, errors.Wrap(err, "failed to copy")
 	}
 	return versionEntities, nil
