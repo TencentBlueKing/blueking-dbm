@@ -1,22 +1,26 @@
 ---
 name: dbm-reviewer
 description: >-
-  DBM 前端的代码审查。查代码规范、逻辑正确性、交互一致性、安全与性能，给出缺陷优先的 P0-P3 报告。
+  DBM 前端（TypeScript + Vue 3）的代码审查。查逻辑 bug、功能完整性、改动的连带影响、安全、性能、交互一致性，
+  给出缺陷优先的 P0-P3 报告。
   当用户要求代码审查、code review、review 一下这次改动、看看有没有安全问题、提交前检查时使用。
 ---
 
 # dbm-reviewer
 
-审查本地**未提交改动**，输出缺陷优先的报告。审查阶段全程只读：不改代码、不 `git add`、不提交。
+审查代码改动，输出缺陷优先的报告。审查阶段全程只读：不改代码、不 `git add`、不提交。
 
-本 skill 只管**怎么查、怎么报**：取 diff、缺陷门槛、跨模块的高频缺陷、P0–P3 输出格式。
-判断「这么写对不对」所依据的规范本身不在这里——编码约定与架构在 `dbm-frontend-developer`（`AGENTS.md`
-只留了六条常驻摘要），设计与交互反馈在 `dbm-designer`，各业务模块的领域约定在对应的场景 skill，
-按第 2 节的表加载。
+每次审查回答六个问题：有没有逻辑 bug、功能是否完整、会不会带来隐藏的连带 bug、安全、性能、交互是否一致。
+六项各一份清单，见第 5 节。
+
+本 skill 只管**怎么查、怎么报**。项目规范（编码约定、架构、设计、各模块的领域约定）在其它 skill，这里不重复，
+只在第 2 节按改动路径指过去。
 
 ## 1. 取改动范围
 
 仓库根是 `blueking-dbm`，前端在 `dbm-ui/frontend`，所有命令在 `dbm-ui/frontend` 下执行。
+
+默认审本地**未提交改动**：
 
 ```bash
 git status --porcelain .   # 改动清单
@@ -26,14 +30,19 @@ git diff --staged -- .     # 暂存区
 
 未跟踪文件（`??`）没有 diff，直接整文件读。
 
-改动为空时直接告知，不要转而审查历史提交或分支 diff。
+改动为空时直接告知，不要自行转去审查历史提交或分支 diff。用户明确指定了范围才换取法：
 
-用户明确要求「扫一遍某个目录 / 整个 views」而不是审 diff 时，切到全量扫描模式，按
-[references/full-scan.md](references/full-scan.md) 执行；第 4 节「由本次改动引入」那条门槛在该模式下不适用，其余照旧。
+```bash
+git diff <base>...HEAD -- .   # 用户指定对比分支
+git show <sha> -- .           # 用户指定某次提交
+```
 
 ## 2. 读上下文
 
-先读 `AGENTS.md`，再按改动路径加载规则（直接读文件，不要凭记忆）：
+先弄清这次改动要做什么：用户的说明、`openspec/changes/` 下对应的提案、commit message。都没有时按 diff 推断，
+并在报告开头写明推断出的意图。不知道要做什么，就判断不了功能是否完整。
+
+再读 `AGENTS.md`，并按改动路径加载项目规范（直接读文件，不要凭记忆）：
 
 | 改动路径                                                                                                     | 读                                   |
 | ------------------------------------------------------------------------------------------------------------ | ------------------------------------ |
@@ -50,6 +59,9 @@ git diff --staged -- .     # 暂存区
 | 页面样式、布局、交互反馈、组件选型                                                                           | `.agents/skills/dbm-designer` |
 | 新增或改 `TableColumn` 的 `width` / `min-width`                                                              | `.agents/skills/dbm-designer/list-page.md`「列宽约定」 |
 
+判断与版本、配置有关的写法前，先看 `package.json` 与 `tsconfig.json`（Vue 小版本、`noUncheckedIndexedAccess`
+是否开启）。它们决定的是「该不该报」：同一种写法在不同版本、不同配置下结论相反。
+
 diff 看不出影响时，读被改函数的调用方、被改组件的父组件。
 
 ## 3. 跑 eslint 收集客观问题
@@ -62,8 +74,7 @@ npx eslint <改动的 .ts/.tsx/.vue 文件>
 
 改了 `.less` 再跑 `npx stylelint <改动的 .less 文件>`。
 
-不跑 `yarn type-check`（全量太慢），但要人工看类型问题：新增 `any`、用断言掩盖类型错误、接口字段与 `services`
-模型不一致。
+不跑 `yarn type-check`（全量太慢），类型问题按 [references/logic.md](references/logic.md)「类型」人工看。
 
 `src/` 没有单测基建：不要以「缺少测试」立 issue，不要建议新建测试文件或引入测试框架。
 
@@ -93,94 +104,24 @@ npx eslint <改动的 .ts/.tsx/.vue 文件>
 另外：「改了 A 字段同时重置 B 字段」「再次提单不回填依赖实时拓扑的方案」这类可能是有意设计，先找注释或同类页面的做法，
 确实拿不准就放进「待人工验证」或直接问，不要定成 P1。
 
-## 5. 检查清单
+## 5. 六项检查
 
-通用 review 常识不赘述，重点扫以下项目高频问题。编码约定（auto-import、script setup 宏顺序、Props / Emits 写法、
-`any`、路径别名、Less 类名、版权头、`t()`）照 `dbm-frontend-developer` 的 `references/code-conventions.md`
-逐条核，本篇不重复；各模块的领域约定在第 2 节表格指向的清单里，也不重复。
+前三项每次都查，后三项按改动内容查。通用 review 常识不赘述，清单里只放容易漏、容易误报的点。
 
-### Vue 3 响应式
+| 要回答的问题                     | 读                                                         | 什么时候读 |
+| -------------------------------- | ---------------------------------------------------------- | ---------- |
+| 有没有逻辑 bug                   | [references/logic.md](references/logic.md)                 | 每次 |
+| 功能是否完整                     | [references/completeness.md](references/completeness.md)   | 每次 |
+| 会不会带来隐藏的连带 bug         | [references/impact.md](references/impact.md)               | 每次 |
+| 安全                             | [references/security.md](references/security.md)           | 渲染 HTML、跳转、本地存储、上传下载、权限、新增依赖 |
+| 性能                             | [references/performance.md](references/performance.md)     | 列表 / 表格渲染、监听器、大数据量、路由或重型组件引入 |
+| 交互是否一致                     | [references/interaction.md](references/interaction.md)     | 模板、样式、弹层、提示、表单 |
 
-- 解构 `reactive()` 对象导致失去响应（Vue 3.5 的 `defineProps()` 解构默认保持响应，不要报）；
-- `setInterval` / `addEventListener` / 第三方实例未在 `onBeforeUnmount` 清理；`<script setup>` 里的
-  `watch` / `watchEffect` 会随组件卸载自动 stop，不要报。普通 `setup()` 或把 stop handle 存到外部时才查是否漏停；
-- `computed` 里发请求或改状态；
-- 列表存在增删排序时 `v-for` 用 index 当 key；
-- 无必要的 `{ deep: true }`，`watchEffect` 依赖失控。
-
-### 前端安全
-
-- XSS：`v-html` 的内容必须先过 `DOMPurify.sanitize()`（既有写法见 `src/components/system-version-log/Index.vue`），只加
-  `<!-- eslint-disable vue/no-v-html -->` 绕过 lint 而不 sanitize 按 P0 / P1 报；
-- 把接口字段或用户输入拼进 `el.innerHTML` 同样是注入点，新代码改用 `textContent` 或渲染函数；
-- 「剥 HTML 标签取纯文本」也不能用 `div.innerHTML = html`：赋值瞬间 `<img onerror>` 就会执行。改用
-  `new DOMParser().parseFromString(html, 'text/html').body.textContent`（DOMParser 生成的文档不执行脚本、不加载资源），
-  命中按 P0 报；
-- 出现 `eval`、`new Function`、`setTimeout('字符串')` 执行动态字符串；
-- 跳转：`window.open` / `location.href` 的 url 来自接口或 query 参数时，要校验同源或白名单，防 `javascript:`
-  伪协议与开放重定向；外链 `target="_blank"` 需带 `rel="noopener noreferrer"`；
-- 敏感信息：密码、token、密钥不落 `localStorage` / `sessionStorage` / `document.cookie`（经 `src/common/cache.ts`
-  存的同样要看存了什么），不 `console.log`，不作为 GET query 参数或出现在 url 里；
-- 权限：前端隐藏按钮不等于有权限，下架 / 删除 / 重启 / 清档等破坏性操作必须依赖后端鉴权并有二次确认，不要新增只凭前端判断就发起的高危请求；
-- 外部内容：上传前校验类型与大小，下载地址用后端返回值而非用户输入拼接，`iframe` 的 `src` 不接受用户输入；
-- 新增第三方依赖要说明来源与必要性，不引入未审计的小众包。
-
-### 数据与请求
-
-- `services` 新接口缺类型，或类型与后端字段不符；
-- 异步无错误处理，失败时 loading 不复位。手动维护的 `isLoading` 只在 `onSuccess` 里置 false 的，要补 `onError`；
-  `try/finally` 里用 `.then` 而不 `await` 的，`finally` 会提前复位 loading，按钮可重复提交；
-- 快速切换筛选 / 分页产生请求竞态，后到的旧响应覆盖新数据。修法用请求序号（`let seq`，`.then` 里比对），
-  跨页全选、按域名反查集群这类「一次性」请求同样要比对；
-- 分页、排序、搜索参数与请求不同步；**换筛选条件不把 `current` 置 1**，按旧 offset 请求出空列表；
-- 复制全部 / 导出 / 跨页全选另起请求时，参数要和列表 `dataSource` 一致（如资源池的 `for_biz`），不能只展开搜索参数；
-- 开新标签打开业务路由（`taskHistoryDetail`、`bizTicketManage` 等）且数据来自别的业务时，href 要过
-  `getBusinessHref(href, row.bk_biz_id)`；`window.open` 的目标写成 `'__blank'` 是普通窗口名，不是新开标签。
-
-### 空值与模板
-
-- `arr?.[0].x`：数组是 `[]` 时 `[0]` 为 `undefined` 照样抛，要写 `arr?.[0]?.x`；`Object.values(obj)[0]!.x` 同理；
-- `map[key].list`：`map` 异步填充（如 `useAlarmSubscribe` 的 `metricsMap`）时要写 `map[key]?.list`；
-- `JSON.parse(decodeURIComponent(route.query[...]))` 没有 `try`：用 `@utils` 的 `parseQueryMemo`；
-  `JSON.parse(localStorage...)` 同样要 `try` 并校验类型；
-- `{{ value || '--' }}` 会把数字 0 显示成 `--`；
-- `Array(n)` 的 n 来自除法时，要守住整数且大于 0，否则 `RangeError`；
-- `<script setup>` 里拿 `computed` / `ref` 直接做 `if (hasXxx)` 判断，没写 `.value`，条件恒为真；
-- 修饰符拼写（`v-model.tirm` 不会报错，只是不生效）；
-- 整列共用一个 `isExpand` ref 的展开 / 收起，会让所有行一起展开，要按行 id 记；
-- bkui-vue `Upload` 的 `beforeUpload` 只认严格的 `false`，`async` 函数里 `return;` 仍会上传。
-
-### 表格列宽
-
-新增或改了 `TableColumn` 的 `width` / `min-width` 时，逐条对照 `.agents/skills/dbm-designer/list-page.md`
-「列宽约定」（工具箱 `EditableColumn` 不走这张表），known-issues 的 `table-column-width` 同主题。
-
-### 单据提交与回填（跨模块高频）
-
-细则在 `dbm-ticket-developer` 的 `references/review.md`，这里只列反复出现的几条：
-
-- 不在工具箱页里调 `useCreateTicket`（集群列表弹窗、详情页操作等）必须传 `isToolbox: false`，否则失败只发
-  `db-toolbox-error` 事件，页面没有任何提示；
-- `useTicketDetail` 回填要覆盖页面上所有会提交的列。资源标签回填带上 `label_names`，写成
-  `{ id, value }`；`clusters[id].immute_domain` 用可选链；
-- 字符串拼接里混用三元：`a += cond ? '\n' : '' + b` 实际是 `a += cond ? '\n' : ('' + b)`，用 `map().join()` 代替；
-- `TicketClone.vue` 映射的路由名必须真实注册，`router.resolve` 对未知 name 直接抛错；
-- 详情工厂资源池目录与普通目录有同名组件时，按 `details.ip_source` 分流，新增同名组件要确认两份读的结构确实不同。
-
-### 公共代码改动
-
-- diff 删掉了条件分支、守卫或标志位：能否复述它原本区分什么，说不清就按 P1 报，不默认是历史残留；
-- 改了 `components/`、`hooks/`、`services/` 的公共行为：影响面须按引用点穷举，抽样得出的「全部调用方都安全」不成立；
-- 一个入口承担多种调用意图（如条件变更 / 原地刷新）时，新判据是否覆盖全部意图，而非只覆盖当前场景。
-
-### task-history/detail 特有
-
-改到 `src/views/task-history/detail/**` 时按
-[references/task-history-detail.md](references/task-history-detail.md) 扫复发点。
+连带影响不在 diff 里：必须按 `impact.md` 走出 diff 读引用点，只读 diff 得不出「没有连带影响」的结论。
 
 ## 6. 输出
 
-结论先行：一句话说清「有几个问题、最严重的是什么」，再按严重度排序列条目。
+结论先行：一句话说清「有几个问题、最严重的是什么」，再按严重度排序列条目。改动意图是按 diff 推断的，写在结论之前。
 
 每条一个条目：
 
@@ -188,7 +129,8 @@ npx eslint <改动的 .ts/.tsx/.vue 文件>
 [P1] 动词开头的问题标题 — src/views/db-manage/mysql/xxx/Index.vue:120
 ```
 
-标题后跟一段短说明：什么场景下触发、结果怎样错。引用行范围尽量小，且必须落在本次 diff 内。
+标题后跟一段短说明：什么场景下触发、结果怎样错。引用行范围尽量小，且落在本次 diff 内；两类例外：
+功能缺失指向应当补上的位置，连带影响指向引起它的改动行、受影响的引用点写在说明里。
 
 级别：
 
@@ -199,8 +141,10 @@ npx eslint <改动的 .ts/.tsx/.vue 文件>
 
 没有合格问题就写「无问题发现」，不要凑数。
 
-条目之后补两段：
+条目之后补三段：
 
+- **六项结论**：逻辑、功能完整性、连带影响、安全、性能、交互一致性各一句——有问题（指向上面的条目）、未发现问题、
+  或本次改动未涉及。连带影响要写明查了哪些引用点、哪些没展开；
 - **残余风险**：改动可能影响到、但 diff 里看不出的地方；
 - **待人工验证**：写清「哪个页面 + 哪个操作 + 预期结果」，不要声称自己已验证过。
 
