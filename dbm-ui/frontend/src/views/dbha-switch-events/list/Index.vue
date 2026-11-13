@@ -285,6 +285,12 @@
             result_info: resultInfo,
           };
         }) as TableItem[];
+        // 列表和导出共用开始时间倒序的数据，空值或无效时间排在末尾
+        tableData.value.sort((a, b) => {
+          const startTimeA = dayjs(a.switch_start_time).valueOf() || 0;
+          const startTimeB = dayjs(b.switch_start_time).valueOf() || 0;
+          return startTimeB - startTimeA;
+        });
       })
       .catch(() => {
         tableData.value = [];
