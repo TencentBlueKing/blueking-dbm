@@ -306,7 +306,10 @@ class TendbRollbackNewHostResourceParamBuilder(BaseOperateResourceParamBuilder):
 
 
 @builders.BuilderFactory.register(
-    TicketType.TENDBCLUSTER_ROLLBACK_NEW_HOST, is_apply=True, iam=ActionEnum.TENDBCLUSTER_ROLLBACK
+    TicketType.TENDBCLUSTER_ROLLBACK_NEW_HOST,
+    is_apply=True,
+    async_build=True,
+    iam=ActionEnum.TENDBCLUSTER_ROLLBACK,
 )
 class TendbRollbackNewHostFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbRollbackNewHostDetailSerializer

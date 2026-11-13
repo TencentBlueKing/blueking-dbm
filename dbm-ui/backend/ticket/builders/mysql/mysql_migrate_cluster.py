@@ -110,7 +110,11 @@ class MysqlMigrateClusterResourceParamBuilder(BaseOperateResourceParamBuilder):
 
 
 @builders.BuilderFactory.register(
-    TicketType.MYSQL_MIGRATE_CLUSTER, is_apply=True, is_recycle=True, iam=ActionEnum.MYSQL_MANAGE
+    TicketType.MYSQL_MIGRATE_CLUSTER,
+    is_apply=True,
+    is_recycle=True,
+    async_build=True,
+    iam=ActionEnum.MYSQL_MANAGE,
 )
 class MysqlMigrateClusterFlowBuilder(MysqlMasterSlaveSwitchFlowBuilder):
     serializer = MysqlMigrateClusterDetailSerializer

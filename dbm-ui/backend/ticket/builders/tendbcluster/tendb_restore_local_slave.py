@@ -78,7 +78,9 @@ class TendbClusterRestoreLocalSlaveParamBuilder(builders.FlowParamBuilder):
         self.ticket_data["infos"] = list(ip__restore_infos.values())
 
 
-@builders.BuilderFactory.register(TicketType.TENDBCLUSTER_RESTORE_LOCAL_SLAVE, iam=ActionEnum.TENDBCLUSTER_MANAGE)
+@builders.BuilderFactory.register(
+    TicketType.TENDBCLUSTER_RESTORE_LOCAL_SLAVE, async_build=True, iam=ActionEnum.TENDBCLUSTER_MANAGE
+)
 class TendbClusterRestoreLocalSlaveFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbClusterRestoreLocalSlaveDetailSerializer
     inner_flow_builder = TendbClusterRestoreLocalSlaveParamBuilder

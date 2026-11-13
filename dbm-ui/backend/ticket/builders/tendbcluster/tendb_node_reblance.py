@@ -85,7 +85,11 @@ class TendbNodeRebalanceResourceParamBuilder(TendbBaseOperateResourceParamBuilde
 
 
 @builders.BuilderFactory.register(
-    TicketType.TENDBCLUSTER_NODE_REBALANCE, is_apply=True, is_recycle=True, iam=ActionEnum.TENDBCLUSTER_MANAGE
+    TicketType.TENDBCLUSTER_NODE_REBALANCE,
+    is_apply=True,
+    is_recycle=True,
+    async_build=True,
+    iam=ActionEnum.TENDBCLUSTER_MANAGE,
 )
 class TendbMNTApplyFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = TendbNodeRebalanceDetailSerializer
