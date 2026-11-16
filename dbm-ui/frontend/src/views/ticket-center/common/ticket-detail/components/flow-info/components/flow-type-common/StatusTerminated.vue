@@ -38,7 +38,7 @@
       <template v-if="data.err_code === 3">
         <div class="mt-8">
           <span style="color: #ea3636">
-            {{ t('系统自动终止（超过 n 天未处理）', { n: data.context.expire_time }) }}
+            {{ t('系统自动终止（超过 n 小时未处理）', { n: data.context.expire_time_hours }) }}
           </span>
           <template v-if="data.url">
             <span> ，</span>

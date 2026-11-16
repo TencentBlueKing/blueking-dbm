@@ -70,7 +70,7 @@ export default () => {
         name: 'PlatformTicketFlowSetting',
         meta: {
           fullscreen: true,
-          navName: t('单据流程设置'),
+          navName: t('单据设置'),
         },
         component: () => import('@views/ticket-center/ticket-flow-global-settings/Index.vue'),
       },
