@@ -11,6 +11,9 @@ export type ScopeType = 'cluster' | 'tag';
 // 标签匹配条件类型
 export type TagMatchType = 'single' | 'in' | 'exists';
 
+export type ExpireType =
+  'itsm_expire' | 'pause' | 'confirm_modify' | 'resource_replenish' | 'inner_flow_expire' | 'flow_todo_expire';
+
 export default class TicketFlowDescribe {
   bk_biz_id: number;
   cluster_ids: ClusterIdItem[];
@@ -21,9 +24,12 @@ export default class TicketFlowDescribe {
   }[];
   configs: {
     expire_config: {
+      confirm_modify?: number;
       flow_todo_expire: number;
       inner_flow_expire: number;
       itsm_expire: number;
+      pause?: number;
+      resource_replenish?: number;
     };
     need_itsm: boolean;
     need_itsm_duplicated: boolean;
@@ -42,6 +48,7 @@ export default class TicketFlowDescribe {
     ticket_config_set: boolean;
   };
   remark: string;
+  supported_expire_types: { label: string; value: ExpireType }[];
   ticket_type: string;
   ticket_type_display: string;
   update_at: string;
@@ -75,6 +82,7 @@ export default class TicketFlowDescribe {
       ticket_config_set: false,
     };
     this.remark = payload.remark || '';
+    this.supported_expire_types = payload.supported_expire_types || [];
     this.ticket_type = payload.ticket_type || '';
     this.ticket_type_display = payload.ticket_type_display || '';
     this.update_at = payload.update_at || '';
@@ -84,6 +92,12 @@ export default class TicketFlowDescribe {
   // 集群列表
   get clusterDomainList() {
     return this.clusters.map((cluster) => cluster.immute_domain);
+  }
+
+  get effectiveExpireTypes() {
+    return this.orderedExpireTypes.filter(
+      (item) => item.value !== 'pause' || !this.editable || this.configs.need_manual_confirm,
+    );
   }
 
   // 是否子策略
@@ -113,6 +127,19 @@ export default class TicketFlowDescribe {
   get isTagKeyInvalid(): boolean {
     if (this.scopeType !== 'tag' || !this.tagKey) return false;
     return this.cluster_tags.some((item) => item.is_invalid === true);
+  }
+
+  // 等待状态按流程顺序展示，能力集合完全来自接口。
+  get orderedExpireTypes() {
+    const order: ExpireType[] = [
+      'itsm_expire',
+      'pause',
+      'confirm_modify',
+      'resource_replenish',
+      'inner_flow_expire',
+      'flow_todo_expire',
+    ];
+    return [...this.supported_expire_types].sort((a, b) => order.indexOf(a.value) - order.indexOf(b.value));
   }
 
   /**
