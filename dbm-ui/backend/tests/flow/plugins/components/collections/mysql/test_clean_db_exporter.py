@@ -4,10 +4,7 @@ from unittest.mock import MagicMock, patch
 
 from django.test import SimpleTestCase
 
-from backend.flow.plugins.components.collections.mysql.mysql_os_init import (
-    CleanDataBakDirSvr,
-    CleanDbExporterSvr,
-)
+from backend.flow.plugins.components.collections.mysql.mysql_os_init import CleanDataBakDirSvr, CleanDbExporterSvr
 from backend.utils.string import base64_decode
 
 OS_INIT = "backend.flow.plugins.components.collections.mysql.mysql_os_init"

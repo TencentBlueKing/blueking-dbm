@@ -13,6 +13,8 @@ from backend.flow.engine.bamboo.scene.mysql.mysql_rollback_exercise import (
     MySQLRollbackExerciseFlow,
     calc_exercise_binlog_rollback_time,
 )
+from backend.flow.plugins.components.collections.common.delay import DelayComponent
+from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
 from backend.flow.plugins.components.collections.mysql.exec_switch_for_source_act import (
     ExecRollbackActForSourceComponent,
 )
@@ -23,8 +25,6 @@ from backend.flow.plugins.components.collections.mysql.mysql_exercise_binlog_que
     MysqlExerciseBinlogDownloadComponent,
     MysqlExerciseBinlogQueryComponent,
 )
-from backend.flow.plugins.components.collections.common.delay import DelayComponent
-from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
 from backend.flow.plugins.components.collections.mysql.mysql_os_init import (
     CleanDataBakDirComponent,
     CleanDbExporterComponent,
