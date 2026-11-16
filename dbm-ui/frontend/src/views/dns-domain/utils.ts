@@ -18,19 +18,31 @@ import { ipv4 } from '@common/regex';
 // 完整域名后缀，创建后固定
 export const DOMAIN_SUFFIX = '.db';
 
+// 完整域名至少 3 段（含 .db），如 api.game.db
+const DOMAIN_MIN_LABELS = 3;
+
 // 每段为小写字母、数字、连字符，首尾为字母或数字，单段 ≤63
 const domainLabelRegex = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
 
 /**
- * 校验完整域名：以 .db 结尾、总长 ≤253、每段合法
+ * 只含小写字母、数字、连字符和点号
+ */
+export const isValidDomainChars = (domain: string) => /^[a-z0-9.-]+$/.test(domain);
+
+/**
+ * 段数不少于 3 段（空段也计数，由 isValidDomain 的单段校验拦下）
+ */
+export const hasMinDomainLabels = (domain: string) => domain.split('.').length >= DOMAIN_MIN_LABELS;
+
+/**
+ * 校验完整域名：以 .db 结尾、总长 ≤253、至少 3 段、每段合法
  */
 export const isValidDomain = (domain: string) => {
   if (!domain.endsWith(DOMAIN_SUFFIX) || domain.length > 253) {
     return false;
   }
   const labels = domain.split('.');
-  // 至少有一段前缀，如 api.db
-  return labels.length > 1 && labels.every((label) => domainLabelRegex.test(label));
+  return labels.length >= DOMAIN_MIN_LABELS && labels.every((label) => domainLabelRegex.test(label));
 };
 
 /**

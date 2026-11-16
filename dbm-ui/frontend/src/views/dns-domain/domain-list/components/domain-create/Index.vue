@@ -25,7 +25,7 @@
       :model="formData"
       :rules="rules">
       <BkFormItem
-        :description="t('仅支持小写字母、数字、连字符和点号；创建后不可修改')"
+        :description="t('至少 3 段，如 api.game.db；仅支持小写字母、数字、连字符和点号；创建后不可修改')"
         :label="t('域名')"
         property="prefix"
         required>
@@ -85,7 +85,13 @@
 
   import DbMemberSelector from '@components/db-member-selector/index.vue';
 
-  import { DOMAIN_SUFFIX, isValidDomain, isValidIpList } from '@views/dns-domain/utils';
+  import {
+    DOMAIN_SUFFIX,
+    hasMinDomainLabels,
+    isValidDomain,
+    isValidDomainChars,
+    isValidIpList,
+  } from '@views/dns-domain/utils';
 
   import { messageSuccess } from '@utils';
 
@@ -131,11 +137,20 @@
         validator: (value: string[]) => value.length > 0,
       },
     ],
+    // 依次校验，提示第一条不满足的规则；校验对象为拼上 .db 后的完整域名
     prefix: [
       {
-        message: t(
-          '域名格式不正确：每段为小写字母、数字、连字符，首尾为字母或数字，单段不超过 63 字符，总长不超过 253 字符',
-        ),
+        message: t('仅支持小写字母、数字、连字符和点号'),
+        trigger: 'blur',
+        validator: (value: string) => isValidDomainChars(`${value.trim()}${DOMAIN_SUFFIX}`),
+      },
+      {
+        message: t('域名至少 3 段，如 api.game.db'),
+        trigger: 'blur',
+        validator: (value: string) => hasMinDomainLabels(`${value.trim()}${DOMAIN_SUFFIX}`),
+      },
+      {
+        message: t('每段首尾须为字母或数字，单段不超过 63 字符，总长不超过 253 字符'),
         trigger: 'blur',
         validator: (value: string) => isValidDomain(`${value.trim()}${DOMAIN_SUFFIX}`),
       },
