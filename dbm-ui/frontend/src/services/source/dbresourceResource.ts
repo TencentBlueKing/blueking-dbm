@@ -102,16 +102,27 @@ export function importResource(params: {
 
 interface ResouceListParams {
   agent_status?: string;
+  /** 资源池参数用 for_biz，传 undefined 覆盖 db-table 内置值 */
+  bk_biz_id?: number;
   bk_cloud_ids?: string;
+  /** 地域（独立字段，与 city 无映射） */
+  bk_cloud_region?: string;
+  /** 可用区（单选） */
+  bk_cloud_zone?: string;
   city?: string;
+  /** 资源预览透传别名（实际过滤字段为 bk_cloud_zone） */
+  cloud_zone?: string;
   cpu?: string;
   device_class?: string;
   disk?: string;
   disk_type?: string;
   for_biz?: number;
+  /** 是否按可用区分组返回数量（跨可用区/指定可用区时使用） */
+  group_by_cloud_zone?: boolean;
   headers?: { id: string; name?: string }[];
-  hosts?: string;
+  hosts?: string | { ip: string }[];
   label_names?: string;
+  labels?: string;
   limit?: number;
   mem?: string;
   mount_point?: string;
@@ -122,6 +133,7 @@ interface ResouceListParams {
   spec_id?: string;
   status?: string;
   subzone_ids?: string;
+  subzones?: string;
 }
 
 /**
@@ -226,16 +238,34 @@ export function fetchResourceImportUrls() {
 
 /**
  * 获取规格主机数量
+ * 不传 group_by_cloud_zone 返回扁平结构（spec_id → 台数）；
+ * 传 group_by_cloud_zone 返回按可用区分组结构（total 为总数，by_cloud_zone 为可用区名 → 各规格台数），
+ * sub_zone_ids 传可用区名称，后端自行做「可用区 → 园区」展开
  */
-export function getSpecResourceCount(params: {
+interface SpecResourceCountParams {
   bk_biz_id: number;
   bk_cloud_id: number;
   city?: string;
   resource_type?: string;
   spec_ids: number[];
   sub_zone_ids?: string[];
-}) {
-  return http.post<Record<number, number>>(`${path}/spec_resource_count/`, params);
+}
+
+interface SpecResourceCountGrouped {
+  by_cloud_zone: Record<string, Record<number, number>>;
+  total: Record<number, number>;
+}
+
+export function getSpecResourceCount(
+  params: { group_by_cloud_zone?: false } & SpecResourceCountParams,
+): Promise<Record<number, number>>;
+export function getSpecResourceCount(
+  params: { group_by_cloud_zone: true } & SpecResourceCountParams,
+): Promise<SpecResourceCountGrouped>;
+export function getSpecResourceCount(
+  params: { group_by_cloud_zone?: boolean } & SpecResourceCountParams,
+): Promise<Record<number, number> | SpecResourceCountGrouped> {
+  return http.post<Record<number, number> | SpecResourceCountGrouped>(`${path}/spec_resource_count/`, params);
 }
 
 /**
@@ -362,6 +392,8 @@ export function calcResourceWaterLevel(params: { cache: boolean }) {
   return http.post<{
     exclusive_machine: {
       empty_city: string[];
+      /** 可用区为空的主机 IP 列表 */
+      empty_cloud_zone: string[];
       empty_os: string[];
       empty_subzone: string[];
     };
@@ -372,6 +404,8 @@ export function calcResourceWaterLevel(params: { cache: boolean }) {
     flush_time: string;
     update_time: string;
     water_level: {
+      bk_cloud_region: string;
+      bk_cloud_zone: string;
       city: string;
       db_type: string;
       machine_count: number;

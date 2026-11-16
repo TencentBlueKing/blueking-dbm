@@ -110,10 +110,10 @@
 
   const modelValue = defineModel<{
     city: string;
+    cloud_zone: string;
     clusters: TendbhaModel[];
     renderText: string;
     spec_ids: number[];
-    subzones: string;
   }>({
     required: true,
   });
@@ -187,7 +187,7 @@
       if (data.length) {
         const spedIdsSet = new Set<number>();
         const citiesSet = new Set<string>();
-        const subzonesSet = new Set<string>();
+        const zonesSet = new Set<string>();
         data.forEach((item) => {
           // 规格ID
           if (item.cluster_spec?.spec_id) {
@@ -199,15 +199,15 @@
             citiesSet.add(item.region);
           }
 
-          // 园区信息
-          (item?.cluster_subzones || []).forEach((zone) => {
-            subzonesSet.add(zone);
+          // 可用区信息
+          (item?.cluster_cloud_zones || []).forEach((zone) => {
+            zonesSet.add(zone);
           });
         });
         modelValue.value.clusters = data;
         modelValue.value.spec_ids = Array.from(spedIdsSet);
         modelValue.value.city = Array.from(citiesSet).join(',');
-        modelValue.value.subzones = Array.from(subzonesSet).join(',');
+        modelValue.value.cloud_zone = Array.from(zonesSet).join(',');
       }
     },
   });
@@ -225,6 +225,7 @@
       {},
       {
         city: '',
+        cloud_zone: '',
         clusters: [],
         renderText: value
           .split(/\r?\n/)
@@ -232,7 +233,6 @@
           .filter((line) => line.length > 0)
           .join('\n'),
         spec_ids: [],
-        subzones: '',
       },
     );
   };

@@ -181,8 +181,7 @@
             :biz-id="formData.bk_biz_id"
             :params="{
               city: formData.details.city_name,
-              subzones: formData.details.sub_zone_names.join('，'),
-              subzone_ids: formData.details.sub_zone_ids.join(','),
+              bk_cloud_zone: formData.details.sub_zone_ids.join(',') || undefined,
               for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
               resource_types: [DBTypes.REDIS, 'PUBLIC'],
               spec_id: Number(formData.details.resource_spec.backend_group.spec_id),
@@ -310,7 +309,6 @@
         },
       },
       sub_zone_ids: [] as number[],
-      sub_zone_names: [] as string[],
     },
     remark: '',
     ticket_type: TicketTypes.REDIS_INS_APPLY,

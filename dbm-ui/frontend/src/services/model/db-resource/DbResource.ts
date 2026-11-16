@@ -37,6 +37,8 @@ export default class DbResource {
   bk_biz_id: number;
   bk_cloud_id: number;
   bk_cloud_name: string;
+  bk_cloud_region: string;
+  bk_cloud_zone: string;
   bk_cpu: number;
   bk_disk: number;
   bk_host_id: number;
@@ -86,6 +88,7 @@ export default class DbResource {
   total_data_storage_cap: number;
   update_time: string;
   updater: string;
+  zone_id: string;
 
   constructor(payload = {} as DbResource) {
     this.agent_status = payload.agent_status || 0;
@@ -125,8 +128,11 @@ export default class DbResource {
     this.sub_zone = payload.sub_zone || '';
     this.sub_zone_id = payload.sub_zone_id || '';
     this.svr_type_name = payload.svr_type_name || '';
-    this.updater = payload.updater || '';
+    this.bk_cloud_region = payload.bk_cloud_region || '';
+    this.bk_cloud_zone = payload.bk_cloud_zone || '';
+    this.zone_id = payload.zone_id || '';
     this.update_time = payload.update_time || '';
+    this.updater = payload.updater || '';
   }
 
   get bkMemText() {

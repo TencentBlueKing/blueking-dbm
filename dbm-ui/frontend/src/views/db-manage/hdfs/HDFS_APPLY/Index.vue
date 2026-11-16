@@ -215,7 +215,7 @@
                   :params="{
                     city: formData.details.city_name,
                     subzones: formData.details.sub_zone_names.join('，'),
-                    subzone_ids: formData.details.sub_zone_ids.join(','),
+                    bk_cloud_zone: formData.details.sub_zone_ids.join(',') || undefined,
                     for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
                     resource_types: [DBTypes.HDFS, 'PUBLIC'],
                     spec_id: Number(formData.details.resource_spec.namenode.spec_id),
@@ -258,7 +258,7 @@
                   :params="{
                     city: formData.details.city_name,
                     subzones: formData.details.sub_zone_names.join('，'),
-                    subzone_ids: formData.details.sub_zone_ids.join(','),
+                    bk_cloud_zone: formData.details.sub_zone_ids.join(',') || undefined,
                     for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
                     resource_types: [DBTypes.HDFS, 'PUBLIC'],
                     spec_id: Number(formData.details.resource_spec.zookeeper.spec_id),
@@ -311,7 +311,7 @@
                   :params="{
                     city: formData.details.city_name,
                     subzones: formData.details.sub_zone_names.join('，'),
-                    subzone_ids: formData.details.sub_zone_ids.join(','),
+                    bk_cloud_zone: formData.details.sub_zone_ids.join(',') || undefined,
                     for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
                     resource_types: [DBTypes.HDFS, 'PUBLIC'],
                     spec_id: Number(formData.details.resource_spec.datanode.spec_id),

@@ -21,12 +21,12 @@
     </div>
     <div class="tag-wrapper">
       <ValueTag
-        v-for="(value, name) in modelValue"
-        :key="name"
+        v-for="tag in tags"
+        :key="tag.name"
         ref="valueTagRef"
         :model="modelValue"
-        :name="name"
-        :value="value"
+        :name="tag.name"
+        :value="tag.value"
         @change="handleChange"
         @remove="handleRemove" />
     </div>
@@ -56,10 +56,43 @@
   const { t } = useI18n();
   const valueTagRef = ref();
 
+  // 地域/可用区/园区三个字段合并为一个 tag 展示与编辑
+  const zoneFamilyFields = ['bk_cloud_region', 'bk_cloud_zone', 'subzone_ids'];
+
+  const tags = computed(() => {
+    const result: { name: string; value: any }[] = [];
+    const zoneFamilyValue: Record<string, any> = {};
+    Object.entries(props.modelValue).forEach(([name, value]) => {
+      if (zoneFamilyFields.includes(name)) {
+        if (!isValueEmpty(value)) {
+          zoneFamilyValue[name] = value;
+        }
+        return;
+      }
+      if (isValueEmpty(value)) {
+        return;
+      }
+      result.push({ name, value });
+    });
+    if (Object.keys(zoneFamilyValue).length > 0) {
+      result.push({ name: 'city', value: zoneFamilyValue });
+    }
+    return result;
+  });
+
   const handleChange = (fieldName: string, fieldValue: any) => {
     const result = { ...props.modelValue };
 
-    if (isValueEmpty(fieldValue)) {
+    if (fieldName === 'city') {
+      // 聚合 tag 提交的是整组字段
+      zoneFamilyFields.forEach((key) => {
+        if (isValueEmpty(fieldValue[key])) {
+          delete result[key];
+        } else {
+          result[key] = fieldValue[key];
+        }
+      });
+    } else if (isValueEmpty(fieldValue)) {
       delete result[fieldName];
     } else {
       result[fieldName] = fieldValue;
@@ -71,7 +104,11 @@
 
   const handleRemove = (name: string) => {
     const result = { ...props.modelValue };
-    delete result[name];
+    if (name === 'city') {
+      zoneFamilyFields.forEach((key) => delete result[key]);
+    } else {
+      delete result[name];
+    }
 
     emits('update:modelValue', result);
     emits('submit');

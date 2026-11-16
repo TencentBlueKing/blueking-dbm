@@ -30,13 +30,13 @@
   </TableColumn>
   <TableColumn
     v-else
-    col-key="region"
-    :filter="columnFilter?.['region']"
+    col-key="bk_cloud_region"
+    :filter="columnFilter?.['bk_cloud_region']"
     :min-width="150"
-    :title="t('地域园区')">
+    :title="t('地域可用区')">
     <template #default="{ row }: { row: IRowData }">
       <div>{{ row.regionDisplay }}</div>
-      <TextOverflowLayout>{{ row.clusterSubzonesDisplay }}</TextOverflowLayout>
+      <TextOverflowLayout>{{ row.clusterZonesDisplay }}</TextOverflowLayout>
     </template>
   </TableColumn>
   <TableColumn
@@ -115,6 +115,7 @@
   const { data: columnFilter } = useClusterColumnFilter({
     cluster_attrs: [
       'bk_cloud_id',
+      'bk_cloud_region',
       'db_module_id',
       'major_version',
       'region',

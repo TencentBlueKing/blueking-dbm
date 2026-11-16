@@ -75,7 +75,6 @@
         :biz-id="bizId"
         :params="{
           city: cityName,
-          subzones: subzoneNames.join('，'),
           subzone_ids: subzoneIds.join(','),
           for_bizs: bizId ? [bizId, 0] : [0],
           resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
@@ -126,6 +125,7 @@
           :city="cityCode"
           :cloud-id="cloudId"
           :cluster-type="ClusterTypes.TENDBCLUSTER"
+          :disaster-tolerance-level="disasterToleranceLevel"
           machine-type="backend"
           :subzone-ids="subzoneIds" />
       </BkFormItem>
@@ -134,7 +134,6 @@
         :biz-id="bizId"
         :params="{
           city: cityName,
-          subzones: subzoneNames.join('，'),
           subzone_ids: subzoneIds.join(','),
           for_bizs: bizId ? [bizId, 0] : [0],
           resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
@@ -231,9 +230,9 @@
     cityName: string;
     cloudId: number | string;
     dbType: string;
+    disasterToleranceLevel: string;
     machineType: string;
-    subzoneIds: number[];
-    subzoneNames: string[];
+    subzoneIds: number[] | string[];
   }
 
   const props = defineProps<Props>();

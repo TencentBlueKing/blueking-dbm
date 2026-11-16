@@ -85,6 +85,7 @@
   const modelValue = defineModel<{
     bk_biz_id: number;
     bk_cloud_id: number;
+    bk_cloud_zone: string;
     bk_host_id: number;
     city: string;
     ip: string;
@@ -94,7 +95,6 @@
     }[];
     role: string;
     spec_id: number;
-    subzones: string;
   }>({
     required: true,
   });
@@ -158,6 +158,7 @@
         modelValue.value = {
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           bk_cloud_id: currentHost.bk_cloud_id,
+          bk_cloud_zone: zoneNames?.join(',') || '',
           bk_host_id: currentHost.bk_host_id,
           city: region && region !== 'default' ? region : '',
           ip: currentHost.ip,
@@ -167,7 +168,6 @@
           })),
           role: currentHost.role,
           spec_id: currentHost.spec_config.id,
-          subzones: zoneNames?.join(',') || '',
         };
       }
     },
@@ -182,13 +182,13 @@
     modelValue.value = {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
+      bk_cloud_zone: '',
       bk_host_id: 0,
       city: '',
       ip: value,
       related_clusters: [],
       role: '',
       spec_id: 0,
-      subzones: '',
     };
   };
 

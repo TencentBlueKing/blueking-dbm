@@ -4,13 +4,13 @@
       v-if="isShowAlert"
       theme="warning">
       <I18nT
-        keypath="统计说明：操作系统为空 ( a 台 ) 、园区为空 ( b 台 )、地域为 default ( c 台 ) 的主机均不计入参考水位统计，且机型空的规格不参与补货 ( d 个 ) ，"
+        keypath="统计说明：操作系统为空 ( a 台 ) 、可用区为空 ( b 台 )、地域为 default ( c 台 ) 的主机均不计入参考水位统计，且机型空的规格不参与补货 ( d 个 ) "
         tag="span">
         <template #a>
           <strong>{{ dataSource.empty_os.length }}</strong>
         </template>
         <template #b>
-          <strong>{{ dataSource.empty_subzone.length }}</strong>
+          <strong>{{ dataSource.empty_cloud_zone.length }}</strong>
         </template>
         <template #c>
           <strong>{{ dataSource.empty_city.length }}</strong>
@@ -19,6 +19,7 @@
           <strong>{{ dataSource.exclusive_spec.length }}</strong>
         </template>
       </I18nT>
+      ，
       <BkButton
         text
         theme="primary"
@@ -36,13 +37,13 @@
       <div class="replenish-exclusive">
         <div class="replenish-exclusive-desc mb-12">
           <I18nT
-            keypath="操作系统为空 ( a 台 ) 、园区为空 ( b 台 ) 、地域为 default ( c 台 ) 的主机均不计入待补货的量，且规格空的主机不参与补货 ( d 个 )"
+            keypath="操作系统为空 ( a 台 ) 、可用区为空 ( b 台 ) 、地域为 default ( c 台 ) 的主机均不计入待补货的量，且规格空的主机不参与补货 ( d 个 )"
             tag="span">
             <template #a>
               <strong>{{ dataSource.empty_os.length }}</strong>
             </template>
             <template #b>
-              <strong>{{ dataSource.empty_subzone.length }}</strong>
+              <strong>{{ dataSource.empty_cloud_zone.length }}</strong>
             </template>
             <template #c>
               <strong>{{ dataSource.empty_city.length }}</strong>
@@ -69,10 +70,10 @@
             </TicketInfoTable>
           </BkTabPanel>
           <BkTabPanel
-            :label="t('园区为空 ( n )', { n: dataSource.empty_subzone.length })"
-            name="empty_subzone">
+            :label="t('可用区为空 ( n )', { n: dataSource.empty_cloud_zone.length })"
+            name="empty_zone">
             <TicketInfoTable
-              :data="dataSource.empty_subzone"
+              :data="dataSource.empty_cloud_zone"
               row-key="ip">
               <TicketInfoTableColumn
                 col-key="ip"
@@ -137,6 +138,7 @@
   const dataSource = computed(() => {
     return {
       empty_city: props.data?.exclusive_machine.empty_city.map((item) => ({ ip: item })),
+      empty_cloud_zone: (props.data?.exclusive_machine.empty_cloud_zone || []).map((item) => ({ ip: item })),
       empty_os: props.data?.exclusive_machine.empty_os.map((item) => ({ ip: item })),
       empty_subzone: props.data?.exclusive_machine.empty_subzone.map((item) => ({ ip: item })),
       exclusive_spec: props.data?.exclusive_spec,
@@ -148,6 +150,7 @@
       props.data?.exclusive_machine.empty_os.length > 0 ||
       props.data?.exclusive_machine.empty_subzone.length > 0 ||
       props.data?.exclusive_machine.empty_city.length > 0 ||
+      (props.data?.exclusive_machine.empty_cloud_zone || []).length > 0 ||
       props.data?.exclusive_spec.length > 0
     );
   });

@@ -20,6 +20,8 @@ import InstanceBase from '../_instanceBase';
 export default class OracleHaInstance extends InstanceBase {
   bk_cloud_id: number;
   bk_cloud_name: string;
+  /** 可用区（后端字段 bk_cloud_zone） */
+  bk_cloud_zone: string;
   bk_cpu: number;
   bk_disk: number;
   bk_host_id: number;
@@ -57,6 +59,7 @@ export default class OracleHaInstance extends InstanceBase {
 
   constructor(payload: OracleHaInstance) {
     super(payload);
+    this.bk_cloud_zone = payload.bk_cloud_zone;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
     this.bk_cpu = payload.bk_cpu;

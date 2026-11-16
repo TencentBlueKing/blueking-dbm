@@ -20,6 +20,7 @@ import { utcDisplayTime } from '@utils';
 export default class QuickSearchClusterName {
   bk_biz_id: number;
   bk_cloud_id: number;
+  bk_cloud_region: string;
   cluster_entry: ClusterListEntry[];
   cluster_name: string;
   cluster_type: string;
@@ -52,6 +53,7 @@ export default class QuickSearchClusterName {
   constructor(payload = {} as QuickSearchClusterName) {
     this.bk_biz_id = payload.bk_biz_id;
     this.bk_cloud_id = payload.bk_cloud_id;
+    this.bk_cloud_region = payload.bk_cloud_region;
     this.cluster_entry = payload.cluster_entry || [];
     this.cluster_name = payload.cluster_name;
     this.cluster_type = payload.cluster_type;

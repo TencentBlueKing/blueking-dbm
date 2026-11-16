@@ -224,7 +224,7 @@ export const useApplyBase = () => {
   function handleCreateTicket(formdata: any) {
     const params = { ...formdata };
     delete params.sub_zone_ids;
-    delete params.sub_zone_names;
+    delete params.sub_zone_names; // 字段已经废弃，可能历史的提单数据中会存在，暂时先保留
     delete params.city_name;
 
     if (modifyState.isModify) {

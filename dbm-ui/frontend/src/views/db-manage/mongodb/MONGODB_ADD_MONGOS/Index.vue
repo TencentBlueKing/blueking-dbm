@@ -76,6 +76,7 @@
             <AvailableResourceColumn
               :params="{
                 city: item.cluster.region,
+                bk_cloud_zone: item.cluster.cluster_cloud_zones.join(',') || undefined,
                 for_bizs: [currentBizId, 0],
                 resource_types: [DBTypes.MONGODB, 'PUBLIC'],
                 spec_id: item.spec_id,
@@ -135,6 +136,7 @@
     add_proxy_num: number;
     cluster: {
       bk_cloud_id: number;
+      cluster_cloud_zones: string[];
       cluster_type: ClusterTypes;
       id: number;
       master_domain: string;
@@ -150,6 +152,7 @@
     cluster: Object.assign(
       {
         bk_cloud_id: 0,
+        cluster_cloud_zones: [] as string[],
         cluster_type: '',
         id: 0,
         master_domain: '',

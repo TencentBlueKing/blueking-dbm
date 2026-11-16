@@ -87,6 +87,7 @@
                   :city="formData.details.city_code"
                   :cloud-id="formData.details.bk_cloud_id"
                   :cluster-type="DBTypes.MONGODB"
+                  :disaster-tolerance-level="formData.details.disaster_tolerance_level"
                   :machine-type="MachineTypes.MONGO_CONFIG"
                   :subzone-ids="formData.details.sub_zone_ids" />
               </BkFormItem>
@@ -95,8 +96,7 @@
                 :biz-id="formData.bk_biz_id"
                 :params="{
                   city: formData.details.city_name,
-                  subzones: formData.details.sub_zone_names.join('，'),
-                  subzone_ids: formData.details.sub_zone_ids.join(','),
+                  bk_cloud_zone: formData.details.sub_zone_ids.join(',') || undefined,
                   for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
                   resource_types: [DBTypes.MONGODB, 'PUBLIC'],
                   spec_id: Number(formData.details.resource_spec.mongo_config.spec_id),
@@ -130,6 +130,7 @@
                   :city="formData.details.city_code"
                   :cloud-id="formData.details.bk_cloud_id"
                   :cluster-type="DBTypes.MONGODB"
+                  :disaster-tolerance-level="formData.details.disaster_tolerance_level"
                   :machine-type="MachineTypes.MONGOS"
                   :subzone-ids="formData.details.sub_zone_ids" />
               </BkFormItem>
@@ -138,8 +139,7 @@
                 :biz-id="formData.bk_biz_id"
                 :params="{
                   city: formData.details.city_name,
-                  subzones: formData.details.sub_zone_names.join('，'),
-                  subzone_ids: formData.details.sub_zone_ids.join(','),
+                  bk_cloud_zone: formData.details.sub_zone_ids.join(',') || undefined,
                   for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
                   resource_types: [DBTypes.MONGODB, 'PUBLIC'],
                   spec_id: Number(formData.details.resource_spec.mongos.spec_id),
@@ -171,7 +171,7 @@
                 city_code: formData.details.city_code,
                 bk_biz_id: formData.bk_biz_id,
                 sub_zone_ids: formData.details.sub_zone_ids,
-                sub_zone_names: formData.details.sub_zone_names,
+                disaster_tolerance_level: formData.details.disaster_tolerance_level,
                 bk_cloud_id: formData.details.bk_cloud_id,
               }" />
           </BkFormItem>
@@ -187,8 +187,8 @@
               :min="0"
               show-clear-only-hover
               style="width: 185px"
+              suffix="%"
               type="number">
-              <template #suffix>%</template>
             </DbInput>
             <span class="input-desc">{{ t('预计容量nG', [estimatedCapacity]) }}</span>
           </BkFormItem>
@@ -326,8 +326,7 @@
         },
       },
       start_port: 27021,
-      sub_zone_ids: [] as number[],
-      sub_zone_names: [] as string[],
+      sub_zone_ids: [] as string[],
     },
     remark: '',
     ticket_type: TicketTypes.MONGODB_SHARD_APPLY,

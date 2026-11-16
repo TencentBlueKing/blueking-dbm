@@ -76,6 +76,7 @@
             <AvailableResourceColumn
               :params="{
                 city: item.cluster.region,
+                bk_cloud_zone: item.cluster.cluster_cloud_zones.join(',') || undefined,
                 for_bizs: [currentBizId, 0],
                 resource_types: [DBTypes.REDIS, 'PUBLIC'],
                 spec_id: item.specId,
@@ -135,6 +136,7 @@
   interface IDataRow {
     cluster: {
       bk_cloud_id: number;
+      cluster_cloud_zones: string[];
       cluster_spec: RedisModel['cluster_spec'];
       cluster_type: ClusterTypes;
       cluster_type_name: string;
@@ -157,6 +159,7 @@
     cluster: Object.assign(
       {
         bk_cloud_id: 0,
+        cluster_cloud_zones: [] as string[],
         cluster_spec: {
           spec_id: 0,
         } as RedisModel['cluster_spec'],
@@ -278,6 +281,7 @@
         createRowData({
           cluster: {
             bk_cloud_id: item.bk_cloud_id,
+            cluster_cloud_zones: item.cluster_cloud_zones,
             cluster_spec: item.cluster_spec,
             cluster_type: item.cluster_type,
             cluster_type_name: item.cluster_type_name,

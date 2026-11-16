@@ -26,9 +26,17 @@
           <strong>{{ machineNum }}</strong>
         </I18nT>
         <div class="sub-title">
-          <template v-if="params?.city">
+          <template v-if="params?.bk_cloud_region">
             <div class="sub-title-label">{{ t('地域') }}:</div>
+            <div class="sub-title-value">{{ getCloudZoneName(params.bk_cloud_zone) }}</div>
+          </template>
+          <template v-if="params?.city">
+            <div class="sub-title-label">{{ t('城市') }}:</div>
             <div class="sub-title-value">{{ params?.city || '--' }}</div>
+          </template>
+          <template v-if="zoneNameDisplay">
+            <div class="sub-title-label">{{ t('可用区') }}:</div>
+            <div class="sub-title-value">{{ zoneNameDisplay }}</div>
           </template>
           <template v-if="params?.subzones">
             <div class="sub-title-label">{{ t('园区') }}:</div>
@@ -96,26 +104,46 @@
           col-key="city"
           :filter="filterOption['city']"
           :min-width="120"
-          :title="t('地域')" />
+          :title="t('地域')">
+          <template #default="{ row }: { row: DbResourceModel }">
+            {{ row.bk_cloud_region || '--' }}
+          </template>
+        </TableColumn>
         <TableColumn
-          col-key="sub_zone"
-          :filter="filterOption['suz_zone']"
+          col-key="bk_cloud_zone"
+          :filter="filterOption['bk_cloud_zone']"
           :min-width="120"
-          :title="t('园区')" />
+          :title="t('可用区')">
+          <template #default="{ row }: { row: DbResourceModel }">
+            {{ getCloudZoneName(row.bk_cloud_zone) || '--' }}
+          </template>
+        </TableColumn>
         <TableColumn
           col-key="rack_id"
           :min-width="120"
-          :title="t('机架')" />
+          :title="t('机架')">
+          <template #default="{ row }: { row: DbResourceModel }">
+            {{ row.rack_id || '--' }}
+          </template>
+        </TableColumn>
         <TableColumn
           col-key="os_name"
           :filter="filterOption['os_name']"
           :min-width="180"
-          :title="t('操作系统名称')" />
+          :title="t('操作系统名称')">
+          <template #default="{ row }: { row: DbResourceModel }">
+            {{ row.os_name || '--' }}
+          </template>
+        </TableColumn>
         <TableColumn
           col-key="device_class"
           :filter="filterOption['device_class']"
           :min-width="120"
-          :title="t('机型')" />
+          :title="t('机型')">
+          <template #default="{ row }: { row: DbResourceModel }">
+            {{ row.device_class || '--' }}
+          </template>
+        </TableColumn>
       </DbTable>
     </div>
   </DbSideslider>
@@ -130,6 +158,8 @@
   import { listTag } from '@services/source/tag';
   import type { HostInfo } from '@services/types';
 
+  import { getCloudZoneName } from '@common/const';
+
   import DbTable from '@components/db-table/IndexNew.vue';
   import HostAgentStatus from '@components/host-agent-status/Index.vue';
   import ResourceHostOwner from '@components/resource-host-owner/Index.vue';
@@ -140,6 +170,8 @@
     bizId?: number;
     params: {
       bk_cloud_ids?: string;
+      bk_cloud_region?: string;
+      bk_cloud_zone?: string;
       city?: string;
       for_biz?: number;
       for_bizs?: number[];
@@ -182,6 +214,11 @@
     return tagList.value.filter((item) => tagIds.includes(item.id));
   });
 
+  // 头部「可用区」展示：bk_cloud_zone 为逗号分隔的可用区标识，拆分逐个转展示名
+  const zoneNameDisplay = computed(() =>
+    (props.params.bk_cloud_zone || '').split(',').filter(Boolean).map(getCloudZoneName).join('、'),
+  );
+
   const { data: specInfo, run: queryResourceSpec } = useRequest(getResourceSpec, {
     manual: true,
   });
@@ -204,12 +241,14 @@
       ...params,
       ...props.params,
       bk_biz_id: undefined, // 资源池参数用for_biz,把db-table内置的bk_biz_id去掉
+      bk_cloud_region: props.params.bk_cloud_region || undefined,
+      bk_cloud_zone: props.params.bk_cloud_zone || undefined,
       city: props.params.city || undefined,
       labels: labels || undefined, // 不传即为不限制（即通用无标签）
       spec_id: props.params.spec_id ? String(props.params.spec_id) : undefined,
       subzone_ids: props.params.subzone_ids || undefined,
       subzones: props.params.subzones || undefined,
-    });
+    } as ServiceParameters<typeof fetchList>);
 
     machineNum.value = dataList.count;
     return dataList;

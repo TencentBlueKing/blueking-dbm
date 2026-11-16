@@ -5,12 +5,18 @@ import { useI18n } from 'vue-i18n';
 
 import { queryBizInstanceAttrs } from '@services/source/dbbase';
 
-import { clusterInstStatus, ClusterTypes, specialOptionLabelMap, SpecialOptions } from '@common/const';
+import {
+  clusterInstStatus,
+  ClusterTypes,
+  getCloudZoneName,
+  specialOptionLabelMap,
+  SpecialOptions,
+} from '@common/const';
 import { ipPort, ipv4 } from '@common/regex';
 
 import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
 
-const instanceAttrs = ['role', 'version', 'bk_os_name', 'bk_sub_zone', 'mongodb_state'] as const;
+const instanceAttrs = ['role', 'version', 'bk_os_name', 'bk_sub_zone', 'bk_cloud_zone', 'mongodb_state'] as const;
 
 export const useInstanceQuickSearch = (params: {
   cluster_id?: number;
@@ -39,11 +45,11 @@ export const useInstanceQuickSearch = (params: {
     }
     return queryBizInstanceAttrs(instanceParams).then((data) => {
       const formatList = data[attr].map((item) => ({
-        label: item.text,
+        label: attr === 'bk_cloud_zone' ? getCloudZoneName(item.value) : item.text,
         value: item.value,
       }));
 
-      if (['bk_os_name', 'bk_sub_zone', 'version'].includes(attr)) {
+      if (['bk_cloud_zone', 'bk_os_name', 'bk_sub_zone', 'version'].includes(attr)) {
         const filterList = formatList.filter((item) => item.value !== null && item.value !== '');
         if (filterList.length !== formatList.length) {
           return filterList.concat({
@@ -140,6 +146,12 @@ export const useInstanceQuickSearch = (params: {
         id: 'version',
         name: t('版本'),
         remoteMethod: () => getBizInstanceAttrs('version'),
+        type: 'multiple',
+      },
+      {
+        id: 'bk_cloud_zone',
+        name: t('可用区'),
+        remoteMethod: () => getBizInstanceAttrs('bk_cloud_zone'),
         type: 'multiple',
       },
       {

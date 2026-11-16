@@ -108,7 +108,7 @@ export default (props: any) => {
           label: item.city_name,
           value: item.city_code,
         })),
-        name: t('地域'),
+        name: t('城市'),
         type: 'multiple',
       },
       {
@@ -174,7 +174,7 @@ export default (props: any) => {
   const filterOption = computed(() => ({
     city: {
       component: markRaw(MultipleSelect),
-      name: t('地域'),
+      name: t('城市'),
       props: {
         list: (cityList.value || []).map((item) => ({
           label: item.city_name,

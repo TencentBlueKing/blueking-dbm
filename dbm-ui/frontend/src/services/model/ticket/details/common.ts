@@ -129,7 +129,8 @@ export interface ApplySpecInfo {
   location_spec: {
     city: string;
     include_or_exclue?: boolean;
-    sub_zone_ids?: number[];
+    /** 可用区名称（随机时不传）；历史单据为园区数字 id */
+    sub_zone_ids?: Array<number | string>;
   };
   mem: {
     max: number;

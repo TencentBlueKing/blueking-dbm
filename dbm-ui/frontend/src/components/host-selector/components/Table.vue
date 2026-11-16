@@ -85,12 +85,21 @@
         :min-width="120"
         :title="t('架构类型')" />
       <TableColumn
-        col-key="bk_city_id"
-        :filter="tableFilter.bk_city_id"
+        col-key="bk_cloud_region"
+        :filter="tableFilter.bk_cloud_region"
         :title="t('地域')"
         :width="120">
         <template #default="{ row }: { row: IRowData }">
-          {{ row.host_info?.bk_idc_city_name || '--' }}
+          {{ row.bk_cloud_region || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="bk_cloud_zone"
+        :filter="tableFilter.bk_cloud_zone"
+        :title="t('可用区')"
+        :width="120">
+        <template #default="{ row }: { row: IRowData }">
+          {{ getCloudZoneName(row.bk_cloud_zone) || t('未知') }}
         </template>
       </TableColumn>
       <TableColumn
@@ -188,7 +197,7 @@
 
   import { queryBizMachineAttrs } from '@services/source/dbbase';
 
-  import { ClusterTypes, specialOptionLabelMap, SpecialOptions } from '@common/const';
+  import { ClusterTypes, getCloudZoneName, specialOptionLabelMap, SpecialOptions } from '@common/const';
   import { batchSplitRegex, ipPort, ipv4 } from '@common/regex';
 
   import MultipleInput from '@components/db-table/components/MultipleInput.vue';
@@ -232,6 +241,8 @@
   const machineAttrs = [
     'bk_city_id',
     'bk_sub_zone',
+    'bk_cloud_region',
+    'bk_cloud_zone',
     'bk_os_name',
     'spec_id',
     'instance_role',
@@ -239,7 +250,14 @@
   ] as const;
 
   // 这些属性存在空值，空值统一归为「未知」选项
-  const emptyValueAttrs = ['bk_city_id', 'bk_os_name', 'bk_sub_zone', 'bk_svr_device_cls_name'];
+  const emptyValueAttrs = [
+    'bk_city_id',
+    'bk_os_name',
+    'bk_sub_zone',
+    'bk_cloud_region',
+    'bk_cloud_zone',
+    'bk_svr_device_cls_name',
+  ];
 
   const getBizMachineAttrs = (attr: (typeof machineAttrs)[number]) =>
     queryBizMachineAttrs({
@@ -247,8 +265,19 @@
       cluster_type: props.clusterType,
       machine_attrs: machineAttrs.join(','),
     }).then((data) => {
+      const getLabel = (item: { text: string; value: string }) => {
+        if (attr === 'spec_id') {
+          return `${item.text} [${item.value}]`;
+        }
+        if (attr === 'bk_cloud_zone') {
+          return getCloudZoneName(item.value) || item.text;
+        }
+
+        return item.text;
+      };
+
       const formatList = data[attr].map((item) => ({
-        label: attr === 'spec_id' ? `${item.text} [${item.value}]` : item.text,
+        label: getLabel(item),
         value: item.value,
       }));
 
@@ -293,9 +322,21 @@
       type: 'multiple' as const,
     },
     {
-      id: 'bk_city_id',
+      id: 'bk_cloud_region',
       name: t('地域'),
+      remoteMethod: () => getBizMachineAttrs('bk_cloud_region'),
+      type: 'multiple' as const,
+    },
+    {
+      id: 'bk_city_id',
+      name: t('城市'),
       remoteMethod: () => getBizMachineAttrs('bk_city_id'),
+      type: 'multiple' as const,
+    },
+    {
+      id: 'bk_cloud_zone',
+      name: t('可用区'),
+      remoteMethod: () => getBizMachineAttrs('bk_cloud_zone'),
       type: 'multiple' as const,
     },
     {
@@ -330,6 +371,20 @@
       component: markRaw(MultipleSelect),
       props: {
         remoteMethod: () => getBizMachineAttrs('bk_city_id'),
+      },
+      showConfirmAndReset: true,
+    },
+    bk_cloud_region: {
+      component: markRaw(MultipleSelect),
+      props: {
+        remoteMethod: () => getBizMachineAttrs('bk_cloud_region'),
+      },
+      showConfirmAndReset: true,
+    },
+    bk_cloud_zone: {
+      component: markRaw(MultipleSelect),
+      props: {
+        remoteMethod: () => getBizMachineAttrs('bk_cloud_zone'),
       },
       showConfirmAndReset: true,
     },

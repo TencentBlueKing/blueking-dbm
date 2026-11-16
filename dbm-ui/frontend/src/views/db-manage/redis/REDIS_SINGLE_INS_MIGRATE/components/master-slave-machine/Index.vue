@@ -52,6 +52,7 @@
         @batch-edit="handleBatchEdit" />
       <AvailableResourceColumn
         :params="{
+          bk_cloud_zone: item.host.bk_cloud_zone || undefined,
           city: item.host.related_clusters?.[0]?.region,
           for_bizs: [currentBizId, 0],
           resource_types: [DBTypes.REDIS, 'PUBLIC'],
@@ -117,6 +118,7 @@
     db_version: string;
     host: {
       bk_cloud_id: number;
+      bk_cloud_zone: string;
       bk_host_id: number;
       cluster_type: string;
       ip: string;
@@ -147,6 +149,7 @@
     host: Object.assign(
       {
         bk_cloud_id: 0,
+        bk_cloud_zone: '',
         bk_host_id: 0,
         cluster_type: '',
         ip: '',
@@ -258,6 +261,7 @@
         createRowData({
           host: {
             bk_cloud_id: item.bk_cloud_id,
+            bk_cloud_zone: item.bk_cloud_zone,
             bk_host_id: item.bk_host_id,
             cluster_type: item.cluster_type,
             ip: item.ip,

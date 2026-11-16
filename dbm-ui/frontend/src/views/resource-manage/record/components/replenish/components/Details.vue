@@ -221,20 +221,20 @@
           </TableColumn>
           <!-- 地域 -->
           <TableColumn
-            col-key="city"
+            col-key="bk_cloud_region"
             :title="t('地域')"
             :width="100">
             <template #default="{ row }: { row: RowData }">
-              {{ row.city || '--' }}
+              {{ row.bk_cloud_region || row.city || '--' }}
             </template>
           </TableColumn>
-          <!-- 园区 -->
+          <!-- 可用区 -->
           <TableColumn
-            col-key="subzone"
-            :title="t('园区')"
+            col-key="bk_cloud_zone"
+            :title="t('可用区')"
             :width="120">
             <template #default="{ row }: { row: RowData }">
-              {{ row.subzone || '--' }}
+              {{ getCloudZoneName(row.bk_cloud_zone) || '--' }}
             </template>
           </TableColumn>
           <!-- 操作系统 -->
@@ -340,7 +340,7 @@
 
   import { useSystemEnviron } from '@stores';
 
-  import { DBTypeInfos, TicketTypes } from '@common/const';
+  import { DBTypeInfos, getCloudZoneName, TicketTypes } from '@common/const';
 
   import TicketStatusTag from '@components/ticket-status-tag/Index.vue';
 
@@ -354,6 +354,8 @@
 
   type RowData = {
     apply_count: number;
+    bk_cloud_region: string;
+    bk_cloud_zone: string;
     city: string;
     count: number;
     create_at: string;

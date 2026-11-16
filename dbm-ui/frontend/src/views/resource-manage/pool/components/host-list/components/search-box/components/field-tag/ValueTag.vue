@@ -77,6 +77,8 @@
 
   import DbResourceModel from '@services/model/db-resource/DbResource';
 
+  import { getCloudZoneName, specialOptionLabelMap, SpecialOptions } from '@common/const';
+
   import ComFactory from '../com-factory/Index.vue';
   import fieldConfig from '../field-config';
   import { isValueEmpty } from '../utils';
@@ -103,7 +105,7 @@
   const rootRef = ref();
   const popRef = ref();
   const inputRef = ref();
-  const localModel = shallowRef({});
+  const localModel = shallowRef<Record<string, any>>({});
   const isRemoteOriginLoading = ref(false);
   const remoteOriginalList = shallowRef<Array<any>>([]);
 
@@ -124,6 +126,33 @@
 
     if (props.name === 'status') {
       return (props.value as string[]).map((item) => DbResourceModel.ResourceStatusDisplayMap[item] || item).join(',');
+    }
+
+    // 地域/可用区/园区聚合 tag：value 为 { bk_cloud_region, bk_cloud_zone, subzone_ids }
+    if (props.name === 'city' && !Array.isArray(props.value)) {
+      const parts: string[] = [];
+      if (props.value.bk_cloud_region) {
+        parts.push(
+          props.value.bk_cloud_region === SpecialOptions.EMPTY
+            ? specialOptionLabelMap[SpecialOptions.EMPTY]
+            : props.value.bk_cloud_region,
+        );
+      }
+      if (props.value.bk_cloud_zone) {
+        parts.push(
+          props.value.bk_cloud_zone === SpecialOptions.EMPTY
+            ? specialOptionLabelMap[SpecialOptions.EMPTY]
+            : getCloudZoneName(props.value.bk_cloud_zone),
+        );
+      }
+      if (props.value.subzone_ids?.length > 0) {
+        const names = props.value.subzone_ids.map((id: number | string) => {
+          const matched = (remoteOriginalList.value || []).find((item) => `${item.bk_sub_zone_id}` === `${id}`);
+          return matched ? matched.bk_sub_zone : id;
+        });
+        parts.push(names.join(','));
+      }
+      return parts.join(' / ');
     }
 
     const valueList = Array.isArray(props.value) ? props.value : [props.value];
@@ -185,10 +214,17 @@
     };
   };
 
+  // 地域/可用区/园区组合项内部会同时变更多个字段，提交时整组同步
+  const zoneFamilyFields = ['city', 'bk_cloud_region', 'bk_cloud_zone', 'subzone_ids'];
+
   // 提交编辑状态
   const handleSubmit = () => {
     inputRef.value.getValue().then(() => {
-      if (valueMemo !== undefined) {
+      if (zoneFamilyFields.includes(props.name)) {
+        zoneFamilyFields.forEach((fieldName) => {
+          emits('change', fieldName, localModel.value[fieldName]);
+        });
+      } else if (valueMemo !== undefined) {
         emits('change', props.name, valueMemo);
       }
       tippyIns.hide();

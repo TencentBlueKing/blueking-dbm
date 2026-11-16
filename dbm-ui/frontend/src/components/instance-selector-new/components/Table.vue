@@ -111,6 +111,15 @@
         :width="140">
       </TableColumn>
       <TableColumn
+        col-key="bk_cloud_zone"
+        :filter="columnFilter?.['bk_cloud_zone']"
+        :min-width="120"
+        :title="t('可用区')">
+        <template #default="{ row }: { row: IRowData }">
+          {{ getCloudZoneName(row.bk_cloud_zone) || t('未知') }}
+        </template>
+      </TableColumn>
+      <TableColumn
         col-key="bk_sub_zone"
         :filter="columnFilter?.['bk_sub_zone']"
         :title="t('园区')"
@@ -151,7 +160,7 @@
 
   import { useInstanceColumnFilter, useInstanceQuickSearch } from '@hooks';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, getCloudZoneName } from '@common/const';
 
   import ClusterInstanceStatus from '@components/cluster-instance-status/Index.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
@@ -183,7 +192,7 @@
   const { quickSearchData, quickSearchValue } = useInstanceQuickSearch({ cluster_type: props.clusterType });
   const { data: columnFilter } = useInstanceColumnFilter({
     cluster_type: props.clusterType,
-    instance_attrs: ['role', 'version', 'bk_os_name', 'bk_sub_zone'] as const,
+    instance_attrs: ['role', 'version', 'bk_os_name', 'bk_sub_zone', 'bk_cloud_zone'] as const,
   });
 
   const instanceTableRef = useTemplateRef('instanceTable');

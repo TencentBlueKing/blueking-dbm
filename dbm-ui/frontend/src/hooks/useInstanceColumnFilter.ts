@@ -8,6 +8,7 @@ import {
   clusterInstStatus,
   clusterRedisTypeList,
   ClusterTypes,
+  getCloudZoneName,
   specialOptionLabelMap,
   SpecialOptions,
 } from '@common/const';
@@ -143,11 +144,11 @@ export const useInstanceColumnFilter = <T extends readonly string[] = Array<keyo
         (res, attr) => {
           const getList = () => {
             const formatList = result[attr].map((item) => ({
-              label: item.text,
+              label: attr === 'bk_cloud_zone' ? getCloudZoneName(item.value) : item.text,
               value: item.value,
             }));
 
-            if (['bk_os_name', 'bk_sub_zone', 'version'].includes(attr)) {
+            if (['bk_cloud_zone', 'bk_os_name', 'bk_sub_zone', 'version'].includes(attr)) {
               const filterList = formatList.filter((item) => item.value !== null && item.value !== '');
               if (filterList.length !== formatList.length) {
                 return filterList.concat({

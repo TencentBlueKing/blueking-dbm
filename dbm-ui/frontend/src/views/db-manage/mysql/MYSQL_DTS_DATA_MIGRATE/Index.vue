@@ -81,7 +81,7 @@
           <AvailableResourceColumn
             :params="{
               city: item.source_cluster.region,
-              subzones: item.source_cluster.cluster_subzones.join(','),
+              bk_cloud_zone: item.source_cluster.cluster_cloud_zones.join(','),
               for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.MYSQL, 'PUBLIC'],
               spec_id: item.spec_id,
@@ -237,7 +237,7 @@
     labels: data.labels || [],
     source_cluster: Object.assign(
       {
-        cluster_subzones: [],
+        bk_cloud_zone: [],
         cluster_type: '',
         id: 0,
         master_domain: '',
@@ -319,6 +319,7 @@
   });
 
   const { loading: isSubmitting, run: createTicketRun } = useCreateTicket<{
+    backup_locale: 'master' | 'slave';
     infos: {
       dts_resource: {
         deploy: Record<string, never>;
@@ -356,7 +357,6 @@
       };
       source_role: 'master' | 'slave';
     }[];
-    backup_locale: 'master' | 'slave';
     task: {
       on_duplicate: 'error' | 'replace' | 'ignore';
     };
@@ -366,6 +366,7 @@
     tableRef.value!.validate().then(() => {
       createTicketRun({
         details: {
+          backup_locale: formData.backupLocale,
           infos: formData.tableData.map((item) => ({
             dts_resource: {
               deploy: {},
@@ -403,7 +404,6 @@
             },
             source_role: formData.sourceRole,
           })),
-          backup_locale: formData.backupLocale,
           task: {
             on_duplicate: formData.conflictHandle,
           },

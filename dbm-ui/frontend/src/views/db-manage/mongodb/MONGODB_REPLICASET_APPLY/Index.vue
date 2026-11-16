@@ -125,6 +125,7 @@
               :city="formData.details.city_code"
               :cloud-id="formData.details.bk_cloud_id"
               :cluster-type="DBTypes.MONGODB"
+              :disaster-tolerance-level="formData.details.disaster_tolerance_level"
               :machine-type="MachineTypes.MONGODB"
               style="width: 435px"
               :subzone-ids="formData.details.sub_zone_ids" />
@@ -153,8 +154,7 @@
             :biz-id="formData.bk_biz_id"
             :params="{
               city: formData.details.city_name,
-              subzones: formData.details.sub_zone_names.join('，'),
-              subzone_ids: formData.details.sub_zone_ids.join(','),
+              bk_cloud_zone: formData.details.sub_zone_ids.join(',') || undefined,
               for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
               resource_types: [DBTypes.MONGODB, 'PUBLIC'],
               spec_id: Number(formData.details.resource_spec.mongo_machine_set.spec_id),
@@ -172,8 +172,8 @@
               :min="1"
               show-clear-only-hover
               style="width: 185px"
+              suffix="%"
               type="number">
-              <template #suffix>%</template>
             </DbInput>
             <span class="input-desc">{{ t('预计容量nG', [estimatedCapacity]) }}</span>
           </BkFormItem>
@@ -291,8 +291,7 @@
         },
       },
       start_port: 27001,
-      sub_zone_ids: [] as number[],
-      sub_zone_names: [] as string[],
+      sub_zone_ids: [] as string[],
     },
     remark: '',
     ticket_type: TicketTypes.MONGODB_REPLICASET_APPLY,

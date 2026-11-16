@@ -50,7 +50,7 @@ export interface InstanceInfos {
     status: string;
     time_zone: string;
     updater: string;
-    zone_list: string[];
+    /** 可用区名称列表（关联集群场景） */
     zone_names: string[];
   }[];
   role: string;

@@ -47,7 +47,7 @@
           <AvailableResourceColumn
             :params="{
               city: item.host.bk_idc_city_name,
-              subzones: item.host.bk_sub_zone,
+              bk_cloud_zone: item.host.bk_cloud_zone,
               for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
               spec_id: item.host.spec.id,
@@ -146,6 +146,7 @@
     host: Object.assign(
       {
         bk_cloud_id: 0,
+        bk_cloud_zone: '',
         bk_host_id: 0,
         bk_idc_city_name: '',
         bk_sub_zone: '',

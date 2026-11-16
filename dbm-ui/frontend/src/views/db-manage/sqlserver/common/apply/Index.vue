@@ -149,6 +149,7 @@
                       :city="formData.details.city_code"
                       :cloud-id="formData.details.bk_cloud_id"
                       cluster-type="sqlserver"
+                      :disaster-tolerance-level="formData.details.disaster_tolerance_level"
                       machine-type="sqlserver"
                       :subzone-ids="formData.details.sub_zone_ids" />
                   </BkFormItem>
@@ -157,8 +158,7 @@
                     :biz-id="formData.bk_biz_id"
                     :params="{
                       city: formData.details.city_name,
-                      subzones: formData.details.sub_zone_names.join('，'),
-                      subzone_ids: formData.details.sub_zone_ids.join(','),
+                      bk_cloud_zone: formData.details.sub_zone_ids.join(',') || undefined,
                       for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
                       resource_types: [DBTypes.SQLSERVER, 'PUBLIC'],
                       spec_id: Number(formData.details.resource_spec.backend_group.spec_id),
@@ -461,8 +461,7 @@
         },
       },
       start_mssql_port: 48322, // SQLServer起始端口
-      sub_zone_ids: [] as number[],
-      sub_zone_names: [] as string[],
+      sub_zone_ids: [] as string[],
     },
     remark: '',
     ticket_type: route.name,
@@ -551,7 +550,7 @@
           {
             charset,
             deployStructure: isSingleType ? t('单节点部署') : t('主从部署'),
-            disasterDefence: t('同城跨园区'),
+            disasterDefence: t('同城跨可用区'),
             domain: `${domainInfo.masterDomain.prefix}${key || '{' + t('集群标识') + '}'}${domainInfo.masterDomain.suffix}`,
             slaveDomain: `${domainInfo.slaveDomain?.prefix}${key || '{' + t('集群标识') + '}'}${domainInfo.slaveDomain?.suffix}`,
             version: dbVersion,

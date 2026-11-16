@@ -24,7 +24,7 @@ import { getTicketDetails } from '@services/source/ticket';
 
 import { useUserProfile } from '@stores';
 
-import { TicketTypes } from '@common/const';
+import { cloudZoneNameMap, TicketTypes } from '@common/const';
 
 import { getTicketModifyDiffOptions, isTicketModifiable } from '@views/ticket-center/common/ticket-modify/registry';
 import { diffDetails, type DiffItem, formatValue } from '@views/ticket-center/common/ticket-modify/utils';
@@ -307,7 +307,7 @@ export const useTicketModify = () => {
           return formatValue((value as string[] | undefined)?.map((id) => labelNameMap.value[String(id)] || id));
         },
         'resource_spec.*.location_spec.sub_zone_ids': (value) =>
-          formatValue((value as number[] | undefined)?.map((id) => subzoneNameMap.value[id] || id)),
+          formatValue((value as number[] | undefined)?.map((id) => cloudZoneNameMap[id] || id)),
       },
     });
   };

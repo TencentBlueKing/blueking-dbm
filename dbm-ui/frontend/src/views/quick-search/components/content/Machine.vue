@@ -55,8 +55,14 @@
           :title="t('所属池')"
           :width="130" />
         <TableColumn
-          col-key="city"
+          col-key="bk_cloud_region"
           :title="t('地域')" />
+        <TableColumn
+          col-key="city"
+          :title="t('城市')" />
+        <TableColumn
+          col-key="bk_cloud_zone"
+          :title="t('可用区')" />
         <TableColumn
           col-key="sub_zone"
           :title="t('园区')" />

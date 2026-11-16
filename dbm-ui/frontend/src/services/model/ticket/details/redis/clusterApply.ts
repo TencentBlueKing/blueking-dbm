@@ -35,7 +35,8 @@ export interface ClusterApply extends DetailBase {
       labels: ApplySpecInfo['labels'];
       location_spec: {
         city: string;
-        sub_zone_ids: number[];
+        /** 可用区名称（随机时不传）；历史单据为园区数字 id */
+        sub_zone_ids: Array<number | string>;
       };
       spec_id: number;
       spec_info: {

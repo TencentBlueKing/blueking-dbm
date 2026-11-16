@@ -7,6 +7,8 @@ import InstanceBase from '../_instanceBase';
 export default class SqlServerSingleInstance extends InstanceBase {
   bk_cloud_id: number;
   bk_cloud_name: string;
+  /** 可用区（后端字段 bk_cloud_zone） */
+  bk_cloud_zone: string;
   bk_host_id: number;
   bk_os_name: string;
   bk_rack_id: number;
@@ -42,6 +44,7 @@ export default class SqlServerSingleInstance extends InstanceBase {
     super(payload);
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
+    this.bk_cloud_zone = payload.bk_cloud_zone;
     this.bk_host_id = payload.bk_host_id;
     this.bk_os_name = payload.bk_os_name;
     this.bk_rack_id = payload.bk_rack_id;
