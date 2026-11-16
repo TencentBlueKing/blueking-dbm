@@ -31,9 +31,12 @@ specific language governing permissions and limitations under the License.
 
 组决策取值 · 业务翻译：
   - **GROUP_RECYCLE**：本组可安全自动清理（下游走完整清理链路 A/C/D/E）
-  - **GROUP_MANUAL**：本组挂起等人工处置（下游 no-op；同时产出 WARNING 结构化日志供告警平台捕获）
-  - **GROUP_SKIP**：本组不属于本单据（下游 no-op）
-  - **GROUP_KEEP**：本组仍在服务，红线保留（下游 no-op）
+  - **GROUP_MANUAL**：本组无法自动判断该否清理（同时产出 WARNING 结构化日志供告警平台捕获）
+  - **GROUP_SKIP**：本组不属于本单据
+  - **GROUP_KEEP**：本组仍在服务，红线保留
+  - **失败语义**：流程的唯一目的是主机退回，非 GROUP_RECYCLE（MANUAL/SKIP/KEEP）均表示
+    本组主机不能自动退回，判定节点一律**显式失败**并输出结论与原因，交由 DBA 确认后
+    "跳过"（SKIP/KEEP 属正常业务结论）或处置后"重试"（MANUAL）；不做静默 no-op
 
 下游耦合：下游 :class:`ResourceGroupCleanupService` 依据 ``trans_data.group_verdict_decision`` 分支决定
   是否清理、是否 no-op；本 Service 是清理链路的"唯一决策入口"。
@@ -116,14 +119,15 @@ class ResourceGroupJudgeService(BaseService):
       - ``group_verdict_decision``   :class:`GroupDecision` 的 .value 字符串
         （便于清理子流程分支判断，避免嵌套 dict 取值）
 
-    外部落地（本节点在 GROUP_RECYCLE 判决产出瞬间同步执行）：
+    外部落地（本节点在 GROUP_RECYCLE 判决产出后同步执行）：
       - 通过 :class:`FlowOutputHandler(RecycleOutputContext.ToResourceSerializer)` 把本组
         **所有 units**（按 ``gv.verdicts`` 全量）预申报写入 FlowSummary；GROUP_RECYCLE 契约
         保证组内所有机器均需退回资源池，因此不做任何子状态过滤。
       - **语义变更**：FlowSummary 记录的含义由"已完成元数据清理的机器"更新为
         "决策判定需要退回资源池的机器"（预申报语义）。段 3 清理失败挂起时，
         FlowSummary 记录保持不变，由 DBA 原地重试段 3（``_cleanup_one_host`` 幂等）。
-      - 该写入**不改变判决、不阻塞节点**：insert_data 异常仅记 ERROR 日志，继续走后续流程。
+      - **失败即节点失败**：insert_data 异常仅记 ERROR 日志后节点 return False，
+        交由上层（bamboo / DBA）判断处置；重试时按表主键合并幂等，不会重复写入。
 
     判定决策逻辑：
       **F1~F4 单机判据**（含义详见模块级 docstring 首部翻译清单）：
@@ -158,14 +162,15 @@ class ResourceGroupJudgeService(BaseService):
           1. :meth:`_parse_kwargs`            参数校验 + group / ticket 反序列化
           2. :meth:`_load_ctx_dict`           读取上游进程扫描 <ctx> dict
           3. :meth:`_classify_hosts`          逐台机器跑 F1/F2/F3/F4 并产出单机结论
-          4+5. :meth:`_classify_group`        G1 组一致性 + 组决策 + 组级日志 + MANUAL warning
+          6+5. :meth:`_classify_group`        G1 组一致性 + 组决策 + 组级日志 + MANUAL warning
           6. :meth:`_write_trans_data`        把 GroupVerdict 写回 trans_data
-          6.5. :meth:`_pre_declare_flow_summary` GROUP_RECYCLE 时写 FlowSummary 预申报
-          7. :meth:`_emit_manual_failure_log` GROUP_MANUAL 时输出失败引导日志并 return False
+          6.5. :meth:`_pre_declare_flow_summary` GROUP_RECYCLE 时写 FlowSummary 预申报（失败则节点失败）
+          7. :meth:`_emit_non_recycle_failure_log` 非 GROUP_RECYCLE 时输出失败引导日志并 return False
 
         :param data: bamboo 节点数据对象
         :param parent_data: bamboo 父节点数据对象（不使用）
-        :return: True 判定完成；False 表示节点失败（关键字段缺失 / GROUP_MANUAL 主动挂起）
+        :return: True 判定完成且本组可退回（GROUP_RECYCLE）；False 表示节点失败
+            （关键字段缺失 / FlowSummary 写入异常 / 非 GROUP_RECYCLE 主动失败供人工确认）
         边界：
           - 任一关键字段缺失 / 反序列化失败 -> 对应子方法 log error 后 return False，节点失败
           - 单机 F 判据 / 组级 G1 判据的所有异常均在下层收敛为 FactState.UNKNOWN，不上抛到本方法
@@ -197,12 +202,16 @@ class ResourceGroupJudgeService(BaseService):
             return False
 
         # ---- 6.5 FlowSummary 预申报写入（仅 GROUP_RECYCLE 触发）----
-        if gv.decision == GroupDecision.GROUP_RECYCLE:
-            self._pre_declare_flow_summary(data=data, gv=gv, group=group)
+        if gv.decision == GroupDecision.GROUP_RECYCLE and not self._pre_declare_flow_summary(
+            data=data, gv=gv, group=group
+        ):
+            return False
 
-        # ---- 7. GROUP_MANUAL 时主动失败，供 DBA 在 pipeline UI 人工确认 ----
-        if gv.decision == GroupDecision.GROUP_MANUAL:
-            self._emit_manual_failure_log(gv)
+        # ---- 7. 非 GROUP_RECYCLE 一律主动失败，供 DBA 在 pipeline UI 人工确认 ----
+        # 流程唯一目的是主机退回：MANUAL/SKIP/KEEP 均表示本组主机不能自动退回，
+        # 显式失败告知用户结论与原因，避免静默成功让用户对结果产生疑问
+        if gv.decision != GroupDecision.GROUP_RECYCLE:
+            self._emit_non_recycle_failure_log(gv)
             return False
 
         return True
@@ -507,7 +516,7 @@ class ResourceGroupJudgeService(BaseService):
             self.log_error(_("[{}] 写入 trans_data 失败: {}").format(node_name, err))
             return False
 
-    def _pre_declare_flow_summary(self, *, data: Any, gv: GroupVerdict, group: ResourceGroup) -> None:
+    def _pre_declare_flow_summary(self, *, data: Any, gv: GroupVerdict, group: ResourceGroup) -> bool:
         """GROUP_RECYCLE 判决下预申报 FlowSummary（全量写入本组 units）。
 
         设计意图：
@@ -515,12 +524,16 @@ class ResourceGroupJudgeService(BaseService):
           - 按 ``gv.verdicts`` 全量组装 summary_hosts；GROUP_RECYCLE 契约保证组内所有
             units 均需退回资源池，不做任何子状态过滤（例如不再按 F3 元数据残留筛子集）；
             语义为 "决策派发" 而非 "清理完成"。
-          - 失败策略：insert_data 异常仅记 ERROR + logger.exception，不改判、不 return False；
-            判决本身已成功产出，摘要表追加失败走人工兜底。
+
+        失败策略：
+          - insert_data 异常记 ERROR + logger.exception 后 return False，节点失败交给上层
+            （bamboo / DBA）判断处置；重试本节点时 insert_data 按表主键合并（ignore_conflict），
+            天然幂等不会产生重复记录。
 
         :param data: bamboo 节点数据对象（用于取 global_data.job_root_id）
         :param gv: 组决策结果（必须是 GROUP_RECYCLE）
         :param group: 本组资源组（用于日志 group_id）
+        :return: True 写入成功；False 主机列表为空（与 GROUP_RECYCLE 契约矛盾）或写入异常，节点应失败
         """
         # GROUP_RECYCLE 契约：verdicts 覆盖本组所有 units，全量写入 FlowSummary
         summary_hosts: List[Dict[str, Any]] = [
@@ -532,8 +545,12 @@ class ResourceGroupJudgeService(BaseService):
             for v in gv.verdicts
         ]
         if not summary_hosts:
-            # 防御性保护：GroupVerdict.__post_init__ 已校验 verdicts 数量 == group.units 数量，理论不可达
-            return
+            # GROUP_RECYCLE 契约下 verdicts 为空属于数据异常：GroupVerdict.__post_init__
+            # 已校验 verdicts 数量 == group.units 数量，走到这里说明组本身无 units 或数据被篡改
+            self.log_error(
+                _("[FlowSummary] 预申报主机列表为空，与 GROUP_RECYCLE 判决矛盾 · group_id={gid} · 请检查上游数据").format(gid=group.group_id)
+            )
+            return False
 
         global_data: Dict[str, Any] = data.get_one_of_inputs("global_data") or {}
         # root_id 优先取 global_data["job_root_id"]（与旧惯例对齐），缺失回退 self.root_id
@@ -545,36 +562,46 @@ class ResourceGroupJudgeService(BaseService):
             self.log_info(
                 _("[FlowSummary] 预申报本组待退回机器 {n} 台 · group_id={gid}").format(n=len(summary_hosts), gid=group.group_id)
             )
+            return True
         except Exception as err:
-            # insert_data 失败不阻塞主流程：判决已成功产出，仅摘要表追加失败
+            # 写入异常：节点失败交由上层/DBA 判断处置（重试幂等，不会重复写入）
             self.log_error(
-                _("[FlowSummary] 追加失败：{err} · group_id={gid} · 需人工确认摘要表").format(err=err, gid=group.group_id)
+                _("[FlowSummary] 追加失败：{err} · group_id={gid} · 节点失败，请重试或人工确认摘要表").format(err=err, gid=group.group_id)
             )
             logger.exception(err)
+            return False
 
-    def _emit_manual_failure_log(self, gv: GroupVerdict) -> None:
-        """GROUP_MANUAL 判决下输出失败引导日志（配合 _execute return False）。
+    def _emit_non_recycle_failure_log(self, gv: GroupVerdict) -> None:
+        """非 GROUP_RECYCLE 判决（MANUAL/SKIP/KEEP）下输出失败引导日志（配合 _execute return False）。
 
         设计意图：
-          - GROUP_MANUAL 的语义本就是 \"不能自动判断该否清理\"，需 DBA 介入
+          - 流程的唯一目的是主机退回；GROUP_MANUAL/GROUP_SKIP/GROUP_KEEP 均意味着
+            本组主机**不能自动退回**，若静默成功用户会对"机器为什么没退回"产生疑问，
+            因此统一显式失败，把结论与原因完整呈现给用户
           - bamboo 尚未接入独立的 Pause 人工确认节点，目前用 return False 代替：
               * DBA 在 pipeline UI 看到判定节点 FAILED，点开可读到完整的单机日志块 + 组级结论
               * DBA 确认后可选：处置完外部问题后 \"重试\" / 直接 \"跳过\" 本节点
           - 该失败不影响已写入的 trans_data（_write_trans_data 已提前落盘）
 
-        :param gv: 组决策结果（必须是 GROUP_MANUAL）
+        :param gv: 组决策结果（非 GROUP_RECYCLE）
         """
         self.log_error(
             _(
                 "\n{sep}\n"
-                "本组判定结果为【整组挂起（GROUP_MANUAL）】，节点主动失败供人工确认\n"
+                "本组判定结果为【{decision}】，主机不可自动退回，节点主动失败供人工确认\n"
                 "  原因：{reason}\n"
                 "  处置指引：\n"
-                "    1) 查看上方单机日志块（标题行含主机 IP），确认具体异常机器\n"
-                "    2) 外部频道处理异常（如手动摘除 DNS / 确认机器归属 / 手动清理残留进程）\n"
-                "    3) 处理完后在 pipeline 上点击【重试】本节点；若确认无需回收可直接点击【跳过】\n"
+                "    1) 查看上方单机日志块（标题行含主机 IP），确认具体机器结论\n"
+                "    2) GROUP_SKIP（不属于本单据）/ GROUP_KEEP（仍在服务）属正常业务结论：\n"
+                "       确认无误后可直接在 pipeline 上点击【跳过】本节点\n"
+                "    3) GROUP_MANUAL（无法自动判断）：处置外部问题（如手动摘除 DNS / 确认机器归属 /\n"
+                "       手动清理残留进程）后在 pipeline 上点击【重试】本节点\n"
                 "{sep}"
-            ).format(sep="━" * 60, reason=extract_decision_reason(gv.reason))
+            ).format(
+                sep="━" * 60,
+                decision=group_decision_zh(gv.decision.value),
+                reason=extract_decision_reason(gv.reason),
+            )
         )
 
     def log_warning(self, msg: str) -> None:
