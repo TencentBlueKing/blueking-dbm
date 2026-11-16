@@ -36,6 +36,8 @@ export default class InfluxDBInstance extends InstanceBase {
 
   bk_cloud_id: number;
   bk_cloud_name: string;
+  /** 可用区（后端字段 bk_cloud_zone） */
+  bk_cloud_zone: string;
   bk_host_id: number;
   cpu: number;
   creator: string;
@@ -65,6 +67,7 @@ export default class InfluxDBInstance extends InstanceBase {
     super(payload);
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;
+    this.bk_cloud_zone = payload.bk_cloud_zone;
     this.bk_host_id = payload.bk_host_id;
     this.cpu = payload.cpu;
     this.creator = payload.creator;

@@ -16,6 +16,7 @@ import _ from 'lodash';
 import { getBizs } from '@services/source/cmdb';
 import { fetchMountPoints } from '@services/source/dbresourceResource';
 import { getResourceSpec } from '@services/source/dbresourceSpec';
+import { getInfrasSubzonesByCity } from '@services/source/infras';
 import { getCloudList } from '@services/source/ipchooser';
 
 import { readResourceDbTypes, specialOptionLabelMap, SpecialOptions } from '@common/const';
@@ -24,10 +25,10 @@ import { ipv4 } from '@common/regex';
 import { t } from '@locales/index';
 
 type Config = {
-  component: string;
+  component?: string;
   flex?: number;
   getNameByKey?: (value: string | number, item: any) => string | undefined;
-  label: string;
+  label?: string;
   service?: (params?: any) => Promise<Array<any>> | Promise<any>;
   type: 'number' | 'string' | 'array' | 'rang';
   validator?: (value: any) => boolean | string;
@@ -53,7 +54,8 @@ export default {
   },
   city: {
     component: 'city',
-    label: t('地域 - 园区'),
+    label: t('地域 - 可用区 - 园区'),
+    service: getInfrasSubzonesByCity,
     type: 'string',
   },
   cpu: {
@@ -196,8 +198,6 @@ export default {
     type: 'array',
   },
   subzone_ids: {
-    component: 'city',
-    label: t('地域 - 园区'),
     type: 'array',
   },
 } as Record<string, Config>;

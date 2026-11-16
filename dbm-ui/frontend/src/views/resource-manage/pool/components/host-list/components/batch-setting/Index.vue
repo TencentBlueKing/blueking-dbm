@@ -136,7 +136,7 @@
   > = {
     city_meta: {
       content: City,
-      label: t('地域'),
+      label: t('城市'),
       type: 'number',
     },
     device_class: {

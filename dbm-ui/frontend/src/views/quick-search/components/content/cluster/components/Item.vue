@@ -96,11 +96,11 @@
           </template>
         </TableColumn>
         <TableColumn
-          col-key="region"
+          col-key="bk_cloud_region"
           :title="t('地域')"
           :width="150">
           <template #default="{ row }: { row: QuickSearchClusterModel }">
-            {{ row.region || '--' }}
+            {{ row.bk_cloud_region || '--' }}
           </template>
         </TableColumn>
         <TableColumn
@@ -310,7 +310,7 @@
           { label: t('访问入口'), value: dataItem.dispalyEntryList.map((entryItem) => entryItem.entry).join('\n') },
           { label: t('架构类型'), value: dataItem.cluster_type },
           { label: t('版本'), value: dataItem.major_version },
-          { label: t('地域'), value: dataItem.region },
+          { label: t('地域'), value: dataItem.bk_cloud_region },
           { label: t('所属业务'), value: String(dataItem.bk_biz_id) },
           { label: t('业务名称'), value: props.bizIdNameMap[dataItem.bk_biz_id] },
           { label: t('容灾要求'), value: dataItem.disasterToleranceLevelName },

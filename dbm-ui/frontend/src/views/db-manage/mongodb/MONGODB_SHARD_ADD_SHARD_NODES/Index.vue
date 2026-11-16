@@ -98,6 +98,7 @@
             <AvailableResourceColumn
               :params="{
                 city: item.cluster.region,
+                bk_cloud_zone: item.cluster.cluster_cloud_zones.join(',') || undefined,
                 for_bizs: [currentBizId, 0],
                 resource_types: [DBTypes.MONGODB, 'PUBLIC'],
                 spec_id: item.cluster.mongodb?.[0]?.spec_config.id,
@@ -163,6 +164,7 @@
   export interface IDataRow {
     add_shard_nodes_num: number;
     cluster: {
+      cluster_cloud_zones: string[];
       cluster_type: ClusterTypes;
       cluster_type_name: string;
       current_spec_id: number;
@@ -186,6 +188,7 @@
     add_shard_nodes_num: values.add_shard_nodes_num || 1,
     cluster: Object.assign(
       {
+        cluster_cloud_zones: [] as string[],
         cluster_type: '',
         cluster_type_name: '',
         current_spec_id: 0,

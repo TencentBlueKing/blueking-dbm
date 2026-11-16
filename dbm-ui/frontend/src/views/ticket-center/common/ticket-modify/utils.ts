@@ -37,11 +37,12 @@ export interface DiffOptions {
 // 与改单记录的 change_details 同一结构：提交时算出的变更项原样存储、原样展示
 export type DiffItem = TicketModifyChangeItem;
 
-// 后端在 details 中注入的字段，提交体里没有
-const COMMON_IGNORE_PATHS = ['__ticket_detail__', 'clusters', 'specs'];
+// 后端在 details 中注入的字段，提交体里没有；以及各申请页 formData 顶层残留的表单状态字段，不参与对比
+const COMMON_IGNORE_PATHS = ['__ticket_detail__', 'clusters', 'specs', 'sub_zone_ids', 'sub_zone_names', 'zone_names'];
 
-// 随机园区时 location_spec 不带 sub_zone_ids，在「指定园区」与「随机」之间切换要能比出来
-const COMMON_UNION_PATHS = ['resource_spec.*.location_spec.sub_zone_ids'];
+// 只在一侧出现也要对比：location_spec.sub_zone_ids 随机时为空数组（缺失也可比）；
+// disaster_tolerance_level 部分单据 details 顶层未存，改容灾级别要能比出来
+const COMMON_UNION_PATHS = ['resource_spec.*.location_spec.sub_zone_ids', 'disaster_tolerance_level'];
 
 // 路径与登记项逐段比较，登记项中的 * 匹配任意一段
 const isPathMatch = (path: string, pattern: string) => {
@@ -141,8 +142,13 @@ export const diffDetails = (prev: unknown, next: unknown, options: DiffOptions =
     });
   };
 
-  _.intersection(Object.keys(prevSnapshot), Object.keys(nextSnapshot)).forEach((key) => {
-    walk(prevSnapshot[key], nextSnapshot[key], key);
+  // 顶层只比两侧都有的字段（后端会注入 / 剔除顶层字段）；unionPaths 登记的路径只在一侧出现也参与对比
+  _.union(Object.keys(prevSnapshot), Object.keys(nextSnapshot)).forEach((key) => {
+    const isShared = key in prevSnapshot && key in nextSnapshot;
+    if (!isShared && !unionPaths.some((pattern) => isPathMatch(key, pattern))) {
+      return;
+    }
+    walk(prevSnapshot[key], nextSnapshot[key], key, !isShared);
   });
 
   return result;

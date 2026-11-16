@@ -4,12 +4,12 @@ import { useI18n } from 'vue-i18n';
 
 import { queryDirtyMachineAttrs } from '@services/source/dbbase';
 
-import { specialOptionLabelMap, SpecialOptions } from '@common/const';
+import { getCloudZoneName, specialOptionLabelMap, SpecialOptions } from '@common/const';
 import { ipPort, ipv4 } from '@common/regex';
 
 import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
 
-const dirtyMachineAttrs = ['city', 'sub_zone', 'os_name', 'device_class'] as const;
+const dirtyMachineAttrs = ['bk_cloud_zone', 'city', 'os_name', 'sub_zone', 'device_class', 'bk_cloud_region'] as const;
 
 export const useQuickSearch = (
   pool: ComputedRef<NonNullable<ServiceParameters<typeof queryDirtyMachineAttrs>['pool']>>,
@@ -25,7 +25,7 @@ export const useQuickSearch = (
       pool: pool.value,
     }).then((data) => {
       const formatList = data[attr].map((item) => ({
-        label: item.text,
+        label: attr === 'bk_cloud_zone' ? getCloudZoneName(item.value) : item.text,
         value: item.value,
       }));
 
@@ -56,7 +56,19 @@ export const useQuickSearch = (
     {
       id: 'city',
       name: t('地域'),
+      remoteMethod: () => getDirtyMachineAttrs('bk_cloud_region'),
+      type: 'multiple',
+    },
+    {
+      id: 'city',
+      name: t('城市'),
       remoteMethod: () => getDirtyMachineAttrs('city'),
+      type: 'multiple',
+    },
+    {
+      id: 'bk_cloud_zone',
+      name: t('可用区'),
+      remoteMethod: () => getDirtyMachineAttrs('bk_cloud_zone'),
       type: 'multiple',
     },
     {

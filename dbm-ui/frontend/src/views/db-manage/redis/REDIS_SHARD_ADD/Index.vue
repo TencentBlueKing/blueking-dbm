@@ -81,6 +81,7 @@
             <AvailableResourceColumn
               :params="{
                 city: item.cluster.region,
+                bk_cloud_zone: item.cluster.cluster_cloud_zones.join(',') || undefined,
                 for_bizs: [currentBizId, 0],
                 resource_types: [DBTypes.REDIS, 'PUBLIC'],
                 spec_id: item.cluster.cluster_spec.spec_id,
@@ -142,6 +143,7 @@
     cluster: {
       bk_cloud_id: number;
       cluster_capacity: number;
+      cluster_cloud_zones: string[];
       cluster_shard_num: number;
       cluster_spec: RedisModel['cluster_spec'];
       cluster_stats: RedisModel['cluster_stats'];
@@ -164,6 +166,7 @@
       {
         bk_cloud_id: 0,
         cluster_capacity: 0,
+        cluster_cloud_zones: [] as string[],
         cluster_shard_num: 0,
         cluster_spec: {} as RedisModel['cluster_spec'],
         cluster_stats: {} as RedisModel['cluster_stats'],
@@ -256,7 +259,7 @@
             // ClusterTypes.PREDIXY_TENDISPLUS_INSTANCE,
             // ClusterTypes.TWEMPROXY_TENDIS_SSD_INSTANCE,
             ClusterTypes.PREDIXY_REDIS_CLUSTER,
-          ].join(','),
+          ],
           ...params,
         }),
     },
@@ -293,6 +296,7 @@
           cluster: {
             bk_cloud_id: item.bk_cloud_id,
             cluster_capacity: item.cluster_capacity,
+            cluster_cloud_zones: item.cluster_cloud_zones,
             cluster_shard_num: item.cluster_shard_num,
             cluster_spec: item.cluster_spec,
             cluster_stats: item.cluster_stats,

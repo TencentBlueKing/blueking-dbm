@@ -71,6 +71,7 @@
               @batch-edit="handleBatchEdit" />
             <AvailableResourceColumn
               :params="{
+                bk_cloud_zone: item.batchInstance.bk_cloud_zone || undefined,
                 city: item.batchInstance.region,
                 for_bizs: [currentBizId, 0],
                 resource_types: [DBTypes.REDIS, 'PUBLIC'],
@@ -191,6 +192,7 @@
   const createRowData = (values: DeepPartial<IDataRow> = {}) => ({
     batchInstance: Object.assign(
       {
+        bk_cloud_zone: '',
         current_spec_id: 0,
         instances: {} as IDataRow['batchInstance']['instances'],
         region: '',

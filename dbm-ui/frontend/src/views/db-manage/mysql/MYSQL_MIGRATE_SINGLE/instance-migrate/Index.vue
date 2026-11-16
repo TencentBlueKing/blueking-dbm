@@ -71,7 +71,7 @@
         @batch-edit="handleBatchEdit" />
       <AvailableResourceColumn
         :params="{
-          subzones: item.multipleCluster.subzones,
+          bk_cloud_zone: item.multipleCluster.cloud_zone,
           city: item.multipleCluster.city,
           for_bizs: [currentBizId, 0],
           resource_types: [DBTypes.MYSQL, 'PUBLIC'],
@@ -143,10 +143,10 @@
     multipleCluster: Object.assign(
       {
         city: '',
+        cloud_zone: '',
         clusters: [],
         renderText: '',
         spec_ids: [],
-        subzones: '',
       } as RowData['multipleCluster'],
       data.multipleCluster,
     ),

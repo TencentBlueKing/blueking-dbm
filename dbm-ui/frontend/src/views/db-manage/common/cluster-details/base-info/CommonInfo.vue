@@ -10,8 +10,8 @@
   <InfoItem :label="t('地域')">
     <div>{{ data.regionDisplay }}</div>
   </InfoItem>
-  <InfoItem :label="t('园区')">
-    <div>{{ data.clusterSubzonesDisplay }}</div>
+  <InfoItem :label="t('可用区')">
+    <div>{{ data.clusterZonesDisplay }}</div>
   </InfoItem>
   <slot name="spec">
     <InfoItem :label="t('规格')">

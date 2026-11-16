@@ -83,6 +83,7 @@
   const modelValue = defineModel<{
     bk_biz_id: number;
     bk_cloud_id: number;
+    bk_cloud_zone: string;
     bk_host_id: number;
     bk_idc_city_name: string;
     bk_sub_zone: string;
@@ -158,6 +159,7 @@
         modelValue.value = {
           bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
           bk_cloud_id: currentHost.bk_cloud_id,
+          bk_cloud_zone: currentHost.host_info?.bk_cloud_zone || '',
           bk_host_id: currentHost.bk_host_id,
           bk_idc_city_name: currentHost.host_info?.bk_idc_city_name || '',
           bk_sub_zone: currentHost.host_info?.bk_sub_zone || '',
@@ -181,6 +183,7 @@
     modelValue.value = {
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       bk_cloud_id: 0,
+      bk_cloud_zone: '',
       bk_host_id: 0,
       bk_idc_city_name: '',
       bk_sub_zone: '',

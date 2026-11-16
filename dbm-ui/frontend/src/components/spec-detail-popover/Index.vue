@@ -15,7 +15,15 @@
           <InfoItem
             v-if="typeof data.availableCount === 'number'"
             :label="t('可用主机数')">
-            {{ data.availableCount ?? 0 }}
+            <template v-if="data.availableCountByZone && Object.keys(data.availableCountByZone).length > 0">
+              <!-- 跨可用区/指定可用区时按可用区分组展示（仅统计有可用区信息的主机） -->
+              <div
+                v-for="(count, zoneName) in data.availableCountByZone"
+                :key="zoneName">
+                {{ getCloudZoneName(zoneName) }}：{{ count }}
+              </div>
+            </template>
+            <template v-else>{{ data.availableCount ?? 0 }}</template>
           </InfoItem>
           <InfoItem label="ID">
             {{ data.id || data.spec_id || '--' }}
@@ -82,13 +90,15 @@
 
   import ResourceSpecModel from '@services/model/resource-spec/resourceSpec';
 
-  import { DeviceClass, deviceClassDisplayMap } from '@common/const';
+  import { DeviceClass, deviceClassDisplayMap, getCloudZoneName } from '@common/const';
 
   import SpecInfo, { InfoItem } from './components/Index.vue';
 
   interface Props {
     data: {
       availableCount?: number; // 选择器显示的数量
+      /** 按可用区分组的可用主机数（跨可用区/指定可用区时由 SpecSelector 传入） */
+      availableCountByZone?: Record<string, number>;
       cpu: ResourceSpecModel['cpu'];
       device_class?: ResourceSpecModel['device_class'];
       id?: number;

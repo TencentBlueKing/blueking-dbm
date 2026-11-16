@@ -75,6 +75,7 @@
               @batch-edit="handleBatchEdit" />
             <AvailableResourceColumn
               :params="{
+                bk_cloud_zone: item.host.bk_cloud_zone || undefined,
                 city: item.host.region,
                 for_bizs: [currentBizId, 0],
                 resource_types: [DBTypes.REDIS, 'PUBLIC'],
@@ -154,6 +155,7 @@
 
   interface IDataRow {
     host: {
+      bk_cloud_zone: string;
       bk_host_id: number;
       ip: string;
       region: string;
@@ -174,6 +176,7 @@
   const createRowData = (values: DeepPartial<IDataRow> = {}) => ({
     host: Object.assign(
       {
+        bk_cloud_zone: '',
         bk_host_id: 0,
         ip: '',
         region: '',
@@ -288,6 +291,7 @@
         newList.push(
           createRowData({
             host: {
+              bk_cloud_zone: item.bk_cloud_zone,
               bk_host_id: item.bk_host_id,
               ip: item.ip,
               region: item.host_info.bk_idc_city_name,

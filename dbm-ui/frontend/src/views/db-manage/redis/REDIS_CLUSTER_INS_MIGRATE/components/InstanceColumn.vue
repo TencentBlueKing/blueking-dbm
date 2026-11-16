@@ -86,6 +86,7 @@
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
+    bk_cloud_zone: string;
     current_spec_id: number;
     instances: Record<
       string,
@@ -239,6 +240,10 @@
               modelValue.value.instances = instances;
               modelValue.value.current_spec_id = instanceCheckList[0].spec_config.id;
               modelValue.value.region = instanceCheckList[0].related_clusters[0].region;
+              // 实例所属可用区（多个去重后逗号连接；接口未返回时为空不传）
+              modelValue.value.bk_cloud_zone = _.uniq(
+                instanceCheckList.map((item) => item.bk_cloud_zone).filter(Boolean),
+              ).join(',');
             }
           })
           .finally(() => {
@@ -261,6 +266,7 @@
 
   const handleInputChange = (value: string) => {
     modelValue.value = {
+      bk_cloud_zone: '',
       current_spec_id: 0,
       instances: {},
       region: '',

@@ -75,7 +75,7 @@ export default function () {
       },
       {
         field: 'city',
-        label: t('地域'),
+        label: t('城市'),
       },
       {
         field: 'sub_zone',

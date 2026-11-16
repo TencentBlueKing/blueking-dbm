@@ -50,6 +50,7 @@
             <AvailableResourceColumn
               :params="{
                 city: item.cluster.region,
+                bk_cloud_zone: item.cluster.cluster_cloud_zones.join(',') || undefined,
                 for_bizs: [currentBizId, 0],
                 resource_types: [DBTypes.MONGODB, 'PUBLIC'],
                 spec_id: item.target_capacity.resource_spec.mongodb.spec_id,
@@ -107,6 +108,7 @@
     cluster: {
       bk_biz_id: number;
       bk_cloud_id: number;
+      cluster_cloud_zones: string[];
       cluster_name: string;
       cluster_type: ClusterTypes;
       disaster_tolerance_level: string;
@@ -140,6 +142,7 @@
       {
         bk_biz_id: 0,
         bk_cloud_id: 0,
+        cluster_cloud_zones: [] as string[],
         cluster_name: '',
         cluster_type: '',
         disaster_tolerance_level: '',

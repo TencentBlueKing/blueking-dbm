@@ -79,7 +79,7 @@
             <AvailableResourceColumn
               :params="{
                 city: item.slave.city,
-                subzones: item.slave.subzones,
+                bk_cloud_zone: item.slave.bk_cloud_zone,
                 for_bizs: [currentBizId, 0],
                 resource_types: [DBTypes.MYSQL, 'PUBLIC'],
                 spec_id: item.specId,
@@ -184,13 +184,13 @@
       {
         bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
         bk_cloud_id: 0,
+        bk_cloud_zone: '',
         bk_host_id: 0,
         city: '',
         ip: '',
         related_clusters: [] as RowData['slave']['related_clusters'],
         role: '',
         spec_id: 0,
-        subzones: '',
       },
       data.slave,
     ),

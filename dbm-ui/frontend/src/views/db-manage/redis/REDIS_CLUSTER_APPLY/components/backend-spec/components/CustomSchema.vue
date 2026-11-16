@@ -11,6 +11,7 @@
         :city="cityCode"
         :cloud-id="cloudId"
         cluster-type="redis"
+        :disaster-tolerance-level="disasterToleranceLevel"
         :machine-type="machineType"
         style="width: 314px"
         :subzone-ids="subzoneIds" />
@@ -20,8 +21,7 @@
       :biz-id="bizId"
       :params="{
         city: cityName,
-        subzones: subzoneNames.join('，'),
-        subzone_ids: subzoneIds.join(','),
+        bk_cloud_zone: subzoneIds.join(',') || undefined,
         for_bizs: bizId ? [bizId, 0] : [0],
         resource_types: [DBTypes.REDIS, 'PUBLIC'],
         spec_id: Number(modelValue.spec_id),
@@ -98,10 +98,10 @@
     cityName: string;
     cloudId: number | string;
     clusterType: string;
+    disasterToleranceLevel: string;
     machineType: string;
     shardNumDisabled?: boolean;
-    subzoneIds: number[];
-    subzoneNames: string[];
+    subzoneIds: number[] | string[];
   }
 
   interface ModelValue {

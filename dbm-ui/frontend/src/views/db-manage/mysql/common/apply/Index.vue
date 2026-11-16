@@ -209,6 +209,7 @@
                       :city="formData.details.city_code"
                       :cloud-id="formData.details.bk_cloud_id"
                       cluster-type="mysql"
+                      :disaster-tolerance-level="formData.details.disaster_tolerance_level"
                       machine-type="backend"
                       :subzone-ids="formData.details.sub_zone_ids" />
                   </BkFormItem>
@@ -217,8 +218,7 @@
                     :biz-id="formData.bk_biz_id"
                     :params="{
                       city: formData.details.city_name,
-                      subzones: formData.details.sub_zone_names.join('，'),
-                      subzone_ids: formData.details.sub_zone_ids.join(','),
+                      bk_cloud_zone: formData.details.sub_zone_ids.join(',') || undefined,
                       for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
                       resource_types: [DBTypes.MYSQL, 'PUBLIC'],
                       spec_id: Number(formData.details.resource_spec.single.spec_id),
@@ -243,6 +243,7 @@
                         :city="formData.details.city_code"
                         :cloud-id="formData.details.bk_cloud_id"
                         cluster-type="mysql"
+                        :disaster-tolerance-level="formData.details.disaster_tolerance_level"
                         machine-type="proxy"
                         :subzone-ids="formData.details.sub_zone_ids" />
                     </BkFormItem>
@@ -251,8 +252,7 @@
                       :biz-id="formData.bk_biz_id"
                       :params="{
                         city: formData.details.city_name,
-                        subzones: formData.details.sub_zone_names.join('，'),
-                        subzone_ids: formData.details.sub_zone_ids.join(','),
+                        bk_cloud_zone: formData.details.sub_zone_ids.join(',') || undefined,
                         for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
                         resource_types: [DBTypes.MYSQL, 'PUBLIC'],
                         spec_id: Number(formData.details.resource_spec.proxy.spec_id),
@@ -287,6 +287,7 @@
                         :city="formData.details.city_code"
                         :cloud-id="formData.details.bk_cloud_id"
                         cluster-type="mysql"
+                        :disaster-tolerance-level="formData.details.disaster_tolerance_level"
                         machine-type="backend"
                         :subzone-ids="formData.details.sub_zone_ids" />
                     </BkFormItem>
@@ -295,8 +296,7 @@
                       :biz-id="formData.bk_biz_id"
                       :params="{
                         city: formData.details.city_name,
-                        subzones: formData.details.sub_zone_names.join('，'),
-                        subzone_ids: formData.details.sub_zone_ids.join(','),
+                        bk_cloud_zone: formData.details.sub_zone_ids.join(',') || undefined,
                         for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
                         resource_types: [DBTypes.MYSQL, 'PUBLIC'],
                         spec_id: Number(formData.details.resource_spec.backend.spec_id),
@@ -483,8 +483,7 @@
       spec: '',
       start_mysql_port: 20000,
       start_proxy_port: 10000,
-      sub_zone_ids: [] as number[],
-      sub_zone_names: [] as string[],
+      sub_zone_ids: [] as string[],
     },
     remark: '',
     ticket_type: ticketType,
@@ -525,6 +524,7 @@
 
     if (details.ip_source === 'resource_pool') {
       const { backend } = details.resource_spec!;
+      // 可用区改造后 sub_zone_ids 存可用区名称；历史单据为园区数字 id，回填时降级为随机
       const subzoneIds = backend.location_spec.sub_zone_ids || [];
       const labels = (backend.labels || []).map((labelItem, labelIndex) => ({
         id: Number(labelItem),
@@ -931,7 +931,7 @@
       return {
         charset,
         deployStructure: clusterTypeInfos[clusterType].name,
-        disasterDefence: t('同城跨园区'),
+        disasterDefence: t('同城跨可用区'),
         domain: `${domainInfo.masterDomain.prefix}${key || '{' + t('集群标识') + '}'}${domainInfo.masterDomain.suffix}`,
         slaveDomain: `${domainInfo.slaveDomain?.prefix}${key || '{' + t('集群标识') + '}'}${domainInfo.slaveDomain?.suffix}`,
         spec: hostSpecInfo.value ? `${hostSpecInfo.value.cpu}/${hostSpecInfo.value.mem}` : '',

@@ -71,7 +71,7 @@
           <AvailableResourceColumn
             :params="{
               city: item.city,
-              subzones: item.subzones,
+              bk_cloud_zone: item.cloud_zone,
               for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.MYSQL, 'PUBLIC'],
               spec_id: item.specId,
@@ -128,11 +128,11 @@
 
   interface RowData {
     city: string;
+    cloud_zone: string;
     cluster: ComponentProps<typeof WithRelatedClustersColumn>['modelValue'];
     count: string;
     labels: ComponentProps<typeof ResourceTagColumn>['modelValue'];
     specId: number;
-    subzones: string;
   }
 
   const { t } = useI18n();
@@ -143,6 +143,7 @@
 
   const createTableRow = (data: DeepPartial<RowData> = {}) => ({
     city: data.city || '',
+    cloud_zone: data.cloud_zone || '',
     cluster: Object.assign(
       {
         cluster_type: ClusterTypes.TENDBHA,
@@ -156,7 +157,6 @@
     count: data.count || '',
     labels: (data.labels || []) as RowData['labels'],
     specId: data.specId || 0,
-    subzones: data.subzones || '',
   });
 
   const defaultData = () => ({
@@ -220,12 +220,12 @@
 
   const handleInputFinish = (item: RowData) => {
     const region = item.cluster.region;
-    const subzones = item.cluster.cluster_subzones;
+    const zones = item.cluster.cluster_cloud_zones;
     Object.assign(item, {
       city: region && region !== 'default' ? region : '',
+      cloud_zone: zones?.join(',') || '',
       // 默认目标数量 = 当前数量
       count: item.count || String(item.cluster.proxies?.length || ''),
-      subzones: subzones?.join(',') || '',
     });
   };
 

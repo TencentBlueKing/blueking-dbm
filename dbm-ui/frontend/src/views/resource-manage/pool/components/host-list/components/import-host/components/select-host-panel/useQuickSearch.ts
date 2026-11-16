@@ -12,11 +12,21 @@ export const useQuickSearch = () => {
   const isSearching = computed(() => Object.keys(quickSearchValue.value).length > 0);
 
   const quickSearchData = [
+    // {
+    //   id: 'bk_cloud_region',
+    //   name: t('地域'),
+    //   type: 'input',
+    // },
     {
       id: 'bk_idc_city_name',
-      name: t('地域'),
+      name: t('城市'),
       type: 'input',
     },
+    // {
+    //   id: 'bk_cloud_zone',
+    //   name: t('可用区'),
+    //   type: 'input',
+    // },
     {
       id: 'bk_sub_zone',
       name: t('园区'),

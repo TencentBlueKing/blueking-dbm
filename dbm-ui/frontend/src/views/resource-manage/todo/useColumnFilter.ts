@@ -4,7 +4,7 @@ import { useRequest } from 'vue-request';
 
 import { queryDirtyMachineAttrs } from '@services/source/dbbase';
 
-import { specialOptionLabelMap, SpecialOptions } from '@common/const';
+import { getCloudZoneName, specialOptionLabelMap, SpecialOptions } from '@common/const';
 
 import DatetimeRange from '@components/db-table/components/DatetimeRange.vue';
 import MultipleInput from '@components/db-table/components/MultipleInput.vue';
@@ -12,7 +12,7 @@ import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
 
 import { t } from '@/locales';
 
-const dirtyMachineAttrs = ['city', 'sub_zone', 'os_name', 'device_class'] as const;
+const dirtyMachineAttrs = ['city', 'sub_zone', 'os_name', 'device_class', 'bk_cloud_zone', 'bk_cloud_region'] as const;
 
 export const useColumnFilter = (pool: ComputedRef<ServiceParameters<typeof queryDirtyMachineAttrs>['pool']>) => {
   const baseFilter = {
@@ -100,7 +100,7 @@ export const useColumnFilter = (pool: ComputedRef<ServiceParameters<typeof query
         (res, attr) => {
           const getList = () => {
             const formatList = (result[attr] || []).map((item) => ({
-              label: item.text,
+              label: attr === 'bk_cloud_zone' ? getCloudZoneName(item.value) : item.text,
               value: item.value,
             }));
 

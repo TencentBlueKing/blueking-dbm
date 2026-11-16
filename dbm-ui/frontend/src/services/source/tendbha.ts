@@ -203,6 +203,8 @@ export function exportTendbhaInstanceToExcel(params: { bk_host_ids?: number[] })
 export function getTendbhaMachineList(params: {
   bk_agent_id?: string;
   bk_cloud_id?: number;
+  bk_cloud_region?: string;
+  bk_cloud_zone?: string;
   bk_host_id?: number;
   bk_os_name?: string;
   creator?: string;

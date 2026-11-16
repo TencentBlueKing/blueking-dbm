@@ -13,11 +13,11 @@ export enum Affinity {
 export const affinityMap: {
   [x in Affinity]?: string;
 } = {
-  [Affinity.CROS_SUBZONE]: t('跨园区'),
+  [Affinity.CROS_SUBZONE]: t('跨可用区'),
   [Affinity.CROSS_RACK]: t('跨机架'),
   [Affinity.MAX_EACH_ZONE_EQUAL]: t('尽量分散'),
   [Affinity.NONE]: t('无'),
-  [Affinity.SAME_SUBZONE_CROSS_SWTICH]: t('指定园区'),
+  [Affinity.SAME_SUBZONE_CROSS_SWTICH]: t('指定可用区'),
   // SAME_SUBZONE: t('同城同园区'), // 弃用
 };
 
@@ -25,8 +25,8 @@ export const mongodbAffinityMap: {
   [x in Affinity]?: string;
 } = {
   [Affinity.CROSS_RACK]: t('跨机架'),
-  [Affinity.CROSS_SUBZONE_STRONG]: t('跨园区（强）'),
-  [Affinity.CROSS_SUBZONE_WEAK]: t('跨园区（弱）'),
+  [Affinity.CROSS_SUBZONE_STRONG]: t('跨可用区（强）'),
+  [Affinity.CROSS_SUBZONE_WEAK]: t('跨可用区（弱）'),
   [Affinity.NONE]: t('无'),
-  [Affinity.SAME_SUBZONE_CROSS_SWTICH]: t('指定园区'),
+  [Affinity.SAME_SUBZONE_CROSS_SWTICH]: t('指定可用区'),
 };

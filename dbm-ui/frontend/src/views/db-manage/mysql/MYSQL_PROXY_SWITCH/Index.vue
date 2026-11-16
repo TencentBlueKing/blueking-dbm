@@ -48,7 +48,7 @@
           <AvailableResourceColumn
             :params="{
               city: item.originProxy.city,
-              subzones: item.originProxy.subzones,
+              bk_cloud_zone: item.originProxy.bk_cloud_zone,
               for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.MYSQL, 'PUBLIC'],
               spec_id: item.specId,
@@ -148,6 +148,7 @@
     originProxy: Object.assign(
       {
         bk_cloud_id: 0,
+        bk_cloud_zone: '',
         bk_host_id: 0,
         city: '',
         ip: '',
@@ -156,7 +157,6 @@
         role: '',
         spec_config: {},
         spec_id_list: [],
-        subzones: '',
       } as unknown as RowData['originProxy'],
       data.originProxy,
     ),

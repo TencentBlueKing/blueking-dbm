@@ -76,6 +76,7 @@
                   :city="formData.details.city_code"
                   :cloud-id="formData.details.bk_cloud_id"
                   cluster-type="tendbcluster"
+                  :disaster-tolerance-level="formData.details.disaster_tolerance_level"
                   machine-type="proxy"
                   :subzone-ids="formData.details.sub_zone_ids" />
               </BkFormItem>
@@ -84,8 +85,7 @@
                 :biz-id="formData.bk_biz_id"
                 :params="{
                   city: formData.details.city_name,
-                  subzones: formData.details.sub_zone_names.join('，'),
-                  subzone_ids: formData.details.sub_zone_ids.join(','),
+                  bk_cloud_zone: formData.details.sub_zone_ids.join(',') || undefined,
                   for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
                   resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
                   spec_id: Number(formData.details.resource_spec.spider.spec_id),
@@ -129,9 +129,9 @@
               :city-name="formData.details.city_name"
               :cloud-id="formData.details.bk_cloud_id"
               db-type="tendbcluster"
+              :disaster-tolerance-level="formData.details.disaster_tolerance_level"
               machine-type="backend"
-              :subzone-ids="formData.details.sub_zone_ids"
-              :subzone-names="formData.details.sub_zone_names" />
+              :subzone-ids="formData.details.sub_zone_ids" />
           </BkFormItem>
         </DbCard>
         <DbCard :title="t('补充信息')">
@@ -268,8 +268,7 @@
         },
       },
       spider_port: 25000,
-      sub_zone_ids: [] as number[],
-      sub_zone_names: [] as string[],
+      sub_zone_ids: [] as string[],
     },
     remark: '',
     ticket_type: TicketTypes.TENDBCLUSTER_APPLY,

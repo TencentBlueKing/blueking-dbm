@@ -94,12 +94,21 @@
         </template>
       </TableColumn>
       <TableColumn
-        col-key="city"
-        :filter="columnFilter?.city"
+        col-key="bk_cloud_region"
+        :filter="columnFilter?.bk_cloud_region"
         :title="t('地域')"
         :width="80">
         <template #default="{ row }: { row: FaultOrRecycleMachineModel }">
-          {{ row.city || '--' }}
+          {{ row.bk_cloud_region || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="bk_cloud_zone"
+        :filter="columnFilter?.bk_cloud_zone"
+        :title="t('可用区')"
+        :width="90">
+        <template #default="{ row }: { row: FaultOrRecycleMachineModel }">
+          {{ getCloudZoneName(row.bk_cloud_zone) || t('未知') }}
         </template>
       </TableColumn>
       <TableColumn
@@ -223,6 +232,7 @@
 
   import { useTableSettings } from '@hooks';
 
+  import { getCloudZoneName } from '@common/const';
   import { UserPersonalSettings } from '@common/const/userPersonalSettings';
 
   import DbStatus from '@components/db-status/index.vue';

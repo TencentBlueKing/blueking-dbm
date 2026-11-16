@@ -14,6 +14,7 @@ import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-q
 
 const clusterAttrs = [
   'bk_cloud_id',
+  'bk_cloud_region',
   'db_module_id',
   'major_version',
   'region',
@@ -169,8 +170,14 @@ export const useClusterQuickSearch = (cluster_type: ClusterTypes | ClusterTypes[
         type: 'multiple',
       },
       {
-        id: 'region',
+        id: 'bk_cloud_region',
         name: t('地域'),
+        remoteMethod: () => getBizClusterAttrs('bk_cloud_region'),
+        type: 'multiple',
+      },
+      {
+        id: 'region',
+        name: t('城市'),
         remoteMethod: () => getBizClusterAttrs('region'),
         type: 'multiple',
       },

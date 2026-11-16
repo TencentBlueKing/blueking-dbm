@@ -224,10 +224,20 @@
         </template>
       </TableColumn>
       <TableColumn
-        col-key="city"
+        col-key="bk_cloud_region"
         :title="t('地域')"
-        :width="80">
-        <template #default="{ row }: { row: DbResourceModel }">{{ row.city || '--' }}</template>
+        :width="150">
+        <template #default="{ row }: { row: DbResourceModel }">
+          {{ row.bk_cloud_region || '--' }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="bk_cloud_zone"
+        :title="t('可用区')"
+        :width="90">
+        <template #default="{ row }: { row: DbResourceModel }">
+          {{ getCloudZoneName(row.bk_cloud_zone) || t('未知') }}
+        </template>
       </TableColumn>
       <TableColumn
         col-key="sub_zone"
@@ -360,7 +370,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { TicketTypes } from '@common/const';
+  import { getCloudZoneName, TicketTypes } from '@common/const';
   import { UserPersonalSettings } from '@common/const/userPersonalSettings';
 
   import DbIcon from '@components/db-icon';
@@ -407,9 +417,10 @@
   const colKeyToExportIds: Record<string, string[]> = {
     agent_status: ['agent_status'],
     bk_cloud_name: ['bk_cloud_name'],
+    bk_cloud_region: ['bk_cloud_region'],
+    bk_cloud_zone: ['bk_cloud_zone'],
     bk_cpu: ['bk_cpu'],
     bkMemText: ['bk_mem'],
-    city: ['city'],
     createTimeDisplay: ['create_time'],
     device_class: ['device_class'],
     ip: ['ip'],
@@ -430,7 +441,8 @@
     { id: 'bk_biz_name', name: t('所属业务') },
     { id: 'resource_type', name: t('所属DB') },
     { id: 'labels', name: t('资源标签') },
-    { id: 'city', name: t('地域') },
+    { id: 'bk_cloud_region', name: t('地域') },
+    { id: 'bk_cloud_zone', name: t('可用区') },
     { id: 'sub_zone', name: t('园区') },
     { id: 'rack_id', name: t('机架') },
     { id: 'same_svr_owner_count', name: t('同母机台数') },

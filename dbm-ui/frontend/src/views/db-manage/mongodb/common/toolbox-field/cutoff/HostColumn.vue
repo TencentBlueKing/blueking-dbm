@@ -71,6 +71,7 @@
 
   const modelValue = defineModel<{
     bk_cloud_id: number;
+    bk_cloud_zone: string;
     bk_host_id?: number;
     cluster_id: number;
     cluster_type: MongodbInstanceModel['cluster_type'];
@@ -86,6 +87,7 @@
   }>({
     default: () => ({
       bk_cloud_id: 0,
+      bk_cloud_zone: '',
       bk_host_id: 0,
       cluster_id: 0,
       cluster_type: ClusterTypes.MONGO_REPLICA_SET as MongodbInstanceModel['cluster_type'],

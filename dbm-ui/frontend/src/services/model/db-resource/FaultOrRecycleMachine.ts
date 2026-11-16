@@ -29,6 +29,10 @@ export default class FaultOrRecycleMachine {
   agent_status: number;
   bk_biz_id: number;
   bk_cloud_id: number;
+  /** 地域（后端独立字段，与 city 无映射） */
+  bk_cloud_region: string;
+  /** 可用区（后端字段 bk_cloud_zone） */
+  bk_cloud_zone: string;
   bk_cpu: number;
   bk_disk: number;
   bk_host_id: number;
@@ -58,6 +62,7 @@ export default class FaultOrRecycleMachine {
   ticket: string;
   update_at: string;
   updater: string;
+  zone_id: string;
 
   constructor(payload = {} as FaultOrRecycleMachine) {
     this.agent_status = payload.agent_status;
@@ -80,6 +85,9 @@ export default class FaultOrRecycleMachine {
     this.ticket = payload.ticket;
     this.update_at = payload.update_at;
     this.updater = payload.updater;
+    this.bk_cloud_region = payload.bk_cloud_region || '--';
+    this.bk_cloud_zone = payload.bk_cloud_zone || '--';
+    this.zone_id = payload.zone_id || '';
   }
 
   get bkMemText() {

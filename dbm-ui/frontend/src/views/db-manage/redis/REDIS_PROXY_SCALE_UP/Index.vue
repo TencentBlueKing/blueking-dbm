@@ -86,6 +86,7 @@
             <AvailableResourceColumn
               :params="{
                 city: item.cluster.region,
+                bk_cloud_zone: item.cluster.cluster_cloud_zones.join(',') || undefined,
                 for_bizs: [currentBizId, 0],
                 resource_types: [DBTypes.REDIS, 'PUBLIC'],
                 spec_id: item.spec_id,
@@ -146,6 +147,7 @@
     add_proxy_count: number;
     cluster: {
       bk_cloud_id: number;
+      cluster_cloud_zones: string[];
       cluster_spec: {
         id: number;
       };
@@ -165,6 +167,7 @@
     cluster: Object.assign(
       {
         bk_cloud_id: 0,
+        cluster_cloud_zones: [] as string[],
         cluster_spec: {
           id: 0,
         },
@@ -275,6 +278,7 @@
         createRowData({
           cluster: {
             bk_cloud_id: item.bk_cloud_id,
+            cluster_cloud_zones: item.cluster_cloud_zones,
             cluster_spec: item.cluster_spec,
             cluster_type: item.cluster_type,
             cluster_type_name: item.cluster_type_name,

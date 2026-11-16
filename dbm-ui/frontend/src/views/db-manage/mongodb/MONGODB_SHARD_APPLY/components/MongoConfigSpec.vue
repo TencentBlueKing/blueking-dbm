@@ -35,8 +35,7 @@
         :biz-id="params.bk_biz_id"
         :params="{
           city: params.city_name,
-          subzones: params.sub_zone_names.join('，'),
-          subzone_ids: params.sub_zone_ids.join(','),
+          bk_cloud_zone: params.sub_zone_ids.join(',') || undefined,
           for_bizs: params.bk_biz_id ? [params.bk_biz_id, 0] : [0],
           resource_types: [DBTypes.MONGODB, 'PUBLIC'],
           spec_id: Number(modelValue.spec_id),
@@ -173,6 +172,7 @@
           :city="params.city_code"
           :cloud-id="params.bk_cloud_id"
           :cluster-type="ClusterTypes.MONGODB"
+          :disaster-tolerance-level="params.disaster_tolerance_level"
           :machine-type="MachineTypes.MONGODB"
           :subzone-ids="params.sub_zone_ids"
           @update:model-value="handleSpecChange" />
@@ -182,7 +182,6 @@
         :biz-id="params.bk_biz_id"
         :params="{
           city: params.city_name,
-          subzones: params.sub_zone_names.join('，'),
           subzone_ids: params.sub_zone_ids.join(','),
           for_bizs: params.bk_biz_id ? [params.bk_biz_id, 0] : [0],
           resource_types: [DBTypes.MONGODB, 'PUBLIC'],
@@ -290,8 +289,8 @@
       bk_cloud_id: number;
       city_code: string;
       city_name: string;
-      sub_zone_ids: number[];
-      sub_zone_names: string[];
+      disaster_tolerance_level: string;
+      sub_zone_ids: string[] | number[];
     };
   }
 

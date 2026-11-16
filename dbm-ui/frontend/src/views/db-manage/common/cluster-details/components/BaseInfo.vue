@@ -13,8 +13,8 @@
     <InfoItem :label="t('地域')">
       <div>{{ data.regionDisplay }}</div>
     </InfoItem>
-    <InfoItem :label="t('园区')">
-      <div>{{ data.clusterSubzonesDisplay }}</div>
+    <InfoItem :label="t('可用区')">
+      <div>{{ data.clusterZonesDisplay }}</div>
     </InfoItem>
     <InfoItem :label="t('规格')">
       <MachineSpecCell
@@ -57,7 +57,7 @@
       | 'bk_cloud_name'
       | 'bk_cloud_id'
       | 'bk_biz_name'
-      | 'clusterSubzonesDisplay'
+      | 'clusterZonesDisplay'
       | 'regionDisplay'
       | 'creator'
       | 'createAtDisplay'

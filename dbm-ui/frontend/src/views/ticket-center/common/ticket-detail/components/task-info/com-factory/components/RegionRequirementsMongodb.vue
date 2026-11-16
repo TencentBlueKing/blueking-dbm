@@ -10,8 +10,10 @@
     <InfoItem :label="t('地域')">
       {{ cityName }}
     </InfoItem>
-    <InfoItem :label="t('园区')">
-      {{ subZonesText }}
+    <InfoItem
+      v-if="showZoneItem"
+      :label="t('可用区')">
+      {{ zonesText }}
     </InfoItem>
   </InfoList>
 </template>
@@ -20,9 +22,9 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getInfrasCities, getInfrasSubzonesByCity } from '@services/source/infras';
+  import { getInfrasCities } from '@services/source/infras';
 
-  import { Affinity, mongodbAffinityMap } from '@common/const';
+  import { Affinity, getCloudZoneName, mongodbAffinityMap } from '@common/const';
 
   import InfoList, { Item as InfoItem } from './info-list/Index.vue';
 
@@ -36,7 +38,8 @@
           location_spec: {
             city: string;
             include_or_exclue?: boolean;
-            sub_zone_ids?: number[];
+            /** 可用区名称（随机时不传）；历史单据为园区数字 id */
+            sub_zone_ids?: Array<number | string>;
           };
         };
       };
@@ -52,8 +55,15 @@
 
   const affinityText = mongodbAffinityMap[affinity as Affinity] || '--';
 
+  // 仅跨可用区（强/弱）/ 指定可用区展示可用区行
+  const showZoneItem = computed(() =>
+    [Affinity.CROSS_SUBZONE_STRONG, Affinity.CROSS_SUBZONE_WEAK, Affinity.SAME_SUBZONE_CROSS_SWTICH].includes(
+      affinity as Affinity,
+    ),
+  );
+
   const cityName = ref('--');
-  const subZonesText = ref('--');
+  const zonesText = ref('--');
 
   useRequest(getInfrasCities, {
     onSuccess: (cityList) => {
@@ -63,24 +73,15 @@
     },
   });
 
-  const { run: runGetInfrasSubzonesByCity } = useRequest(getInfrasSubzonesByCity, {
-    manual: true,
-    onSuccess: (subZoneList) => {
-      const subZoneMap = subZoneList.reduce<Record<number, string>>((prevMap, subZoneItem) => {
-        return Object.assign(prevMap, { [subZoneItem.bk_sub_zone_id]: subZoneItem.bk_sub_zone });
-      }, {});
-      if (subZoneIds) {
-        subZonesText.value = subZoneIds.map((subZoneId) => subZoneMap[subZoneId]).join('，');
-      }
-    },
-  });
-
+  // sub_zone_ids 存可用区名称（历史单据的园区数字 id 无可用区映射，仅新单据展示名称）；为空显示「随机」
   if (subZoneIds && subZoneIds.length > 0) {
-    runGetInfrasSubzonesByCity({
-      city_code: props.details.city_code,
-    });
-  } else {
-    subZonesText.value = t('随机');
+    const zoneNames = subZoneIds
+      .filter((zoneId) => typeof zoneId === 'string')
+      .map((zoneId) => getCloudZoneName(zoneId));
+    // 历史单据全是园区数字 id 时无可展示的可用区名
+    zonesText.value = zoneNames.join('，') || '--';
+  } else if (showZoneItem.value) {
+    zonesText.value = t('随机');
   }
 </script>
 

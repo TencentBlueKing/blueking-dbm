@@ -68,6 +68,15 @@
     </template>
   </TableColumn>
   <TableColumn
+    col-key="bk_cloud_zone"
+    :filter="columnFilter?.['bk_cloud_zone']"
+    :min-width="120"
+    :title="t('可用区')">
+    <template #default="{ row }: { row: IColumnData }">
+      {{ getCloudZoneName(row.bk_cloud_zone) || t('未知') }}
+    </template>
+  </TableColumn>
+  <TableColumn
     col-key="bk_sub_zone"
     :filter="columnFilter?.['bk_sub_zone']"
     :min-width="120"
@@ -138,7 +147,7 @@
 
   import { useInstanceColumnFilter, useUrlSearch } from '@hooks';
 
-  import { ClusterTypes } from '@common/const';
+  import { ClusterTypes, getCloudZoneName } from '@common/const';
 
   import ClusterInstanceStatus from '@components/cluster-instance-status/Index.vue';
 
@@ -164,6 +173,6 @@
   const { data: columnFilter } = useInstanceColumnFilter({
     cluster_id: props.clusterId,
     cluster_type: props.clusterType,
-    instance_attrs: ['role', 'version', 'bk_os_name', 'bk_sub_zone', 'mongodb_state'] as const,
+    instance_attrs: ['role', 'version', 'bk_os_name', 'bk_sub_zone', 'mongodb_state', 'bk_cloud_zone'] as const,
   });
 </script>

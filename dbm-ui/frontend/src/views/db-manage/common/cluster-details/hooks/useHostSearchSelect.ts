@@ -7,7 +7,7 @@ import { queryBizMachineAttrs } from '@services/source/dbbase';
 
 import { useUrlSearch } from '@hooks';
 
-import { ClusterTypes, specialOptionLabelMap, SpecialOptions } from '@common/const';
+import { ClusterTypes, getCloudZoneName, specialOptionLabelMap, SpecialOptions } from '@common/const';
 import { batchSplitRegex, ipv4 } from '@common/regex';
 
 import { parseQueryMemo } from '@utils';
@@ -18,7 +18,9 @@ const machineAttrs = [
   'bk_city_id',
   'bk_sub_zone',
   'bk_os_name',
+  'bk_cloud_zone',
   'spec_id',
+  'bk_cloud_region',
   'instance_role',
   'bk_svr_device_cls_name',
 ] as const;
@@ -44,12 +46,23 @@ export const useHostSearchSelect = (
       cluster_type: clusterType,
       machine_attrs: machineAttrs.join(','),
     }).then((data) => {
+      const getLabel = (item: { text: string; value: string }) => {
+        if (attr === 'spec_id') {
+          return `${item.text} [${item.value}]`;
+        }
+        if (attr === 'bk_cloud_zone') {
+          return getCloudZoneName(item.value) || item.text;
+        }
+
+        return item.text;
+      };
+
       const formatList = data[attr].map((item) => ({
-        label: attr === 'spec_id' ? `${item.text} [${item.value}]` : item.text,
+        label: getLabel(item),
         value: item.value,
       }));
 
-      if (['bk_city_id', 'bk_os_name', 'bk_sub_zone', 'bk_svr_device_cls_name'].includes(attr)) {
+      if (['bk_city_id', 'bk_cloud_region', 'bk_os_name', 'bk_sub_zone', 'bk_svr_device_cls_name'].includes(attr)) {
         const filterList = formatList.filter((item) => item.value !== null && item.value !== '');
         if (filterList.length !== formatList.length) {
           return filterList.concat({
@@ -83,9 +96,21 @@ export const useHostSearchSelect = (
       type: 'multiple' as const,
     },
     {
-      id: 'bk_city_id',
+      id: 'bk_cloud_region',
       name: t('地域'),
+      remoteMethod: () => getBizMachineAttrs('bk_cloud_region'),
+      type: 'multiple' as const,
+    },
+    {
+      id: 'bk_city_id',
+      name: t('城市'),
       remoteMethod: () => getBizMachineAttrs('bk_city_id'),
+      type: 'multiple' as const,
+    },
+    {
+      id: 'bk_cloud_zone',
+      name: t('可用区'),
+      remoteMethod: () => getBizMachineAttrs('bk_cloud_zone'),
       type: 'multiple' as const,
     },
     {

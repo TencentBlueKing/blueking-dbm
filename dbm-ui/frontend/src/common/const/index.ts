@@ -1,5 +1,6 @@
 export * from './accountTypes';
 export * from './bizSettingKeys';
+export * from './cloudZone';
 export * from './clusterAffinity';
 export * from './clusterCountMap';
 export * from './clusterInsStatus';
