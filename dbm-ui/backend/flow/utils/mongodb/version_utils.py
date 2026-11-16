@@ -428,7 +428,7 @@ def _get_package_db_version(package):
     db_version_id = getattr(package, "db_version_id", None)
     if not db_version_id:
         return None
-    from backend.db_meta.models.db_version import DBVersion
+    from backend.db_package.models import DBVersion
 
     return DBVersion.objects.filter(pk=db_version_id).first()
 

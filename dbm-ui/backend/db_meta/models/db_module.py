@@ -19,7 +19,7 @@ from jsonschema.validators import validate
 from backend.bk_web.models import AuditedModel
 from backend.db_meta.enums import ClusterType, ClusterTypeMachineTypeDefine
 from backend.db_meta.models import AppCache
-from backend.db_meta.models.db_version import DBVersion
+from backend.db_package.models import DBVersion
 
 logger = logging.getLogger("root")
 

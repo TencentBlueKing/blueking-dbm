@@ -27,6 +27,7 @@ from backend.db_meta.enums import (
     MachineType,
 )
 from backend.db_meta.models import Cluster, ClusterEntry
+from backend.db_package.models import Package
 from backend.ticket.constants import InstanceType
 from backend.ticket.models import InstanceOperateRecord
 
@@ -112,7 +113,9 @@ class InstanceMixin(object):
 
 
 class StorageInstance(InstanceMixin, AuditedModel):
-    version = models.CharField(max_length=64, default="", help_text=_("版本号"), blank=True, null=True)
+    version = models.CharField(
+        max_length=64, default="", help_text=_("版本号, 即将废弃, 改为使用 db_package 关系链"), blank=True, null=True
+    )
     port = models.PositiveIntegerField(default=0)
     machine = models.ForeignKey(Machine, on_delete=models.PROTECT)
 
@@ -133,8 +136,8 @@ class StorageInstance(InstanceMixin, AuditedModel):
     bk_instance_id = models.BigIntegerField(default=0, help_text=_("对应在cc的服务实例的id"))
     is_stand_by = models.BooleanField(default=True, help_text=_("多 slave 的备选标志"))
 
-    # 新版本管理-字符串定义，避免循环引用
-    db_package = models.ForeignKey("db_package.Package", on_delete=models.PROTECT, blank=True, null=True)
+    # 新版本管理-介质包
+    db_package = models.ForeignKey(Package, on_delete=models.PROTECT, blank=True, null=True)
 
     class Meta:
         verbose_name = verbose_name_plural = _("存储实例(StorageInstance)")
@@ -163,7 +166,9 @@ class StorageInstance(InstanceMixin, AuditedModel):
 
 
 class ProxyInstance(InstanceMixin, AuditedModel):
-    version = models.CharField(max_length=64, default="", help_text=_("版本号"), blank=True, null=True)
+    version = models.CharField(
+        max_length=64, default="", help_text=_("版本号, 即将废弃, 改为使用 db_package 关系链"), blank=True, null=True
+    )
     port = models.PositiveIntegerField(default=0)
     admin_port = models.PositiveIntegerField(default=0)
     machine = models.ForeignKey(Machine, on_delete=models.PROTECT)
@@ -185,8 +190,8 @@ class ProxyInstance(InstanceMixin, AuditedModel):
     time_zone = models.CharField(max_length=16, default=DEFAULT_TIME_ZONE, help_text=_("实例所在的时区"))
     bk_instance_id = models.BigIntegerField(default=0, help_text=_("对应在cc的服务实例的id"))
 
-    # 新版本管理-字符串定义，避免循环引用
-    db_package = models.ForeignKey("db_package.Package", on_delete=models.PROTECT, blank=True, null=True)
+    # 新版本管理-介质包
+    db_package = models.ForeignKey(Package, on_delete=models.PROTECT, blank=True, null=True)
 
     class Meta:
         verbose_name = verbose_name_plural = _("代理实例(ProxyInstance)")

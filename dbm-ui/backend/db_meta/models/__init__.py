@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+from backend.db_package.models import DBVersion, Distribution, VersionSeries
+
 from .app import AppCache, AppOperate
 from .city_map import BKCity, LogicalCity
 from .cluster import Cluster, ClusterDBHAExt
@@ -15,7 +17,6 @@ from .cluster_entry import CLBEntryDetail, ClusterEntry, PolarisEntryDetail
 from .cluster_monitor import AppMonitorTopo, ClusterMonitorTopo
 from .cluster_state import ClusterState
 from .db_module import DBModule
-from .db_version import DBVersion, Distribution, VersionSeries
 from .extra_process import ExtraProcessInstance
 from .group import Group, GroupInstance
 from .instance import ProxyInstance, StorageInstance

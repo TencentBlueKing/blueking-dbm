@@ -14,9 +14,8 @@ import pytest
 
 from backend.core.storages.handlers import StorageHandler
 from backend.db_meta.enums.version_phase import VersionPhase
-from backend.db_meta.models.db_version import DBVersion, Distribution, VersionSeries
 from backend.db_package.exceptions import PackagePathException
-from backend.db_package.models import Package
+from backend.db_package.models import DBVersion, Distribution, Package, VersionSeries
 from backend.db_package.views import DBPackageViewSet
 
 move_package_to_formal = DBPackageViewSet.move_package_to_formal

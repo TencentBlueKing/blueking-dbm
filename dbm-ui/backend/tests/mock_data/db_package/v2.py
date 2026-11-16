@@ -12,9 +12,8 @@ from typing import Iterable, List
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums.version_phase import PkgSeries, VersionPhase
-from backend.db_meta.models.db_version import DBVersion, Distribution, VersionSeries
 from backend.db_package.constants import PackageType
-from backend.db_package.models import Package
+from backend.db_package.models import DBVersion, Distribution, Package, VersionSeries
 from backend.db_services.ipchooser.constants import BkOsType
 
 _AUDIT = {"creator": "admin", "updater": "admin"}
