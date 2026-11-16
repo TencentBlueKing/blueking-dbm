@@ -138,12 +138,12 @@
                 },
                 "insertNulls": false,
                 "lineInterpolation": "linear",
-                "lineWidth": 2,
+                "lineWidth": 1,
                 "pointSize": 3,
                 "scaleDistribution": {
                   "type": "linear"
                 },
-                "showPoints": "never",
+                "showPoints": "auto",
                 "spanNulls": false,
                 "stacking": {
                   "group": "A",
@@ -210,7 +210,7 @@
               "query_configs": [],
               "refId": "A",
               "source": "avg by (instance_role, bk_target_ip, instance_port) (bkmonitor:dbm_system:cpu_summary:usage{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"})",
-              "step": "1m",
+              "step": "auto",
               "type": "range"
             }
           ],
@@ -246,12 +246,12 @@
                 },
                 "insertNulls": false,
                 "lineInterpolation": "linear",
-                "lineWidth": 2,
+                "lineWidth": 1,
                 "pointSize": 3,
                 "scaleDistribution": {
                   "type": "linear"
                 },
-                "showPoints": "never",
+                "showPoints": "auto",
                 "spanNulls": false,
                 "stacking": {
                   "group": "A",
@@ -321,7 +321,7 @@
               "query_configs": [],
               "refId": "A",
               "source": "avg by (instance_role, bk_target_ip, instance_port) (bkmonitor:dbm_system:mem:pct_used{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"})",
-              "step": "1m",
+              "step": "auto",
               "type": "range"
             }
           ],
@@ -430,7 +430,7 @@
               "query_configs": [],
               "refId": "A",
               "source": "bkmonitor:dbm_system:disk:in_use{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}",
-              "step": "1m",
+              "step": "auto",
               "type": "range"
             }
           ],
@@ -546,7 +546,7 @@
               "query_configs": [],
               "refId": "A",
               "source": " # 1. 计算分子：(网络接收速率 + 网络发送速率) * 100\n (\n    (\n      max by(ip, bk_target_cloud_id,instance_role) (max_over_time(bkmonitor:dbm_system:net:speed_recv{cluster_domain=\"$cluster_domain\", device_name=\"eth1\", instance_role=~\"$instance_role\"}[1m]))\n      +\n      max by(ip, bk_target_cloud_id,instance_role) (max_over_time(bkmonitor:dbm_system:net:speed_sent{cluster_domain=\"$cluster_domain\", device_name=\"eth1\", instance_role=~\"$instance_role\"}[1m]))\n    ) * 100\n  )\n  /\n  # 2. 计算分母：(去重后的核心数 * 对应基准带宽)\n  (\n    # 逻辑 A：核心数 <= 2，用 96M 基准\n    (\n      count by(ip, bk_target_cloud_id,instance_role) (group by(ip, bk_target_cloud_id, device_name,instance_role) (bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\", instance_role=~\"$instance_role\"})) <= 2\n    ) * (96 * 1024 * 1024)\n    or\n    # 逻辑 B：核心数 > 2，用 48M 基准\n    (\n      count by(ip, bk_target_cloud_id,instance_role) (group by(ip, bk_target_cloud_id, device_name,instance_role) (bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\", instance_role=~\"$instance_role\"})) > 2\n    ) * (48 * 1024 * 1024)\n  )",
-              "step": "1m",
+              "step": "auto",
               "type": "range"
             },
             {
@@ -573,7 +573,7 @@
               "query_configs": [],
               "refId": "B",
               "source": "(\n  100 * (\n    max by(ip, bk_target_cloud_id, instance_role) (\n        bkmonitor:dbm_system:net:speed_packets_recv{\n          cluster_domain=\"$cluster_domain\",\n          device_name=\"eth1\",\n          instance_role=~\"$instance_role\"\n        }\n\n    ) +\n    max by(ip, bk_target_cloud_id, instance_role) (\n        bkmonitor:dbm_system:net:speed_packets_sent{\n          cluster_domain=\"$cluster_domain\",\n          device_name=\"eth1\",\n          instance_role=~\"$instance_role\"\n        }\n\n    )\n  ) /  (96 * 1024 * 1024)  /\n  sum by(ip, bk_target_cloud_id, instance_role) (\n       bkmonitor:dbm_system:cpu_detail:usage{\n        cluster_domain=\"$cluster_domain\",\n        instance_role=~\"$instance_role\"\n      }\n  )   and\n    sum by(ip, bk_target_cloud_id, instance_role) (\n        bkmonitor:dbm_system:cpu_detail:usage{\n          cluster_domain=\"$cluster_domain\",\n          instance_role=~\"$instance_role\"\n        }\n    ) <= 2\n   or\n  (\n    100 * (\n      max by(ip, bk_target_cloud_id, instance_role) (\n          bkmonitor:dbm_system:net:speed_packets_recv{\n            cluster_domain=\"$cluster_domain\",\n            device_name=\"eth1\",\n            instance_role=~\"$instance_role\"\n          }\n      ) +\n      max by(ip, bk_target_cloud_id, instance_role) (\n          bkmonitor:dbm_system:net:speed_packets_sent{\n            cluster_domain=\"$cluster_domain\",\n            device_name=\"eth1\",\n            instance_role=~\"$instance_role\"\n          }\n      )\n    ) / (48 * 1024 * 1024)/\n    sum by(ip, bk_target_cloud_id, instance_role) (\n         bkmonitor:dbm_system:cpu_detail:usage{\n          cluster_domain=\"$cluster_domain\",\n          instance_role=~\"$instance_role\"\n        }\n    )  and\n\n    sum by(ip, bk_target_cloud_id, instance_role) (\n        bkmonitor:dbm_system:cpu_detail:usage{\n          cluster_domain=\"$cluster_domain\",\n          instance_role=~\"$instance_role\"\n        }\n    ) > 2\n  )\n)",
-              "step": "1m",
+              "step": "auto",
               "type": "range"
             }
           ],
@@ -683,7 +683,7 @@
               "query_configs": [],
               "refId": "A",
               "source": "max by (ip, instance_role) (max_over_time(bkmonitor:dbm_system:io:wkb_s{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[1m]))",
-              "step": "1m",
+              "step": "auto",
               "type": "range"
             },
             {
@@ -703,7 +703,7 @@
               "query_configs": [],
               "refId": "B",
               "source": "max by (ip, instance_role) (max_over_time(bkmonitor:dbm_system:io:rkb_s{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[1m]))",
-              "step": "1m",
+              "step": "auto",
               "type": "range"
             }
           ],
@@ -811,7 +811,7 @@
               "query_configs": [],
               "refId": "A",
               "source": "max by (ip, instance_role) (max_over_time(bkmonitor:dbm_system:net:speed_sent{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[1m]))",
-              "step": "1m",
+              "step": "auto",
               "type": "range"
             },
             {
@@ -831,7 +831,7 @@
               "query_configs": [],
               "refId": "B",
               "source": "max by (ip, instance_role) (max_over_time(bkmonitor:dbm_system:net:speed_recv{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[1m]))",
-              "step": "1m",
+              "step": "auto",
               "type": "range"
             },
             {
@@ -851,7 +851,7 @@
               "query_configs": [],
               "refId": "C",
               "source": "max by (ip, instance_role) (max_over_time(bkmonitor:dbm_system:net:speed_sent{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[1m]))\n+\nmax by (ip, instance_role) (max_over_time(bkmonitor:dbm_system:net:speed_recv{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[1m]))",
-              "step": "1m",
+              "step": "auto",
               "type": "range"
             }
           ],
@@ -959,7 +959,7 @@
               "query_configs": [],
               "refId": "A",
               "source": "max by (ip, instance_role) (bkmonitor:dbm_system:net:speed_packets_sent{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"})",
-              "step": "1m",
+              "step": "auto",
               "type": "range"
             },
             {
@@ -979,7 +979,7 @@
               "query_configs": [],
               "refId": "B",
               "source": "max by (ip, instance_role) (bkmonitor:dbm_system:net:speed_packets_recv{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"})",
-              "step": "1m",
+              "step": "auto",
               "type": "range"
             }
           ],
@@ -1086,7 +1086,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "topk(1,max(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_version_info{cluster_domain=\"$cluster_domain\"} ) by (mongodb) or max(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_version_info{cluster_domain=\"$cluster_domain\"} ) by (mongodb) )",
-          "step": "1m",
+          "step": "auto",
           "type": "instant"
         }
       ],
@@ -1167,7 +1167,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "sum(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_storage_engine{cluster_domain=\"$cluster_domain\"} ) by (engine)",
-          "step": "1m",
+          "step": "auto",
           "type": "instant"
         }
       ],
@@ -1248,7 +1248,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "max(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_number_of_members{cluster_domain=\"$cluster_domain\"})",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -1361,7 +1361,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "count(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_up{cluster_domain=\"$cluster_domain\"}==1)",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -1380,7 +1380,7 @@
           "query_configs": [],
           "refId": "B",
           "source": "count(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_up{cluster_domain=\"$cluster_domain\"}==0) > 0",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -1461,7 +1461,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "max(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_member_replication_lag{cluster_domain=\"$cluster_domain\"}) ",
-          "step": "1m",
+          "step": "auto",
           "type": "instant"
         }
       ],
@@ -1543,7 +1543,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "max(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_oplog_latestOptime{cluster_domain=\"$cluster_domain\"} - bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_oplog_earliestOptime{cluster_domain=\"$cluster_domain\"})\nor\nmax(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_oplog_head_timestamp{cluster_domain=\"$cluster_domain\"} - bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_oplog_tail_timestamp{cluster_domain=\"$cluster_domain\"})",
-          "step": "1m",
+          "step": "auto",
           "type": "instant"
         }
       ],
@@ -1625,7 +1625,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "max(time() - bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_member_election_date{cluster_domain=\"$cluster_domain\"})",
-          "step": "1m",
+          "step": "auto",
           "type": "instant"
         }
       ],
@@ -1960,7 +1960,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "count(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\"}) by (bk_target_ip,instance_role,instance_port)",
-          "step": "1m",
+          "step": "auto",
           "type": "instant"
         },
         {
@@ -1979,7 +1979,7 @@
           "query_configs": [],
           "refId": "B",
           "source": "sum by (bk_target_ip,instance_role,instance_port) (bkmonitor:dbm_system:mem:total{cluster_domain=\"$cluster_domain\"})   ",
-          "step": "1m",
+          "step": "auto",
           "type": "instant"
         },
         {
@@ -1999,7 +1999,7 @@
           "query_configs": [],
           "refId": "C",
           "source": "max by (bk_target_ip, instance_role, instance_port) (\n  label_replace(\n    custom:dbm_report_channel:mongo_datadir_disk_total_kb{cluster_domain=\"$cluster_domain\"},\n    \"instance_port\", \"$1\", \"port\", \"(.*)\"\n  )\n)",
-          "step": "1m",
+          "step": "auto",
           "type": "instant"
         },
         {
@@ -2019,7 +2019,7 @@
           "query_configs": [],
           "refId": "D",
           "source": "max by (bk_target_ip, instance_role, instance_port) (\n  label_replace(\n    custom:dbm_report_channel:mongo_datadir_disk_used_kb{cluster_domain=\"$cluster_domain\"},\n    \"instance_port\", \"$1\", \"port\", \"(.*)\"\n  )\n)",
-          "step": "1m",
+          "step": "auto",
           "type": "instant"
         },
         {
@@ -2039,7 +2039,7 @@
           "query_configs": [],
           "refId": "E",
           "source": "100 *\nmax by (bk_target_ip, instance_role, instance_port) (\n  label_replace(\n    custom:dbm_report_channel:mongo_datadir_disk_used_kb{cluster_domain=\"$cluster_domain\"},\n    \"instance_port\", \"$1\", \"port\", \"(.*)\"\n  )\n)\n/\nmax by (bk_target_ip, instance_role, instance_port) (\n  label_replace(\n    custom:dbm_report_channel:mongo_datadir_disk_total_kb{cluster_domain=\"$cluster_domain\"},\n    \"instance_port\", \"$1\", \"port\", \"(.*)\"\n  )\n)",
-          "step": "1m",
+          "step": "auto",
           "type": "instant"
         }
       ],
@@ -2133,7 +2133,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "avg by (instance_role, bk_target_ip, instance_port) (bkmonitor:dbm_system:cpu_summary:usage{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"})",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -2215,7 +2215,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "min(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_instance_uptime_seconds{cluster_domain=\"$cluster_domain\"})\nor\nmin(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_instance_uptime_seconds{cluster_domain=\"$cluster_domain\"})\nor\nmin(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_uptime{cluster_domain=\"$cluster_domain\"})",
-          "step": "1m",
+          "step": "auto",
           "type": "instant"
         }
       ],
@@ -2303,7 +2303,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "max(\n  100 *\n  max by (instance, instance_role) (\n    custom:dbm_report_channel:mongo_datadir_disk_used_kb{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\",instance_role!=\"backup\"}\n  )\n  /\n  max by (instance, instance_role) (\n    custom:dbm_report_channel:mongo_datadir_disk_total_kb{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\",instance_role!=\"backup\"}\n  )\n)",
-          "step": "1m",
+          "step": "auto",
           "type": "instant"
         }
       ],
@@ -2352,12 +2352,12 @@
             },
             "insertNulls": false,
             "lineInterpolation": "linear",
-            "lineWidth": 2,
+            "lineWidth": 1,
             "pointSize": 3,
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -2432,7 +2432,7 @@
           "query_configs": [],
           "refId": "B",
           "source": "sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_counters_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[$__interval:1m]) ) by (type)\nor \nsum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_op_counters_total{cluster_domain=\"$cluster_domain\",cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[$__interval:1m])) by (type)",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -2468,12 +2468,12 @@
             },
             "insertNulls": false,
             "lineInterpolation": "linear",
-            "lineWidth": 2,
+            "lineWidth": 1,
             "pointSize": 3,
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -2548,7 +2548,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "label_replace(\n    label_replace(\n        (\n            max by (instance_role, rs_state) (bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_connections{cluster_domain=\"$cluster_domain\",state=\"current\",instance_role=~\"$instance_role\"})\n            or\n            max by (instance_role, rs_state) (bkmonitor:exporter_dbm_mongodb_exporter:mongodb_connections{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\",state=\"current\"})\n        ),\n        \"rs_state\", \"SEC\", \"rs_state\", \"2\"\n    ),\n    \"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)\n",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -2586,13 +2586,13 @@
             },
             "insertNulls": false,
             "lineInterpolation": "linear",
-            "lineWidth": 2,
+            "lineWidth": 1,
             "pointSize": 3,
             "scaleDistribution": {
               "log": 10,
               "type": "log"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -2671,7 +2671,7 @@
           "query_configs": [],
           "refId": "B",
           "source": "label_replace(\n    label_replace(\n        (\n            sum by (type, instance_role, rs_state) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_counters_total{cluster_domain=\"$cluster_domain\", instance_role=~\"$instance_role\"}[$__interval:1m]))\n            or \n            sum by (type, instance_role, rs_state) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_op_counters_total{cluster_domain=\"$cluster_domain\", instance_role=~\"$instance_role\"}[$__interval:1m]))\n        ),\n        \"rs_state\", \"SEC\", \"rs_state\", \"2\"\n    ),\n    \"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)\n",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -2707,12 +2707,12 @@
             },
             "insertNulls": false,
             "lineInterpolation": "linear",
-            "lineWidth": 2,
+            "lineWidth": 1,
             "pointSize": 3,
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -2788,7 +2788,7 @@
           "query_configs": [],
           "refId": "B",
           "source": "label_replace(\n    label_replace(\n        (\n            sum by (type, instance_role, rs_state) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_counters_repl_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[$__interval:1m]))\n            or\n            sum by (type, instance_role, rs_state) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_op_counters_repl_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[$__interval:1m]))\n        ),\n        \"rs_state\", \"SEC\", \"rs_state\", \"2\"\n    ),\n    \"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)\n",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -2824,12 +2824,12 @@
             },
             "insertNulls": false,
             "lineInterpolation": "linear",
-            "lineWidth": 2,
+            "lineWidth": 1,
             "pointSize": 3,
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -2905,7 +2905,7 @@
           "query_configs": [],
           "refId": "B",
           "source": "irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_metrics_repl_apply_ops_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[$__interval:1m])",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -2942,12 +2942,12 @@
             },
             "insertNulls": false,
             "lineInterpolation": "linear",
-            "lineWidth": 2,
+            "lineWidth": 1,
             "pointSize": 3,
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "always",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -3070,7 +3070,7 @@
           "query_configs": [],
           "refId": "B",
           "source": "bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_my_state{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -3097,7 +3097,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "changes(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_my_state{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[2m])",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -3133,12 +3133,12 @@
             },
             "insertNulls": false,
             "lineInterpolation": "linear",
-            "lineWidth": 2,
+            "lineWidth": 1,
             "pointSize": 3,
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -3213,7 +3213,7 @@
           "query_configs": [],
           "refId": "J",
           "source": "time()-bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_oplog_tail_timestamp{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}\n",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -3232,7 +3232,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_oplog_head_timestamp{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}- \nbkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_oplog_tail_timestamp{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -3268,12 +3268,12 @@
             },
             "insertNulls": false,
             "lineInterpolation": "linear",
-            "lineWidth": 2,
+            "lineWidth": 1,
             "pointSize": 3,
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -3348,7 +3348,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "increase(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_connections{cluster_domain=\"$cluster_domain\",conn_type=\"totalCreated\",instance_role=~\"$instance_role\"}[$__interval:1m])  or  increase(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_connections_metrics_created_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[$__interval:1m]) ",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -3384,12 +3384,12 @@
             },
             "insertNulls": false,
             "lineInterpolation": "linear",
-            "lineWidth": 2,
+            "lineWidth": 1,
             "pointSize": 3,
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -3464,7 +3464,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "max(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_replset_member_replication_lag{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\",self=\"0\"}) by (state,name)",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -3500,12 +3500,12 @@
             },
             "insertNulls": false,
             "lineInterpolation": "linear",
-            "lineWidth": 2,
+            "lineWidth": 1,
             "pointSize": 3,
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -3580,7 +3580,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_datadir_size_kb{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -3619,7 +3619,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -3690,7 +3690,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "label_replace(\n    label_replace(\n        (\n            sum by (type, instance_role, rs_state) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_asserts_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[$__interval:1m]))\n            or\n            sum by (type, instance_role, rs_state) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_asserts_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[$__interval:1m]))\n        ),\n        \"rs_state\", \"SEC\", \"rs_state\", \"2\"\n    ),\n    \"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)\n",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -3729,7 +3729,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -3800,7 +3800,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "label_replace(\n    label_replace(\n        (\n            max by (state, instance_role, rs_state) (bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_metrics_cursor_open{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"})\n            or\n            max by (state, instance_role, rs_state) (bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_metrics_cursor_open{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"})\n        ),\n        \"rs_state\", \"SEC\", \"rs_state\", \"2\"\n    ),\n    \"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)\n",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -3839,7 +3839,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -3923,7 +3923,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "label_replace(\n    label_replace(\n        (\n            max by (instance_role, rs_state) (bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_metrics_repl_buffer_count{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"})\n        ),\n        \"rs_state\", \"SEC\", \"rs_state\", \"2\"\n    ),\n    \"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)\n",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -3943,7 +3943,7 @@
           "query_configs": [],
           "refId": "B",
           "source": "label_replace(\n    label_replace(\n        (\n            max by (instance_role, rs_state) (bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_metrics_repl_buffer_size_bytes{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"})\n        ),\n        \"rs_state\", \"SEC\", \"rs_state\", \"2\"\n    ),\n    \"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)\n",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -3982,7 +3982,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -4053,7 +4053,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "label_replace(\n    label_replace(\n        (\n            sum by (instance_role, rs_state) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_metrics_repl_network_ops_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[$__interval:1m]))\n            or\n            sum by (instance_role, rs_state) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_metrics_repl_network_ops_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[$__interval:1m]))\n        ),\n        \"rs_state\", \"SEC\", \"rs_state\", \"2\"\n    ),\n    \"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)\n",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -4092,7 +4092,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -4163,7 +4163,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "label_replace(\n    label_replace(\n        (\n            max by (instance_role, instance, rs_state) (bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_mem_resident{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"})\n            or\n            max by (instance_role, instance, rs_state) (bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_sys_memory_usage_kb{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"})\n        ),\n        \"rs_state\", \"SEC\", \"rs_state\", \"2\"\n    ),\n    \"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)\n",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -4183,7 +4183,7 @@
           "query_configs": [],
           "refId": "B",
           "source": "label_replace(\n    label_replace(\n        (\n            max by (instance_role, instance, rs_state) (bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_mem_virtual{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"})\n        ),\n        \"rs_state\", \"SEC\", \"rs_state\", \"2\"\n    ),\n    \"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)\n",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -4222,7 +4222,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -4293,7 +4293,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "label_replace(\n    label_replace(\n        (\n            max by (instance_role, rs_state) (bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_transactions_currentActive{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"})\n        ),\n        \"rs_state\", \"SEC\", \"rs_state\", \"2\"\n    ),\n    \"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)\n",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -4313,7 +4313,7 @@
           "query_configs": [],
           "refId": "B",
           "source": "label_replace(\n    label_replace(\n        (\n            max by (instance_role, rs_state) (bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_transactions_currentOpen{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"})\n        ),\n        \"rs_state\", \"SEC\", \"rs_state\", \"2\"\n    ),\n    \"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)\n",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -4352,7 +4352,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -4423,7 +4423,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "max by (instance, instance_role) (\n  custom:dbm_report_channel:mongo_datadir_disk_used_kb{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}\n)",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -4443,7 +4443,7 @@
           "query_configs": [],
           "refId": "B",
           "source": "max by (instance, instance_role) (\n  custom:dbm_report_channel:mongo_datadir_disk_total_kb{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}\n)",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -4482,7 +4482,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -4554,7 +4554,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "100 *\nmax by (instance, instance_role) (\n  custom:dbm_report_channel:mongo_datadir_disk_used_kb{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}\n)\n/\nmax by (instance, instance_role) (\n  custom:dbm_report_channel:mongo_datadir_disk_total_kb{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}\n)",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -4607,7 +4607,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -4680,7 +4680,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "label_replace(\n    label_replace(\n        (\n            max by (instance_role, instance, type, rs_state) (bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_global_lock_current_queue{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\",type!=\"total\"})\n        ),\n        \"rs_state\", \"SEC\", \"rs_state\", \"2\"\n    ),\n    \"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)\n",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -4720,7 +4720,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -4794,7 +4794,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "label_replace(\n    label_replace(\n        (\n            max by (instance_role, instance, rs_state) (bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_wiredtiger_session_open_sessions_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\",type!=\"total\"})\n        ),\n        \"rs_state\", \"SEC\", \"rs_state\", \"2\"\n    ),\n    \"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)\n",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -4834,7 +4834,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -4908,7 +4908,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_wiredtiger_cache_pages{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\",type=\"dirty\" } / ignoring(type) bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_wiredtiger_cache_pages{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\",type=\"total\" }",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -4953,7 +4953,7 @@
               "log": 10,
               "type": "log"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -5022,7 +5022,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "avg by (state, instance,instance_role) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_metrics_query_executor_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[$__interval:1m]))",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -5061,7 +5061,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -5141,7 +5141,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "max by (instance_role, instance) (bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_wiredtiger_cache_bytes{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\",type=\"total\"})\n/\nmax by (instance_role, instance) (bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_wiredtiger_cache_max_bytes{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"})",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -5180,7 +5180,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -5251,7 +5251,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "label_replace(\n    label_replace(\n        (\n            sum by (instance_role, instance, rs_state) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_extra_info_page_faults_total{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[$__interval:1m]))\n            or\n            sum by (instance_role, instance, rs_state) (irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_ss_extra_info_page_faults{cluster_domain=\"$cluster_domain\",instance_role=~\"$instance_role\"}[$__interval:1m]))\n        ),\n        \"rs_state\", \"SEC\", \"rs_state\", \"2\"\n    ),\n    \"rs_state\", \"PRI\", \"rs_state\", \"1\"\n)\n",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -5304,7 +5304,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -5378,7 +5378,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_latencies_latency_total{cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[$__interval:1m])) by (instance_role, type) / sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_latencies_ops_total{cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[$__interval:1m])) by (instance_role, type)",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -5418,7 +5418,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -5492,7 +5492,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "sum(irate(bkmonitor:exporter_dbm_mongodb_exporter:mongodb_mongod_op_latencies_ops_total{cluster_domain=\"$cluster_domain\",instance_role!=\"backup\"}[$__interval:1m])) by (instance_role, type)",
-          "step": "1m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -5717,6 +5717,6 @@
   "timezone": "browser",
   "title": "MongoReplicaSet",
   "uid": "MongoReplicaSet",
-  "version": 137,
+  "version": 142,
   "weekStart": ""
 }
