@@ -19,8 +19,14 @@
       {{ t('全局') }}
     </DbTag>
   </Teleport>
-  <DbTab v-model="activeTab" />
-  <List :db-type="activeTab" />
+  <div class="ticket-flow-global-settings">
+    <div class="tab-header">
+      <DbTab v-model="activeTab" />
+    </div>
+    <div class="list-wrapper">
+      <List :db-type="activeTab" />
+    </div>
+  </div>
 </template>
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
@@ -52,3 +58,22 @@
     },
   );
 </script>
+
+<style lang="less" scoped>
+  .ticket-flow-global-settings {
+    display: flex;
+    height: 100%;
+    overflow: hidden;
+    flex-direction: column;
+
+    .tab-header {
+      flex-shrink: 0;
+    }
+
+    .list-wrapper {
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+  }
+</style>

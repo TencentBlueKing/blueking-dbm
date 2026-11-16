@@ -252,6 +252,26 @@ export function queryTicketFlowDescribe(params: {
   }));
 }
 
+// 批量预检查全局配置，不保存数据。
+export function checkUpdateTicketFlowConfig(params: {
+  bk_biz_id: 0;
+  config_ids: number[];
+  configs: Parameters<typeof updateTicketFlowConfig>[0]['configs'];
+  ticket_types: string[];
+}) {
+  return http.post<{
+    config_errors: {
+      config_id: number;
+      errors: { code: string; code_display: string; field: string; message: string }[];
+      ticket_type: string;
+      ticket_type_display: string;
+    }[];
+    missing_config_ids: number[];
+    missing_ticket_types: string[];
+    valid: boolean;
+  }>(`${path}/check_update_ticket_flow_config/`, params);
+}
+
 /**
  * 修改可编辑的单据流程规则
  */
@@ -259,7 +279,11 @@ export function updateTicketFlowConfig(params: {
   bk_biz_id: number;
   cluster_ids?: number[];
   config_ids?: number[];
-  configs: Record<string, boolean>;
+  configs: {
+    expire_config?: Partial<TicketFlowDescribeModel['configs']['expire_config']>;
+    need_itsm?: boolean;
+    need_manual_confirm?: boolean;
+  };
   remark?: string;
   ticket_types: string[];
 }) {

@@ -4,7 +4,7 @@
  * Copyright (C) 2017-2023 THL A29 Limited, a Tencent company. All rights reserved.
  *
  * Licensed under the MIT License (the "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License athttps://opensource.org/licenses/MIT
+ * You may obtain a copy of the License at https://opensource.org/licenses/MIT
  *
  * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
@@ -16,158 +16,194 @@
     <BkAlert
       class="mb-16"
       closable>
-      {{
-        t(
-          '全局设置的作为各个业务初始化设置，更改后会自动同步至各个业务；在业务下可以根据运行情况，可调整“是否审批”，其中“是否人工确认”在业务下不可更改',
-        )
-      }}
+      {{ t('待审批、待执行按流程控制方式与节点提供；其他等待状态统一提供，待补货仅适用于涉及资源申请的单据类型。') }}
     </BkAlert>
     <div class="top-operation">
       <span
-        v-bk-tooltips="{
-          disabled: hasSelected,
-          content: t('请选择单据'),
-        }">
+        v-for="action in batchActions"
+        :key="action.mode"
+        v-bk-tooltips="{ content: batchDisabledReason(action.mode), disabled: !batchDisabledReason(action.mode) }">
+        <BkButton
+          v-if="batchDisabledReason(action.mode)"
+          disabled>
+          {{ action.label }}
+        </BkButton>
         <AuthButton
+          v-else
           action-id="ticket_config_set"
-          :disabled="!hasSelected"
+          :permission="selected.every((row) => row.permission.ticket_config_set)"
           :resource="dbType"
-          theme="primary"
-          @click="handleBatchEdit">
-          {{ t('批量编辑') }}
+          @click="handleBatchEdit(action.mode)">
+          {{ action.label }}
         </AuthButton>
       </span>
+      <div
+        v-if="selected.length"
+        class="selection-info">
+        <I18nT
+          keypath="已选 n 项"
+          scope="global"
+          tag="span">
+          <template #n>
+            <span class="selection-count">{{ selected.length }}</span>
+          </template>
+        </I18nT>
+        <BkButton
+          text
+          theme="primary"
+          @click="clearSelection">
+          {{ t('清空选择') }}
+        </BkButton>
+      </div>
       <DbQuickSearch
         v-model="searchValue"
         class="input-box"
         :data="searchSelectList" />
     </div>
-    <DbTable
-      ref="tableRef"
-      class="table-box"
-      :data-source="queryTicketFlowDescribe"
-      row-key="id"
-      selectable
-      @clear-search="handleClearSearch"
-      @selection="handleSelection">
-      <TableColumn
-        col-key="ticket_type_display"
-        :title="t('单据类型')"
-        :width="220">
-      </TableColumn>
-      <TableColumn
-        col-key="bk_biz_id"
-        :title="t('目标')"
-        :width="180">
-        <template #default>
-          {{ t('业务下全部对象') }}
-        </template>
-      </TableColumn>
-      <TableColumn
-        col-key="need_itsm"
-        :width="120">
-        <template #title>
-          <p
-            v-bk-tooltips="t('是否经由DBA审批后才可执行')"
-            class="configs-head">
-            {{ t('是否审批') }}
-          </p>
-        </template>
-        <template #default="{ row: data }: { row: TicketFlowDescribeModel }">
-          <RenderFlowPreview
-            v-model="data.configs.need_itsm"
-            config-key="need_itsm"
-            :data="data"
-            @success="fetchData">
-            <AuthTemplate
+    <div
+      ref="tableContentRef"
+      class="table-content">
+      <DbTable
+        ref="table"
+        :bk-ui-settings="settings"
+        class="table-box"
+        :data-source="queryList"
+        :default-limit="20"
+        :disable-select-method="disableSelect"
+        fixed-pagination
+        row-key="id"
+        selectable
+        @bk-ui-settings-change="updateTableSettings"
+        @clear-search="handleClearSearch"
+        @selection="handleSelection">
+        <TableColumn
+          col-key="ticket_type_display"
+          :min-width="220"
+          :title="t('单据类型')">
+          <template #default="{ row: data }: { row: TicketFlowDescribeModel }">
+            <AuthButton
               action-id="ticket_config_set"
-              class="flow-node-action"
               :permission="data.permission.ticket_config_set"
-              :resource="dbType">
-              <BkCheckbox
-                v-model="data.configs.need_itsm"
-                style="pointer-events: none" />
-            </AuthTemplate>
-          </RenderFlowPreview>
-        </template>
-      </TableColumn>
-      <TableColumn
-        col-key="need_manual_confirm"
-        :width="120">
-        <template #title>
-          <p
-            v-bk-tooltips="t('是否经由提单人确认后才可执行')"
-            class="configs-head">
-            {{ t('是否人工确认') }}
-          </p>
-        </template>
-        <template #default="{ row: data }: { row: TicketFlowDescribeModel }">
-          <RenderFlowPreview
-            v-model="data.configs.need_manual_confirm"
-            config-key="need_manual_confirm"
-            :data="data"
-            @success="fetchData">
-            <AuthTemplate
+              :resource="dbType"
+              text
+              theme="primary"
+              @click="handleEdit(data)">
+              {{ data.ticket_type_display }}
+            </AuthButton>
+          </template>
+        </TableColumn>
+        <TableColumn
+          col-key="ticket_type"
+          ellipsis
+          :min-width="200"
+          :title="t('单据 ID')" />
+        <TableColumn
+          col-key="editable"
+          :min-width="150"
+          :title="t('流程控制方式')">
+          <template #default="{ row: data }: { row: TicketFlowDescribeModel }">
+            <span>{{ data.editable ? t('平台设置') : t('单据预设') }}</span>
+            <DbIcon
+              v-bk-tooltips="data.editable ? t('审批与确认执行由本页设置控制') : t('审批与确认执行由该单据流程预先确定，不受本页设置影响')"
+              class="ml-4"
+              type="help" />
+          </template>
+        </TableColumn>
+        <TableColumn
+          col-key="need_itsm"
+          :min-width="120"
+          :title="t('审批')">
+          <template #default="{ row: data }: { row: TicketFlowDescribeModel }">
+            {{ data.configs.need_itsm ? t('需审批') : t('免审批') }}
+          </template>
+        </TableColumn>
+        <TableColumn
+          col-key="need_manual_confirm"
+          :min-width="120"
+          :title="t('确认执行')">
+          <template #default="{ row: data }: { row: TicketFlowDescribeModel }">
+            {{ data.configs.need_manual_confirm ? t('需确认') : t('免确认') }}
+          </template>
+        </TableColumn>
+        <TableColumn
+          col-key="expire_config"
+          :min-width="280"
+          :title="t('超时自动终止')">
+          <template #default="{ row: data }: { row: TicketFlowDescribeModel }">
+            <TimeoutSummary :data="data" />
+          </template>
+        </TableColumn>
+        <TableColumn
+          col-key="updater"
+          ellipsis
+          :min-width="140"
+          :title="t('更新人')">
+          <template #default="{ row: data }: { row: TicketFlowDescribeModel }">
+            <bk-user-display-name
+              v-if="data.updater"
+              :user-id="data.updater" />
+            <span v-else>--</span>
+          </template>
+        </TableColumn>
+        <TableColumn
+          col-key="update_at"
+          ellipsis
+          :min-width="180"
+          sorter
+          :title="t('更新时间')">
+          <template #default="{ row: data }: { row: TicketFlowDescribeModel }">
+            {{ data.update_at ? data.updateAtDisplay : '--' }}
+          </template>
+        </TableColumn>
+        <TableColumn
+          col-key="operations"
+          :min-width="80"
+          :title="t('操作')">
+          <template #default="{ row: data }: { row: TicketFlowDescribeModel }">
+            <AuthButton
               action-id="ticket_config_set"
-              class="flow-node-action"
               :permission="data.permission.ticket_config_set"
-              :resource="dbType">
-              <BkCheckbox
-                v-model="data.configs.need_manual_confirm"
-                style="pointer-events: none" />
-            </AuthTemplate>
-          </RenderFlowPreview>
-        </template>
-      </TableColumn>
-      <TableColumn
-        col-key="flow_desc"
-        ellipsis
-        :title="t('流程预览')"
-        :width="520">
-        <template #default="{ row: data }: { row: TicketFlowDescribeModel }">
-          <span>{{ data.flow_desc.join(' -> ') }}</span>
-        </template>
-      </TableColumn>
-      <TableColumn
-        col-key="updater"
-        ellipsis
-        :title="t('更新人')"
-        :width="120">
-        <template #default="{ row: data }: { row: TicketFlowDescribeModel }">
-          <bk-user-display-name :user-id="data.updater" />
-        </template>
-      </TableColumn>
-      <TableColumn
-        col-key="update_at"
-        ellipsis
-        sorter
-        :title="t('更新时间')"
-        :width="180">
-        <template #default="{ row: data }: { row: TicketFlowDescribeModel }">
-          {{ data.updateAtDisplay }}
-        </template>
-      </TableColumn>
-    </DbTable>
+              :resource="dbType"
+              text
+              theme="primary"
+              @click="handleEdit(data)">
+              {{ t('编辑') }}
+            </AuthButton>
+          </template>
+        </TableColumn>
+      </DbTable>
+    </div>
   </div>
+  <EditConfigSide
+    v-model:is-show="isShowEdit"
+    :data="editingRow"
+    @success="fetchData" />
   <BatchConfigDialog
-    v-model:is-show="isShowBatchConfigDialog"
-    :ticket-types="selecedTicketTypes"
+    v-model:is-show="isShowBatch"
+    :mode="batchMode"
+    :rows="batchRows"
     @success="fetchData" />
 </template>
-<script setup lang="tsx">
-  import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
+
+<script setup lang="ts">
+  import { I18nT, useI18n } from 'vue-i18n';
 
   import TicketFlowDescribeModel from '@services/model/ticket-flow-describe/TicketFlowDescribe';
-  import { getTicketTypes, queryTicketFlowDescribe } from '@services/source/ticket';
+  import { queryTicketFlowDescribe } from '@services/source/ticket';
 
-  import type { DBTypes } from '@common/const';
+  import { useTableSettings } from '@hooks';
 
-  import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
+  import { type DBTypes, UserPersonalSettings } from '@common/const';
+
   import DbTable from '@components/db-table/IndexNew.vue';
 
-  import BatchConfigDialog from './BatchConfigDialog.vue';
-  import RenderFlowPreview from './RenderFlowPreview.vue';
+  import { useResizeObserver } from '@vueuse/core';
+
+  import { useSearchSelect } from '../hooks/use-search-select';
+
+  import BatchConfigDialog, { type BatchMode } from './BatchConfigDialog.vue';
+  import EditConfigSide from './EditConfigSide.vue';
+  import TimeoutSummary from './TimeoutSummary.vue';
 
   interface Props {
     dbType: DBTypes;
@@ -176,106 +212,154 @@
   const props = defineProps<Props>();
 
   const { t } = useI18n();
-
-  const tableRef = ref();
-  const isShowBatchConfigDialog = ref(false);
+  const table = ref<InstanceType<typeof DbTable>>();
+  const tableContentRef = ref<HTMLElement>();
   const searchValue = ref<Record<string, string>>({});
-  const ticketTypeList = shallowRef<{ label: string; value: string }[]>([]);
   const selected = shallowRef<TicketFlowDescribeModel[]>([]);
+  const editingRow = shallowRef(new TicketFlowDescribeModel());
+  const batchRows = shallowRef<TicketFlowDescribeModel[]>([]);
+  const batchMode = ref<BatchMode>('approve');
+  const isShowEdit = ref(false);
+  const isShowBatch = ref(false);
 
-  const hasSelected = computed(() => selected.value.length > 0);
-  const selecedTicketTypes = computed(() => selected.value.map((item) => item.ticket_type));
-  const searchSelectList = computed<QuickSearchProps['data']>(() => [
-    {
-      id: 'ticket_types',
-      list: ticketTypeList.value,
-      name: t('单据类型'),
-      type: 'multiple',
-    },
-  ]);
-
-  useRequest(getTicketTypes, {
-    onSuccess: (data) => {
-      ticketTypeList.value = data.map((item) => ({
-        label: item.value,
-        value: item.key,
-      }));
-    },
+  const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.TICKET_FLOW_GLOBAL_SETTINGS, {
+    checked: ['ticket_type_display', 'editable', 'need_itsm', 'need_manual_confirm', 'expire_config', 'updater', 'update_at', 'operations'],
+    disabled: ['ticket_type_display'],
+    order: ['ticket_type_display', 'ticket_type', 'editable', 'need_itsm', 'need_manual_confirm', 'expire_config', 'updater', 'update_at', 'operations'],
   });
+  const batchActions: { label: string; mode: BatchMode }[] = [
+    { label: t('批量设置审批'), mode: 'approve' },
+    { label: t('批量设置确认执行'), mode: 'confirm' },
+    { label: t('批量设置超时'), mode: 'timeout' },
+  ];
 
-  watch(searchValue, () => {
-    fetchData();
-  });
+  const { searchSelectList } = useSearchSelect();
 
-  watch(
-    () => props.dbType,
-    (type) => {
-      if (type) {
-        searchValue.value = {};
-      }
-    },
-  );
+  const batchDisabledReason = (mode: BatchMode) => {
+    if (!selected.value.length) return t('请先勾选要批量设置的单据类型');
+    if (mode !== 'timeout' && !selected.value.some((row) => row.editable)) {
+      return mode === 'approve' ? t('所选单据类型的审批均为单据预设') : t('所选单据类型的确认执行均为单据预设');
+    }
+    return '';
+  };
+  const disableSelect = (row: TicketFlowDescribeModel) => !row.permission.ticket_config_set;
 
-  // watch(searchValue, () => {
-  //   tableRef.value!.clearSelected();
-  // });
-
-  const fetchData = () => {
-    tableRef.value.fetchData({
-      // 全局配置下单据流程列表不传bk_biz_id,覆盖db-table组件传入的bk_biz_id,请求时会过滤掉值为undefined的字段
-      bk_biz_id: undefined,
-      db_type: props.dbType,
-      ...searchValue.value,
+  // 接口返回类型全集；包含筛选、组合条件、自然序与分页均在全局页处理，不改变业务页查询契约。
+  const queryList = async (params: Record<string, unknown>) => {
+    const filters: Record<string, string> = {};
+    Object.entries(params).forEach(([key, value]) => {
+      if (typeof value === 'string') filters[key] = value;
     });
+    const { results } = await queryTicketFlowDescribe({ db_type: props.dbType });
+    const matched = results.filter((row) => {
+      if (filters.db_type && !filters.db_type.split(',').includes(props.dbType)) return false;
+      if (filters.ticket_type__in && !filters.ticket_type__in.split(',').includes(row.ticket_type)) return false;
+      if (filters.editable && !filters.editable.split(',').includes(String(row.editable))) return false;
+      for (const key of ['need_itsm', 'need_manual_confirm'] as const) {
+        if (filters[key] && !filters[key].split(',').includes(String(row.configs[key]))) return false;
+      }
+      const timestamp = new Date(row.update_at).getTime();
+      if (filters.update_at__gte && (!Number.isFinite(timestamp) || timestamp < new Date(filters.update_at__gte).getTime())) return false;
+      if (filters.update_at__lte && (!Number.isFinite(timestamp) || timestamp > new Date(filters.update_at__lte).getTime())) return false;
+      return true;
+    });
+    const ordering = typeof params.ordering === 'string' ? params.ordering : '';
+    const collator = new Intl.Collator('zh-CN', { numeric: true });
+    matched.sort((a, b) => {
+      if (ordering === 'update_at' || ordering === '-update_at') {
+        const diff = new Date(a.update_at || 0).getTime() - new Date(b.update_at || 0).getTime();
+        return ordering.startsWith('-') ? -diff : diff;
+      }
+      return collator.compare(a.ticket_type_display, b.ticket_type_display);
+    });
+    const limit = Number(params.limit ?? 20);
+    const offset = Number(params.offset ?? 0);
+    return {
+      count: matched.length,
+      results: limit < 0 ? matched : matched.slice(offset, offset + limit),
+    };
   };
 
-  const handleSelection = (idList: string[], list: TicketFlowDescribeModel[]) => {
-    selected.value = list;
-  };
+  // 表格占用剩余空间，提示条关闭或窗口变化时同步更新内部滚动高度。
+  useResizeObserver(tableContentRef, () => {
+    table.value?.updateTableHeight(tableContentRef.value!.clientHeight);
+  });
 
-  const handleBatchEdit = () => {
-    isShowBatchConfigDialog.value = true;
+  const fetchData = () => table.value?.fetchData({ db_type: props.dbType, ...searchValue.value });
+  const clearSelection = () => {
+    selected.value.forEach((row) => table.value?.removeSelectByKey(String(row.id)));
+    selected.value = [];
   };
-
+  const handleSelection = (_ids: string[], rows: TicketFlowDescribeModel[]) => {
+    selected.value = rows;
+  };
+  const handleEdit = (row: TicketFlowDescribeModel) => {
+    editingRow.value = row;
+    isShowEdit.value = true;
+  };
+  const handleBatchEdit = (mode: BatchMode) => {
+    if (batchDisabledReason(mode)) return;
+    batchMode.value = mode;
+    batchRows.value = [...selected.value];
+    isShowBatch.value = true;
+  };
   const handleClearSearch = () => {
     searchValue.value = {};
   };
 
-  onMounted(() => {
+  watch(searchValue, () => {
+    clearSelection();
     fetchData();
   });
+  watch(() => props.dbType, () => {
+    searchValue.value = {};
+  });
+  onMounted(fetchData);
 </script>
+
 <style lang="less" scoped>
   .ticket-flow-list-content {
     display: flex;
+    height: 100%;
     padding: 16px 24px;
+    overflow: hidden;
     flex-direction: column;
+
+    > .bk-alert {
+      flex-shrink: 0;
+    }
+
+    .table-content {
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
 
     .top-operation {
       display: flex;
       width: 100%;
-      height: 32px;
-      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+      gap: 8px;
       margin-bottom: 16px;
 
-      .input-box {
-        width: 600px;
-      }
-    }
+      .selection-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #63656e;
+        white-space: nowrap;
 
-    :deep(.table-box) {
-      .configs-head {
-        padding-bottom: 2px;
-        border-bottom: 1px dashed #313238;
-      }
-
-      .flow-node-action {
-        display: inline-block;
-        cursor: pointer;
-
-        & ~ .flow-node-action {
-          margin-left: 24px;
+        .selection-count {
+          font-weight: 500;
+          color: #3a84ff;
         }
+      }
+
+      .input-box {
+        width: 550px;
+        margin-left: auto;
       }
     }
   }

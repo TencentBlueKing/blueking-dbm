@@ -99,7 +99,7 @@
             v-db-console="'globalConfigManage.ticketFlowSetting'"
             icon="danjuliuchengshezhi"
             route-name="PlatformTicketFlowSetting">
-            {{ t('单据流程设置') }}
+            {{ t('单据设置') }}
           </DbMenuItem>
           <DbMenuItem
             v-db-console="'globalConfigManage.todoRemind'"
