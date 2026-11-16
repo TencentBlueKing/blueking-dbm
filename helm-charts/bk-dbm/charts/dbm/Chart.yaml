@@ -1,9 +1,5 @@
 apiVersion: v2
-<<<<<<< HEAD
-appVersion: 1.5.0-alpha.6393
-=======
-appVersion: 1.5.0-alpha.6384
->>>>>>> 7eb9966407 (feat(backend): aidev sdk 升级到3.0.0 #20087)
+appVersion: 1.5.0-alpha.6409
 description: A Helm chart for dbm
 name: dbm
 type: application
