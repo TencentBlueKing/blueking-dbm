@@ -126,7 +126,7 @@
       v-model:is-show="detailState.isShow"
       :domain="detailState.domain"
       @fail="fetchData"
-      @success="handleDetailSaved" />
+      @success="fetchData" />
     <DomainDelete
       v-model:is-show="deleteState.isShow"
       :domain="deleteState.domain"
@@ -138,7 +138,7 @@
 
   import type { IRequestPayload } from '@services/http';
   import DnsDomainModel from '@services/model/dns-domain/dns-domain';
-  import { type DnsDomainDetail, getDnsDomainList } from '@services/source/dnsDomain';
+  import { getDnsDomainList } from '@services/source/dnsDomain';
 
   import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
   import DbTable from '@components/db-table/IndexNew.vue';
@@ -231,18 +231,6 @@
   const handleDelete = (row: DnsDomainModel) => {
     deleteState.domain = row.domain;
     deleteState.isShow = true;
-  };
-
-  /**
-   * 保存后侧滑留在详情 Tab，列表行就地回填。
-   * 不重新请求：DbTable 开启 URL 联动后每次 fetchData 都会回到第一页
-   */
-  const handleDetailSaved = (detail: DnsDomainDetail) => {
-    const row = tableRef.value!.getData<DnsDomainModel>().find((item) => item.domain === detail.domain);
-    if (row) {
-      row.owners = detail.owners;
-      row.remark = detail.remark;
-    }
   };
 </script>
 <style lang="less">

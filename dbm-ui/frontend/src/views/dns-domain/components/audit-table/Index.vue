@@ -119,11 +119,6 @@
     scope: DnsDomainAuditScope;
   }
 
-  interface Exposes {
-    // 按当前筛选与页码原地刷新
-    refresh: () => void;
-  }
-
   const props = withDefaults(defineProps<Props>(), {
     domain: '',
   });
@@ -212,11 +207,6 @@
       isExporting.value = false;
     });
   };
-
-  defineExpose<Exposes>({
-    // 本域日志未开启 URL 联动，查询条件不变时 DbTable 保留当前页码
-    refresh: fetchData,
-  });
 </script>
 <style lang="less">
   .dns-domain-audit-table {
