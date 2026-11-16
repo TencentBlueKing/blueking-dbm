@@ -92,7 +92,7 @@
   import { useRequest } from 'vue-request';
 
   import TicketModel, { type Mongodb } from '@services/model/ticket/ticket';
-  import { batchFetchFile } from '@services/source/storage.ts';
+  import { getFileContent } from '@services/source/storage.ts';
 
   import { TicketTypes } from '@common/const';
 
@@ -128,32 +128,33 @@
 
   const currentFileContent = computed(() => fileContentMap.value[selectFileName.value] || '');
 
-  const { loading: isContentLoading, run: runBatchFetchFile } = useRequest(
-    () => {
-      const { path, script_files: scriptFiles } = props.ticketDetails.details;
-      const filePathList = scriptFiles.reduce<string[]>((result, item) => {
-        result.push([path, item].join('/'));
-        return result;
-      }, []);
-
-      return batchFetchFile({
-        file_path_list: filePathList,
-      });
-    },
+  // 批量接口有文件数量限制，改为按选中文件单个请求，结果按文件名缓存
+  const { loading: isContentLoading, run: runFetchFileContent } = useRequest(
+    (fileName: string) =>
+      getFileContent({
+        file_path: [props.ticketDetails.details.path, fileName].join('/'),
+      }).then((data) => ({
+        content: data.content,
+        fileName,
+      })),
     {
       manual: true,
-      onSuccess(result) {
-        fileContentMap.value = result.reduce<Record<string, string>>((result, fileInfo) => {
-          const fileName = fileInfo.path.split('/').pop() as string;
-          return Object.assign(result, {
-            [fileName]: fileInfo.content,
-          });
-        }, {});
-        uploadFileList.value = Object.keys(fileContentMap.value);
-        selectFileName.value = uploadFileList.value[0];
+      onSuccess({ content, fileName }) {
+        fileContentMap.value = {
+          ...fileContentMap.value,
+          [fileName]: content,
+        };
       },
     },
   );
+
+  // 侧栏打开或切换文件时，未缓存的文件才发起请求（手动输入模式内容已在单据中，不会请求）
+  watch([isShow, selectFileName], () => {
+    if (!isShow.value || !selectFileName.value || selectFileName.value in fileContentMap.value) {
+      return;
+    }
+    runFetchFileContent(selectFileName.value);
+  });
 
   // 查看日志详情
   const handleClickFile = () => {
@@ -174,7 +175,8 @@
       selectFileName.value = scripts[0].name;
     } else {
       isShow.value = true;
-      runBatchFetchFile();
+      uploadFileList.value = props.ticketDetails.details.script_files;
+      selectFileName.value = uploadFileList.value[0];
     }
   };
 
