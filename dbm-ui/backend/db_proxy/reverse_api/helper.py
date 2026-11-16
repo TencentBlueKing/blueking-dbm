@@ -13,7 +13,6 @@ import ipaddress
 from django.db.models import Q
 from rest_framework.request import Request
 
-from backend import env
 from backend.db_meta.models import Machine
 from backend.db_proxy.constants import DB_CLOUD_MACHINE_EXPIRE_TIME, DB_CLOUD_PROXY_EXPIRE_TIME, ExtensionType
 from backend.db_proxy.models import DBExtension
@@ -22,24 +21,19 @@ from backend.utils.redis import check_set_member_in_redis
 
 
 def get_client_ip(request: Request):
-    # DEBUG模式下支持从参数获取ip
-    if env.DEBUG_REVERSE_API:
-        return request.query_params.get("ip") or request.data.get("ip")
+    ip = (
+        request.query_params.get("ip")
+        or request.data.get("ip")
+        or (request.META.get("HTTP_X_FORWARDED_FOR") or "").split(",")[0].strip()
+    )  # 最后这一段是为了平滑过渡, 最终要删掉
+    if not ip:
+        raise Exception("client ip not found in request")
 
-    x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
-    if x_forwarded_for:
-        ip = x_forwarded_for.split(",")[0]
-        return ip
-    else:
-        raise Exception("client ip in HTTP_X_FORWARDED_FOR not found")
+    return ip
 
 
 def validate_nginx_ip(bk_cloud_id: int, request: Request):
-    x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
-    if x_forwarded_for:
-        nginx_ip = x_forwarded_for.split(", ")[1]
-    else:
-        raise Exception("nginx ip in HTTP_X_FORWARDED_FOR not found")
+    nginx_ip = request.META.get("REMOTE_ADDR")
 
     if nginx_ip in nginx_ips_mcache[bk_cloud_id]:
         return True
