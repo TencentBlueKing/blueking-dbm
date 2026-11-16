@@ -22,8 +22,9 @@ def init_db_meta(sender, **kwargs):
     """初始化配置"""
 
     # 初始化城市配置
+    from backend.db_package.models import Distribution
+
     from .models.city_map import BKCity, LogicalCity
-    from .models.db_version import Distribution
     from .models.spec import Spec
 
     try:

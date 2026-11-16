@@ -9,82 +9,15 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import math
-from typing import Dict
 
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from backend.bk_web.models import AuditedModel
-from backend.configuration.constants import DBType
 from backend.db_meta.enums.version_phase import VersionPhase
 
-
-class Distribution(AuditedModel):
-    """
-    安装包的来源, 比如
-    txsql, 社区版等等
-    同时, 由于要兼容 Tokudb 和 Rocksdb, 这2个也当做独立发行版
-
-    example:
-    {
-        name: Tokudb,
-        engine: Tokudb,
-        db_type: MySQL,
-        pkg_type: MySQL
-    }
-    {
-        name: DBM,
-        engine: "",
-        db_type: MySQL,
-        pkg_type: dbactuator
-    }
-    """
-
-    name = models.CharField(max_length=256, default="", help_text=_("发行版"))
-    engine = models.CharField(max_length=64, default="", help_text=_("引擎"))  # mysql 特有
-
-    db_type = models.CharField(max_length=128, choices=DBType.get_choices())
-    pkg_type = models.CharField(max_length=128)
-
-    def snapshot(self) -> Dict:
-        return {
-            "id": self.pk,
-            "name": self.name,
-            "engine": self.engine,
-            "db_type": self.db_type,
-            "pkg_type": self.pkg_type,
-        }
-
-    @classmethod
-    def init_distribution(cls):
-        """
-        初始化发行版，只在一个环境初始化的时候发起
-        以 INIT_DB_PKG_SETTINGS 为准, 发行版/引擎取值参考 medium.lock，缺省为 ("DBM", "")
-        """
-        from backend.db_package.constants import INIT_DB_PKG_SETTINGS
-
-        distribution_list = [
-            cls(name=name, engine=engine, db_type=db_type, pkg_type=str(pkg["value"]))
-            for db_type, pkgs in INIT_DB_PKG_SETTINGS.items()
-            for pkg in pkgs
-            for name, engine in pkg.get("distributions", [("DBM", "")])
-        ]
-        cls.objects.bulk_create(distribution_list)
-
-
-class VersionSeries(AuditedModel):
-    """
-    目前版本系列没有独立属性
-    但是不知道版本系列后续会不会有
-    所以现在就直接拆开吧, 毕竟在 ui 交互上已经有 新建系列 这样的动作了
-    """
-
-    distribution = models.ForeignKey(Distribution, on_delete=models.PROTECT, blank=True, null=True)
-    name = models.CharField(max_length=128, default="", help_text=_("版本系列"))
-
-    class Meta:
-        unique_together = [("distribution", "name")]
+from .version_series import VersionSeries
 
 
 class DBVersion(AuditedModel):
@@ -97,7 +30,6 @@ class DBVersion(AuditedModel):
     """
 
     full_version = models.CharField(max_length=128, default="", help_text=_("完整版本"))
-    # major_version = models.CharField(max_length=128, default="", help_text=_("主版本"))
     name = models.CharField(max_length=128, default="", help_text=_("版本名称"))
     distribution_snapshot = models.JSONField(null=True, help_text=_("发行版快照"), default=dict)
     distribution_id = models.IntegerField(help_text=_("发行版ID"))
@@ -108,6 +40,7 @@ class DBVersion(AuditedModel):
     recommend = models.BooleanField(default=False, help_text=_("版本推荐"))
 
     class Meta:
+        app_label = "db_meta"
         unique_together = [("full_version", "distribution_id"), ("name", "distribution_id")]
 
     def save(self, *args, **kwargs):
@@ -115,6 +48,8 @@ class DBVersion(AuditedModel):
             split_fv = self.full_version.split(".")
             if len(split_fv) != 6:
                 raise ValidationError(_("%(value)s must look like a.b.c.d.e.f"), params={"value": self.full_version})
+        else:
+            raise ValidationError(_("完整版本号不能为空"))
 
             # 先不检查版本号大小了, 不同 db 组件自己写吧
             # bad_seg = []
@@ -125,6 +60,9 @@ class DBVersion(AuditedModel):
             #
             # if bad_seg:
             #     raise ValidationError(_("%(seg)s must gt 0 and lt 999"), params={"seg": bad_seg})
+        if not self.version_series_id:
+            raise ValidationError(_("版本系列不能为空"))
+
         self.distribution_snapshot = self.version_series.distribution.snapshot()
         self.distribution_id = self.version_series.distribution_id
         super(DBVersion, self).save(*args, **kwargs)

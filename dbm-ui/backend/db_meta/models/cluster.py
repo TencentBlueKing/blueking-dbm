@@ -109,6 +109,11 @@ class Cluster(AuditedModel):
     cloud_zone_list = models.JSONField(default=list, help_text=_("指云可用区，空列表代表随机"), blank=True, null=True)
     bk_cloud_region = models.CharField(max_length=128, default="", blank=True, null=True, help_text=_("云上的地域"))
 
+    # mysql 集群存储的是 dbmodule 详情的快照
+    # 其他集群类型按需设计结构
+    # 不同集群类型自建配套的方法
+    apply_snapshot = models.JSONField(default=dict, help_text=_("集群部署需求快照"), blank=True, null=True)
+
     class Meta:
         unique_together = [("bk_biz_id", "immute_domain", "cluster_type", "db_module_id"), ("immute_domain",)]
 

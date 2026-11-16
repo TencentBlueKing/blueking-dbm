@@ -22,19 +22,21 @@ from backend.bk_web.constants import LEN_LONG, LEN_NORMAL, LEN_SHORT
 from backend.bk_web.models import AuditedModel
 from backend.configuration.constants import DBType
 from backend.db_meta.enums.version_phase import PkgSeries, VersionPhase
-from backend.db_meta.models.db_version import DBVersion, Distribution
 from backend.db_package.constants import PackageMode, PackageType
 from backend.db_package.exceptions import PackageNotExistException, PackagePathException, VersionNoNotExistException
 from backend.db_services.ipchooser.constants import BkOsType
 from backend.exceptions import ApiRequestError
 from backend.flow.consts import MediumEnum
 
+from .db_version import DBVersion
+from .distribution import Distribution
+
 logger = logging.getLogger("root")
 
 
 class Package(AuditedModel):
     name = models.CharField(_("文件名"), max_length=LEN_LONG)
-    version = models.CharField(_("版本号"), max_length=LEN_NORMAL)
+    version = models.CharField(_("版本号, 即将废弃, 改为使用 db_version 关系链"), max_length=LEN_NORMAL)
 
     # 和新版本管理的信息是重复的, 后续可以删掉
     pkg_type = models.CharField(_("安装包类型"), max_length=LEN_SHORT)
