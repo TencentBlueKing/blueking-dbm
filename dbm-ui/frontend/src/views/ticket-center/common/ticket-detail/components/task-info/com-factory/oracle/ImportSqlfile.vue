@@ -77,7 +77,7 @@
   import { useRequest } from 'vue-request';
 
   import TicketModel, { type Oracle } from '@services/model/ticket/ticket';
-  import { batchFetchFile } from '@services/source/storage';
+  import { getFileContent } from '@services/source/storage';
 
   import { TicketTypes } from '@common/const';
 
@@ -112,25 +112,22 @@
 
   const currentFileContent = computed(() => fileContentMap.value[localSelectFileName.value] || '');
 
-  const { loading: isContentLoading, run: runBatchFetchFile } = useRequest(
-    () => {
-      const filePathList = props.ticketDetails.details.script_files.map((item) =>
-        [props.ticketDetails.details.path, item].join('/'),
-      );
-
-      return batchFetchFile({
-        file_path_list: filePathList,
-      });
-    },
+  // 批量接口有文件数量限制，改为按选中文件单个请求，结果按文件名缓存
+  const { loading: isContentLoading, run: runFetchFileContent } = useRequest(
+    (fileName: string) =>
+      getFileContent({
+        file_path: [props.ticketDetails.details.path, fileName].join('/'),
+      }).then((data) => ({
+        content: data.content,
+        fileName,
+      })),
     {
       manual: true,
-      onSuccess(result) {
-        fileContentMap.value = result.reduce<Record<string, string>>((result, fileInfo) => {
-          const fileName = fileInfo.path.split('/').pop() as string;
-          return Object.assign(result, {
-            [fileName]: fileInfo.content,
-          });
-        }, {});
+      onSuccess({ content, fileName }) {
+        fileContentMap.value = {
+          ...fileContentMap.value,
+          [fileName]: content,
+        };
       },
     },
   );
@@ -140,8 +137,21 @@
     () => {
       if (isShow.value) {
         localSelectFileName.value = props.ticketDetails.details.script_files[0];
-        runBatchFetchFile();
       }
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  // 侧栏打开或切换文件时，未缓存的文件才发起请求
+  watch(
+    [isShow, localSelectFileName],
+    () => {
+      if (!isShow.value || !localSelectFileName.value || localSelectFileName.value in fileContentMap.value) {
+        return;
+      }
+      runFetchFileContent(localSelectFileName.value);
     },
     {
       immediate: true,
