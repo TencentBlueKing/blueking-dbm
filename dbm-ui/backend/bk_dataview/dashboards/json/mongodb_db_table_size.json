@@ -96,7 +96,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "count(last_over_time(mongo_dbtablesize_collect_success{cluster_domain=\"$cluster_domain\", enabled=\"true\", report_bucket=\"$report_bucket\", shard!~\".*conf\"}[24h]) == 1)",
-          "step": "60s",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -2464,11 +2464,11 @@
                 "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
-                "pointSize": 5,
+                "pointSize": 3,
                 "scaleDistribution": {
                   "type": "linear"
                 },
-                "showPoints": "never",
+                "showPoints": "auto",
                 "spanNulls": false,
                 "stacking": {
                   "group": "A",
@@ -2742,11 +2742,11 @@
                 "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
-                "pointSize": 5,
+                "pointSize": 3,
                 "scaleDistribution": {
                   "type": "linear"
                 },
-                "showPoints": "never",
+                "showPoints": "auto",
                 "spanNulls": false,
                 "stacking": {
                   "group": "A",
@@ -3020,11 +3020,11 @@
                 "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
-                "pointSize": 5,
+                "pointSize": 3,
                 "scaleDistribution": {
                   "type": "linear"
                 },
-                "showPoints": "never",
+                "showPoints": "auto",
                 "spanNulls": false,
                 "stacking": {
                   "group": "A",
@@ -3298,11 +3298,11 @@
                 "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
-                "pointSize": 5,
+                "pointSize": 3,
                 "scaleDistribution": {
                   "type": "linear"
                 },
-                "showPoints": "never",
+                "showPoints": "auto",
                 "spanNulls": false,
                 "stacking": {
                   "group": "A",
@@ -3576,11 +3576,11 @@
                 "insertNulls": false,
                 "lineInterpolation": "linear",
                 "lineWidth": 1,
-                "pointSize": 5,
+                "pointSize": 3,
                 "scaleDistribution": {
                   "type": "linear"
                 },
-                "showPoints": "never",
+                "showPoints": "auto",
                 "spanNulls": false,
                 "stacking": {
                   "group": "A",
@@ -3834,7 +3834,8 @@
   "schemaVersion": 39,
   "tags": [
     "MongoReplicaSet",
-    "mongodb_db_table_size"
+    "mongodb_db_table_size",
+    "表容量视图"
   ],
   "templating": {
     "list": [
@@ -4268,7 +4269,7 @@
   "timezone": "browser",
   "title": "mongodb_db_table_size",
   "uid": "mongodb_db_table_size",
-  "version": 36,
+  "version": 39,
   "weekStart": "",
   "__inputs": [
     {

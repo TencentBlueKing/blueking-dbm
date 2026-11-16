@@ -92,7 +92,7 @@
                   }
                 ]
               },
-              "unit": "short"
+              "unit": "percent"
             },
             "overrides": []
           },
@@ -140,7 +140,7 @@
               "query_configs": [],
               "refId": "A",
               "source": "max by (ip) (max_over_time(bkmonitor:dbm_system:cpu_summary:usage{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[1m]))",
-              "step": "2m",
+              "step": "auto",
               "type": "range"
             }
           ],
@@ -200,7 +200,7 @@
                   }
                 ]
               },
-              "unit": "short"
+              "unit": "percent"
             },
             "overrides": []
           },
@@ -248,7 +248,7 @@
               "query_configs": [],
               "refId": "A",
               "source": "max by (ip) (max_over_time(bkmonitor:dbm_system:cpu_summary:usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]))",
-              "step": "2m",
+              "step": "auto",
               "type": "range"
             }
           ],
@@ -308,7 +308,7 @@
                   }
                 ]
               },
-              "unit": "short"
+              "unit": "percent"
             },
             "overrides": []
           },
@@ -356,7 +356,7 @@
               "query_configs": [],
               "refId": "A",
               "source": "max by (ip) (max_over_time(bkmonitor:dbm_system:mem:pct_used{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[1m]))",
-              "step": "2m",
+              "step": "auto",
               "type": "range"
             }
           ],
@@ -416,7 +416,7 @@
                   }
                 ]
               },
-              "unit": "short"
+              "unit": "percent"
             },
             "overrides": []
           },
@@ -464,7 +464,7 @@
               "query_configs": [],
               "refId": "A",
               "source": "max by (ip) (max_over_time(bkmonitor:dbm_system:mem:pct_used{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]))",
-              "step": "2m",
+              "step": "auto",
               "type": "range"
             }
           ],
@@ -573,7 +573,7 @@
               "query_configs": [],
               "refId": "A",
               "source": "100 * (max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_recv{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"proxy\"}[1m])) + max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_sent{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"proxy\"}[1m]))) / sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[1m])) / (96 * 1024 * 1024) and sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[1m])) <= 2 or (100 * (max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_recv{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"proxy\"}[1m])) + max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_sent{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"proxy\"}[1m]))) / sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[1m])) / (48 * 1024 * 1024) and sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[1m])) > 2)",
-              "step": "2m",
+              "step": "auto",
               "type": "range"
             },
             {
@@ -593,7 +593,7 @@
               "query_configs": [],
               "refId": "B",
               "source": "100 * (max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_packets_recv{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"proxy\"}[1m])) + max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_packets_sent{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"proxy\"}[1m]))) / sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[1m])) / 150000 and sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[1m])) <= 2 or (100 * (max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_packets_recv{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"proxy\"}[1m])) + max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_packets_sent{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"proxy\"}[1m]))) / sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[1m])) / 90000 and sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[1m])) > 2)",
-              "step": "2m",
+              "step": "auto",
               "type": "range"
             }
           ],
@@ -702,7 +702,7 @@
               "query_configs": [],
               "refId": "A",
               "source": " (\n    (\n      max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_recv{cluster_domain=\"$cluster_domain\", device_name=\"eth1\", instance_role=\"redis_master\"}[1m]))\n      +\n      max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_sent{cluster_domain=\"$cluster_domain\", device_name=\"eth1\", instance_role=\"redis_master\"}[1m]))\n    ) * 100\n  )\n  /\n  # 2. 计算分母：(去重后的核心数 * 对应基准带宽)\n  (\n    # 逻辑 A：核心数 <= 2，用 96M 基准\n    (\n      count by(ip, bk_target_cloud_id) (group by(ip, bk_target_cloud_id, device_name) (bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\", instance_role=\"redis_master\"})) <= 2\n    ) * (96 * 1024 * 1024)\n    or\n    # 逻辑 B：核心数 > 2，用 48M 基准\n    (\n      count by(ip, bk_target_cloud_id) (group by(ip, bk_target_cloud_id, device_name) (bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\", instance_role=\"redis_master\"})) > 2\n    ) * (48 * 1024 * 1024)\n  )\n",
-              "step": "2m",
+              "step": "auto",
               "type": "range"
             },
             {
@@ -722,7 +722,7 @@
               "query_configs": [],
               "refId": "B",
               "source": "100 * (max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_packets_recv{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"redis_master\"}[1m])) + max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_packets_sent{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"redis_master\"}[1m]))) / sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])) / 150000 and sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])) <= 2 or (100 * (max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_packets_recv{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"redis_master\"}[1m])) + max by(ip, bk_target_cloud_id) (max_over_time(bkmonitor:dbm_system:net:speed_packets_sent{cluster_domain=\"$cluster_domain\",device_name=\"eth1\",instance_role=\"redis_master\"}[1m]))) / sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])) / 90000 and sum by(ip, bk_target_cloud_id) (count_over_time(bkmonitor:dbm_system:cpu_detail:usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m])) > 2)",
-              "step": "2m",
+              "step": "auto",
               "type": "range"
             }
           ],
@@ -830,7 +830,7 @@
               "query_configs": [],
               "refId": "A",
               "source": "max by (ip) (max_over_time(bkmonitor:dbm_system:net:speed_sent{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[1m]))",
-              "step": "2m",
+              "step": "auto",
               "type": "range"
             },
             {
@@ -850,7 +850,7 @@
               "query_configs": [],
               "refId": "B",
               "source": "max by (ip) (max_over_time(bkmonitor:dbm_system:net:speed_recv{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[1m]))",
-              "step": "2m",
+              "step": "auto",
               "type": "range"
             }
           ],
@@ -958,7 +958,7 @@
               "query_configs": [],
               "refId": "A",
               "source": "max by (ip) (max_over_time(bkmonitor:dbm_system:net:speed_sent{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]))",
-              "step": "2m",
+              "step": "auto",
               "type": "range"
             },
             {
@@ -978,7 +978,7 @@
               "query_configs": [],
               "refId": "B",
               "source": "max by (ip) (max_over_time(bkmonitor:dbm_system:net:speed_recv{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]))",
-              "step": "2m",
+              "step": "auto",
               "type": "range"
             }
           ],
@@ -1086,7 +1086,7 @@
               "query_configs": [],
               "refId": "A",
               "source": "max by (ip) (max_over_time(bkmonitor:dbm_system:net:speed_packets_sent{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[1m]))",
-              "step": "2m",
+              "step": "auto",
               "type": "range"
             },
             {
@@ -1106,7 +1106,7 @@
               "query_configs": [],
               "refId": "B",
               "source": "max by (ip) (max_over_time(bkmonitor:dbm_system:net:speed_packets_recv{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[1m]))",
-              "step": "2m",
+              "step": "auto",
               "type": "range"
             }
           ],
@@ -1214,7 +1214,7 @@
               "query_configs": [],
               "refId": "A",
               "source": "max by (ip) (max_over_time(bkmonitor:dbm_system:net:speed_packets_sent{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]))",
-              "step": "2m",
+              "step": "auto",
               "type": "range"
             },
             {
@@ -1234,7 +1234,7 @@
               "query_configs": [],
               "refId": "B",
               "source": "max by (ip) (max_over_time(bkmonitor:dbm_system:net:speed_packets_recv{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]))",
-              "step": "2m",
+              "step": "auto",
               "type": "range"
             }
           ],
@@ -1274,7 +1274,7 @@
                 "scaleDistribution": {
                   "type": "linear"
                 },
-                "showPoints": "always",
+                "showPoints": "auto",
                 "spanNulls": false,
                 "stacking": {
                   "group": "A",
@@ -1343,7 +1343,7 @@
               "query_configs": [],
               "refId": "A",
               "source": "max by (ip) (irate(bkmonitor:dbm_system:net:collisions{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[$__interval:1m]))",
-              "step": "2m",
+              "step": "auto",
               "type": "range"
             },
             {
@@ -1363,7 +1363,7 @@
               "query_configs": [],
               "refId": "B",
               "source": "max by (ip) (irate(bkmonitor:dbm_system:net:overruns{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[$__interval:1m])) > 0",
-              "step": "2m",
+              "step": "auto",
               "type": "range"
             },
             {
@@ -1383,7 +1383,7 @@
               "query_configs": [],
               "refId": "C",
               "source": "max by (ip) (irate(bkmonitor:dbm_system:net:dropped{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[$__interval:1m])) > 0",
-              "step": "2m",
+              "step": "auto",
               "type": "range"
             },
             {
@@ -1403,7 +1403,7 @@
               "query_configs": [],
               "refId": "D",
               "source": "max by (ip) (irate(bkmonitor:dbm_system:netstat:cur_tcp_retranssegs{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[$__interval:1m])) > 0",
-              "step": "2m",
+              "step": "auto",
               "type": "range"
             }
           ],
@@ -1443,7 +1443,7 @@
                 "scaleDistribution": {
                   "type": "linear"
                 },
-                "showPoints": "always",
+                "showPoints": "auto",
                 "spanNulls": false,
                 "stacking": {
                   "group": "A",
@@ -1512,7 +1512,7 @@
               "query_configs": [],
               "refId": "A",
               "source": "max by (ip) (irate(bkmonitor:dbm_system:net:collisions{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval:1m]))",
-              "step": "2m",
+              "step": "auto",
               "type": "range"
             },
             {
@@ -1532,7 +1532,7 @@
               "query_configs": [],
               "refId": "B",
               "source": "max by (ip) (irate(bkmonitor:dbm_system:net:overruns{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval:1m])) > 0",
-              "step": "2m",
+              "step": "auto",
               "type": "range"
             },
             {
@@ -1552,7 +1552,7 @@
               "query_configs": [],
               "refId": "C",
               "source": "max by (ip) (irate(bkmonitor:dbm_system:net:dropped{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval:1m])) > 0",
-              "step": "2m",
+              "step": "auto",
               "type": "range"
             },
             {
@@ -1572,7 +1572,7 @@
               "query_configs": [],
               "refId": "D",
               "source": "max by (ip) (irate(bkmonitor:dbm_system:netstat:cur_tcp_retranssegs{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval:1m]))",
-              "step": "2m",
+              "step": "auto",
               "type": "range"
             }
           ],
@@ -1632,7 +1632,7 @@
                   }
                 ]
               },
-              "unit": "short"
+              "unit": "percentunit"
             },
             "overrides": []
           },
@@ -1681,7 +1681,7 @@
               "query_configs": [],
               "refId": "A",
               "source": "max by (ip) (max_over_time(bkmonitor:dbm_system:io:util{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[1m]))",
-              "step": "2m",
+              "step": "auto",
               "type": "range"
             }
           ],
@@ -1741,7 +1741,7 @@
                   }
                 ]
               },
-              "unit": "short"
+              "unit": "percentunit"
             },
             "overrides": []
           },
@@ -1790,7 +1790,7 @@
               "query_configs": [],
               "refId": "A",
               "source": "max by (ip) (max_over_time(bkmonitor:dbm_system:io:util{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]))",
-              "step": "2m",
+              "step": "auto",
               "type": "range"
             }
           ],
@@ -1899,7 +1899,7 @@
               "query_configs": [],
               "refId": "A",
               "source": "max by (ip) (max_over_time(bkmonitor:dbm_system:io:wkb_s{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[1m]))",
-              "step": "2m",
+              "step": "auto",
               "type": "range"
             },
             {
@@ -1919,7 +1919,7 @@
               "query_configs": [],
               "refId": "B",
               "source": "max by (ip) (max_over_time(bkmonitor:dbm_system:io:rkb_s{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[1m]))",
-              "step": "2m",
+              "step": "auto",
               "type": "range"
             }
           ],
@@ -2028,7 +2028,7 @@
               "query_configs": [],
               "refId": "A",
               "source": "max by (ip) (max_over_time(bkmonitor:dbm_system:io:wkb_s{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]))",
-              "step": "2m",
+              "step": "auto",
               "type": "range"
             },
             {
@@ -2048,7 +2048,7 @@
               "query_configs": [],
               "refId": "B",
               "source": "max by (ip) (max_over_time(bkmonitor:dbm_system:io:rkb_s{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]))",
-              "step": "2m",
+              "step": "auto",
               "type": "range"
             }
           ],
@@ -2148,7 +2148,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "max(max_over_time(bkmonitor:dbm_system:cpu_summary:usage{cluster_domain=\"$cluster_domain\",instance_role=\"proxy\"}[1m]))",
-          "step": "2m",
+          "step": "auto",
           "type": "instant"
         }
       ],
@@ -2228,7 +2228,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "sum(bkmonitor:exporter_dbm_predixy_exporter:predixy_cluster_connections{cluster_domain=\"$cluster_domain\"})",
-          "step": "2m",
+          "step": "auto",
           "type": "instant"
         }
       ],
@@ -2339,7 +2339,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "count(bkmonitor:exporter_dbm_predixy_exporter:__default__:predixy_up{cluster_domain=\"$cluster_domain\"}==1)",
-          "step": "2m",
+          "step": "auto",
           "type": "instant"
         },
         {
@@ -2359,7 +2359,7 @@
           "query_configs": [],
           "refId": "B",
           "source": "count(bkmonitor:exporter_dbm_predixy_exporter:__default__:predixy_up{cluster_domain=\"$cluster_domain\"}==0) > 0",
-          "step": "2m",
+          "step": "auto",
           "type": "instant"
         }
       ],
@@ -2436,7 +2436,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "sum(irate(bkmonitor:exporter_dbm_predixy_exporter:__default__:predixy_cluster_total_requests{cluster_domain=\"$cluster_domain\"}[$__interval:1m]))",
-          "step": "2m",
+          "step": "auto",
           "type": "instant"
         }
       ],
@@ -2522,7 +2522,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "max(sum by (instance) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) / sum by (instance) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_config_maxmemory{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}))",
-          "step": "2m",
+          "step": "auto",
           "type": "instant"
         }
       ],
@@ -2608,7 +2608,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "sum(bkmonitor:exporter_dbm_redis_exporter:redis_memory_used_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})/sum(bkmonitor:exporter_dbm_redis_exporter:redis_config_maxmemory{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
-          "step": "2m",
+          "step": "auto",
           "type": "instant"
         }
       ],
@@ -2689,7 +2689,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "sum(bkmonitor:exporter_dbm_redis_exporter:redis_config_maxmemory{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
-          "step": "2m",
+          "step": "auto",
           "type": "instant"
         }
       ],
@@ -2769,7 +2769,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "max by (version) (bkmonitor:exporter_dbm_predixy_exporter:__default__:predixy_info{cluster_domain=\"$cluster_domain\"})",
-          "step": "2m",
+          "step": "auto",
           "type": "instant"
         }
       ],
@@ -2852,7 +2852,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "max(max by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_cpu_user_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval:1m]) + irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_cpu_sys_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval:1m])))",
-          "step": "2m",
+          "step": "auto",
           "type": "instant"
         }
       ],
@@ -2935,7 +2935,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "max(bkmonitor:dbm_system:cpu_summary:usage{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
-          "step": "2m",
+          "step": "auto",
           "type": "instant"
         }
       ],
@@ -3013,7 +3013,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "count(bkmonitor:exporter_dbm_redis_exporter:redis_up{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
-          "step": "2m",
+          "step": "auto",
           "type": "instant"
         }
       ],
@@ -3089,7 +3089,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval:1m]))",
-          "step": "2m",
+          "step": "auto",
           "type": "instant"
         }
       ],
@@ -3171,7 +3171,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "min(bkmonitor:exporter_dbm_redis_exporter:redis_config_maxmemory{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
-          "step": "2m",
+          "step": "auto",
           "type": "instant"
         }
       ],
@@ -3252,7 +3252,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "sum(bkmonitor:exporter_dbm_redis_exporter:redis_memory_used_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
-          "step": "2m",
+          "step": "auto",
           "type": "instant"
         }
       ],
@@ -3333,7 +3333,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "sum(bkmonitor:exporter_dbm_redis_exporter:redis_db_keys{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
-          "step": "2m",
+          "step": "auto",
           "type": "instant"
         }
       ],
@@ -3414,7 +3414,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "max by (redis_version, maxmemory_policy) (bkmonitor:exporter_dbm_redis_exporter:redis_instance_info{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
-          "step": "2m",
+          "step": "auto",
           "type": "instant"
         }
       ],
@@ -3454,7 +3454,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "always",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -3523,7 +3523,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "sum by(cluster_domain) (irate(bkmonitor:exporter_dbm_predixy_exporter:__default__:predixy_cmdstat_calls_total{cluster_domain=\"$cluster_domain\"}[$__interval:1m]))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -3543,7 +3543,7 @@
           "query_configs": [],
           "refId": "B",
           "source": "sum by(cmd) (irate(bkmonitor:exporter_dbm_predixy_exporter:__default__:predixy_cmdstat_calls_total{cluster_domain=\"$cluster_domain\"}[$__interval:1m])) > 0",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -3586,7 +3586,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "always",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -3656,7 +3656,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "sum by(cmd) (irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval:1m])) > 0 ",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -3676,7 +3676,7 @@
           "query_configs": [],
           "refId": "B",
           "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval:1m]) )",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -3712,11 +3712,11 @@
             "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
-            "pointSize": 1,
+            "pointSize": 3,
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "always",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -3787,7 +3787,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"+Inf\"}[$__interval:1m])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"2.048e+06\"}[$__interval:1m])))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -3807,7 +3807,7 @@
           "query_configs": [],
           "refId": "B",
           "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"2.048e+06\"}[$__interval:1m])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"1.024e+06\"}[$__interval:1m])))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -3827,7 +3827,7 @@
           "query_configs": [],
           "refId": "C",
           "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"1.024e+06\"}[$__interval:1m])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"512000\"}[$__interval:1m])))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -3847,7 +3847,7 @@
           "query_configs": [],
           "refId": "D",
           "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"512000\"}[$__interval:1m])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"256000\"}[$__interval:1m])))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -3867,7 +3867,7 @@
           "query_configs": [],
           "refId": "E",
           "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"256000\"}[$__interval:1m])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"128000\"}[$__interval:1m])))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -3887,7 +3887,7 @@
           "query_configs": [],
           "refId": "F",
           "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"128000\"}[$__interval:1m])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"64000\"}[$__interval:1m])))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -3907,7 +3907,7 @@
           "query_configs": [],
           "refId": "G",
           "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"64000\"}[$__interval:1m])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"32000\"}[$__interval:1m])))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -3927,7 +3927,7 @@
           "query_configs": [],
           "refId": "H",
           "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"32000\"}[$__interval:1m])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"16000\"}[$__interval:1m])))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -3947,7 +3947,7 @@
           "query_configs": [],
           "refId": "I",
           "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"16000\"}[$__interval:1m])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"8000\"}[$__interval:1m])))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -3967,7 +3967,7 @@
           "query_configs": [],
           "refId": "J",
           "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"8000\"}[$__interval:1m])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"4000\"}[$__interval:1m])))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -3987,7 +3987,7 @@
           "query_configs": [],
           "refId": "K",
           "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"4000\"}[$__interval:1m])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"2000\"}[$__interval:1m])))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -4007,7 +4007,7 @@
           "query_configs": [],
           "refId": "L",
           "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"2000\"}[$__interval:1m])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"1000\"}[$__interval:1m])))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -4027,7 +4027,7 @@
           "query_configs": [],
           "refId": "M",
           "source": "sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"1000\"}[$__interval:1m]))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -4063,11 +4063,11 @@
             "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
-            "pointSize": 1,
+            "pointSize": 3,
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "always",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -4137,7 +4137,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"+Inf\"}[$__interval:1m])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"2.048e+06\"}[$__interval:1m])))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -4157,7 +4157,7 @@
           "query_configs": [],
           "refId": "B",
           "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"2.048e+06\"}[$__interval:1m])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"1.024e+06\"}[$__interval:1m])))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -4177,7 +4177,7 @@
           "query_configs": [],
           "refId": "C",
           "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"1.024e+06\"}[$__interval:1m])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"512000\"}[$__interval:1m])))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -4197,7 +4197,7 @@
           "query_configs": [],
           "refId": "D",
           "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"512000\"}[$__interval:1m])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"256000\"}[$__interval:1m])))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -4217,7 +4217,7 @@
           "query_configs": [],
           "refId": "E",
           "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"256000\"}[$__interval:1m])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"128000\"}[$__interval:1m])))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -4237,7 +4237,7 @@
           "query_configs": [],
           "refId": "F",
           "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"128000\"}[$__interval:1m])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"64000\"}[$__interval:1m])))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -4257,7 +4257,7 @@
           "query_configs": [],
           "refId": "G",
           "source": "(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"64000\"}[$__interval:1m])))-(sum(irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\",le=\"32000\"}[$__interval:1m])))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -4366,7 +4366,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "histogram_quantile(0.99, sum by (le) (irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\"}[$__interval:1m])))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -4475,7 +4475,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "histogram_quantile(0.99, sum by (instance, le) (irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_response_latency_bucket{cluster_domain=\"$cluster_domain\"}[$__interval:1m])))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -4515,7 +4515,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -4657,7 +4657,7 @@
           "query_configs": [],
           "refId": "B",
           "source": "sum by(cluster_domain) (bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) and on() (count(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) == quantile_over_time(0.5, (count(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}))[1h:1m]))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -4677,7 +4677,7 @@
           "query_configs": [],
           "refId": "C",
           "source": "sum(bkmonitor:exporter_dbm_redis_exporter:redis_memory_used_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) / sum(bkmonitor:exporter_dbm_redis_exporter:redis_config_maxmemory{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -4697,7 +4697,7 @@
           "query_configs": [],
           "refId": "D",
           "source": "sum(bkmonitor:exporter_dbm_redis_exporter:redis_config_maxmemory{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) and on() (count(bkmonitor:exporter_dbm_redis_exporter:redis_config_maxmemory{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) == quantile_over_time(0.5, (count(bkmonitor:exporter_dbm_redis_exporter:redis_config_maxmemory{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}))[1h:1m]))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -4737,7 +4737,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "always",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -4806,7 +4806,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "sum by (cmd) (irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_usec_total{cluster_domain=\"$cluster_domain\"}[$__interval:1m])) / sum by (cmd) (irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_calls_total{cluster_domain=\"$cluster_domain\"}[$__interval:1m]))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -4846,7 +4846,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "always",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -4917,7 +4917,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "max by (cmd) (1e+06 * (max by (instance,cmd) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_commands_duration_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval:1m])) / max by (instance,cmd) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval:1m]))) )",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -5026,7 +5026,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "sum by (instance_host) (irate(bkmonitor:exporter_dbm_predixy_exporter:__default__:predixy_cmdstat_response_latency_sum{cluster_domain=\"$cluster_domain\"}[$__interval:1m])) / sum by (instance_host) (irate(bkmonitor:exporter_dbm_predixy_exporter:__default__:predixy_cmdstat_response_latency_count{cluster_domain=\"$cluster_domain\"}[$__interval:1m]))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -5062,7 +5062,7 @@
             "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
-            "pointSize": 1,
+            "pointSize": 3,
             "scaleDistribution": {
               "type": "linear"
             },
@@ -5136,7 +5136,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "1e+06 * (avg by(instance) (irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_duration_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval:1m])) / avg by(instance) (irate(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_commands_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval:1m]))) ",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -5172,7 +5172,7 @@
             "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
-            "pointSize": 1,
+            "pointSize": 3,
             "scaleDistribution": {
               "type": "linear"
             },
@@ -5250,7 +5250,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "sum(sum by (instance_host) (irate(bkmonitor:exporter_dbm_predixy_exporter:__default__:predixy_cluster_accept{cluster_domain=\"$cluster_domain\"}[$__interval:1m])))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -5270,7 +5270,7 @@
           "query_configs": [],
           "refId": "B",
           "source": "sum by (instance_host) (irate(bkmonitor:exporter_dbm_predixy_exporter:__default__:predixy_cluster_accept{cluster_domain=\"$cluster_domain\"}[$__interval:1m]))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -5380,7 +5380,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "sum(sum by (instance_host) (bkmonitor:exporter_dbm_predixy_exporter:__default__:predixy_cluster_connections{cluster_domain=\"$cluster_domain\"}))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -5400,7 +5400,7 @@
           "query_configs": [],
           "refId": "B",
           "source": "sum by (instance_host) (bkmonitor:exporter_dbm_predixy_exporter:__default__:predixy_cluster_connections{cluster_domain=\"$cluster_domain\"})",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -5510,7 +5510,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "sum by (cluster_domain, instance_host) (irate(bkmonitor:exporter_dbm_predixy_exporter:__default__:predixy_cluster_total_requests{cluster_domain=\"$cluster_domain\"}[$__interval:1m]))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -5550,7 +5550,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -5645,7 +5645,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "sum(bkmonitor:exporter_dbm_redis_exporter:redis_db_keys{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) - sum(bkmonitor:exporter_dbm_redis_exporter:redis_db_keys_expiring{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) and on() (count(bkmonitor:exporter_dbm_redis_exporter:redis_db_keys{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) == quantile_over_time(0.5, (count(bkmonitor:exporter_dbm_redis_exporter:redis_db_keys{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}))[1h:1m]))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -5665,7 +5665,7 @@
           "query_configs": [],
           "refId": "B",
           "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:redis_expired_keys_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval:1m]))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -5685,7 +5685,7 @@
           "query_configs": [],
           "refId": "C",
           "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:redis_evicted_keys_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval:1m]))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -5705,7 +5705,7 @@
           "query_configs": [],
           "refId": "D",
           "source": "sum(bkmonitor:exporter_dbm_redis_exporter:redis_db_keys_expiring{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) and on() (count(bkmonitor:exporter_dbm_redis_exporter:redis_db_keys_expiring{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) == quantile_over_time(0.5, (count(bkmonitor:exporter_dbm_redis_exporter:redis_db_keys_expiring{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}))[1h:1m]))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -5725,7 +5725,7 @@
           "query_configs": [],
           "refId": "E",
           "source": "sum(bkmonitor:exporter_dbm_redis_exporter:redis_db_keys{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) and on() (count(bkmonitor:exporter_dbm_redis_exporter:redis_db_keys{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) == quantile_over_time(0.5, (count(bkmonitor:exporter_dbm_redis_exporter:redis_db_keys{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}))[1h:1m]))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -5765,7 +5765,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -5835,7 +5835,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:redis_keyspace_hits_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -5855,7 +5855,7 @@
           "query_configs": [],
           "refId": "B",
           "source": "sum(irate(bkmonitor:exporter_dbm_redis_exporter:redis_keyspace_misses_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -5908,7 +5908,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "always",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -5978,7 +5978,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_commands_processed_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval:1m]))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -6018,7 +6018,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -6092,7 +6092,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "sum by (instance) (bkmonitor:exporter_dbm_redis_exporter:redis_memory_used_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -6132,7 +6132,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -6203,7 +6203,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "sum by (instance) (bkmonitor:exporter_dbm_redis_exporter:redis_memory_used_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) / sum by (instance) (bkmonitor:exporter_dbm_redis_exporter:redis_config_maxmemory{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -6243,7 +6243,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -6313,7 +6313,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_cpu_user_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval])) + sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_cpu_sys_seconds_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -6354,7 +6354,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -6424,7 +6424,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "sum by (instance) (bkmonitor:exporter_dbm_redis_exporter:redis_memory_used_rss_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -6464,7 +6464,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -6534,7 +6534,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_net_input_bytes_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         },
         {
@@ -6554,7 +6554,7 @@
           "query_configs": [],
           "refId": "B",
           "source": "sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_net_output_bytes_total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -6595,7 +6595,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -6665,7 +6665,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "sum by (instance) (bkmonitor:exporter_dbm_redis_exporter:redis_connected_clients{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -6705,7 +6705,7 @@
             "scaleDistribution": {
               "type": "linear"
             },
-            "showPoints": "never",
+            "showPoints": "auto",
             "spanNulls": false,
             "stacking": {
               "group": "A",
@@ -6775,7 +6775,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "sum by (instance) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_master_repl_offset{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[$__interval]))",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -6956,7 +6956,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "avg(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) by (instance)",
-          "step": "2m",
+          "step": "auto",
           "type": "instant"
         },
         {
@@ -6976,7 +6976,7 @@
           "query_configs": [],
           "refId": "B",
           "source": "avg(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_memory_used_rss_bytes{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) by (instance)",
-          "step": "2m",
+          "step": "auto",
           "type": "instant"
         },
         {
@@ -6996,7 +6996,7 @@
           "query_configs": [],
           "refId": "C",
           "source": "avg(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_config_maxmemory{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) by (instance)",
-          "step": "2m",
+          "step": "auto",
           "type": "instant"
         },
         {
@@ -7016,7 +7016,7 @@
           "query_configs": [],
           "refId": "D",
           "source": "avg(bkmonitor:exporter_dbm_redis_exporter:__default__:redis_config_maxmemory_policy{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"})by (instance)",
-          "step": "2m",
+          "step": "auto",
           "type": "instant"
         }
       ],
@@ -7182,7 +7182,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "avg(avg_over_time(bkmonitor:dbm_system:mem:total{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]) ) by (ip,instance_role)",
-          "step": "2m",
+          "step": "auto",
           "type": "instant"
         },
         {
@@ -7202,7 +7202,7 @@
           "query_configs": [],
           "refId": "B",
           "source": "avg(avg_over_time(bkmonitor:dbm_system:mem:used{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]) ) by (ip,instance_role)",
-          "step": "2m",
+          "step": "auto",
           "type": "instant"
         },
         {
@@ -7222,7 +7222,7 @@
           "query_configs": [],
           "refId": "C",
           "source": "avg by (ip, instance_role) (avg_over_time(bkmonitor:dbm_system:mem:pct_used{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]))",
-          "step": "2m",
+          "step": "auto",
           "type": "instant"
         },
         {
@@ -7242,7 +7242,7 @@
           "query_configs": [],
           "refId": "D",
           "source": "count by (ip, instance_role) (avg_over_time(bkmonitor:dbm_system:mem:pct_used{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}[1m]))",
-          "step": "2m",
+          "step": "auto",
           "type": "instant"
         }
       ],
@@ -7314,7 +7314,7 @@
             "insertNulls": false,
             "lineInterpolation": "linear",
             "lineWidth": 1,
-            "pointSize": 1,
+            "pointSize": 3,
             "scaleDistribution": {
               "type": "linear"
             },
@@ -7388,7 +7388,7 @@
           "query_configs": [],
           "refId": "A",
           "source": "min(bkmonitor:exporter_dbm_redis_exporter:redis_connected_slave_lag_seconds{cluster_domain=\"$cluster_domain\",instance_role=\"redis_master\"}) by (slave_ip,slave_port,slave_state)",
-          "step": "2m",
+          "step": "auto",
           "type": "range"
         }
       ],
@@ -7523,7 +7523,7 @@
   "timezone": "",
   "title": "tendis-PredixyRedisCluster",
   "uid": "PredixyRedisCluster",
-  "version": 76,
+  "version": 88,
   "weekStart": "",
   "__inputs": [
     {
