@@ -451,7 +451,7 @@ class FailoverDrillConfig(AuditedModel):
         default=FailoverDrillVersion.V1.value,
         help_text=_("DBHA版本"),
     )
-    cluster_domain = models.CharField(max_length=255, default="", blank=True, help_text=_("指定演练集群域名，仅 v2 生效"))
+    cluster_domain = models.CharField(max_length=255, default="", blank=True, help_text=_("演练集群域名"))
 
 
 class ExerciseIgnoreType:

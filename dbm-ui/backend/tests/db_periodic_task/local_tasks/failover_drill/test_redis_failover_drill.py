@@ -99,7 +99,6 @@ def _drill(version="v1", immute_domain="cache.failover-drill-sz.test.db", city="
             labels=[],
             bk_biz_id=BIZ_ID,
             bk_cloud_id=CLOUD_ID,
-            city_map=CITY_MAP,
             instance_type="proxy",
             version=version,
             immute_domain=immute_domain,
@@ -208,40 +207,21 @@ class TestGetDbhaInfo:
 
 
 class TestBuildDrillTargets:
-    @pytest.fixture(autouse=True)
-    def app_cache(self):
-        with patch.object(drill_mod.AppCache.objects, "get", return_value=SimpleNamespace(db_app_abbr="test")):
-            yield
+    @pytest.mark.parametrize("version", ["v1", "v2", "v2,v1"])
+    @pytest.mark.parametrize(
+        "cluster_type", [ClusterType.TendisTwemproxyRedisInstance.value, ClusterType.TendisPredixyRedisCluster.value]
+    )
+    def test_single_target_from_cluster_domain(self, version, cluster_type):
+        conf = _conf(version=version, cluster_type=cluster_type, cluster_domain=f" {V2_DOMAIN} ")
+        assert build_drill_targets(conf) == [DrillTarget("", V2_DOMAIN)]
 
-    def test_v1_targets_per_city(self):
-        assert build_drill_targets(_conf()) == [
-            DrillTarget("深圳", "cache.failover-drill-sz.test.db"),
-            DrillTarget("上海", "cache.failover-drill-sh.test.db"),
-        ]
+    @pytest.mark.parametrize("version", ["v1", "v2"])
+    def test_city_map_not_expanded_without_domain(self, version):
+        assert build_drill_targets(_conf(version=version)) == [DrillTarget("", "")]
 
-    def test_v1_ignores_cluster_domain(self):
-        assert build_drill_targets(_conf(cluster_domain=V2_DOMAIN)) == build_drill_targets(_conf())
-
-    def test_v2_with_domain_single_target(self):
-        assert build_drill_targets(_conf(version="v2", cluster_domain=V2_DOMAIN)) == [DrillTarget("", V2_DOMAIN)]
-
-    def test_v2_without_domain_single_empty_target(self):
-        assert build_drill_targets(_conf(version="v2")) == [DrillTarget("", "")]
-
-    def test_v2_ignores_city_map_and_app_cache(self):
-        with patch.object(drill_mod.AppCache.objects, "get", side_effect=drill_mod.AppCache.DoesNotExist) as get:
-            targets = build_drill_targets(_conf(version="v2", city_map={}, cluster_domain=V2_DOMAIN))
-
-        assert targets == [DrillTarget("", V2_DOMAIN)]
-        get.assert_not_called()
-
-    def test_v2_empty_domain_no_v1_fallback(self):
-        assert _drill(version="v2", immute_domain="").get_immute_domain() == ""
-
-    def test_combined_version_uses_cluster_domain(self):
-        assert build_drill_targets(_conf(version="v2,v1", cluster_domain=V2_DOMAIN, city_map={"深圳": "sz"})) == [
-            DrillTarget("", V2_DOMAIN)
-        ]
+    @pytest.mark.parametrize("version", ["v1", "v2"])
+    def test_empty_domain_no_city_naming_fallback(self, version):
+        assert _drill(version=version, immute_domain="").get_immute_domain() == ""
 
 
 class TestRedisFailoverDrillReport:
@@ -253,7 +233,6 @@ class TestRedisFailoverDrillReport:
                 labels=[],
                 bk_biz_id=BIZ_ID,
                 bk_cloud_id=CLOUD_ID,
-                city_map=CITY_MAP,
                 instance_type="proxy",
                 version="v2",
                 immute_domain=V2_DOMAIN,
@@ -286,7 +265,6 @@ class TestRedisFailoverDrillReport:
                 labels=[],
                 bk_biz_id=BIZ_ID,
                 bk_cloud_id=CLOUD_ID,
-                city_map=CITY_MAP,
                 instance_type="proxy",
                 version="v2,v1",
                 immute_domain=V2_DOMAIN,
@@ -316,7 +294,6 @@ class TestRedisFailoverDrillReport:
                 labels=[],
                 bk_biz_id=BIZ_ID,
                 bk_cloud_id=CLOUD_ID,
-                city_map={},
                 instance_type="proxy",
                 version="v2",
                 immute_domain=V2_DOMAIN,
@@ -340,7 +317,6 @@ class TestRedisFailoverDrillReport:
                 labels=[],
                 bk_biz_id=BIZ_ID,
                 bk_cloud_id=CLOUD_ID,
-                city_map={},
                 instance_type="backend",
                 version="v2",
                 immute_domain=V2_DOMAIN,
@@ -350,10 +326,9 @@ class TestRedisFailoverDrillReport:
         assert rfod.cluster_filters()["cluster_type"] == cluster_type
         assert _drill().cluster_type() == ClusterType.TendisTwemproxyRedisInstance.value
 
-    def test_v1_cluster_filters_include_cloud(self):
-        assert _drill().cluster_filters()["bk_cloud_id"] == CLOUD_ID
-        assert "bk_cloud_id" not in _drill(version="v2", immute_domain=V2_DOMAIN).cluster_filters()
-        assert "bk_cloud_id" not in _drill(version="v1,v2", immute_domain=V2_DOMAIN).cluster_filters()
+    @pytest.mark.parametrize("version", ["v1", "v2", "v1,v2"])
+    def test_cluster_filters_exclude_cloud(self, version):
+        assert "bk_cloud_id" not in _drill(version=version, immute_domain=V2_DOMAIN, city="").cluster_filters()
 
     def test_resolve_city_falls_back_to_dash(self):
         rfod = _drill()
@@ -437,23 +412,15 @@ class TestFailoverDrillUnitPrecheck:
         assert rpt.state == ReportStateType.ABNORMAL
 
     @pytest.mark.usefixtures("multi_db")
-    @pytest.mark.parametrize("cluster_extra", [{"bk_biz_id": BIZ_ID + 1}, {"bk_cloud_id": CLOUD_ID + 1}])
-    def test_v1_cluster_mismatch_is_no_cluster(self, no_alert, cluster_extra):
-        _create_cluster(immute_domain=V1_DOMAIN, **cluster_extra)
-        with patch.object(drill_mod.Ticket, "create_ticket") as create_ticket:
-            unit_mod.failover_drill_unit({"city": "深圳", "immute_domain": V1_DOMAIN}, _conf())
-
-        self._assert_aborted(no_alert, create_ticket, TaskStatus.NO_CLUSTER)
-
-    @pytest.mark.usefixtures("multi_db")
+    @pytest.mark.parametrize("version", ["v1", "v2"])
     @pytest.mark.parametrize(
         "cluster_extra",
         [{"bk_biz_id": BIZ_ID + 1}, {"cluster_type": ClusterType.TendisPredixyTendisplusCluster.value}],
     )
-    def test_v2_cluster_mismatch_is_no_cluster(self, no_alert, cluster_extra):
+    def test_cluster_mismatch_is_no_cluster(self, no_alert, version, cluster_extra):
         _create_cluster(**cluster_extra)
         with patch.object(drill_mod.Ticket, "create_ticket") as create_ticket:
-            unit_mod.failover_drill_unit({"city": "", "immute_domain": V2_DOMAIN}, _conf(version="v2"))
+            unit_mod.failover_drill_unit({"city": "", "immute_domain": V2_DOMAIN}, _conf(version=version))
 
         self._assert_aborted(no_alert, create_ticket, TaskStatus.NO_CLUSTER)
 
@@ -485,12 +452,20 @@ class TestFailoverDrillUnitPrecheck:
         self._assert_aborted(no_alert, create_ticket, TaskStatus.NO_CLUSTER)
 
     @pytest.mark.usefixtures("multi_db")
-    def test_v2_empty_domain_aborts(self, no_alert):
-        _create_cluster(immute_domain="cache.failover-drill-v2-sz.test.db")
+    @pytest.mark.parametrize(
+        "conf_extra",
+        [
+            {"version": "v1"},
+            {"version": "v2"},
+            {"version": "v1", "cluster_type": ClusterType.TendisPredixyRedisCluster.value},
+        ],
+    )
+    def test_empty_domain_aborts(self, no_alert, conf_extra):
+        _create_cluster(immute_domain=V1_DOMAIN)
         with patch.object(Cluster.objects, "get") as cluster_get, patch.object(
             drill_mod.Ticket, "create_ticket"
         ) as create_ticket:
-            unit_mod.failover_drill_unit({"city": "", "immute_domain": ""}, _conf(version="v2"))
+            unit_mod.failover_drill_unit({"city": "", "immute_domain": ""}, _conf(**conf_extra))
 
         cluster_get.assert_not_called()
         self._assert_aborted(no_alert, create_ticket, TaskStatus.NO_CLUSTER_DOMAIN)
@@ -638,7 +613,12 @@ class TestDispatch:
     def rows(self, db):
         cluster_type = ClusterType.TendisTwemproxyRedisInstance.value
         FailoverDrillConfig.objects.create(
-            labels=[], cluster_type=cluster_type, city_map={"深圳": "sz"}, switch_flag=True, bk_biz_id=BIZ_ID
+            labels=[],
+            cluster_type=cluster_type,
+            city_map={"深圳": "sz"},
+            switch_flag=True,
+            bk_biz_id=BIZ_ID,
+            cluster_domain=V1_DOMAIN,
         )
         FailoverDrillConfig.objects.create(
             labels=[],
@@ -652,12 +632,12 @@ class TestDispatch:
 
     @pytest.mark.parametrize(
         "enable_v2, expected_domains",
-        [(True, ["cache.failover-drill-sz.test.db", V2_DOMAIN]), (False, ["cache.failover-drill-sz.test.db"])],
+        [(True, [V1_DOMAIN, V2_DOMAIN]), (False, [V1_DOMAIN])],
     )
     def test_dispatch_by_row(self, rows, enable_v2, expected_domains):
         with patch.object(task_mod.env, "ENABLE_DBHA_V2", enable_v2), patch.object(
-            drill_mod.AppCache.objects, "get", return_value=SimpleNamespace(db_app_abbr="test")
-        ), patch.object(task_mod.failover_drill_unit, "apply_async") as apply_async:
+            task_mod.failover_drill_unit, "apply_async"
+        ) as apply_async:
             task_mod.proxy_failover_drill_task()
 
         calls = [c.kwargs["args"] for c in apply_async.call_args_list]
@@ -669,7 +649,12 @@ class TestDispatch:
     def test_combined_row_dispatches_once_with_canonical_version(self, db):
         cluster_type = ClusterType.TendisTwemproxyRedisInstance.value
         FailoverDrillConfig.objects.create(
-            labels=[], cluster_type=cluster_type, city_map={"深圳": "sz"}, switch_flag=True, bk_biz_id=BIZ_ID
+            labels=[],
+            cluster_type=cluster_type,
+            city_map={"深圳": "sz"},
+            switch_flag=True,
+            bk_biz_id=BIZ_ID,
+            cluster_domain=V1_DOMAIN,
         )
         FailoverDrillConfig.objects.create(
             labels=[],
@@ -688,18 +673,32 @@ class TestDispatch:
             cluster_domain=V2_DOMAIN,
         )
         with patch.object(task_mod.env, "ENABLE_DBHA_V2", True), patch.object(
-            drill_mod.AppCache.objects, "get", return_value=SimpleNamespace(db_app_abbr="test")
-        ), patch.object(task_mod.failover_drill_unit, "apply_async") as apply_async:
+            task_mod.failover_drill_unit, "apply_async"
+        ) as apply_async:
             task_mod.proxy_failover_drill_task()
 
         calls = [c.kwargs["args"] for c in apply_async.call_args_list]
         domains = [target["immute_domain"] for target, _ in calls]
         assert domains.count(V2_DOMAIN) == 1
-        assert "cache.failover-drill-sz.test.db" in domains
+        assert V1_DOMAIN in domains
         assert "cache.v2-only.test.db" in domains
         combined = [conf for target, conf in calls if target["immute_domain"] == V2_DOMAIN]
         assert len(combined) == 1
         assert combined[0]["version"] == "v1,v2"
+
+    def test_v1_city_map_row_without_domain_not_expanded(self, db):
+        FailoverDrillConfig.objects.create(
+            labels=[],
+            cluster_type=ClusterType.TendisTwemproxyRedisInstance.value,
+            city_map=CITY_MAP,
+            switch_flag=True,
+            bk_biz_id=BIZ_ID,
+        )
+        with patch.object(task_mod.failover_drill_unit, "apply_async") as apply_async:
+            task_mod.proxy_failover_drill_task()
+
+        apply_async.assert_called_once()
+        assert apply_async.call_args.kwargs["args"][0] == {"city": "", "immute_domain": ""}
 
     def test_combined_skipped_when_v2_disabled(self, db):
         FailoverDrillConfig.objects.create(
@@ -719,16 +718,24 @@ class TestDispatch:
     @pytest.mark.parametrize(
         "target_type, task_name, expected",
         [
-            ("proxy", "proxy_failover_drill_task", {"v2-predixy"}),
-            ("backend", "redis_failover_drill_task", {"v2-predixy", "v2-redis-instance"}),
+            ("proxy", "proxy_failover_drill_task", {"v2-predixy", "v2-plus-ins", "v1-predixy"}),
+            (
+                "backend",
+                "redis_failover_drill_task",
+                {"v2-predixy", "v2-plus-ins", "v2-redis-instance", "v1-predixy", "v1-redis-instance"},
+            ),
         ],
     )
     def test_v2_cluster_types(self, db, target_type, task_name, expected):
         rows = {
             "v2-predixy": ("v2", ClusterType.TendisPredixyRedisCluster.value),
+            "v2-plus-ins": ("v2", ClusterType.TendisPredixyTendisplusInstance.value),
             "v2-redis-instance": ("v2", ClusterType.TendisRedisInstance.value),
             "v2-unsupported": ("v2", ClusterType.TendisTendisplusCluster.value),
             "v1-predixy": ("v1", ClusterType.TendisPredixyRedisCluster.value),
+            "v1-redis-instance": ("v1", ClusterType.TendisRedisInstance.value),
+            "v1-plus-ins": ("v1", ClusterType.TendisPredixyTendisplusInstance.value),
+            "v1-unsupported": ("v1", ClusterType.TendisTendisplusCluster.value),
         }
         for domain, (version, cluster_type) in rows.items():
             FailoverDrillConfig.objects.create(
@@ -742,8 +749,8 @@ class TestDispatch:
             )
 
         with patch.object(task_mod.env, "ENABLE_DBHA_V2", True), patch.object(
-            drill_mod.AppCache.objects, "get", return_value=SimpleNamespace(db_app_abbr="test")
-        ), patch.object(task_mod.failover_drill_unit, "apply_async") as apply_async:
+            task_mod.failover_drill_unit, "apply_async"
+        ) as apply_async:
             getattr(task_mod, task_name)()
 
         calls = [c.kwargs["args"] for c in apply_async.call_args_list]

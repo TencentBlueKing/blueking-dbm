@@ -65,8 +65,9 @@ def delete_outdated_drill_records():
 def dispatch_failover_drill(target_type: str):
     """
     按配置行分发演练：每行按自己的 version 独立演练，每个演练目标一个异步单元
-    - v1 只演练 TendisCache（Twemproxy）集群
-    - v2 演练所有支持自愈的 Redis 集群类型；没有接入层的类型跳过 proxy 演练
+    - v1 演练除 PredixyTendisplusInstance 外所有支持自愈的 Redis 集群类型
+    - v2 演练所有支持自愈的 Redis 集群类型
+    - 有接入层的类型支持 proxy 与 backend 演练；没有接入层的类型跳过 proxy 演练
     """
     try:
         confs = list(
@@ -119,7 +120,7 @@ def dispatch_failover_drill(target_type: str):
 @register_periodic_task(run_every=crontab(hour=9, minute=0))
 def proxy_failover_drill_task():
     """
-    redis容灾演练定时任务 针对TendisCache集群的Proxy
+    redis容灾演练定时任务 针对有接入层集群的Proxy
     不能与Backend演练同时执行
     """
     dispatch_failover_drill(FailoverDrillTargetType.PROXY)
@@ -128,7 +129,7 @@ def proxy_failover_drill_task():
 @register_periodic_task(run_every=crontab(hour=9, minute=30))
 def redis_failover_drill_task():
     """
-    redis容灾演练定时任务 针对TendisCache集群的Backend
+    redis容灾演练定时任务 针对支持自愈集群的Backend
     不能与Proxy演练同时执行
     """
     dispatch_failover_drill(FailoverDrillTargetType.BACKEND)
