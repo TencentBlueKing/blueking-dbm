@@ -32,7 +32,7 @@ from backend.db_services.dbbase.resources.serializers import (
 )
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.mysql.sql_import import mock_data
-from backend.db_services.mysql.sql_import.constants import SQLCharset
+from backend.db_services.mysql.sql_import.constants import MAX_UPLOAD_SQL_FILE_COUNT, SQLCharset
 from backend.db_services.redis.resources.redis_cluster.query import RedisListRetrieveResource
 from backend.dbm_init.constants import CC_APP_ABBR_ATTR
 from backend.ticket.builders.common.field import DBTimezoneField
@@ -394,7 +394,11 @@ class SQLUploadSerializer(serializers.Serializer):
         if not (attrs.get("sql_content") or attrs.get("sql_files")):
             raise serializers.ValidationError(_("不允许语法检查的sql的内容为空！"))
 
-        for file in attrs.get("sql_files", []):
+        sql_files = attrs.get("sql_files") or []
+        if len(sql_files) > MAX_UPLOAD_SQL_FILE_COUNT:
+            raise serializers.ValidationError(_("最多上传{}个文件").format(MAX_UPLOAD_SQL_FILE_COUNT))
+
+        for file in sql_files:
             if file.name.rsplit(".")[-1].lower() != "sql":
                 raise serializers.ValidationError(_("请保证sql文件[{}]的后缀为.sql").format(file.name))
 

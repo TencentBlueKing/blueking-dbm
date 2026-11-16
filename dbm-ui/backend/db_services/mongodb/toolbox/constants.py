@@ -14,6 +14,8 @@ MONGODB_SCRIPT_PATH = "mongodb/scriptfile/{biz}"
 
 # 最大上传脚本文件大小（单位：字节）
 MAX_UPLOAD_SCRIPT_FILE_SIZE = 1024 * 1024 * 1024  # 1GB
+# 单次脚本变更最多上传的文件数量
+MAX_UPLOAD_SCRIPT_FILE_COUNT = 200
 
 # 脚本文件支持的扩展名列表
 SCRIPT_FILE_EXTENSIONS = [".js", ".txt"]

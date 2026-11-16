@@ -16,6 +16,7 @@ from rest_framework import serializers
 from backend.configuration.constants import DBType
 from backend.db_services.mysql.sql_import import mock_data
 from backend.db_services.mysql.sql_import.constants import (
+    MAX_UPLOAD_SQL_FILE_COUNT,
     MAX_UPLOAD_SQL_FILE_SIZE,
     SQLCharset,
     SQLExecuteTicketMode,
@@ -86,7 +87,11 @@ class SQLGrammarCheckSerializer(serializers.Serializer):
         if not (attrs.get("sql_content") or attrs.get("sql_files") or attrs.get("sql_filenames")):
             raise ValidationError(_("不允许语法检查的sql的内容为空！"))
 
-        for file in attrs.get("sql_files", []):
+        sql_files = attrs.get("sql_files") or []
+        if len(sql_files) > MAX_UPLOAD_SQL_FILE_COUNT:
+            raise ValidationError(_("最多上传{}个文件").format(MAX_UPLOAD_SQL_FILE_COUNT))
+
+        for file in sql_files:
             if file.size > MAX_UPLOAD_SQL_FILE_SIZE:
                 raise ValidationError(_("请保证单个文件{}不超过1G").format(file.name))
 
@@ -185,6 +190,10 @@ class SQLSemanticCheckSerializer(serializers.Serializer):
         swagger_schema_fields = {"example": mock_data.SQL_SEMANTIC_CHECK_REQUEST_DATA}
 
     def validate(self, attrs):
+        for execute_object in attrs.get("execute_objects") or []:
+            sql_files = execute_object.get("sql_files") or []
+            if len(sql_files) > MAX_UPLOAD_SQL_FILE_COUNT:
+                raise ValidationError(_("最多上传{}个文件").format(MAX_UPLOAD_SQL_FILE_COUNT))
         return attrs
 
 

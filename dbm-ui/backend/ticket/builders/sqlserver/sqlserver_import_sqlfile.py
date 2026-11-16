@@ -13,7 +13,11 @@ from typing import Any, Dict, List
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_services.mysql.sql_import.constants import SQLExecuteTicketMode, SQLImportMode
+from backend.db_services.mysql.sql_import.constants import (
+    MAX_UPLOAD_SQL_FILE_COUNT,
+    SQLExecuteTicketMode,
+    SQLImportMode,
+)
 from backend.db_services.sqlserver.sql_import.constants import BKREPO_SQLSERVER_SQLFILE_PATH
 from backend.flow.consts import SqlserverBackupFileTagEnum, SqlserverBackupMode, SqlserverCharSet
 from backend.flow.engine.controller.sqlserver import SqlserverController
@@ -61,6 +65,9 @@ class SQLServerImportDetailSerializer(SQLServerBaseOperateDetailSerializer):
 
     def validate(self, attrs):
         attrs = super(SQLServerBaseOperateDetailSerializer, self).validate(attrs)
+        for execute_object in attrs.get("execute_objects") or []:
+            if len(execute_object.get("sql_files") or []) > MAX_UPLOAD_SQL_FILE_COUNT:
+                raise serializers.ValidationError(_("最多上传{}个文件").format(MAX_UPLOAD_SQL_FILE_COUNT))
         # 校验集群是否可用
         # 单据详情添加path字段信息
         attrs["path"] = BKREPO_SQLSERVER_SQLFILE_PATH.format(biz=self.context["bk_biz_id"])
