@@ -23,7 +23,12 @@ from backend.flow.plugins.components.collections.mysql.mysql_exercise_binlog_que
     MysqlExerciseBinlogDownloadComponent,
     MysqlExerciseBinlogQueryComponent,
 )
-from backend.flow.plugins.components.collections.mysql.mysql_os_init import CleanDataBakDirComponent
+from backend.flow.plugins.components.collections.common.delay import DelayComponent
+from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
+from backend.flow.plugins.components.collections.mysql.mysql_os_init import (
+    CleanDataBakDirComponent,
+    CleanDbExporterComponent,
+)
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
 from backend.ticket.constants import TicketType
 from backend.utils.time import str2datetime
@@ -250,7 +255,32 @@ class MysqlRollbackExercisePipelineTest(SimpleTestCase):
         parent = builders[0]
         parent_codes = [item.act_component_code for item in parent.acts]
         self.assertIn(CleanDataBakDirComponent.code, parent_codes)
+        self.assertIn(CleanDbExporterComponent.code, parent_codes)
         self.assertIn("destroy", parent.subs)
+
+    def _parent_codes(self, template_id):
+        with patch(f"{SCENE_MOD}.env.SA_CHECK_TEMPLATE_ID", template_id):
+            builders = _build_flow()
+        return [item.act_component_code for item in builders[0].acts]
+
+    def test_exporter_cleanup_precedes_idle_check_when_template_set(self):
+        codes = self._parent_codes("1")
+        delay_idx = codes.index(DelayComponent.code)
+        exporter_idx = codes.index(CleanDbExporterComponent.code)
+        idle_idx = codes.index(CheckMachineIdleComponent.code)
+        bak_idx = codes.index(CleanDataBakDirComponent.code)
+        self.assertLess(delay_idx, exporter_idx)
+        self.assertLess(exporter_idx, idle_idx)
+        self.assertLess(idle_idx, bak_idx)
+
+    def test_exporter_cleanup_precedes_bak_cleanup_when_idle_check_skipped(self):
+        codes = self._parent_codes("")
+        self.assertNotIn(CheckMachineIdleComponent.code, codes)
+        delay_idx = codes.index(DelayComponent.code)
+        exporter_idx = codes.index(CleanDbExporterComponent.code)
+        bak_idx = codes.index(CleanDataBakDirComponent.code)
+        self.assertLess(delay_idx, exporter_idx)
+        self.assertLess(exporter_idx, bak_idx)
 
     def test_apply_failed_writes_binlog_apply_failed_not_recover_failed(self):
         builders = _build_flow()
