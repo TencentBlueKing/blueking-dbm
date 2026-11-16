@@ -430,41 +430,75 @@ class GetOsSysParamComponent(Component):
     bound_service = GetOsSysParam
 
 
+def _reject_if_instances_remain(exec_ips, bk_cloud_id, log_info):
+    """
+    下发清理作业前校验目标机器在 DBMeta 中已无关联实例。
+    仅 Machine 表残留而无实例记录时，视为下架遗留的脏数据，不拦截。
+    """
+    for ip in exec_ips:
+        machine = (
+            Machine.objects.filter(ip=ip, bk_cloud_id=bk_cloud_id)
+            .prefetch_related("proxyinstance_set", "storageinstance_set")
+            .first()
+        )
+        if machine is None:
+            continue
+
+        storage_instances = list(machine.storageinstance_set.all())
+        proxy_instances = list(machine.proxyinstance_set.all())
+        if not storage_instances and not proxy_instances:
+            continue
+
+        instance_desc = []
+        for ins in storage_instances[:10]:
+            instance_desc.append(_("存储实例端口 {}").format(ins.port))
+        for ins in proxy_instances[:10]:
+            instance_desc.append(_("接入实例端口 {}").format(ins.port))
+        raise Exception(_("机器 {}（云区域 {}）仍存在关联实例，拒绝执行备份目录清理，实例信息：{}").format(ip, bk_cloud_id, ",".join(instance_desc)))
+
+    log_info(_("已确认目标机器在 DBMeta 中无关联实例，允许清理：{}").format(",".join(exec_ips)))
+
+
+def _submit_root_script(service, data, exec_ips, bk_cloud_id, script_content, task_name):
+    target_ip_info = [{"bk_cloud_id": bk_cloud_id, "ip": ip} for ip in exec_ips]
+    body = {
+        "bk_scope_type": "biz_set",
+        "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
+        "task_name": task_name,
+        "script_content": base64_encode(script_content),
+        "script_language": 1,
+        "target_server": {"ip_list": target_ip_info},
+    }
+    common_kwargs = copy.deepcopy(fast_execute_script_common_kwargs)
+    common_kwargs["account_alias"] = DBA_ROOT_USER
+    resp = JobApi.fast_execute_script({**common_kwargs, **body}, raw=True)
+    service.log_info("fast execute script response: {}".format(resp))
+    service.log_info("job url: {}".format(service.__url__(resp["data"]["job_instance_id"])))
+    data.outputs.ext_result = resp
+    data.outputs.exec_ips = exec_ips
+    return True
+
+
+CLEAN_DB_EXPORTER_SCRIPT = r"""
+ps -ef | grep 'db.*exporter' | grep -v grep | awk '{print $2}' | while read PID
+do
+    export_install_path=$(pwdx "${PID}" 2>/dev/null | awk '{print $2}')
+    kill -9 "${PID}" || true
+    sleep 1
+    kill -9 "${PID}" || true
+    sleep 1
+    if [ -n "${export_install_path}" ]; then
+        rm -rf "${export_install_path}" || true
+    fi
+done
+"""
+
+
 class CleanDataBakDirSvr(BkJobService):
-    def _check_no_registered_instance(self, exec_ips, bk_cloud_id):
-        """
-        下发清理作业前校验目标机器在 DBMeta 中已无关联实例。
-        仅 Machine 表残留而无实例记录时，视为下架遗留的脏数据，不拦截。
-        """
-        for ip in exec_ips:
-            machine = (
-                Machine.objects.filter(ip=ip, bk_cloud_id=bk_cloud_id)
-                .prefetch_related("proxyinstance_set", "storageinstance_set")
-                .first()
-            )
-            if machine is None:
-                continue
-
-            storage_instances = list(machine.storageinstance_set.all())
-            proxy_instances = list(machine.proxyinstance_set.all())
-            if not storage_instances and not proxy_instances:
-                continue
-
-            instance_desc = []
-            for ins in storage_instances[:10]:
-                instance_desc.append(_("存储实例端口 {}").format(ins.port))
-            for ins in proxy_instances[:10]:
-                instance_desc.append(_("接入实例端口 {}").format(ins.port))
-            raise Exception(
-                _("机器 {}（云区域 {}）仍存在关联实例，拒绝执行备份目录清理，实例信息：{}").format(ip, bk_cloud_id, ",".join(instance_desc))
-            )
-
-        self.log_info(_("已确认目标机器在 DBMeta 中无关联实例，允许清理：{}").format(",".join(exec_ips)))
-
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")
         exec_ips = self.splice_exec_ips_list(ticket_ips=kwargs["exec_ip"])
-        self._check_no_registered_instance(exec_ips, kwargs["bk_cloud_id"])
+        _reject_if_instances_remain(exec_ips, kwargs["bk_cloud_id"], self.log_info)
 
         clean_root_id_dir = ""
         root_id = str(kwargs.get("root_id", ""))
@@ -487,17 +521,6 @@ class CleanDataBakDirSvr(BkJobService):
         find /data1/dbbak -depth -type d -empty -delete 2>/dev/null || true
         find /data/dbbak -mindepth 1 -maxdepth 1 -type d -ctime +3 -exec rm -rf {} + 2>/dev/null || true
         find /data1/dbbak -mindepth 1 -maxdepth 1 -type d -ctime +3 -exec rm -rf {} + 2>/dev/null || true
-        ps -ef | grep 'db.*exporter' | grep -v grep | awk '{print $2}' | while read PID
-        do
-            export_install_path=$(pwdx "${PID}" 2>/dev/null | awk '{print $2}')
-            kill -9 "${PID}" || true
-            sleep 1
-            kill -9 "${PID}" || true
-            sleep 1
-            if [ -n "${export_install_path}" ]; then
-                rm -rf "${export_install_path}" || true
-            fi
-        done
         __CLEAN_ROOT_ID_DIR__
         """.replace(
             "__MYSQLD_RUNNING_REFUSE_CLEAN__",
@@ -505,29 +528,29 @@ class CleanDataBakDirSvr(BkJobService):
         ).replace(
             "__CLEAN_ROOT_ID_DIR__", clean_root_id_dir
         )
-        target_ip_info = [{"bk_cloud_id": kwargs["bk_cloud_id"], "ip": ip} for ip in exec_ips]
-        body = {
-            "bk_scope_type": "biz_set",
-            "bk_scope_id": env.JOB_BLUEKING_BIZ_ID,
-            "task_name": "Clean-DataBak-Dir",
-            "script_content": base64_encode(script_content),
-            "script_language": 1,
-            "target_server": {"ip_list": target_ip_info},
-        }
-        common_kwargs = copy.deepcopy(fast_execute_script_common_kwargs)
-        common_kwargs["account_alias"] = DBA_ROOT_USER
-        resp = JobApi.fast_execute_script({**common_kwargs, **body}, raw=True)
-        self.log_info(f"fast execute script response: {resp}")
-        self.log_info(f"job url: {self.__url__(resp['data']['job_instance_id'])}")
-        data.outputs.ext_result = resp
-        data.outputs.exec_ips = exec_ips
-        return True
+        return _submit_root_script(self, data, exec_ips, kwargs["bk_cloud_id"], script_content, "Clean-DataBak-Dir")
 
 
 class CleanDataBakDirComponent(Component):
     name = __name__
     code = "clean_data_bak_dir"
     bound_service = CleanDataBakDirSvr
+
+
+class CleanDbExporterSvr(BkJobService):
+    def _execute(self, data, parent_data) -> bool:
+        kwargs = data.get_one_of_inputs("kwargs")
+        exec_ips = self.splice_exec_ips_list(ticket_ips=kwargs["exec_ip"])
+        _reject_if_instances_remain(exec_ips, kwargs["bk_cloud_id"], self.log_info)
+        return _submit_root_script(
+            self, data, exec_ips, kwargs["bk_cloud_id"], CLEAN_DB_EXPORTER_SCRIPT, "Clean-Db-Exporter"
+        )
+
+
+class CleanDbExporterComponent(Component):
+    name = _("清理 db exporter")
+    code = "clean_db_exporter"
+    bound_service = CleanDbExporterSvr
 
 
 tlinux4_dependencies_script = """

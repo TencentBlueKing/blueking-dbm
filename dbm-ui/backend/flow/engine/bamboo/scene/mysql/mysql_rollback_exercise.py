@@ -59,7 +59,10 @@ from backend.flow.plugins.components.collections.mysql.mysql_exercise_binlog_que
     MysqlExerciseBinlogDownloadComponent,
     MysqlExerciseBinlogQueryComponent,
 )
-from backend.flow.plugins.components.collections.mysql.mysql_os_init import CleanDataBakDirComponent
+from backend.flow.plugins.components.collections.mysql.mysql_os_init import (
+    CleanDataBakDirComponent,
+    CleanDbExporterComponent,
+)
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.utils.mysql.act_payload.mysql.peripheraltools import PeripheralToolsPayload
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
@@ -421,8 +424,17 @@ class MySQLRollbackExerciseFlow(object):
                 "delay_seconds": 100,
             },
         )
+        sub_pipeline.add_act(
+            act_name=_("清理 db exporter"),
+            act_component_code=CleanDbExporterComponent.code,
+            kwargs={
+                "bk_biz_id": get_resource_biz(),
+                "bk_cloud_id": self.rollback_host["bk_cloud_id"],
+                "exec_ip": self.rollback_host["ip"],
+            },
+        )
 
-        # 清理前先通过标准运维确认临时主机已空闲
+        # 清理备份目录前先通过标准运维确认临时主机已空闲
         if env.SA_CHECK_TEMPLATE_ID:
             sub_pipeline.add_act(
                 act_name=_("sa空闲检查[{}]").format(self.rollback_host["ip"]),
