@@ -12,6 +12,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
 from backend.db_meta.models import Cluster
+from backend.db_services.mongodb.toolbox.constants import MAX_UPLOAD_SCRIPT_FILE_COUNT
 from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.ticket import builders
 from backend.ticket.builders.common.constants import MongoDBScriptImportMode
@@ -45,6 +46,11 @@ class MongoDBScriptExecDetailSerializer(BaseMongoDBOperateDetailSerializer):
         # 确保至少有一个脚本相关的字段
         if not (attrs.get("script_files") or attrs.get("scripts")):
             raise serializers.ValidationError(_("脚本内容不能为空！"))
+
+        script_files = attrs.get("script_files") or []
+        scripts = attrs.get("scripts") or []
+        if len(script_files) > MAX_UPLOAD_SCRIPT_FILE_COUNT or len(scripts) > MAX_UPLOAD_SCRIPT_FILE_COUNT:
+            raise serializers.ValidationError(_("最多上传{}个文件").format(MAX_UPLOAD_SCRIPT_FILE_COUNT))
 
         # 如果同时提供了script_files和scripts，优先使用scripts（兼容旧客户端）
         if attrs.get("scripts") and attrs.get("script_files"):

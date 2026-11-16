@@ -12,7 +12,7 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_services.mysql.sql_import.constants import SQLImportMode
+from backend.db_services.mysql.sql_import.constants import MAX_UPLOAD_SQL_FILE_COUNT, SQLImportMode
 from backend.db_services.oracle.sql_import.constants import BKREPO_ORACLE_SQLFILE_PATH
 from backend.flow.engine.controller.oracle import OracleController
 from backend.ticket import builders
@@ -35,6 +35,8 @@ class OracleScriptExecDetailSerializer(
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
+        if len(attrs.get("script_files") or []) > MAX_UPLOAD_SQL_FILE_COUNT:
+            raise serializers.ValidationError(_("最多上传{}个文件").format(MAX_UPLOAD_SQL_FILE_COUNT))
         attrs["path"] = BKREPO_ORACLE_SQLFILE_PATH.format(biz=self.context["bk_biz_id"])
         return attrs
 

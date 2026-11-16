@@ -52,7 +52,11 @@ class MongoScriptSyntaxCheckSerializer(serializers.Serializer):
     )
 
     def validate(self, attrs):
-        from backend.db_services.mongodb.toolbox.constants import MAX_UPLOAD_SCRIPT_FILE_SIZE, SCRIPT_FILE_EXTENSIONS
+        from backend.db_services.mongodb.toolbox.constants import (
+            MAX_UPLOAD_SCRIPT_FILE_COUNT,
+            MAX_UPLOAD_SCRIPT_FILE_SIZE,
+            SCRIPT_FILE_EXTENSIONS,
+        )
 
         script_contents = attrs.get("script_content", [])
         script_files = attrs.get("script_files", [])
@@ -60,6 +64,9 @@ class MongoScriptSyntaxCheckSerializer(serializers.Serializer):
 
         if not (script_contents or script_files or script_filenames):
             raise serializers.ValidationError(_("脚本内容不能为空！"))
+
+        if len(script_files) > MAX_UPLOAD_SCRIPT_FILE_COUNT:
+            raise serializers.ValidationError(_("最多上传{}个文件").format(MAX_UPLOAD_SCRIPT_FILE_COUNT))
 
         # 验证文件扩展名和大小 - 收集所有错误后一次性返回
         errors = []

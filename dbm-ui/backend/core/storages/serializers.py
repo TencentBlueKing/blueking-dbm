@@ -14,9 +14,22 @@ from rest_framework import serializers
 
 from backend.core.storages import mock_data
 
+# 批量获取文件内容单次请求的文件数量上限
+BATCH_FETCH_FILE_CONTENT_LIMIT = 200
+
 
 class BatchDownloadFileSerializer(serializers.Serializer):
     file_path_list = serializers.ListField(help_text=_("文件路径列表"), child=serializers.CharField(), min_length=1)
+
+
+class BatchFetchFileContentSerializer(BatchDownloadFileSerializer):
+    file_path_list = serializers.ListField(
+        help_text=_("文件路径列表"),
+        child=serializers.CharField(),
+        min_length=1,
+        max_length=BATCH_FETCH_FILE_CONTENT_LIMIT,
+        error_messages={"max_length": _("单次最多请求 {max_length} 个文件")},
+    )
 
 
 class FileSerializer(serializers.Serializer):

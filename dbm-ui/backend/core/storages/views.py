@@ -18,6 +18,7 @@ from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.core.storages.handlers import StorageHandler
 from backend.core.storages.serializers import (
     BatchDownloadFileSerializer,
+    BatchFetchFileContentSerializer,
     BatchTokenFileSerializerResponseSerializer,
     CreateTokenSerializer,
     CreateTokenSerializerResponseSerializer,
@@ -35,9 +36,9 @@ class StorageViewSet(viewsets.SystemViewSet):
     action_permission_map = {("temporary_download",): []}
 
     @common_swagger_auto_schema(
-        operation_summary=_("批量获取文件内容"), request_body=BatchDownloadFileSerializer(), tags=[SWAGGER_TAG]
+        operation_summary=_("批量获取文件内容"), request_body=BatchFetchFileContentSerializer(), tags=[SWAGGER_TAG]
     )
-    @action(methods=["POST"], detail=False, serializer_class=BatchDownloadFileSerializer)
+    @action(methods=["POST"], detail=False, serializer_class=BatchFetchFileContentSerializer)
     def batch_fetch_file_content(self, request):
         file_path_list = self.params_validate(self.get_serializer_class())["file_path_list"]
         return Response(StorageHandler().batch_fetch_file_content(file_path_list=file_path_list))
