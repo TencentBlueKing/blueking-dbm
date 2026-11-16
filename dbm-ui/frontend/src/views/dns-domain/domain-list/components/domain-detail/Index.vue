@@ -29,10 +29,8 @@
           name="detail"
           render-directive="show">
           <template v-if="detailData">
-            <!-- 保存后用 key 重建表单：以返回值为新基线，并复位表单的已编辑状态 -->
             <DetailForm
               v-if="isSelfMaintain"
-              :key="formKey"
               ref="detailForm"
               :data="detailData"
               @change="handleFormChange" />
@@ -48,7 +46,6 @@
           <!-- 首次切到日志 Tab 才挂载，之后保留筛选与页码，关闭侧滑后随侧滑卸载 -->
           <AuditTable
             v-if="isAuditVisited"
-            ref="auditTable"
             :domain="domain"
             scope="domain" />
         </BkTabPanel>
@@ -89,7 +86,7 @@
   }
 
   type Emits = {
-    (e: 'success', value: DnsDomainDetail): void;
+    (e: 'success'): void;
     // 详情加载失败（如域名已被删除），侧滑已关闭，列表需要刷新
     (e: 'fail'): void;
   };
@@ -105,14 +102,12 @@
 
   const sidesliderRef = useTemplateRef('sideslider');
   const detailFormRef = useTemplateRef('detailForm');
-  const auditTableRef = useTemplateRef('auditTable');
 
   const activeTab = ref<'detail' | 'audits'>('detail');
   const detailData = shallowRef<DnsDomainDetail>();
   const isLoading = ref(false);
   const isSubmitting = ref(false);
   const isAuditVisited = ref(false);
-  const formKey = ref(0);
   // 用户修改过即启用保存，改回原值仍保持启用
   const isTouched = ref(false);
 
@@ -171,15 +166,11 @@
         domain: props.domain,
         ...formValue,
       })
-        .then((data) => {
+        .then(() => {
           messageSuccess(t('保存成功'));
-          // 保存后留在详情 Tab，以返回值回填；表单重建后回到未修改状态
-          detailData.value = data;
-          isTouched.value = false;
-          formKey.value += 1;
-          // 日志 Tab 已挂载时按当前筛选与页码刷新，切过去能看到本次保存的日志
-          auditTableRef.value?.refresh();
-          emits('success', data);
+          // 关闭侧滑，由列表刷新数据
+          isShow.value = false;
+          emits('success');
         })
         .finally(() => {
           isSubmitting.value = false;
