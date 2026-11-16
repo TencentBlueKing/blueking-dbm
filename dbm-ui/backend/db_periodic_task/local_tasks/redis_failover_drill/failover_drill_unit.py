@@ -68,7 +68,6 @@ def failover_drill_unit(target: Union[Dict[str, str], str], conf: Dict[str, Any]
         "bk_biz_id": conf["bk_biz_id"],
         "bk_cloud_id": conf["bk_cloud_id"],
         "labels": conf["labels"],
-        "city_map": conf["city_map"],
         "instance_type": conf["target_type"],
         "version": conf.get("version") or FailoverDrillVersion.V1.value,
         "cluster_type": conf.get("cluster_type") or ClusterType.TendisTwemproxyRedisInstance.value,
@@ -82,8 +81,8 @@ def failover_drill_unit(target: Union[Dict[str, str], str], conf: Dict[str, Any]
 
     log_with_context("info", rfod.city, _("容灾演练资源检查"))
 
-    if failover_drill_has_v2(rfod.version) and not rfod.get_immute_domain():
-        error_info = _("v2 容灾演练配置未指定演练集群域名(cluster_domain)，退出演练")
+    if not rfod.get_immute_domain():
+        error_info = _("容灾演练配置未指定演练集群域名(cluster_domain)，退出演练")
         handle_drill_error(rfod, error_info, TaskStatus.NO_CLUSTER_DOMAIN)
         return
 
@@ -91,7 +90,7 @@ def failover_drill_unit(target: Union[Dict[str, str], str], conf: Dict[str, Any]
     try:
         cluster = Cluster.objects.get(**rfod.cluster_filters())
     except Cluster.DoesNotExist:
-        error_info = _("没有部署容灾演练集群，或集群的业务/云区域/类型与配置不一致，退出演练")
+        error_info = _("没有部署容灾演练集群，或集群的业务/类型与配置不一致，退出演练")
         handle_drill_error(rfod, error_info, TaskStatus.NO_CLUSTER)
         return
     except Exception as e:

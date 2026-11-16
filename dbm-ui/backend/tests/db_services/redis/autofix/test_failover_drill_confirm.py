@@ -41,19 +41,27 @@ def _need_manual_confirm(immute_domain):
 @pytest.mark.parametrize(
     "domain, configs, expected",
     [
-        ("cache.failover-drill-sz.test.db", [], False),
+        ("cache.failover-drill-sz.test.db", [], True),
+        (
+            "cache.failover-drill-sz.test.db",
+            [{"cluster_domain": "cache.failover-drill-sz.test.db", "version": "v1"}],
+            False,
+        ),
         (V2_DOMAIN, [{"cluster_domain": V2_DOMAIN}], False),
         (V2_DOMAIN, [{"cluster_domain": V2_DOMAIN, "version": "v1,v2"}], False),
+        (V2_DOMAIN, [{"cluster_domain": V2_DOMAIN, "version": "v1"}], False),
         (V2_DOMAIN, [{"cluster_domain": V2_DOMAIN, "switch_flag": False}], True),
-        (V2_DOMAIN, [{"cluster_domain": V2_DOMAIN, "version": "v1"}], True),
+        (V2_DOMAIN, [{"cluster_domain": V2_DOMAIN, "version": "v1", "switch_flag": False}], True),
         ("cache.normal.test.db", [{"cluster_domain": V2_DOMAIN}], True),
     ],
     ids=[
-        "v1-prefix",
+        "legacy-prefix-without-config",
+        "legacy-prefix-with-config",
         "enabled-v2-domain",
         "enabled-combined-domain",
+        "enabled-v1-domain",
         "disabled-v2-domain",
-        "v1-row-domain",
+        "disabled-v1-domain",
         "normal-cluster",
     ],
 )

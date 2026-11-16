@@ -15,12 +15,8 @@ from django.utils.translation import gettext as _
 
 from backend.db_meta.enums import ClusterType, InstanceInnerRole
 from backend.db_meta.exceptions import ClusterNotExistException
-from backend.db_meta.models import AppCache, BKCity, Cluster, Machine, ProxyInstance, StorageInstance
-from backend.db_periodic_task.constants import (
-    FailoverDrillVersion,
-    canonical_failover_drill_version,
-    failover_drill_has_v2,
-)
+from backend.db_meta.models import BKCity, Cluster, Machine, ProxyInstance, StorageInstance
+from backend.db_periodic_task.constants import FailoverDrillVersion, canonical_failover_drill_version
 from backend.db_report.enums import ReportStateType
 from backend.db_report.models import FailoverDrillReport
 from backend.db_services.redis.autofix.enums import DBHASwitchResult
@@ -32,12 +28,11 @@ from backend.utils.basic import generate_root_id
 from ..common.failover_drill_base import BaseFailoverDrill, DrillTarget, FailoverDrillTargetType
 from .utils import send_drill_alert_to_qywx
 
-DOMAIN_PREFIX: str = "cache"
-
-# v1 只演练 TendisCache（Twemproxy）；域名按 cache.failover-drill-{city}.{biz}.db 生成
-V1_DRILL_CLUSTER_TYPES = [ClusterType.TendisTwemproxyRedisInstance.value]
-# v2 演练覆盖所有支持自愈的 Redis 集群类型（含 PredixyTendisplusInstance）
+# v2 演练覆盖所有支持自愈的 Redis 集群类型；v1 覆盖除 PredixyTendisplusInstance 外的同批类型
 V2_DRILL_CLUSTER_TYPES = [ct.value for ct in ClusterType.redis_cluster_types() if is_support_redis_auotfix(ct.value)]
+V1_DRILL_CLUSTER_TYPES = [
+    ct for ct in V2_DRILL_CLUSTER_TYPES if ct != ClusterType.TendisPredixyTendisplusInstance.value
+]
 # 没有接入层的集群类型，不做 proxy 演练
 PROXYLESS_CLUSTER_TYPES = {ClusterType.TendisRedisInstance.value}
 
@@ -64,19 +59,10 @@ UNKNOWN_CITY = "-"
 
 def build_drill_targets(conf: Dict) -> List[DrillTarget]:
     """
-    按配置生成演练目标：
-    - v1：每个城市一个目标，cache.failover-drill-{城市缩写}.{业务缩写}.db，忽略 cluster_domain
-    - v2：一行配置对应一个专用演练集群，恒为一个目标；域名为空时由演练单元终止并告警，城市由演练主机解析
+    一行配置对应一个演练集群，恒为一个目标，域名只取配置的 cluster_domain，城市由演练主机解析；
+    域名为空时由演练单元终止并告警
     """
-    version = conf.get("version") or FailoverDrillVersion.V1.value
-    if failover_drill_has_v2(version):
-        return [DrillTarget(city="", immute_domain=(conf.get("cluster_domain") or "").strip())]
-
-    biz_abbr = AppCache.objects.get(bk_biz_id=conf["bk_biz_id"]).db_app_abbr
-    return [
-        DrillTarget(city=city, immute_domain="{}.failover-drill-{}.{}.db".format(DOMAIN_PREFIX, abbr, biz_abbr))
-        for city, abbr in conf["city_map"].items()
-    ]
+    return [DrillTarget(city="", immute_domain=(conf.get("cluster_domain") or "").strip())]
 
 
 class RedisFailoverDrill(BaseFailoverDrill):
@@ -90,7 +76,6 @@ class RedisFailoverDrill(BaseFailoverDrill):
         labels: List[str],
         bk_biz_id: int,
         bk_cloud_id: int,
-        city_map: Dict,
         instance_type: FailoverDrillTargetType,
         version: str = FailoverDrillVersion.V1.value,
         immute_domain: str = "",
@@ -104,7 +89,6 @@ class RedisFailoverDrill(BaseFailoverDrill):
         self.city = city or UNKNOWN_CITY
         self.bk_biz_id = bk_biz_id
         self.bk_cloud_id = bk_cloud_id
-        self.city_map = city_map
         self.version = canonical_failover_drill_version(version)
         self.immute_domain = immute_domain
         self.failover_drill_info = {}
@@ -131,14 +115,9 @@ class RedisFailoverDrill(BaseFailoverDrill):
 
     def get_immute_domain(self):
         """
-        集群域名，含 v2 只认配置的域名，不回退到 v1 命名规则
+        集群域名：只认配置的 cluster_domain，没有默认命名规则
         """
-        if self.immute_domain or failover_drill_has_v2(self.version):
-            return self.immute_domain
-        app_cache = AppCache.objects.get(bk_biz_id=self.bk_biz_id)
-        biz_name = app_cache.db_app_abbr
-        cluster_name = self.get_cluster_name()
-        return "{}.{}.{}.db".format(DOMAIN_PREFIX, cluster_name, biz_name)
+        return self.immute_domain
 
     def get_instance_info(self, cluster, instance_type) -> dict:
         """
@@ -175,22 +154,19 @@ class RedisFailoverDrill(BaseFailoverDrill):
 
     def cluster_filters(self) -> Dict:
         """
-        演练集群的查询条件：仅 v1 要求业务/云区域/类型都与配置一致；含 v2 的云区域取自集群，不参与校验
+        演练集群的查询条件：校验业务/类型；云区域取自集群，不参与校验
         """
-        filters = {
+        return {
             "immute_domain": self.get_immute_domain(),
             "bk_biz_id": self.bk_biz_id,
             "cluster_type": self.cluster_type(),
         }
-        if not failover_drill_has_v2(self.version):
-            filters["bk_cloud_id"] = self.bk_cloud_id
-        return filters
 
     def adopt_cluster_cloud(self, cluster: Cluster):
         """
-        含 v2 的云区域以演练集群为准，并回写报告
+        演练集群的云区域以集群为准，并回写报告
         """
-        if not failover_drill_has_v2(self.version) or self.bk_cloud_id == cluster.bk_cloud_id:
+        if self.bk_cloud_id == cluster.bk_cloud_id:
             return
         self.bk_cloud_id = cluster.bk_cloud_id
         FailoverDrillReport.objects.filter(main_task_id=self.main_task_id).update(bk_cloud_id=self.bk_cloud_id)

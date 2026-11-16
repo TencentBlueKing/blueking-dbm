@@ -349,9 +349,9 @@ def redis_backend_load_skew_produce():
     return _produce_redis_agent_check(CheckBackendLoadSkewTask)
 
 
-@register_periodic_task(run_every=crontab(minute=3, hour=2))
+@register_periodic_task(run_every=crontab(minute=3, hour=2, day_of_week=1))
 def redis_conf_check_task():
-    """Redis unified conf check (role, predixy servers, etc.). Runs daily at 02:03."""
+    """Redis unified conf check (role, predixy servers, etc.). Runs weekly on Monday at 02:03."""
     check_redis_conf()
 
 

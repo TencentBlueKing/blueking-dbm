@@ -23,7 +23,6 @@ from backend.configuration.models.dba import DBAdministrator
 from backend.db_meta.api.cluster.apis import query_cluster_by_hosts
 from backend.db_meta.enums import ClusterType, InstanceRole, MachineType, MachineTypeInstanceRoleMap
 from backend.db_meta.models import Cluster, Machine
-from backend.db_periodic_task.constants import failover_drill_has_v2
 from backend.db_periodic_task.models import FailoverDrillConfig
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.mongodb.autofix.mongodb_autofix_ticket import mongo_create_ticket
@@ -38,8 +37,6 @@ from .models import RedisAutofixCore, RedisAutofixCtl, RedisIgnoreAutofix
 
 logger = logging.getLogger("root")
 
-FAILOVER_DRILL_DOMAIN_PREFIX: str = "cache.failover-drill-"
-
 _MONGO_FAULT_TYPES = {MachineType.MONGOS.value, MachineType.MONGODB.value, MachineType.MONOG_CONFIG.value} | {
     role.value for role in MachineTypeInstanceRoleMap[MachineType.MONGODB]
 }
@@ -49,13 +46,10 @@ _MONGO_MONGOD_ROLES = {role.value for role in MachineTypeInstanceRoleMap[Machine
 
 
 def is_failover_drill_cluster(immute_domain: str) -> bool:
-    """v1 演练集群按域名前缀识别；含 v2 的演练集群只认已启用配置中指定的域名"""
-    if immute_domain.startswith(FAILOVER_DRILL_DOMAIN_PREFIX):
-        return True
-    return any(
-        failover_drill_has_v2(row.version)
-        for row in FailoverDrillConfig.objects.filter(switch_flag=True, cluster_domain=immute_domain).only("version")
-    )
+    """演练集群只认已启用演练配置中指定的 cluster_domain"""
+    if not immute_domain:
+        return False
+    return FailoverDrillConfig.objects.filter(switch_flag=True, cluster_domain=immute_domain).exists()
 
 
 def mongodb_autofix_enabled() -> bool:
