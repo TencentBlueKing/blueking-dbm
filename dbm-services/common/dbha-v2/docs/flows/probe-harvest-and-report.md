@@ -10,7 +10,7 @@ Admin 下发默认写入 GSE reporter 块；运行时 gRPC / GSE 二选一见下
 
 | 角色 | 说明 |
 |------|------|
-| **harvester** | MySQL / mysqlProxyAdmin / Redis 等插件（[`internal/probe/harvester`](../../internal/probe/harvester)） |
+| **harvester** | MySQL / mysqlProxyAdmin / Redis 等插件；框架在 [`internal/probe/harvester`](../../internal/probe/harvester)（`base` / `plugin`），各 DB 采集实现在 [`internal/provider/*/harvest`](../../internal/provider) |
 | **dbha-probe** | 框架：拉起插件、序列化 `HarvestData`、调用 reporter（[`probe.go`](../../internal/probe/probe.go)） |
 | **reporter** | 按配置选择 GSE 或 gRPC→receiver（[`internal/probe/client`](../../internal/probe/client)） |
 | **dbha-receiver** | `PushDataUnary` 或 Kafka source → MySQL sink |
@@ -21,22 +21,22 @@ Admin 下发默认写入 GSE reporter 块；运行时 gRPC / GSE 二选一见下
 1. Probe 启动时按工厂配置创建插件（见 `factory.go`），每个插件独立 `Harvest` 协程。
 2. 插件产出 `*plugin.HarvestData`（业务侧对应 [`haprobe`](../../pkg/storage/haprobe) 状态结构）。
 3. 框架 JSON 序列化后调用 `reporter.Post`。
-4. Reporter 路径二选一（或按环境配置）：
+4. Reporter 路径由 `probe.yaml` 的 `reporter.name` 二选一：
    - **gRPC**：`ReceiverService.PushDataUnary`（[`receiver.proto`](../../pkg/proto/idl/receiver.proto)）
    - **GSE**：写入本机 GSE Agent（可选 `localSocketPort`）；下游可经 Kafka 再被 receiver 消费
 5. Receiver sink 写入 `t_dbha_status`，供 analysis 扫描。
 
 ### 采集类别（`harvest_type`）
 
-MySQL harvester 分成三个独立定时循环，各自按自己的间隔上报，用 `harvest_type` 区分；Redis 等其他 DB 只有 `default` 一类。
+MySQL harvester 当前运行两个独立定时循环（`default`、`heartbeat`），各自按自己的间隔上报，用 `harvest_type` 区分；`repldelay` 组的采集实现保留但未启动（见 [`mysql.go`](../../internal/provider/mysql/harvest/mysql.go) 中采集组构建处的注释）。Redis 等其他 DB 只有 `default` 一类。
 
 | `harvest_type` | 间隔配置 | 内容 |
 |----------------|----------|------|
 | `default` | `interval` | 全量状态（主机指标、GlobalStatus、proxy backends、spider 路由等） |
 | `heartbeat` | `heartbeatInterval` | 写 `infodba_schema.dbha_heartbeat`（`sql_log_bin=OFF`），失败会 emit `dbha_heartbeat_write_failure` |
-| `repldelay` | `replDelayInterval` | 主库写 `infodba_schema.dbha_repl_heartbeat`（`sql_log_bin=ON`），从库读复制来的行算 delay |
+| `repldelay`（未启动） | `replDelayInterval` | 设计为主库写 `infodba_schema.dbha_repl_heartbeat`（`sql_log_bin=ON`），从库读复制来的行算 delay；当前不运行 |
 
-`harvest_type` 是 `t_dbha_status` 主键的一部分，同一实例的三类结果各占一行、互不覆盖。新增 DB 类型的 harvester 上报时必须设置 `HarvestType`；receiver 对未带该字段的旧版 probe 数据会兜底为 `default` 并打 warn，不丢数据。
+`harvest_type` 是 `t_dbha_status` 主键的一部分，同一实例的不同采集组结果各占一行、互不覆盖。新增 DB 类型的 harvester 上报时必须设置 `HarvestType`；receiver 对未带该字段的旧版 probe 数据会静默兜底为 `default`，不丢数据；带未知 `harvest_type` 的数据会被拒绝。
 
 ### 探针自身指标（`probe` 字段）
 
@@ -57,14 +57,14 @@ MySQL harvester 分成三个独立定时循环，各自按自己的间隔上报�
 | 名称 | 含义 |
 |------|------|
 | **`ProbeMetric.version`** | 二进制构建版本（`-ldflags -X` 注入） |
-| **probe.yaml `version` / `configVersion`** | 配置版本（与 Admin Heartbeat 的配置同步相关） |
+| **probe.yaml `version`** | 配置文件版本字段（gen-config 写入固定值 `v2.0.0`），与 Admin Heartbeat 无关 |
 
 ### 两类 Heartbeat（勿混淆）
 
 | 名称 | 含义 | 位置 |
 |------|------|------|
-| **Admin gRPC Heartbeat** | Probe 进程 / 配置连接存活上报 | AdminService |
-| **dbha_heartbeat / dbha_repl_heartbeat** | 探针自有心跳表读写与延迟，作为探测指标 | MySQL harvester → 状态字段；切换侧读 `dbha_repl_heartbeat` 并用 `AllowedMaxHeartbeatDelay` 等策略参数 |
+| **Admin gRPC Heartbeat** | AdminService 提供的轻量 ack RPC；当前 probe 不调用（仅 `ha-sandbox-mock` 用于连通性检查） | AdminService |
+| **dbha_heartbeat / dbha_repl_heartbeat** | 探针自有心跳表读写与延迟，作为探测指标（当前只有 `heartbeat` 组写 `dbha_heartbeat`，`dbha_repl_heartbeat` 所在的 `repldelay` 组未启动） | MySQL harvester → 状态字段；切换侧不读心跳表，改用从库复制状态中的 `Seconds_Behind_Master` 与 `workflow.switchflow.mysql.slaveAllowedMaxSecondsBehindMaster` 判定延迟 |
 
 ### 升级顺序与回滚
 
@@ -76,26 +76,9 @@ MySQL harvester 分成三个独立定时循环，各自按自己的间隔上报�
 
 ## 3. 交互顺序图
 
-```mermaid
-sequenceDiagram
-  participant Harvester as harvester_plugin
-  participant Probe as dbha_probe
-  participant Reporter as reporter
-  participant Recv as dbha_receiver
-  participant Status as t_dbha_status
+![采集与上报时序](../assets/diagrams/flow-harvest-report-sequence.svg)
 
-  loop 周期采集
-    Harvester->>Probe: HarvestData
-    Probe->>Reporter: JSON Post
-    alt gRPC
-      Reporter->>Recv: PushDataUnary
-      Recv->>Status: sink
-    else GSE
-      Reporter->>Reporter: 写入 GSE Agent
-      Note over Recv,Status: 可选经 Kafka 再入 receiver
-    end
-  end
-```
+> 本图为时序图，不使用语义配色。gRPC 与 GSE 两条上报路径是二选一，由 probe 配置决定。
 
 ## 4. 关键代码路径
 
@@ -104,7 +87,7 @@ sequenceDiagram
 | Probe 框架 | [`internal/probe/probe.go`](../../internal/probe/probe.go)、[`run.go`](../../internal/probe/run.go) |
 | 探针自身采样 | [`internal/probe/selfmetric`](../../internal/probe/selfmetric)、[`pkg/process` uptime](../../pkg/process/uptime.go) |
 | 插件工厂 | [`internal/probe/factory.go`](../../internal/probe/factory.go) |
-| MySQL / Redis / Proxy | [`internal/probe/harvester/`](../../internal/probe/harvester) |
+| MySQL / Redis / Proxy 采集实现 | [`internal/provider/mysql/harvest`](../../internal/provider/mysql/harvest)、[`internal/provider/redis/harvest`](../../internal/provider/redis/harvest) |
 | Reporter 创建 | [`internal/probe/client/reporter.go`](../../internal/probe/client/reporter.go) |
 | GSE / Receiver 客户端 | [`client/gse.go`](../../internal/probe/client/gse.go)、[`client/receiver.go`](../../internal/probe/client/receiver.go) |
 | Receiver 入库 | [`internal/receiver/source`](../../internal/receiver/source)、[`internal/receiver/sink`](../../internal/receiver/sink) |

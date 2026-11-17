@@ -1,0 +1,314 @@
+<?xml version="1.0" ?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" id="my-svg" width="1927" style="max-width:100%;height:auto;background-color:#ffffff;" viewBox="-143 -10 1927 2004" role="graphics-document document" aria-roledescription="sequence" height="2004" preserveAspectRatio="xMidYMid meet">
+  <title>Scan 与 Pop 双循环时序</title>
+  <desc>Scan 与 PopAndSwitch 两个定时循环、元数据同步、窗口与策略、switcher 与 DBM 交互</desc>
+  <rect x="-143" y="-10" width="1927" height="2004" fill="#ffffff" stroke="none"/>
+  <g>
+    <rect x="1584" y="1918" fill="#eaeaea" stroke="#666" width="150" height="65" name="DBM" rx="3" ry="3" class="actor actor-bottom"/>
+    <text x="1659" y="1950.5" dominant-baseline="central" alignment-baseline="central" class="actor actor-box" style="text-anchor: middle; font-size: 16px; font-weight: 400;">
+      <tspan x="1659" dy="0">DBM_API</tspan>
+    </text>
+  </g>
+  <g>
+    <rect x="1369" y="1918" fill="#eaeaea" stroke="#666" width="150" height="65" name="Switcher" rx="3" ry="3" class="actor actor-bottom"/>
+    <text x="1444" y="1950.5" dominant-baseline="central" alignment-baseline="central" class="actor actor-box" style="text-anchor: middle; font-size: 16px; font-weight: 400;">
+      <tspan x="1444" dy="0">switcher</tspan>
+    </text>
+  </g>
+  <g>
+    <rect x="1106" y="1918" fill="#eaeaea" stroke="#666" width="213" height="65" name="Strat" rx="3" ry="3" class="actor actor-bottom"/>
+    <text x="1212.5" y="1950.5" dominant-baseline="central" alignment-baseline="central" class="actor actor-box" style="text-anchor: middle; font-size: 16px; font-weight: 400;">
+      <tspan x="1212.5" dy="0">t_db_switching_strategy</tspan>
+    </text>
+  </g>
+  <g>
+    <rect x="906" y="1918" fill="#eaeaea" stroke="#666" width="150" height="65" name="Win" rx="3" ry="3" class="actor actor-bottom"/>
+    <text x="981" y="1950.5" dominant-baseline="central" alignment-baseline="central" class="actor actor-box" style="text-anchor: middle; font-size: 16px; font-weight: 400;">
+      <tspan x="981" dy="0">SlidingWindow</tspan>
+    </text>
+  </g>
+  <g>
+    <rect x="706" y="1918" fill="#eaeaea" stroke="#666" width="150" height="65" name="Status" rx="3" ry="3" class="actor actor-bottom"/>
+    <text x="781" y="1950.5" dominant-baseline="central" alignment-baseline="central" class="actor actor-box" style="text-anchor: middle; font-size: 16px; font-weight: 400;">
+      <tspan x="781" dy="0">t_dbha_status</tspan>
+    </text>
+  </g>
+  <g>
+    <rect x="500" y="1918" fill="#eaeaea" stroke="#666" width="156" height="65" name="Meta" rx="3" ry="3" class="actor actor-bottom"/>
+    <text x="578" y="1950.5" dominant-baseline="central" alignment-baseline="central" class="actor actor-box" style="text-anchor: middle; font-size: 16px; font-weight: 400;">
+      <tspan x="578" dy="0">t_dbm_metadata</tspan>
+    </text>
+  </g>
+  <g>
+    <rect x="300" y="1918" fill="#eaeaea" stroke="#666" width="150" height="65" name="Etcd" rx="3" ry="3" class="actor actor-bottom"/>
+    <text x="375" y="1950.5" dominant-baseline="central" alignment-baseline="central" class="actor actor-box" style="text-anchor: middle; font-size: 16px; font-weight: 400;">
+      <tspan x="375" dy="0">etcd</tspan>
+    </text>
+  </g>
+  <g>
+    <rect x="0" y="1918" fill="#eaeaea" stroke="#666" width="150" height="65" name="AM" rx="3" ry="3" class="actor actor-bottom"/>
+    <text x="75" y="1950.5" dominant-baseline="central" alignment-baseline="central" class="actor actor-box" style="text-anchor: middle; font-size: 16px; font-weight: 400;">
+      <tspan x="75" dy="0">dbha_analysis</tspan>
+    </text>
+  </g>
+  <g>
+    <line id="actor7" x1="1659" y1="65" x2="1659" y2="1918" class="actor-line 200" stroke-width="0.5px" stroke="#999" name="DBM" data-et="life-line" data-id="DBM"/>
+    <g id="root-7" data-et="participant" data-type="participant" data-id="DBM">
+      <rect x="1584" y="0" fill="#eaeaea" stroke="#666" width="150" height="65" name="DBM" rx="3" ry="3" class="actor actor-top"/>
+      <text x="1659" y="32.5" dominant-baseline="central" alignment-baseline="central" class="actor actor-box" style="text-anchor: middle; font-size: 16px; font-weight: 400;">
+        <tspan x="1659" dy="0">DBM_API</tspan>
+      </text>
+    </g>
+  </g>
+  <g>
+    <line id="actor6" x1="1444" y1="65" x2="1444" y2="1918" class="actor-line 200" stroke-width="0.5px" stroke="#999" name="Switcher" data-et="life-line" data-id="Switcher"/>
+    <g id="root-6" data-et="participant" data-type="participant" data-id="Switcher">
+      <rect x="1369" y="0" fill="#eaeaea" stroke="#666" width="150" height="65" name="Switcher" rx="3" ry="3" class="actor actor-top"/>
+      <text x="1444" y="32.5" dominant-baseline="central" alignment-baseline="central" class="actor actor-box" style="text-anchor: middle; font-size: 16px; font-weight: 400;">
+        <tspan x="1444" dy="0">switcher</tspan>
+      </text>
+    </g>
+  </g>
+  <g>
+    <line id="actor5" x1="1212.5" y1="65" x2="1212.5" y2="1918" class="actor-line 200" stroke-width="0.5px" stroke="#999" name="Strat" data-et="life-line" data-id="Strat"/>
+    <g id="root-5" data-et="participant" data-type="participant" data-id="Strat">
+      <rect x="1106" y="0" fill="#eaeaea" stroke="#666" width="213" height="65" name="Strat" rx="3" ry="3" class="actor actor-top"/>
+      <text x="1212.5" y="32.5" dominant-baseline="central" alignment-baseline="central" class="actor actor-box" style="text-anchor: middle; font-size: 16px; font-weight: 400;">
+        <tspan x="1212.5" dy="0">t_db_switching_strategy</tspan>
+      </text>
+    </g>
+  </g>
+  <g>
+    <line id="actor4" x1="981" y1="65" x2="981" y2="1918" class="actor-line 200" stroke-width="0.5px" stroke="#999" name="Win" data-et="life-line" data-id="Win"/>
+    <g id="root-4" data-et="participant" data-type="participant" data-id="Win">
+      <rect x="906" y="0" fill="#eaeaea" stroke="#666" width="150" height="65" name="Win" rx="3" ry="3" class="actor actor-top"/>
+      <text x="981" y="32.5" dominant-baseline="central" alignment-baseline="central" class="actor actor-box" style="text-anchor: middle; font-size: 16px; font-weight: 400;">
+        <tspan x="981" dy="0">SlidingWindow</tspan>
+      </text>
+    </g>
+  </g>
+  <g>
+    <line id="actor3" x1="781" y1="65" x2="781" y2="1918" class="actor-line 200" stroke-width="0.5px" stroke="#999" name="Status" data-et="life-line" data-id="Status"/>
+    <g id="root-3" data-et="participant" data-type="participant" data-id="Status">
+      <rect x="706" y="0" fill="#eaeaea" stroke="#666" width="150" height="65" name="Status" rx="3" ry="3" class="actor actor-top"/>
+      <text x="781" y="32.5" dominant-baseline="central" alignment-baseline="central" class="actor actor-box" style="text-anchor: middle; font-size: 16px; font-weight: 400;">
+        <tspan x="781" dy="0">t_dbha_status</tspan>
+      </text>
+    </g>
+  </g>
+  <g>
+    <line id="actor2" x1="578" y1="65" x2="578" y2="1918" class="actor-line 200" stroke-width="0.5px" stroke="#999" name="Meta" data-et="life-line" data-id="Meta"/>
+    <g id="root-2" data-et="participant" data-type="participant" data-id="Meta">
+      <rect x="500" y="0" fill="#eaeaea" stroke="#666" width="156" height="65" name="Meta" rx="3" ry="3" class="actor actor-top"/>
+      <text x="578" y="32.5" dominant-baseline="central" alignment-baseline="central" class="actor actor-box" style="text-anchor: middle; font-size: 16px; font-weight: 400;">
+        <tspan x="578" dy="0">t_dbm_metadata</tspan>
+      </text>
+    </g>
+  </g>
+  <g>
+    <line id="actor1" x1="375" y1="65" x2="375" y2="1918" class="actor-line 200" stroke-width="0.5px" stroke="#999" name="Etcd" data-et="life-line" data-id="Etcd"/>
+    <g id="root-1" data-et="participant" data-type="participant" data-id="Etcd">
+      <rect x="300" y="0" fill="#eaeaea" stroke="#666" width="150" height="65" name="Etcd" rx="3" ry="3" class="actor actor-top"/>
+      <text x="375" y="32.5" dominant-baseline="central" alignment-baseline="central" class="actor actor-box" style="text-anchor: middle; font-size: 16px; font-weight: 400;">
+        <tspan x="375" dy="0">etcd</tspan>
+      </text>
+    </g>
+  </g>
+  <g>
+    <line id="actor0" x1="75" y1="65" x2="75" y2="1918" class="actor-line 200" stroke-width="0.5px" stroke="#999" name="AM" data-et="life-line" data-id="AM"/>
+    <g id="root-0" data-et="participant" data-type="participant" data-id="AM">
+      <rect x="0" y="0" fill="#eaeaea" stroke="#666" width="150" height="65" name="AM" rx="3" ry="3" class="actor actor-top"/>
+      <text x="75" y="32.5" dominant-baseline="central" alignment-baseline="central" class="actor actor-box" style="text-anchor: middle; font-size: 16px; font-weight: 400;">
+        <tspan x="75" dy="0">dbha_analysis</tspan>
+      </text>
+    </g>
+  </g>
+  <style>#my-svg{font-family:Noto Sans CJK SC,PingFang SC,Microsoft YaHei,sans-serif;font-size:14px;fill:#0f172a;}@keyframes edge-animation-frame{from{stroke-dashoffset:0;}}@keyframes dash{to{stroke-dashoffset:0;}}#my-svg .edge-animation-slow{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 50s linear infinite;stroke-linecap:round;}#my-svg .edge-animation-fast{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 20s linear infinite;stroke-linecap:round;}#my-svg .error-icon{fill:hsl(33.75, 100%, 100%);}#my-svg .error-text{fill:#000000;stroke:#000000;}#my-svg .edge-thickness-normal{stroke-width:1px;}#my-svg .edge-thickness-thick{stroke-width:3.5px;}#my-svg .edge-pattern-solid{stroke-dasharray:0;}#my-svg .edge-thickness-invisible{stroke-width:0;fill:none;}#my-svg .edge-pattern-dashed{stroke-dasharray:3;}#my-svg .edge-pattern-dotted{stroke-dasharray:2;}#my-svg .marker{fill:#334155;stroke:#334155;}#my-svg .marker.cross{stroke:#334155;}#my-svg svg{font-family:Noto Sans CJK SC,PingFang SC,Microsoft YaHei,sans-serif;font-size:14px;}#my-svg p{margin:0;}#my-svg .actor{stroke:#93c5fd;fill:#eff6ff;stroke-width:1;}#my-svg rect.actor.outer-path[data-look=&quot;neo&quot;]{filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#my-svg rect.note[data-look=&quot;neo&quot;]{stroke:hsl(52.6829268293, 60%, 73.9215686275%);fill:#fff5ad;filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#my-svg text.actor&gt;tspan{fill:#0f172a;stroke:none;}#my-svg .actor-line{stroke:#93c5fd;}#my-svg .innerArc{stroke-width:1.5;stroke-dasharray:none;}#my-svg .messageLine0{stroke-width:1.5;stroke-dasharray:none;stroke:#0f172a;}#my-svg .messageLine1{stroke-width:1.5;stroke-dasharray:2,2;stroke:#0f172a;}#my-svg [id$=&quot;-arrowhead&quot;] path{fill:#0f172a;stroke:#0f172a;}#my-svg .sequenceNumber{fill:#ccbeaa;}#my-svg [id$=&quot;-sequencenumber&quot;]{fill:#0f172a;}#my-svg [id$=&quot;-crosshead&quot;] path{fill:#0f172a;stroke:#0f172a;}#my-svg .messageText{fill:#0f172a;stroke:none;}#my-svg .labelBox{stroke:#93c5fd;fill:#eff6ff;filter:none;}#my-svg .labelText,#my-svg .labelText&gt;tspan{fill:#0f172a;stroke:none;}#my-svg .loopText,#my-svg .loopText&gt;tspan{fill:#0f172a;stroke:none;}#my-svg .sectionTitle,#my-svg .sectionTitle&gt;tspan{fill:#0f172a;stroke:none;}#my-svg .loopLine{stroke-width:2px;stroke-dasharray:2,2;stroke:#93c5fd;fill:#93c5fd;}#my-svg .note{stroke:hsl(52.6829268293, 60%, 73.9215686275%);fill:#fff5ad;}#my-svg .noteText,#my-svg .noteText&gt;tspan{fill:#333;stroke:none;font-weight:normal;}#my-svg .activation0{fill:hsl(93.75, 100%, 96.862745098%);stroke:hsl(93.75, 100%, 86.862745098%);}#my-svg .activation1{fill:hsl(93.75, 100%, 96.862745098%);stroke:hsl(93.75, 100%, 86.862745098%);}#my-svg .activation2{fill:hsl(93.75, 100%, 96.862745098%);stroke:hsl(93.75, 100%, 86.862745098%);}#my-svg .actorPopupMenu{position:absolute;}#my-svg .actorPopupMenuPanel{position:absolute;fill:#eff6ff;box-shadow:0px 8px 16px 0px rgba(0,0,0,0.2);filter:drop-shadow(3px 5px 2px rgb(0 0 0 / 0.4));}#my-svg .actor-man circle,#my-svg line{fill:#eff6ff;stroke-width:2px;}#my-svg g rect.rect{filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));stroke:#93c5fd;}#my-svg .node .neo-node{stroke:#93c5fd;}#my-svg [data-look=&quot;neo&quot;].node rect,#my-svg [data-look=&quot;neo&quot;].cluster rect,#my-svg [data-look=&quot;neo&quot;].node polygon{stroke:url(#my-svg-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#my-svg [data-look=&quot;neo&quot;].node path{stroke:url(#my-svg-gradient);stroke-width:1px;}#my-svg [data-look=&quot;neo&quot;].node .outer-path{filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#my-svg [data-look=&quot;neo&quot;].node .neo-line path{stroke:#93c5fd;filter:none;}#my-svg [data-look=&quot;neo&quot;].node circle{stroke:url(#my-svg-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#my-svg [data-look=&quot;neo&quot;].node circle .state-start{fill:#000000;}#my-svg [data-look=&quot;neo&quot;].icon-shape .icon{fill:url(#my-svg-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#my-svg [data-look=&quot;neo&quot;].icon-shape .icon-neo path{stroke:url(#my-svg-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#my-svg :root{--mermaid-font-family:&quot;trebuchet ms&quot;,verdana,arial,sans-serif;}#my-svg .edgeLabel rect.background{opacity:1;fill:#ffffff;}#my-svg .labelBkg{background-color:#ffffff;}#my-svg circle.state-start{fill:#334155;stroke:#334155;}</style>
+  <g/>
+  <defs>
+    <marker id="my-svg-arrowhead" refX="7.9" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto-start-reverse">
+      <path d="M -1 0 L 10 5 L 0 10 z"/>
+    </marker>
+  </defs>
+  <defs>
+    <marker id="my-svg-crosshead" markerWidth="15" markerHeight="8" orient="auto" refX="4" refY="4.5">
+      <path fill="none" stroke="#000000" stroke-width="1pt" d="M 1,2 L 6,7 M 6,2 L 1,7" style="stroke-dasharray: 0, 0;"/>
+    </marker>
+  </defs>
+  <defs>
+    <marker id="my-svg-filled-head" refX="15.5" refY="7" markerWidth="20" markerHeight="28" orient="auto">
+      <path d="M 18,7 L9,13 L14,7 L9,1 Z"/>
+    </marker>
+  </defs>
+  <defs>
+    <marker id="my-svg-sequencenumber" refX="15" refY="15" markerWidth="60" markerHeight="40" orient="auto">
+      <circle cx="15" cy="15" r="6"/>
+    </marker>
+  </defs>
+  <defs>
+    <marker id="my-svg-solidTopArrowHead" refX="7.9" refY="7.25" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 8 L 0 8 z"/>
+    </marker>
+  </defs>
+  <defs>
+    <marker id="my-svg-solidBottomArrowHead" refX="7.9" refY="0.75" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 0 L 0 8 z"/>
+    </marker>
+  </defs>
+  <defs>
+    <marker id="my-svg-stickTopArrowHead" refX="7.5" refY="7" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto-start-reverse">
+      <path d="M 0 0 L 7 7" stroke="black" stroke-width="1.5" fill="none"/>
+    </marker>
+  </defs>
+  <defs>
+    <marker id="my-svg-stickBottomArrowHead" refX="7.5" refY="0" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto-start-reverse">
+      <path d="M 0 7 L 7 0" stroke="black" stroke-width="1.5" fill="none"/>
+    </marker>
+  </defs>
+  <g data-et="control-structure" data-id="i10">
+    <line x1="-83" y1="458" x2="992" y2="458" class="loopLine"/>
+    <line x1="992" y1="458" x2="992" y2="742" class="loopLine"/>
+    <line x1="-83" y1="742" x2="992" y2="742" class="loopLine"/>
+    <line x1="-83" y1="458" x2="-83" y2="742" class="loopLine"/>
+    <line x1="-83" y1="575" x2="992" y2="575" class="loopLine" style="stroke-dasharray: 3, 3;"/>
+    <polygon points="-83,458 -33,458 -33,471 -41.4,478 -83,478" class="labelBox"/>
+    <rect class="text-bg" x="-71.79" y="455.06" width="28.77" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+    <text x="-58" y="471" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="labelText" style="font-size: 16px; font-weight: 400;">alt</text>
+    <rect class="text-bg" x="327.19" y="455.73" width="304.62" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+    <text x="479.5" y="476" text-anchor="middle" class="loopText" style="font-size: 16px; font-weight: 400;">
+      <tspan x="479.5">[5 类入窗事件且 NonSwitchableOf=false]</tspan>
+    </text>
+    <text x="454.5" y="593" text-anchor="middle" class="sectionTitle" style="font-size: 16px; font-weight: 400;">[仅告警不入窗]</text>
+  </g>
+  <g data-et="control-structure" data-id="i11">
+    <line x1="-93" y1="171" x2="1002" y2="171" class="loopLine"/>
+    <line x1="1002" y1="171" x2="1002" y2="752" class="loopLine"/>
+    <line x1="-93" y1="752" x2="1002" y2="752" class="loopLine"/>
+    <line x1="-93" y1="171" x2="-93" y2="752" class="loopLine"/>
+    <polygon points="-93,171 -43,171 -43,184 -51.4,191 -93,191" class="labelBox"/>
+    <rect class="text-bg" x="-88.90" y="168.06" width="41.80" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+    <text x="-68" y="184" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="labelText" style="font-size: 16px; font-weight: 400;">loop</text>
+    <rect class="text-bg" x="451.98" y="168.73" width="55.05" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+    <text x="479.5" y="189" text-anchor="middle" class="loopText" style="font-size: 16px; font-weight: 400;">
+      <tspan x="479.5">[Scan]</tspan>
+    </text>
+  </g>
+  <g data-et="control-structure" data-id="i29">
+    <line x1="-9" y1="1499" x2="1670" y2="1499" class="loopLine"/>
+    <line x1="1670" y1="1499" x2="1670" y2="1830" class="loopLine"/>
+    <line x1="-9" y1="1830" x2="1670" y2="1830" class="loopLine"/>
+    <line x1="-9" y1="1499" x2="-9" y2="1830" class="loopLine"/>
+    <line x1="-9" y1="1627" x2="1670" y2="1627" class="loopLine" style="stroke-dasharray: 3, 3;"/>
+    <polygon points="-9,1499 41,1499 41,1512 32.6,1519 -9,1519" class="labelBox"/>
+    <rect class="text-bg" x="2.21" y="1496.06" width="28.77" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+    <text x="16" y="1512" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="labelText" style="font-size: 16px; font-weight: 400;">alt</text>
+    <rect class="text-bg" x="696.90" y="1496.73" width="317.19" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+    <text x="855.5" y="1517" text-anchor="middle" class="loopText" style="font-size: 16px; font-weight: 400;">
+      <tspan x="855.5">[EnableSwitching=false 或 DbType 未注册]</tspan>
+    </text>
+    <text x="830.5" y="1645" text-anchor="middle" class="sectionTitle" style="font-size: 16px; font-weight: 400;">[已启用且已注册]</text>
+  </g>
+  <g data-et="control-structure" data-id="i30">
+    <line x1="-49" y1="1156" x2="1680" y2="1156" class="loopLine"/>
+    <line x1="1680" y1="1156" x2="1680" y2="1840" class="loopLine"/>
+    <line x1="-49" y1="1840" x2="1680" y2="1840" class="loopLine"/>
+    <line x1="-49" y1="1156" x2="-49" y2="1840" class="loopLine"/>
+    <line x1="-49" y1="1284" x2="1680" y2="1284" class="loopLine" style="stroke-dasharray: 3, 3;"/>
+    <polygon points="-49,1156 1,1156 1,1169 -7.4,1176 -49,1176" class="labelBox"/>
+    <rect class="text-bg" x="-37.79" y="1153.06" width="28.77" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+    <text x="-24" y="1169" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="labelText" style="font-size: 16px; font-weight: 400;">alt</text>
+    <rect class="text-bg" x="751.14" y="1153.73" width="178.72" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+    <text x="840.5" y="1174" text-anchor="middle" class="loopText" style="font-size: 16px; font-weight: 400;">
+      <tspan x="840.5">[未命中 / action=notify]</tspan>
+    </text>
+    <text x="815.5" y="1302" text-anchor="middle" class="sectionTitle" style="font-size: 16px; font-weight: 400;">[action=switch]</text>
+  </g>
+  <g data-et="control-structure" data-id="i32">
+    <line x1="-82" y1="762" x2="1690" y2="762" class="loopLine"/>
+    <line x1="1690" y1="762" x2="1690" y2="1898" class="loopLine"/>
+    <line x1="-82" y1="1898" x2="1690" y2="1898" class="loopLine"/>
+    <line x1="-82" y1="762" x2="-82" y2="1898" class="loopLine"/>
+    <polygon points="-82,762 -32,762 -32,775 -40.4,782 -82,782" class="labelBox"/>
+    <rect class="text-bg" x="-77.90" y="759.06" width="41.80" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+    <text x="-57" y="775" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="labelText" style="font-size: 16px; font-weight: 400;">loop</text>
+    <rect class="text-bg" x="805.00" y="759.73" width="48.01" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+    <text x="829" y="780" text-anchor="middle" class="loopText" style="font-size: 16px; font-weight: 400;">
+      <tspan x="829">[Pop]</tspan>
+    </text>
+  </g>
+  <rect class="text-bg" x="255.66" y="80.06" width="138.68" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="325" y="80" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">Synchronizer.Run</text>
+  <line x1="76" y1="113" x2="574" y2="113" class="messageLine0" data-et="message" data-id="i0" data-from="AM" data-to="Meta" stroke-width="2" stroke="none" marker-end="url(#my-svg-arrowhead)" style="fill: none;"/>
+  <rect class="text-bg" x="112.88" y="128.06" width="222.23" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="224" y="128" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">InstanceDiscovery.RunWatch</text>
+  <line x1="76" y1="161" x2="371" y2="161" class="messageLine0" data-et="message" data-id="i1" data-from="AM" data-to="Etcd" stroke-width="2" stroke="none" marker-end="url(#my-svg-arrowhead)" style="fill: none;"/>
+  <rect class="text-bg" x="-19.70" y="221.06" width="192.45" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="76" y="221" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">CheckBusinessWithBizID</text>
+  <rect class="text-bg" x="-17.46" y="245.06" width="186.93" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="76" y="245" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">filterByWhitelistForScan</text>
+  <path d="M 76,273 C 136,263 136,303 76,293" class="messageLine0" data-et="message" data-id="i3" data-from="AM" data-to="AM" stroke-width="2" stroke="none" marker-end="url(#my-svg-arrowhead)" style="fill: none;"/>
+  <rect class="text-bg" x="367.15" y="318.06" width="120.61" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="427" y="318" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">读近期探测状态</text>
+  <line x1="76" y1="351" x2="777" y2="351" class="messageLine0" data-et="message" data-id="i4" data-from="AM" data-to="Status" stroke-width="2" stroke="none" marker-end="url(#my-svg-arrowhead)" style="fill: none;"/>
+  <rect class="text-bg" x="-2.13" y="366.06" width="156.25" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="76" y="366" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">RunBusinessChecks</text>
+  <rect class="text-bg" x="-9.45" y="390.06" width="171.71" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="76" y="390" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">LivenessDoubleCheck</text>
+  <path d="M 76,418 C 136,408 136,448 76,438" class="messageLine0" data-et="message" data-id="i5" data-from="AM" data-to="AM" stroke-width="2" stroke="none" marker-end="url(#my-svg-arrowhead)" style="fill: none;"/>
+  <rect class="text-bg" x="418.27" y="508.06" width="218.35" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="527" y="508" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">Push（SSH 失败 / 鉴权 / 超时</text>
+  <rect class="text-bg" x="424.01" y="532.06" width="205.97" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="527" y="532" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">磁盘写失败 / uptime 异常）</text>
+  <line x1="76" y1="560" x2="977" y2="560" class="messageLine0" data-et="message" data-id="i7" data-from="AM" data-to="Win" stroke-width="2" stroke="none" marker-end="url(#my-svg-arrowhead)" style="fill: none;"/>
+  <rect class="text-bg" x="-66.52" y="620.06" width="286.25" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="76" y="620" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">ProbeOffline / DetectFailure no target</text>
+  <rect class="text-bg" x="16.15" y="644.06" width="120.61" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="76" y="644" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">不可切换实例等</text>
+  <path d="M 76,672 C 136,662 136,702 76,692" class="messageLine0" data-et="message" data-id="i9" data-from="AM" data-to="AM" stroke-width="2" stroke="none" marker-end="url(#my-svg-arrowhead)" style="fill: none;"/>
+  <rect class="text-bg" x="-5.98" y="812.06" width="163.97" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="76" y="812" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">popAndSwitchForBiz</text>
+  <path d="M 76,845 C 136,835 136,875 76,865" class="messageLine0" data-et="message" data-id="i13" data-from="AM" data-to="AM" stroke-width="2" stroke="none" marker-end="url(#my-svg-arrowhead)" style="fill: none;"/>
+  <rect class="text-bg" x="457.27" y="890.06" width="140.65" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="527" y="890" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">PopAndMarkStart</text>
+  <line x1="76" y1="923" x2="977" y2="923" class="messageLine0" data-et="message" data-id="i14" data-from="AM" data-to="Win" stroke-width="2" stroke="none" marker-end="url(#my-svg-arrowhead)" style="fill: none;"/>
+  <rect class="text-bg" x="-66.05" y="938.06" width="284.11" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="76" y="938" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">建 req；excludeUnavailableInstances</text>
+  <path d="M 76,971 C 136,961 136,1001 76,991" class="messageLine0" data-et="message" data-id="i15" data-from="AM" data-to="AM" stroke-width="2" stroke="none" marker-end="url(#my-svg-arrowhead)" style="fill: none;"/>
+  <rect class="text-bg" x="519.22" y="1016.06" width="245.57" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="642" y="1016" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">SwitchExecutor.MatchStrategies</text>
+  <line x1="76" y1="1049" x2="1208.5" y2="1049" class="messageLine0" data-et="message" data-id="i16" data-from="AM" data-to="Strat" stroke-width="2" stroke="none" marker-end="url(#my-svg-arrowhead)" style="fill: none;"/>
+  <rect class="text-bg" x="-39.75" y="1064.06" width="232.36" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="76" y="1064" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">排序 + 逐条贪心绑定，生成多组</text>
+  <rect class="text-bg" x="-45.54" y="1088.06" width="243.98" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="76" y="1088" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">switch 组按 host 去重，各组并发</text>
+  <path d="M 76,1116 C 136,1106 136,1146 76,1136" class="messageLine0" data-et="message" data-id="i17" data-from="AM" data-to="AM" stroke-width="2" stroke="none" marker-end="url(#my-svg-arrowhead)" style="fill: none;"/>
+  <rect class="text-bg" x="-37.24" y="1206.06" width="227.38" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="76" y="1206" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">TriggerWorkflowAlarm 仅告警</text>
+  <path d="M 76,1239 C 136,1229 136,1269 76,1259" class="messageLine0" data-et="message" data-id="i19" data-from="AM" data-to="AM" stroke-width="2" stroke="none" marker-end="url(#my-svg-arrowhead)" style="fill: none;"/>
+  <rect class="text-bg" x="-24.50" y="1329.06" width="201.00" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="76" y="1329" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">filterByWhitelistForSwitch</text>
+  <rect class="text-bg" x="-7.79" y="1353.06" width="168.48" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="76" y="1353" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">请求计数与切换前快照</text>
+  <path d="M 76,1381 C 136,1371 136,1411 76,1401" class="messageLine0" data-et="message" data-id="i21" data-from="AM" data-to="AM" stroke-width="2" stroke="none" marker-end="url(#my-svg-arrowhead)" style="fill: none;"/>
+  <rect class="text-bg" x="9.24" y="1426.06" width="134.14" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="76" y="1426" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">TriggerSwitching</text>
+  <path d="M 76,1459 C 136,1449 136,1489 76,1479" class="messageLine0" data-et="message" data-id="i22" data-from="AM" data-to="AM" stroke-width="2" stroke="none" marker-end="url(#my-svg-arrowhead)" style="fill: none;"/>
+  <rect class="text-bg" x="1.75" y="1549.06" width="149.37" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="76" y="1549" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">记 warn 日志后返回</text>
+  <path d="M 76,1582 C 136,1572 136,1612 76,1602" class="messageLine0" data-et="message" data-id="i24" data-from="AM" data-to="AM" stroke-width="2" stroke="none" marker-end="url(#my-svg-arrowhead)" style="fill: none;"/>
+  <rect class="text-bg" x="728.84" y="1672.06" width="58.32" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="758" y="1672" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">Switch</text>
+  <line x1="76" y1="1705" x2="1440" y2="1705" class="messageLine0" data-et="message" data-id="i26" data-from="AM" data-to="Switcher" stroke-width="2" stroke="none" marker-end="url(#my-svg-arrowhead)" style="fill: none;"/>
+  <rect class="text-bg" x="1477.82" y="1720.06" width="145.25" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="1550" y="1720" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">SwapRole / CLB 等</text>
+  <line x1="1445" y1="1753" x2="1655" y2="1753" class="messageLine0" data-et="message" data-id="i27" data-from="Switcher" data-to="DBM" stroke-width="2" stroke="none" marker-end="url(#my-svg-arrowhead)" style="fill: none;"/>
+  <rect class="text-bg" x="669.23" y="1768.06" width="184.44" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="761" y="1768" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">返回结果；写快照、指标</text>
+  <rect class="text-bg" x="702.41" y="1792.06" width="118.06" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="761" y="1792" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">成功 / 失败告警</text>
+  <line x1="1443" y1="1820" x2="79" y2="1820" class="messageLine0" data-et="message" data-id="i28" data-from="Switcher" data-to="AM" stroke-width="2" stroke="none" marker-end="url(#my-svg-arrowhead)" style="fill: none;"/>
+  <rect class="text-bg" x="484.89" y="1855.06" width="84.98" height="26.09" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="527" y="1855" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">MarkDone</text>
+  <line x1="76" y1="1888" x2="977" y2="1888" class="messageLine0" data-et="message" data-id="i31" data-from="AM" data-to="Win" stroke-width="2" stroke="none" marker-end="url(#my-svg-arrowhead)" style="fill: none;"/>
+  <g class="cluster-titles"/>
+</svg>

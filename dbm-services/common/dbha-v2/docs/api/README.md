@@ -25,6 +25,8 @@
 | 服务和方法 | 说明 | 文档 |
 | --- | --- | --- |
 | `AdminService/ListHaServers` | 列出存活的 HA Server 实例及其 IP | [list-ha-servers.md](grpc/list-ha-servers.md) |
+| `AdminService/Heartbeat` | probe 心跳上报（当前 probe 未调用，仅 ha-sandbox-mock 用于连通性检查） | 暂未收录，定义见 [admin.proto](../../pkg/proto/idl/admin.proto) |
+| `AdminService/GetProbeConfig` | probe 拉取配置 | 暂未收录，定义见 [admin.proto](../../pkg/proto/idl/admin.proto) |
 
 ## 3. 服务地址
 
@@ -67,16 +69,17 @@ Admin Web 没有启用鉴权：`hanet` 提供了 `SetAuthHandler`，但 Admin �
 
 dbm 平台通过 `HADBApiV2`（`dbm-ui/backend/components/hadbv2/client.py`）访问 dbha-v2 的 HTTP 接口，
 基地址为 `HADBV2_APIGW_DOMAIN`（默认 `http://bk-dbm-hadb-api`）。
-`HADBApiV2` 目前只注册了 `switchqueue/` 和 `switchlogs/`，没有 HA Server 列表接口，所以 dbm 平台还没有调用它的代码。
+`HADBApiV2` 注册了 `switchqueue/`、`switchlogs/` 和 `ha_servers`（`GET meta/ha-servers`）。dbm 平台在故障演练流程中调用 `ha_servers`
+（`dbm-ui/backend/flow/utils/failover_drill_dbha.py`）查询 dbha-v2 服务节点列表。
 网关的路由配置不在本仓库中，无法从仓库确认网关是否已转发该路径；需要调用时可以直连 Admin 的 Web 端口。
 
 ## 4. HTTP 公共约定（V1 兼容接口）
 
-Admin 的 HTTP 接口有两套响应格式，本节只描述 V1 兼容格式。
+Admin 的 HTTP 接口有两套响应格式，本节主要描述 V1 兼容格式；REST 格式仅在 4.4 列出结构，便于区分。
 
 | 格式 | 使用的接口 | 说明 |
 | --- | --- | --- |
-| V1 兼容格式 | `/api/admin/meta/ha-servers`、`/api/admin/switchqueue/`、`/api/admin/switchlogs/`、`/api/admin/switchqueue/autofix/` | 见 4.1 至 4.3 |
+| V1 兼容格式 | `/api/admin/meta/ha-servers`、`/api/admin/switchqueue/`、`/api/admin/switchlogs/`、`/api/admin/switchqueue/autofix/` | 见 4.1 至 4.3；其中只有 ha-servers 有独立文档，其余三个暂未收录 |
 | REST 格式 | `/api/admin/strategies/...`、`/api/admin/global/strategies/...` | 见 4.4，本目录暂未收录这些接口的文档 |
 
 ### 4.1 响应结构
@@ -111,9 +114,10 @@ V1 兼容接口返回下面的结构，字段顺序固定为 `data`、`code`、`
 | 未注册的路径、不支持的方法 | 404 | gin 默认的纯文本 `404 page not found`，不是 JSON |
 | 路径末尾多一个或少一个 `/` | GET 为 301，其他方法为 307 | 重定向到已注册的路径，响应体没有业务含义 |
 
-- “storage 资源不可用”指 storage 资源槽为空，或当前 storage 资源正在关闭（storage 重载换代时旧资源退役），
+- 「storage 资源不可用」指 storage 资源槽为空，或当前 storage 资源正在关闭（storage 重载换代时旧资源退役），
   对应 [internal/admin/resources.go](../../internal/admin/resources.go) 中 `storageSlot.Get()` 为空或 `acquire()` 失败。
-- Admin 运行中 MySQL 断开不属于这种情况，不会返回 503：沙箱实测此时 `GET /api/admin/strategies/` 返回 400。
+- Admin 运行中 MySQL 断开不属于这种情况，不会返回 503。带合法参数请求 `GET /api/admin/strategies/` 时返回 500（REST 错误格式）；
+  沙箱实测中不带参数返回的 400 来自缺少必填参数 `bk_biz_id`，与 MySQL 状态无关。
 - 不支持的方法返回 404 而不是 405，因为 gin 的 `HandleMethodNotAllowed` 为 `false`。
 - 末尾 `/` 的重定向由 gin 的 `RedirectTrailingSlash` 处理，只在同一方法下存在对应路径时发生。
   例如 `/api/admin/switchqueue/` 注册时带 `/`，`POST /api/admin/switchqueue` 会得到 307。
@@ -167,8 +171,8 @@ V1 兼容接口返回下面的结构，字段顺序固定为 `data`、`code`、`
   - Admin 没有开启 reflection，用 grpcurl 调用时需要加 `-import-path pkg/proto/idl -proto admin.proto`。
   - 加 `-emit-defaults` 可以输出值为默认值的字段。grpcurl 未在验证环境实测。
   - 沙箱里可以改用 mock 客户端 `build/dbha-ha-sandbox-mock`（用 `make ha-sandbox-mock` 构建）。
-    同时传 `--admin-grpc-addr` 和 `--admin-web-addr` 时，它会分别调用 gRPC 和 HTTP 并比对结果；
-    只传一个时只调用对应的协议。
+    同时传 `--list-ha-servers`、`--admin-grpc-addr` 和 `--admin-web-addr` 时，它会分别调用 gRPC 和 HTTP 并比对结果；
+    只传一个地址时只调用对应的协议。
 
 ## 6. 文档模板
 
@@ -196,13 +200,13 @@ V1 兼容接口返回下面的结构，字段顺序固定为 `data`、`code`、`
 | 位置 | 参数名 | 类型 | 必填 | 默认值 | 说明 |
 | --- | --- | --- | --- | --- | --- |
 
-HTTP 的“位置”列取 path、query、header、body；gRPC 用“字段号”代替。
-没有参数时写一行“无”，并说明多传的参数会怎样处理。
+HTTP 的「位置」列取 path、query、header、body；gRPC 用「字段号」代替。
+没有参数时写一行「无」，并说明多传的参数会怎样处理。
 
 ### 请求 JSON 样例
 
 请求体是 JSON 时，给出完整的格式化样例，所有字段都要出现（含可选字段），值用有意义的示例值。
-请求体为空时明确写“无请求体”。gRPC 给出 grpcurl `-d` 使用的 JSON。
+请求体为空时明确写「无请求体」。gRPC 给出 grpcurl `-d` 使用的 JSON。
 
 ## 3. 返回结构
 
@@ -211,7 +215,7 @@ HTTP 的“位置”列取 path、query、header、body；gRPC 用“字段号�
 | 字段 | 类型 | 一定返回 | 说明 | 示例 |
 | --- | --- | --- | --- | --- |
 
-gRPC 的表额外加一列“字段号”，并附 proto 消息定义原文。
+gRPC 的表额外加一列「字段号」，并附 proto 消息定义原文。
 
 ### 返回 JSON 样例
 
@@ -226,7 +230,7 @@ gRPC 的表额外加一列“字段号”，并附 proto 消息定义原文。
 ## 5. 调用示例
 
 只放可直接执行的命令和实测输出，不重复第 2、3 节的结构样例。成功和失败各一组。
-JSON 输出格式化后给出，并注明原始输出为单行紧凑 JSON。没有实测的命令要明确标注“未实测”，不写其输出。
+JSON 输出格式化后给出，并注明原始输出为单行紧凑 JSON。没有实测的命令要明确标注「未实测」，不写其输出。
 
 ## 6. 行为说明
 

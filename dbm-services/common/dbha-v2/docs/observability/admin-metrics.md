@@ -8,7 +8,7 @@
 - 监听地址取自 `admin.yaml` 的 `apm.listenAddress`，指标路径为 `/metrics`，同端口提供 `/health`。
   实现见 [pkg/haapm/server.go](../../pkg/haapm/server.go)。
 - 示例地址取自 [etc/dbha-v2.server.rc.example](../../etc/dbha-v2.server.rc.example) 的
-  `ADMIN_APM_LISTEN_ADDRESS`，为 `127.0.0.1:50080`。该变量为空时，渲染脚本会改用本机自动检测的 IPv4。
+  `ADMIN_APM_LISTEN_ADDRESS`，为 `http://127.0.0.1:50080`。该变量为空时，渲染脚本会改用 `http://<本机自动检测的 IPv4>:50080`。
 - 下文指标名统一省略前缀 `dbha_v2_admin_`。
 
 > 代码里的 Subsystem 为 `dbha-v2-admin`（[internal/admin/resources.go](../../internal/admin/resources.go)），
@@ -22,6 +22,7 @@ Histogram 在抓取结果里展开为 `_bucket`、`_sum`、`_count`，下表写�
 ## 2. 指标清单
 
 业务指标共 18 个，定义见 [internal/admin/apm/metric.go](../../internal/admin/apm/metric.go)。
+`dbha_startup_time_sec` 例外，定义见 [pkg/haapm/metric.go](../../pkg/haapm/metric.go)。
 
 | 分组 | 指标名 | 类型 | 标签 | 含义 |
 | --- | --- | --- | --- | --- |
@@ -55,8 +56,8 @@ Histogram 在抓取结果里展开为 `_bucket`、`_sum`、`_count`，下表写�
 | `code` | `SUCCESS`、`FAIL`、`NO_DATA`、`unknown` |
 
 HTTP 指标不统计 `/health`、`/metrics` 和 swagger 路径，实现见
-[internal/admin/apm/middleware.go](../../internal/admin/apm/middleware.go)。`path` 优先使用路由模板，未匹配路由时会落到
-原始 URL，基数可能升高。
+[internal/admin/apm/middleware.go](../../internal/admin/apm/middleware.go)。`path` 使用路由模板，未匹配路由统一记为
+`unmatched`；HTTP `method` 只保留 `GET`、`POST`、`PUT`、`DELETE`、`PATCH`、`HEAD`、`OPTIONS`，其余记为 `unknown`。两者基数都有上界。
 
 ## 3. Prometheus 抓取配置
 
@@ -81,7 +82,7 @@ scrape_configs:
 | `rate_window` | Custom | `1m,5m,15m`，默认 `5m`，只允许单选 |
 
 - 筛选变量在查询里统一写成 `=~"$var"`。Prometheus 数据源会对多选值做正则转义并拼成 `(a|b)`。
-  不要写成 `${var:regex}`：它会把 `/` 转义成 `\/`，PromQL 解析时报 `unknown escape sequence`。
+  不要写成 `${var:regex}`。它会把 `/` 转义成 `\/`，PromQL 解析时报 `unknown escape sequence`。
 - Custom all value 留空，选 All 时只展开成实际存在的取值。写成 `.*` 会同时匹配空串，把启动时生成的空标签零值序列带进查询。
 - `rate_window` 不能开启 Multi-value，否则 `[$rate_window]` 会变成非法区间。
 - 时间窗变量统一命名为 `rate_window`，避免与 Grafana 内置的 `$__interval` 混淆。
@@ -92,7 +93,7 @@ scrape_configs:
 在 Prometheus 页面直接执行时，把 `=~"$变量名"` 中的变量替换为 `.+`，把 `$rate_window` 换成具体时间窗，例如 `5m`。
 `.+` 只匹配非空取值，替换后语法不变，仍会排除空标签零值序列。
 
-多实例部署时，聚合都在原有 `by` 标签后追加 `instance`。热加载指标没有标签，按 `instance` 区分各个 admin。
+多实例部署时，聚合都在原有 `by` 标签后追加 `instance`。热加载 Gauge 中除 `config_reload_slot_count`（带 `result` 标签）外均无标签，按 `instance` 区分各个 admin。
 
 | 行 | 面板 | 图形 | PromQL |
 | --- | --- | --- | --- |
@@ -118,7 +119,7 @@ scrape_configs:
 
 ## 6. 基数说明
 
-`path` 在未匹配路由时会带上原始 URL，只用于排障明细面板。gRPC 的 `method`、`grpc_code`、`code` 都是有限集合，可以放心用于总览分组。
+`path` 取路由模板，未匹配路由统一记为 `unmatched`，HTTP `method` 也收敛到标准方法和 `unknown`，可用于总览分组。gRPC 的 `method`、`grpc_code`、`code` 都是有限集合，可以放心用于总览分组。
 
 ---
 

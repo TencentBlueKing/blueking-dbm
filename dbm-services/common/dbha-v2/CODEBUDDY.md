@@ -7,7 +7,7 @@ This file provides guidance to CodeBuddy Code when working with code in this rep
 DBHA v2 (Database High Availability v2) is a Go service for database high availability monitoring and failover. It consists of 4 microservices that work together to probe database instances, detect failures, and execute switchover operations.
 
 **Module**: `dbm-services/common/dbha-v2`
-**Go Version**: 1.24.2
+**Go Version**: 1.26.0
 **License**: MIT
 
 ## Build Commands
@@ -35,7 +35,7 @@ make format
 make clean
 
 # Create release packages
-make package              # Build both server and probe packages
+make package              # Build server, probe and probe-windows packages
 make package-server       # Create server package (services + toolkits + etc templates)
 make package-probe        # Create probe package
 ```
@@ -45,7 +45,7 @@ make package-probe        # Create probe package
 ```bash
 # Run all tests
 make test
-# Equivalent to: go test -v -race -cover ./...
+# Runs `make check-generate` first, then: go test -v -race -cover ./...
 
 # Run tests for a specific package
 go test -v -race -cover ./pkg/discovery/...
@@ -80,38 +80,55 @@ go test -v ./...
 │   └── probe/
 ├── internal/               # Service-specific internal code
 │   ├── admin/              # Admin service implementation
-│   │   ├── apm/           # APM endpoints
-│   │   ├── cmds/          # CLI commands (start, stop, migrate, etc.)
+│   │   ├── apm/           # APM endpoints and metrics
+│   │   ├── cmds/          # CLI commands (start, stop, restart, reload, health); migrate lives in command.go
 │   │   ├── config/        # Configuration handling
-│   │   ├── ginx/          # HTTP server setup
+│   │   ├── ginx/          # HTTP error constants, pagination params and JSON response helpers
 │   │   ├── migrator/      # Database migration
-│   │   └── api/           # gRPC/HTTP API handlers
+│   │   ├── slot/          # Resource slots for hot-reload
+│   │   ├── strategy/      # Strategy table operations
+│   │   ├── switchlog/     # Switchlog table operations
+│   │   └── api/open/      # HTTP Open API handlers (gRPC server lives in internal/admin/grpc.go)
 │   ├── analysis/          # Analysis service implementation
+│   │   ├── apm/           # APM endpoints and metrics
+│   │   ├── cmds/          # CLI commands
+│   │   ├── config/        # Configuration handling
 │   │   ├── detector/      # Failure detectors
+│   │   ├── failure/       # Failure event rules (non-switchable filtering)
+│   │   ├── parser/        # Status parser registry
 │   │   ├── switcher/      # Switchover execution
 │   │   ├── workflow/      # Switchover workflow logic
 │   │   ├── storage/       # Data storage layer
+│   │   ├── testutil/      # Test utilities
 │   │   └── dbm/           # DBM API client
 │   ├── receiver/          # Receiver service implementation
+│   │   ├── apm/           # APM endpoints and metrics
+│   │   ├── cmds/          # CLI commands
+│   │   ├── config/        # Configuration handling
 │   │   ├── source/        # Data sources (probe, kafka)
-│   │   ├── sink/           # Data sinks (mysql, etc.)
-│   │   └── apm/           # APM endpoints
+│   │   └── sink/           # Data sinks (mysql, etc.)
 │   └── probe/             # Probe service implementation
-│       ├── harvester/      # Database probing logic
-│       │   ├── mysql/     # MySQL metrics collection
-│       │   ├── redis/     # Redis metrics collection
-│       │   └── base/      # Base harvester interfaces
-│       ├── client/         # gRPC client to receiver
-│       ├── reporter/       # Report probing results
-│       └── keepalive/      # Keepalive ping server
+│       ├── cmds/           # CLI commands (gen-config, ensure, collect-pause, etc.)
+│       ├── config/         # Configuration handling
+│       ├── configsync/     # Probe config fetch/render from admin, shared by gen-config and periodic sync
+│       ├── harvester/      # Harvester framework (registry.go)
+│       │   ├── base/      # Base harvester types
+│       │   └── plugin/    # Plugin interface
+│       ├── client/         # Admin/receiver clients and Reporter (reporter.go)
+│       ├── keepalive/      # Keepalive ping server
+│       └── selfmetric/     # Probe self-metrics
+│   (DB-specific harvesters live in internal/provider/{mysql,redis}/harvest/)
 ├── pkg/                    # Shared packages
 │   ├── discovery/         # etcd-based service discovery
 │   ├── hanet/             # HTTP server/client utilities
 │   ├── storage/           # Database storage layers
 │   │   ├── hamysql/      # MySQL connection management
 │   │   ├── hamodel/      # HA data models (GORM)
-│   │   └── haprobe/      # Probe data storage
-│   ├── monitor/           # Prometheus metrics utilities
+│   │   ├── haprobe/      # Probe data storage
+│   │   └── haredis/      # Redis connection management
+│   ├── dbcred/            # Per-instance probe credential resolution
+│   ├── dbtype/            # Cluster type to DbType catalog and capability registry
+│   ├── monitor/           # BKMonitor event reporting (via bkmonitorbeat)
 │   ├── haapm/             # APM metrics (counter, gauge, histogram, summary)
 │   ├── safe/              # Panic-safe goroutine wrappers
 │   ├── process/           # Process lifecycle management
@@ -126,7 +143,7 @@ go test -v ./...
 │   └── version/           # Version information
 ├── etc/                    # Configuration templates
 ├── scripts/                # Deployment and setup scripts
-└── tools/                  # Utility binaries (cluster, bwmgr)
+└── tools/                  # Utility binaries (cluster, bwmgr, ha-sandbox-mock, probe-sandbox-mock)
 ```
 
 ## Key Patterns
@@ -135,7 +152,8 @@ go test -v ./...
 
 Each service uses Cobra for CLI commands. The pattern in `cmd/*/main.go`:
 - Root command runs the service (`RunE: service.Run`)
-- Subcommands: `version`, `start`, `stop`, `restart`, `reload`, `health`, `migrate`
+- Common subcommands: `version`, `health`, `start`, `daemon-start`, `stop`, `restart`, `reload`
+- admin only: `migrate`; probe only: `gen-config`, `ensure`, `ensure-keepalive`, `collect-pause`, `collect-resume`
 - Config file specified via `--config`/`-c` flag (default: `./etc/<service>.yaml`)
 
 ### Configuration
@@ -156,7 +174,7 @@ safe.Run(func() { /* sync work with recover */ })
 
 ### Service Discovery
 
-Services register via etcd using `pkg/discovery`. Admin service uses concurrency patterns (mutex, election) for HA coordination.
+Services register via etcd using `pkg/discovery`. The analysis service uses etcd concurrency patterns (mutex, election) for HA coordination.
 
 ### Database Access
 
@@ -169,7 +187,7 @@ Services register via etcd using `pkg/discovery`. Admin service uses concurrency
 - Test files co-located with source files (`*_test.go`)
 - Use `testify` for assertions
 - `internal/analysis/testutil/` provides test utilities
-- Benchmark tests use `*_benchmark_test.go` naming
+- Benchmark functions (`func BenchmarkXxx`) live in regular `*_test.go` files (e.g. `pkg/hanet/gin_server_test.go`)
 
 ## Development Scripts
 
@@ -178,8 +196,8 @@ Services register via etcd using `pkg/discovery`. Admin service uses concurrency
 source scripts/devenv.rc
 
 # Render configs for local development
-python3 scripts/render_configs.py --module server --rc etc/dbha-v2.server.rc
-python3 scripts/render_configs.py --module probe --rc etc/dbha-v2.probe.rc
+python3 scripts/render_configs.py --module server --rc etc/dbha-v2.server.rc --ip-detect-udp-connect-host <host>
+python3 scripts/render_configs.py --module probe --rc etc/dbha-v2.probe.rc --ip-detect-udp-connect-host <host>
 
 # Install build dependencies (requires root)
 bash scripts/install-libs.sh

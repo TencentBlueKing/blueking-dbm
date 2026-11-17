@@ -48,5 +48,5 @@ make test
 ## 配置与部署（简要）
 
 - 模板：`etc/templates/*.yaml`，示例 RC：`etc/dbha-v2.server.rc.example`、`etc/dbha-v2.probe.rc.example`
-- 渲染：`python3 scripts/render_configs.py --module server|probe --rc <rc-file>`
+- 渲染：`python3 scripts/render_configs.py --module server|probe --rc <rc-file> --ip-detect-udp-connect-host <host>`（`--ip-detect-udp-connect-host` 必填）
 - 部署细节见 [scripts/README.md](scripts/README.md)
