@@ -71,7 +71,7 @@
   import { useRequest } from 'vue-request';
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
-  import { batchFetchFile } from '@services/source/storage';
+  import { getFileContent } from '@services/source/storage';
 
   import RenderFileContent from '@views/ticket-center/common/ticket-detail/components/common/SqlFileContent.vue';
   import RenderFileList from '@views/ticket-center/common/ticket-detail/components/common/SqlFileList.vue';
@@ -81,7 +81,6 @@
     path: string;
     selectFileName: string;
     ticketDetail: TicketModel<Mysql.ImportSqlFile>;
-    wholeFileList: string[];
   }
   const props = defineProps<Props>();
   const isShow = defineModel<boolean>('isShow', {
@@ -105,26 +104,21 @@
       },
   );
 
-  const { loading: isContentLoading, run: runBatchFetchFile } = useRequest(
-    () => {
-      const filePathList = props.wholeFileList.reduce<string[]>((result, item) => {
-        result.push([props.path, item].join('/'));
-        return result;
-      }, []);
-
-      return batchFetchFile({
-        file_path_list: filePathList,
-      });
-    },
+  const { loading: isContentLoading, run: runFetchFileContent } = useRequest(
+    (fileName: string) =>
+      getFileContent({
+        file_path: [props.path, fileName].join('/'),
+      }).then((data) => ({
+        content: data.content,
+        fileName,
+      })),
     {
       manual: true,
-      onSuccess(result) {
-        fileContentMap.value = result.reduce<Record<string, string>>((result, fileInfo) => {
-          const fileName = fileInfo.path.split('/').pop() as string;
-          return Object.assign(result, {
-            [fileName]: fileInfo.content,
-          });
-        }, {});
+      onSuccess({ content, fileName }) {
+        fileContentMap.value = {
+          ...fileContentMap.value,
+          [fileName]: content,
+        };
       },
     },
   );
@@ -134,10 +128,21 @@
     () => {
       if (isShow.value) {
         localSelectFileName.value = props.selectFileName;
-        if (props.wholeFileList.length > 0) {
-          runBatchFetchFile();
-        }
       }
+    },
+    {
+      immediate: true,
+    },
+  );
+
+  // 侧栏打开或切换文件时，未缓存的文件才发起请求
+  watch(
+    [isShow, localSelectFileName],
+    () => {
+      if (!isShow.value || !localSelectFileName.value || localSelectFileName.value in fileContentMap.value) {
+        return;
+      }
+      runFetchFileContent(localSelectFileName.value);
     },
     {
       immediate: true,
