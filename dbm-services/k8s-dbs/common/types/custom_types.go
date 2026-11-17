@@ -38,14 +38,20 @@ func initLocation() {
 	}
 }
 
+// Location 返回 JSON 时间使用的业务时区。
+func Location() *time.Location {
+	once.Do(initLocation)
+	return location
+}
+
 // MarshalJSON 自定义 JSONDatetime JSON 序列化逻辑
 func (j JSONDatetime) MarshalJSON() ([]byte, error) {
-	once.Do(initLocation)
+	loc := Location()
 	t := time.Time(j)
 	if t.IsZero() {
 		return []byte("null"), nil
 	}
-	locTime := t.In(location)
+	locTime := t.In(loc)
 	return []byte(fmt.Sprintf("\"%s\"", locTime.Format(time.DateTime))), nil
 }
 
