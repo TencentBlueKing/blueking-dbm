@@ -157,7 +157,7 @@
     {
       case: 'table1',
       key: 'tables',
-      label: t('目标库'),
+      label: t('目标表'),
     },
     {
       case: 'id,name\\n100,zhangsan',
@@ -287,6 +287,7 @@
         databases: item.databases ? item.databases.split(',') : [],
         rows_filter: item.rows_filter?.replaceAll('\\n', '\n') || '',
         start_time: item.start_time || '',
+        tables: item.tables ? item.tables.split(',') : [],
       }),
     );
     if (isClear) {
