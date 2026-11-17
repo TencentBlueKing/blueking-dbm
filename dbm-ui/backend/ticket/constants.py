@@ -1006,6 +1006,18 @@ class TicketExpireType(StrStructuredEnum):
     CONFIRM_MODIFY = EnumField("confirm_modify", _("待确认修改"))
 
 
+# 超时配置项展示名称，与单据状态名称保持一致。
+TICKET_EXPIRE_TYPE_DISPLAY = {
+    TicketExpireType.PAUSE: _("待执行"),
+    TicketExpireType.ITSM: _("待审批"),
+    TicketExpireType.CONFIRM_MODIFY: _("待确认修改"),
+    TicketExpireType.RESOURCE_REPLENISH: _("待补货"),
+    TicketExpireType.INNER_FLOW: _("已失败"),
+    TicketExpireType.FLOW_TODO: _("待继续"),
+    TicketExpireType.TIMER: _("定时中"),
+}
+
+
 # 【单据超时保护配置】
 TICKET_EXPIRE_DEFAULT_CONFIG = {
     TicketExpireType.ITSM: -1,

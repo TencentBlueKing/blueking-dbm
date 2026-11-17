@@ -952,7 +952,7 @@ class TestTicketHandlerFlowConfig:
         new_configs = {
             "need_itsm": True,
             "need_manual_confirm": True,
-            "expire_config": {"enable": True},
+            "expire_config": {"inner_flow_expire": 2},
         }
 
         TicketHandler.update_ticket_flow_config(
@@ -968,6 +968,8 @@ class TestTicketHandlerFlowConfig:
         init_global_flow_config.refresh_from_db()
         assert init_global_flow_config.configs["need_itsm"] is True
         assert init_global_flow_config.configs["need_manual_confirm"] is True
+        assert init_global_flow_config.configs["expire_config"]["inner_flow_expire"] == 2 / 24
+        assert init_global_flow_config.configs["expire_config"]["enable"] is False
 
     @patch("backend.ticket.handler.TicketHandler.create_ticket_flow_config")
     def test_update_ticket_flow_config_biz_level(self, mock_create, test_ticket_bk_biz_id, init_global_flow_config):
@@ -1000,9 +1002,8 @@ class TestTicketHandlerFlowConfig:
                 remark="test update biz",
             )
 
-            # 原配置应被删除
+            # 业务配置保留原来的删除后重建行为。
             assert not TicketFlowsConfig.objects.filter(id=biz_config.id).exists()
-            # create_ticket_flow_config 应被调用以创建新配置
             mock_create.assert_called_once()
         finally:
             TicketFlowsConfig.objects.filter(
@@ -1021,8 +1022,8 @@ class TestTicketHandlerFlowConfig:
 
         mock_flow_class = MagicMock()
         mock_flow_class.describe_ticket_flows.return_value = [
-            {"flow_type": "itsm", "flow_type_display": "审批"},
-            {"flow_type": "inner_flow", "flow_type_display": "执行"},
+            "单据审批",
+            "执行",
         ]
         mock_builder_factory.registry = {TicketType.MYSQL_SINGLE_APPLY.value: mock_flow_class}
 
@@ -1037,3 +1038,9 @@ class TestTicketHandlerFlowConfig:
         assert "flow_desc" in result[0]
         assert isinstance(result[0]["flow_desc"], list)
         assert result[0]["ticket_type"] == TicketType.MYSQL_SINGLE_APPLY.value
+        assert result[0]["supported_expire_types"] == [
+            {"value": "itsm_expire", "label": "待审批"},
+            {"value": "inner_flow_expire", "label": "已失败"},
+            {"value": "flow_todo_expire", "label": "待继续"},
+            {"value": "confirm_modify", "label": "待确认修改"},
+        ]

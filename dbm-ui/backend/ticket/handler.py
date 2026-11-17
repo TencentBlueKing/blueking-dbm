@@ -36,6 +36,7 @@ from backend.ticket.constants import (
     CLUSTER_TAG_WILDCARD_VALUE,
     FLOW_FINISHED_STATUS,
     SPECIAL_APPROVE_TICKETS,
+    TICKET_EXPIRE_TYPE_DISPLAY,
     TODO_RUNNING_STATUS,
     FlowType,
     FlowTypeConfig,
@@ -45,6 +46,12 @@ from backend.ticket.constants import (
     TodoType,
 )
 from backend.ticket.exceptions import AppBaseException, TicketFlowsConfigException, TodoProcessFailedException
+from backend.ticket.flow_config import (
+    FLOW_CONFIG_CHECK_ERROR_DISPLAY,
+    flow_config_days_to_hours,
+    get_supported_expire_types,
+    plan_flow_config_update,
+)
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.models import Flow, Ticket, TicketFlowsConfig, Todo
 from backend.ticket.todos import TodoActionType, TodoActorFactory
@@ -587,8 +594,65 @@ class TicketHandler:
         TicketFlowsConfig.objects.bulk_create(flows_config_list)
 
     @classmethod
+    def _plan_platform_flow_config_updates(cls, targets, configs, config_ids, ticket_types, remark=None):
+        """预检查和实际更新共用整批校验；仅生成更新方案，不修改目标记录。"""
+        result = {
+            "valid": True,
+            "config_errors": [],
+            "missing_config_ids": sorted(set(config_ids) - {cfg.id for cfg in targets}),
+            "missing_ticket_types": sorted(set(ticket_types) - {cfg.ticket_type for cfg in targets}),
+        }
+        updates = []
+        for cfg in targets:
+            builder = BuilderFactory.registry[cfg.ticket_type]
+            merged, errors = plan_flow_config_update(cfg, configs, builder)
+            changed = merged != cfg.configs or (remark is not None and remark != cfg.remark)
+            if not errors and not changed and len(targets) > 1:
+                errors.append({"field": "configs", "code": "unchanged", "message": str(_("无变更"))})
+            if errors:
+                for error in errors:
+                    error["code_display"] = str(FLOW_CONFIG_CHECK_ERROR_DISPLAY[error["code"]])
+                result["config_errors"].append(
+                    {
+                        "config_id": cfg.id,
+                        "ticket_type": cfg.ticket_type,
+                        "ticket_type_display": str(TicketType.get_choice_label(cfg.ticket_type)),
+                        "errors": errors,
+                    }
+                )
+            elif changed:
+                updates.append((cfg, merged))
+        result["valid"] = not (
+            result["config_errors"] or result["missing_config_ids"] or result["missing_ticket_types"]
+        )
+        return updates, result
+
+    @classmethod
+    def check_update_ticket_flow_config(
+        cls, bk_biz_id, cluster_ids, ticket_types, configs, config_ids, remark=None, cluster_tags=None
+    ):
+        """预检查平台配置更新，返回所有校验结果；不保存、不修改任何配置。"""
+        if bk_biz_id != PLAT_BIZ_ID:
+            raise TicketFlowsConfigException(_("更新预检查仅支持平台配置（bk_biz_id=0）"))
+        config_qs = TicketFlowsConfig.objects.filter(bk_biz_id=bk_biz_id, ticket_type__in=ticket_types)
+        if config_ids:
+            config_qs = config_qs.filter(id__in=config_ids)
+        _updates, result = cls._plan_platform_flow_config_updates(
+            list(config_qs.order_by("id")), configs, config_ids or [], ticket_types, remark
+        )
+        return result
+
+    @classmethod
     def update_ticket_flow_config(
-        cls, bk_biz_id, cluster_ids, ticket_types, configs, config_ids, operator, remark, cluster_tags=None
+        cls,
+        bk_biz_id,
+        cluster_ids,
+        ticket_types,
+        configs,
+        config_ids,
+        operator,
+        remark=None,
+        cluster_tags=None,
     ):
         """
         更新单据流程
@@ -602,32 +666,47 @@ class TicketHandler:
         @param config_ids: 更新的流程ID列表
         @param operator: 更新人
         @param remark: 备注
+
+        仅平台配置使用部分更新和小时换算；业务配置保持原有删除重建逻辑。
         """
         cluster_ids = cluster_ids or []
         cluster_tags = cluster_tags or []
         config_ids = config_ids or []
 
-        config_qs = TicketFlowsConfig.objects.filter(bk_biz_id=bk_biz_id, ticket_type__in=ticket_types)
-
-        def check_editable_configs(configs_qs):
-            uneditable_configs = list(configs_qs.filter(editable=False).values_list("id", "ticket_type"))
-            if uneditable_configs:
-                raise TicketFlowsConfigException(_("流程配置不允许编辑，配置ID和单据类型: {}").format(uneditable_configs))
-
-        # 平台全局配置直接更新
-        if not bk_biz_id:
-            check_editable_configs(config_qs)
-            config_qs.update(configs=configs)
+        if bk_biz_id != PLAT_BIZ_ID:
+            config_qs = TicketFlowsConfig.objects.filter(bk_biz_id=bk_biz_id, ticket_type__in=ticket_types)
+            with transaction.atomic():
+                update_config_qs = config_qs.filter(id__in=config_ids).exclude(bk_biz_id=PLAT_BIZ_ID)
+                uneditable_configs = list(update_config_qs.filter(editable=False).values_list("id", "ticket_type"))
+                if uneditable_configs:
+                    raise TicketFlowsConfigException(_("流程配置不允许编辑，配置ID和单据类型: {}").format(uneditable_configs))
+                update_config_qs.delete()
+                cls.create_ticket_flow_config(
+                    bk_biz_id, cluster_ids, ticket_types, configs, operator, remark, cluster_tags
+                )
             return
 
-        # 业务级别先删除，再创建，可以复用校验流程
+        # 先完成整批校验，再原地更新；锁住目标行，避免部分 JSON 合并覆盖并发更新。
         with transaction.atomic():
-            update_config_qs = config_qs.filter(id__in=config_ids).exclude(bk_biz_id=PLAT_BIZ_ID)
-            check_editable_configs(update_config_qs)
-            update_config_qs.delete()
-            cls.create_ticket_flow_config(
-                bk_biz_id, cluster_ids, ticket_types, configs, operator, remark, cluster_tags
+            config_qs = TicketFlowsConfig.objects.select_for_update().filter(
+                bk_biz_id=bk_biz_id, ticket_type__in=ticket_types
             )
+            if config_ids:
+                config_qs = config_qs.filter(id__in=config_ids)
+            targets = list(config_qs.order_by("id"))
+            updates, validation_result = cls._plan_platform_flow_config_updates(
+                targets, configs, config_ids, ticket_types, remark
+            )
+            if not validation_result["valid"]:
+                raise TicketFlowsConfigException(_("单据流程配置校验失败，整批未更新"), data=validation_result)
+            for cfg, merged in updates:
+                cfg.configs = merged
+                cfg.updater = operator
+                fields = ["configs", "updater", "update_at"]
+                if remark is not None:
+                    cfg.remark = remark
+                    fields.append("remark")
+                cfg.save(update_fields=fields)
 
     @classmethod
     def query_ticket_flows_describe(cls, bk_biz_id, db_type, ticket_types=None):
@@ -739,7 +818,11 @@ class TicketHandler:
             ]
             parent_config = parent_config_map.get(flow_config.ticket_type)
             # model_to_dict 返回的 configs 可能直接引用原对象，这里复制后再追加展示字段。
-            flow_config_info["configs"] = dict(flow_config_info["configs"])
+            flow_config_info["configs"] = (
+                flow_config_days_to_hours(flow_config_info["configs"])
+                if bk_biz_id == PLAT_BIZ_ID
+                else dict(flow_config_info["configs"])
+            )
             if is_child_config and parent_config:
                 # 子配置的 need_itsm 与父配置一致时，标记为重复配置，便于前端提示用户。
                 flow_config_info["configs"]["need_itsm_duplicated"] = flow_config.configs.get(
@@ -751,6 +834,10 @@ class TicketHandler:
                 has_child_config=not is_child_config and flow_config.ticket_type in child_config_ticket_types,
                 ticket_type_display=flow_config.get_ticket_type_display(),
                 flow_desc=flow_desc,
+                supported_expire_types=[
+                    {"value": expire_type, "label": TICKET_EXPIRE_TYPE_DISPLAY[expire_type]}
+                    for expire_type in get_supported_expire_types(flow_desc)
+                ],
                 clusters=cluster_info,
                 update_at=flow_config.update_at,
             )
