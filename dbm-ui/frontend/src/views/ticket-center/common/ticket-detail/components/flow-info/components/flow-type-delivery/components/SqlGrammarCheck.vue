@@ -100,28 +100,31 @@
         </span>
       </span>
     </template>
-    <div class="editor-layout">
-      <div class="editor-layout-left">
-        <RenderFileList
-          v-model="selectFileName"
-          :data="executeSqlFileList" />
+    <BkLoading :loading="isContentLoading">
+      <div class="editor-layout">
+        <div class="editor-layout-left">
+          <RenderFileList
+            v-model="selectFileName"
+            :data="executeSqlFileList" />
+        </div>
+        <div class="editor-layout-right">
+          <RenderFileContent
+            :grammar-check-info="currentFileGrammarCheckInfo"
+            :model-value="currentFileContent"
+            readonly
+            :title="selectFileName" />
+        </div>
       </div>
-      <div class="editor-layout-right">
-        <RenderFileContent
-          :grammar-check-info="currentFileGrammarCheckInfo"
-          :model-value="currentFileContent"
-          readonly
-          :title="selectFileName" />
-      </div>
-    </div>
+    </BkLoading>
   </BkSideslider>
 </template>
 <script setup lang="tsx">
   import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
+  import { useRequest } from 'vue-request';
 
   import TicketModel, { type Mysql } from '@services/model/ticket/ticket';
-  import { batchFetchFile } from '@services/source/storage';
+  import { getFileContent } from '@services/source/storage';
 
   import RenderFileContent from '@views/ticket-center/common/ticket-detail/components/common/SqlFileContent.vue';
   import RenderFileList from '@views/ticket-center/common/ticket-detail/components/common/SqlFileList.vue';
@@ -189,26 +192,32 @@
     selectFileName.value = value;
   };
 
-  onMounted(() => {
-    const filePathList = executeSqlFileList.value.reduce((result, item) => {
-      result.push(`${props.ticketDetail.details.path}/${item}`);
-      return result;
-    }, [] as string[]);
+  // 批量接口有文件数量限制，改为按选中文件单个请求，结果按文件名缓存
+  const { loading: isContentLoading, run: runFetchFileContent } = useRequest(
+    (fileName: string) =>
+      getFileContent({
+        file_path: [props.ticketDetail.details.path, fileName].join('/'),
+      }).then((data) => ({
+        content: data.content,
+        fileName,
+      })),
+    {
+      manual: true,
+      onSuccess({ content, fileName }) {
+        fileContentMap.value = {
+          ...fileContentMap.value,
+          [fileName]: content,
+        };
+      },
+    },
+  );
 
-    batchFetchFile({
-      file_path_list: filePathList,
-    }).then((result) => {
-      fileContentMap.value = result.reduce(
-        (result, fileInfo) => {
-          const fileName = fileInfo.path.split('/').pop() as string;
-          return Object.assign(result, {
-            [fileName]: fileInfo.content,
-          });
-        },
-        {} as Record<string, string>,
-      );
-      [selectFileName.value] = executeSqlFileList.value;
-    });
+  // 侧栏打开或切换文件时，未缓存的文件才发起请求
+  watch([isShowSqlFile, selectFileName], () => {
+    if (!isShowSqlFile.value || !selectFileName.value || selectFileName.value in fileContentMap.value) {
+      return;
+    }
+    runFetchFileContent(selectFileName.value);
   });
 </script>
 
