@@ -463,6 +463,21 @@ func (c *ImportSchemaFromBackendComp) prepareCtlForwardSchemaFiles() error {
 	return nil
 }
 
+// chooseSchemaDumpBin 选导出 Remote 表结构的 mysqldump。
+// tdbctl 自带的是 MySQL 5.7.20 客户端，能连 5.6 及以上的 Remote。
+// Spider 包停在 5.5.24，对 5.6 会发 SET OPTION，服务端直接 1064。
+func chooseSchemaDumpBin(exists func(string) bool) string {
+	tdbctlDump := path.Join(cst.TdbctlInstallPath, "bin", "mysqldump")
+	if exists(tdbctlDump) {
+		return tdbctlDump
+	}
+	legacyDump := "/home/mysql/dbbackup/mysqldump"
+	if exists(legacyDump) {
+		return legacyDump
+	}
+	return path.Join(cst.MysqldInstallPath, "bin", "mysqldump")
+}
+
 func (c *ImportSchemaFromBackendComp) dumpMysqlSchemaFilesToWorkdir() (err error) {
 	if len(c.dumpDbs) == 0 {
 		return nil
@@ -478,11 +493,11 @@ func (c *ImportSchemaFromBackendComp) dumpMysqlSchemaFilesToWorkdir() (err error
 		DumpRoutine:             false,
 		DumpTrigger:             false,
 		DumpEvent:               false,
+		// 5.7 客户端默认 --set-gtid-purged=AUTO。Remote 开了 GTID 时会把 GTID_PURGED 写进文件。
+		// 5.5.24 没有该参数，探测不到就不加。
+		GtidPurgedOff: true,
 	}
-	dumpCommandBinPath := "/home/mysql/dbbackup/mysqldump"
-	if !cmutil.FileExists(dumpCommandBinPath) {
-		dumpCommandBinPath = path.Join(cst.MysqldInstallPath, "bin", "mysqldump")
-	}
+	dumpCommandBinPath := chooseSchemaDumpBin(cmutil.FileExists)
 	dumper := mysqlutil.MySQLDumper{
 		DumpDir:         c.tmpDumpDir,
 		Ip:              c.Params.BackendHost,
