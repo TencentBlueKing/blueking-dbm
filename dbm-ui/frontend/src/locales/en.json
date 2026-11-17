@@ -6769,5 +6769,6 @@
   "选择时间": "Select Time",
   "选择日期": "Select Date",
   "分": "Minute",
+  "单次最多上传n个文件": "Up to {n} files can be uploaded at a time",
   "这行勿动！新增翻译请在上一行添加！": ""
 }
