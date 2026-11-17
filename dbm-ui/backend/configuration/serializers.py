@@ -110,7 +110,14 @@ class TodoRemindSerializer(serializers.Serializer):
     is_enable = serializers.BooleanField(help_text=_("是否开启"), default=True)
     remind_time = TodoCrontabSerializer(help_text=_("通知周期"))
     notice = serializers.ListSerializer(child=serializers.JSONField(), help_text=_("通知渠道"))
-    wecom_group_rules = TodoRemindWecomRuleSerializer(many=True, required=False, default=list, help_text=_("企微群通知规则"))
+    # default 只挂在列表上。many=True 会把 default=list 同时传给内层对象序列化器，
+    # drf-yasg 生成 schema 时会对空列表调用 to_representation，从而打出 chat_id 的 AttributeError。
+    wecom_group_rules = serializers.ListSerializer(
+        child=TodoRemindWecomRuleSerializer(),
+        required=False,
+        default=list,
+        help_text=_("企微群通知规则"),
+    )
 
     def validate(self, attrs):
         wecom_group_rules = attrs.get("wecom_group_rules") or []
