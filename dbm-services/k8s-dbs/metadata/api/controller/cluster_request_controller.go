@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"k8s-dbs/common/api"
 	commconst "k8s-dbs/common/constant"
+	commtypes "k8s-dbs/common/types"
 	commutil "k8s-dbs/common/util"
 	"k8s-dbs/errors"
 	metaentity "k8s-dbs/metadata/entity"
@@ -84,16 +85,17 @@ func (k *ClusterRequestRecordController) buildListParams(ctx *gin.Context) (
 	var startTime, endTime time.Time
 	var err error
 
+	loc := commtypes.Location()
 	startTimeStr := ctx.Query("startTime")
 	if startTimeStr != "" {
-		startTime, err = time.Parse(time.DateTime, startTimeStr)
+		startTime, err = time.ParseInLocation(time.DateTime, startTimeStr, loc)
 		if err != nil {
 			return nil, errors.NewK8sDbsError(errors.ParameterValueError, err)
 		}
 	}
 	endTimeStr := ctx.Query("endTime")
 	if endTimeStr != "" {
-		endTime, err = time.Parse(time.DateTime, endTimeStr)
+		endTime, err = time.ParseInLocation(time.DateTime, endTimeStr, loc)
 		if err != nil {
 			return nil, errors.NewK8sDbsError(errors.ParameterValueError, err)
 		}
