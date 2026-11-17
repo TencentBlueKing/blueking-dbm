@@ -53,7 +53,7 @@ def scan_cluster(
         graph.add_node(vmselect, to_group=vmselect_group)
 
     vmstorage_group = Group(node_id="external_vmstorage", group_name=_("外部 VMStorage"))
-    # 外部 vmstorage 节点地址由调用方从部署单据解析传入
+    # 外部 vmstorage 节点地址由调用方从 VMSelect 当前组件配置读取
     for storage_node in storage_nodes or []:
         graph.add_node(
             {"pod_name": storage_node, "component_name": COMPONENT_VMSTORAGE, "status": ""},
