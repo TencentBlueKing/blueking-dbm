@@ -36,7 +36,7 @@ class ClusterOperationLogSerializer(serializers.Serializer):
     offset = serializers.IntegerField(help_text=_("分页起始"), required=False, default=0)
     k8sClusterName = serializers.CharField(help_text=_("k8s集群名称"))
     clusterName = serializers.CharField(help_text=_("集群名称"))
-    namespace = serializers.CharField(help_text=_("命名空间"))
+    nameSpace = serializers.CharField(help_text=_("命名空间"))
     creator = serializers.CharField(help_text=_("操作人"), required=False)
     requestType = MultiValueCharField(
         child=serializers.CharField(),
