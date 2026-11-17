@@ -224,6 +224,42 @@ class GetClusterVersionByIpSerializer(GetClusterVersionSerializer):
     ip = serializers.IPAddressField(help_text=_("指定IP地址"))
 
 
+class RedisUpgradeVersionItemSerializer(serializers.Serializer):
+    """type=update 时的候选版本项; type=online 仍返回 string[]"""
+
+    db_version_id = serializers.IntegerField(help_text=_("版本ID, 候选项唯一标识; 提单 target_versions[].db_version_id"))
+    version_name = serializers.CharField(help_text=_("版本名称"))
+    full_version = serializers.CharField(help_text=_("版本号"))
+    phase = serializers.CharField(help_text=_("版本阶段(alpha/beta/rc/release)"), allow_blank=True)
+    series_name = serializers.CharField(help_text=_("版本系列名"), allow_blank=True)
+    recommend = serializers.BooleanField(help_text=_("是否推荐版本"))
+    is_current = serializers.BooleanField(help_text=_("是否等于当前运行版本"))
+
+    class Meta:
+        swagger_schema_fields = {
+            "example": [
+                {
+                    "db_version_id": 12,
+                    "version_name": "redis_7.2.5",
+                    "full_version": "7.2.5.0.0.0",
+                    "phase": "release",
+                    "series_name": "Redis-7",
+                    "recommend": True,
+                    "is_current": False,
+                },
+                {
+                    "db_version_id": 15,
+                    "version_name": "redis_7.2.6_alpha",
+                    "full_version": "7.2.6.0.0.0",
+                    "phase": "alpha",
+                    "series_name": "Redis-7",
+                    "recommend": False,
+                    "is_current": False,
+                },
+            ]
+        }
+
+
 class ListClusterBigVersionSerializer(serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("集群ID"))
 

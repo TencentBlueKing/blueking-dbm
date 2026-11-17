@@ -602,8 +602,8 @@ class RedisClusterVersionUpdateOnlineApiView(FlowTestView):
                 "node_type": "Proxy",
                 "current_versions": ["twemproxy-0.4.1-v30"],
                 "target_versions": [
-                    {"ip": "1.1.1.1", "version": "twemproxy-0.4.1-v28"},
-                    {"ip": "2.2.2.2", "version": "twemproxy-0.4.1-v33"}
+                    {"ip": "1.1.1.1", "db_version_id": 169},
+                    {"ip": "2.2.2.2", "db_version_id": 173}
                 ]
             },
             {
@@ -611,7 +611,7 @@ class RedisClusterVersionUpdateOnlineApiView(FlowTestView):
                 "node_type": "Backend",
                 "current_versions": ["redis-6.2.7"],
                 "target_versions": [
-                    {"ip": "3.3.3.3", "version": "redis-6.2.14"}
+                    {"ip": "3.3.3.3", "db_version_id": 148}
                 ]
             }
         ]

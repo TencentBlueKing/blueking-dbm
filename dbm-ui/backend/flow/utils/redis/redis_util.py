@@ -352,13 +352,18 @@ def get_redis_package_v2_release(pkg_type, series: str = PkgSeries.LATEST.value,
 
 
 # 根据db_version 获取 redis 最新 Package（走介质库 V2，version_series 与 db_version 同名，如 Redis-6/Tendisplus-2.7）
-def get_latest_redis_package_by_version(db_version, name_prefix=None):
+# 指定 upgrade_target 时按其 db_version_id 取包, 否则只取该系列最新 release 包
+def get_latest_redis_package_by_version(db_version, upgrade_target=None):
     pkg_type = MediumEnum.Redis
     if db_version.startswith("TendisSSD"):
         pkg_type = MediumEnum.TendisSsd
     if db_version.startswith("Tendisplus"):
         pkg_type = MediumEnum.TendisPlus
-    return get_redis_package_v2_release(pkg_type=pkg_type, series=db_version, name_prefix=name_prefix)
+    if upgrade_target:
+        from backend.flow.utils.redis.redis_package_resolver import RedisUpgradePackageResolver
+
+        return RedisUpgradePackageResolver([pkg_type]).package(upgrade_target)
+    return get_redis_package_v2_release(pkg_type=pkg_type, series=db_version)
 
 
 def humanbytes(B):
