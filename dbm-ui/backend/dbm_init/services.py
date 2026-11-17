@@ -14,6 +14,7 @@ import logging
 import os
 import subprocess
 
+from bk_notice_sdk import config as notice_config
 from bk_notice_sdk.views import api_call
 from blueapps.account.models import User
 from django.conf import settings
@@ -524,7 +525,11 @@ class Services:
         """初始化注册 dbm 到通知中心"""
         try:
             response = api_call(
-                api_method="register_application", success_message="注册平台成功", error_message="注册平台异常", success_code=201
+                api_method="register_application",
+                tenant_id=notice_config.BK_APP_TENANT_ID if notice_config.ENABLE_MULTI_TENANT_MODE else "default",
+                success_message="注册平台成功",
+                error_message="注册平台异常",
+                success_code=201,
             )
             if response.get("result") is True:
                 logger.info("dbm成功注册平台到通知中心")
