@@ -57,6 +57,8 @@ type RedisDtsDataCheckAndRpaireParams struct {
 	// Concurrency 并发度(同时对多少个redis实例做数据校验/修复),不传或<=0时使用默认值(2)
 	// 运行过程中可通过并发度控制文件动态调整,见 getConcurrencyCtrlFile
 	Concurrency int `json:"concurrency"`
+	// SkipKeysDupCheck 是否跳过keys文件重复行检查(仅源端是tendisssd时才会做该检查),默认false即做检查
+	SkipKeysDupCheck bool `json:"skip_keys_dup_check"`
 }
 
 // defaultDtsDataCheckRepairConcurrency 数据校验/修复默认并发度
@@ -177,16 +179,7 @@ func (job *RedisDtsDataCheck) Run() (err error) {
 // 运行中修改该文件(如 echo 4 > file),新并发度会在一个轮询周期内生效。
 // 调大立即放行等待中的实例;调小不会中断已在运行的实例,仅约束后续待启动的实例。
 func (job *RedisDtsDataCheck) getConcurrencyCtrlFile() string {
-	safe := func(s string) string {
-		return strings.Map(func(r rune) rune {
-			if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '.' || r == '-' {
-				return r
-			}
-			return '_'
-		}, s)
-	}
-	basename := fmt.Sprintf("%s_concurrency.%s.%s.%s", job.Name(), safe(job.params.BkBizID),
-		safe(job.params.SrcClusterAddr), safe(job.params.SrcRedisIP))
+	basename := fmt.Sprintf("%s_concurrency", job.Name())
 	return filepath.Join(job.saveDir, basename)
 }
 
@@ -613,6 +606,7 @@ func (task *RedisInsDtsDataCheckAndRepairTask) KeyPatternAndDataCheck() {
 	var extraOptsBuilder strings.Builder
 	var checkMode string
 	var locked bool
+	var needKeysDupCheck bool
 	var flockP *flock.Flock
 	clusterEnabled := task.isClusterEnabled()
 	if task.Err != nil {
@@ -656,6 +650,8 @@ func (task *RedisInsDtsDataCheckAndRepairTask) KeyPatternAndDataCheck() {
 				return
 			}
 		}
+		// 仅源端是tendisssd时,数据校验完成后需再校验keys文件是否存在重复行
+		needKeysDupCheck = task.keyPatternTask.TendisType == consts.TendisTypeTendisSSDInsance
 		extraOptsBuilder.WriteString(" --keys-file=" + task.keyPatternTask.ResultFile + " --thread-cnt=200 ")
 	} else {
 		// 源redis 属于用户自建,则通过scan方式获取key,而后执行数据校验
@@ -680,6 +676,19 @@ func (task *RedisInsDtsDataCheckAndRepairTask) KeyPatternAndDataCheck() {
 	task.RunCmdAndWatchLog(dataCheckCmd, logCmd)
 	if task.Err != nil {
 		return
+	}
+	// 校验工具执行完成后,先校验keys文件是否存在重复行,存在则输出重复行并报错退出;
+	// 可通过参数 skip_keys_dup_check 跳过
+	if needKeysDupCheck {
+		if task.datacheckJob.params.SkipKeysDupCheck {
+			task.getLogger().Info("skip_keys_dup_check is true,skip keys file duplicate check,addr:%s",
+				task.getSrcRedisAddr())
+		} else {
+			task.checkKeysFileDuplicate()
+			if task.Err != nil {
+				return
+			}
+		}
 	}
 	// 数据校验结果
 	task.getDataCheckRet()

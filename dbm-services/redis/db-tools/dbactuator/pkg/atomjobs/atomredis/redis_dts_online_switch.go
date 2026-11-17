@@ -467,9 +467,11 @@ func (job *RedisDtsOnlineSwitch) NewProxyConfigFileForDiffType() (err error) {
 		if logRootDir != consts.GetRedisDataDir() {
 			dstConfContent = strings.ReplaceAll(dstConfContent, logRootDir+"/", consts.GetRedisDataDir()+"/")
 		}
+		// 避免跟密码字段有重复，放在最后面替换集群名
+		// twemproxy 已在上面精确替换过集群名(:1 clusterName ),这里不能再全局替换,
+		// 否则当 srcClusterName 包含 dstClusterName 时会被重复替换(如 bigzset => bigzsetmigratemigrate)
+		dstConfContent = strings.ReplaceAll(dstConfContent, job.params.DstClusterName, job.params.SrcClusterName)
 	}
-	// 避免跟密码字段有重复，放在最后面替换集群名
-	dstConfContent = strings.ReplaceAll(dstConfContent, job.params.DstClusterName, job.params.SrcClusterName)
 
 	proxyFileForDstPort := job.getProxyFile(job.params.DstClusterType, job.params.DstProxyPort)
 	proxyFileForDstPort = filepath.Join(saveDirForDstPort, proxyFileForDstPort)
@@ -541,9 +543,11 @@ func (job *RedisDtsOnlineSwitch) NewProxyConfigFileForDiffType() (err error) {
 		strconv.Itoa(job.params.DstProxyPort),
 		strconv.Itoa(job.params.SrcProxyPort),
 	)
-	dstConfContent = strings.ReplaceAll(dstConfContent,
-		strconv.Itoa(job.params.DstProxyPort),
-		strconv.Itoa(job.params.SrcProxyPort))
+	// 不能全局替换端口数字,否则会误伤 slot 范围(如 350000-384999 中的 50000),
+	// 这里只替换路径/文件名中的端口,如 /predixy/50000/logs、nutcracker.50000.yml
+	dstPortRe := regexp.MustCompile(`([/._])` + regexp.QuoteMeta(strconv.Itoa(job.params.DstProxyPort)) + `(\b|_)`)
+	dstConfContent = dstPortRe.ReplaceAllString(dstConfContent,
+		"${1}"+strconv.Itoa(job.params.SrcProxyPort)+"${2}")
 	job.runtime.Logger.Info(" dstConfContent data:%s", dstConfContent)
 	// 重新写文件
 	err = os.WriteFile(proxyFileForDstPort, []byte(dstConfContent), 0644)

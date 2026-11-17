@@ -5,11 +5,13 @@
 追加 forget 旧实例的步骤
 """
 from types import SimpleNamespace
+from unittest.mock import MagicMock
 
 import pytest
 
 import backend.flow.engine.bamboo.scene.redis.redis_cluster_scene_cmr as cmr_mod
-from backend.db_meta.enums import ClusterType
+import backend.flow.utils.redis.redis_act_playload as payload_mod
+from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_scene_cmr import RedisClusterCMRSceneFlow
 from backend.flow.plugins.components.collections.redis.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
@@ -208,3 +210,59 @@ class TestRedisClusterCMRForgetOldInstances(object):
         sub = flow.generate_cluster_replacement(flow.data, act_kwargs, replacement)
 
         assert _find_forget_act(sub) is None
+
+
+@pytest.fixture
+def forget_cluster(monkeypatch):
+    cluster = SimpleNamespace(
+        immute_domain="cluster.test.db",
+        cluster_type=ClusterType.TendisPredixyTendisplusCluster.value,
+        storageinstance_set=MagicMock(),
+    )
+    monkeypatch.setattr(payload_mod, "Cluster", SimpleNamespace(objects=SimpleNamespace(get=lambda **kwargs: cluster)))
+    monkeypatch.setattr(
+        payload_mod.PayloadHandler,
+        "redis_get_password_by_domain",
+        lambda domain: {"redis_password": "test-password"},
+    )
+    get_detail = MagicMock(side_effect=AssertionError("forget 不应展开整个集群详情"))
+    monkeypatch.setattr(payload_mod.metaApi.cluster.nosqlcomm, "get_cluster_detail", get_detail)
+    return cluster, get_detail
+
+
+def test_cluster_forget_uses_only_masters_with_machine(forget_cluster):
+    cluster, get_detail = forget_cluster
+    cluster.storageinstance_set.filter.return_value.values_list.return_value = [
+        ("1.1.1.1", 30000),
+        ("1.1.1.2", 30001),
+    ]
+    forget_instances = [{"ip": "2.2.2.2", "port": 30000}]
+
+    result = object.__new__(RedisActPayload).redis_cluster_forget_4_scene(
+        params={"immute_domain": cluster.immute_domain, "forget_instances": forget_instances}
+    )
+
+    cluster.storageinstance_set.filter.assert_called_once_with(
+        instance_role=InstanceRole.REDIS_MASTER.value, machine__ip__isnull=False
+    )
+    cluster.storageinstance_set.filter.return_value.values_list.assert_called_once_with("machine__ip", "port")
+    get_detail.assert_not_called()
+    assert result["payload"]["cluster_meta"] == {
+        "storage_pass": "test-password",
+        "immute_domain": cluster.immute_domain,
+        "cluster_type": cluster.cluster_type,
+        "redis_master_set": ["1.1.1.1:30000", "1.1.1.2:30001"],
+    }
+    assert result["payload"]["forget_list"] == forget_instances
+
+
+def test_cluster_forget_rejects_no_available_master(forget_cluster):
+    cluster, get_detail = forget_cluster
+    cluster.storageinstance_set.filter.return_value.values_list.return_value = []
+
+    with pytest.raises(ValueError, match="没有可用的 master"):
+        object.__new__(RedisActPayload).redis_cluster_forget_4_scene(
+            params={"immute_domain": cluster.immute_domain, "forget_instances": [{"ip": "2.2.2.2", "port": 30000}]}
+        )
+
+    get_detail.assert_not_called()

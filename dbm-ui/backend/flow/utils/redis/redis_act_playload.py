@@ -27,7 +27,7 @@ from backend.constants import BACKUP_SYS_STATUS, IP_PORT_DIVIDER
 from backend.db_meta import api as metaApi
 from backend.db_meta.api.cluster import nosqlcomm
 from backend.db_meta.api.cluster.apis import query_cluster_by_hosts
-from backend.db_meta.enums import InstanceStatus
+from backend.db_meta.enums import InstanceRole, InstanceStatus
 from backend.db_meta.enums.cluster_type import ClusterType
 from backend.db_meta.models import AppCache, Cluster, StorageInstance
 from backend.db_package.models import Package
@@ -2472,7 +2472,13 @@ class RedisActPayload(object):
         params = kwargs["params"]
         passwd_ret = PayloadHandler.redis_get_password_by_domain(params["immute_domain"])
         cluster = Cluster.objects.get(immute_domain=params["immute_domain"])
-        cluster_info = metaApi.cluster.nosqlcomm.get_cluster_detail(cluster.id)[0]
+        # 只需要可连接的 master；展开整个集群会因已下架或缺失机器的其他实例而失败。
+        masters = cluster.storageinstance_set.filter(
+            instance_role=InstanceRole.REDIS_MASTER.value, machine__ip__isnull=False
+        ).values_list("machine__ip", "port")
+        redis_master_set = ["{}{}{}".format(ip, IP_PORT_DIVIDER, port) for ip, port in masters]
+        if not redis_master_set:
+            raise ValueError(_("集群 {} 没有可用的 master，无法执行 cluster forget").format(cluster.immute_domain))
 
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
@@ -2480,9 +2486,9 @@ class RedisActPayload(object):
             "payload": {
                 "cluster_meta": {
                     "storage_pass": passwd_ret.get("redis_password"),
-                    "immute_domain": cluster_info["immute_domain"],
-                    "cluster_type": cluster_info["cluster_type"],
-                    "redis_master_set": cluster_info["redis_master_set"],
+                    "immute_domain": cluster.immute_domain,
+                    "cluster_type": cluster.cluster_type,
+                    "redis_master_set": redis_master_set,
                 },
                 "forget_list": params["forget_instances"],
             },
