@@ -135,7 +135,7 @@ export const getVictoriametricsClusterOperationLog = function (params: {
   endTime?: string;
   k8sClusterName: string;
   limit: number;
-  namespace: string;
+  nameSpace: string;
   offset: number;
   requestParams?: string;
   requestType?: string;
