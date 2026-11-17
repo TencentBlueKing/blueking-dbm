@@ -32,6 +32,7 @@ from backend.db_services.redis.toolbox.serializers import (
     ListClusterBigVersionSerializer,
     QueryByOneClusterSerializer,
     QueryClusterIpsSerializer,
+    RedisUpgradeVersionItemSerializer,
 )
 from backend.flow.utils.redis.redis_proxy_util import get_cluster_capacity_update_required_info
 from backend.iam_app.dataclass import ActionEnum, ResourceEnum
@@ -84,7 +85,9 @@ class ToolboxViewSet(BaseClusterViewSet):
 
     @common_swagger_auto_schema(
         operation_summary=_("查询集群版本信息"),
+        operation_description=_("type=online 返回当前运行版本 string[]; type=update 返回可升级候选版本对象列表"),
         query_serializer=GetClusterVersionSerializer(),
+        responses={status.HTTP_200_OK: RedisUpgradeVersionItemSerializer(many=True)},
         tags=[SWAGGER_TAG],
     )
     @action(methods=["GET"], detail=False, serializer_class=GetClusterVersionSerializer, pagination_class=None)
@@ -94,11 +97,14 @@ class ToolboxViewSet(BaseClusterViewSet):
         if data["type"] == RedisVersionQueryType.ONLINE.value:
             return Response(ToolboxHandler.get_online_cluster_versions(cluster_id, node_type))
         else:
-            return Response(ToolboxHandler.get_update_cluster_versions(cluster_id, node_type))
+            items = ToolboxHandler.get_update_cluster_versions(cluster_id, node_type)
+            return Response(RedisUpgradeVersionItemSerializer(items, many=True).data)
 
     @common_swagger_auto_schema(
         operation_summary=_("查询指定IP版本信息"),
+        operation_description=_("type=online 返回当前运行版本 string[]; type=update 返回可升级候选版本对象列表"),
         query_serializer=GetClusterVersionByIpSerializer(),
+        responses={status.HTTP_200_OK: RedisUpgradeVersionItemSerializer(many=True)},
         tags=[SWAGGER_TAG],
     )
     @action(methods=["GET"], detail=False, serializer_class=GetClusterVersionByIpSerializer, pagination_class=None)
@@ -113,7 +119,8 @@ class ToolboxViewSet(BaseClusterViewSet):
                 ]
             )
         else:
-            return Response(ToolboxHandler.get_update_cluster_version_by_ip(cluster_id, node_type, ip))
+            items = ToolboxHandler.get_update_cluster_version_by_ip(cluster_id, node_type, ip)
+            return Response(RedisUpgradeVersionItemSerializer(items, many=True).data)
 
     @common_swagger_auto_schema(
         operation_summary=_("查询集群可更新大版本"),

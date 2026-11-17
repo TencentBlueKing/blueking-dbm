@@ -26,6 +26,7 @@ from backend.db_meta.api.cluster.apis import query_cluster_by_hosts
 from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus
 from backend.db_meta.exceptions import InstanceNotExistException
 from backend.db_meta.models import Cluster
+from backend.db_meta.models.db_version import DBVersion
 from backend.db_meta.models.instance import StorageInstance
 from backend.db_package.models import Package
 from backend.db_services.redis.util import (
@@ -50,7 +51,16 @@ from backend.flow.consts import (
 )
 from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.redis.redis_cluster_nodes import decode_cluster_nodes
-from backend.flow.utils.redis.redis_util import get_redis_engine_family, version_ge, version_gt
+from backend.flow.utils.redis.redis_package_resolver import (
+    RedisUpgradePackageResolver,
+    RedisUpgradeTargetError,
+    compare_db_version,
+    is_cross_engine,
+    proxy_pkg_type,
+    storage_pkg_type,
+    upgrade_db_versions,
+)
+from backend.flow.utils.redis.redis_util import version_ge, version_gt
 from backend.utils.string import base64_encode
 
 logger = logging.getLogger("flow")
@@ -420,63 +430,62 @@ def get_storage_version_names_by_cluster_type(cluster_type: str, trimSuffix: boo
     return versions
 
 
-def get_cluster_storage_versions_for_upgrade(cluster_id: int, ip: str = None) -> list:
+def upgrade_candidate_versions(pkg_type: str) -> List[DBVersion]:
+    """候选版本: 节点介质类型下启用的 DBVersion, 且其下至少有一个启用的 Linux 介质; 不限定版本阶段"""
+    versions = upgrade_db_versions([pkg_type]).filter(enable=True, has_enabled_package=True)
+    return sorted(versions, key=lambda v: (bool(v.recommend), v.full_version_n), reverse=True)
+
+
+def build_upgrade_version_item(db_version: DBVersion, running_versions: List[str]) -> Dict[str, Any]:
+    series = db_version.version_series
+    return {
+        "db_version_id": db_version.id,
+        "version_name": db_version.name,
+        "full_version": db_version.full_version,
+        "phase": db_version.phase or "",
+        "series_name": series.name if series else "",
+        "recommend": bool(db_version.recommend),
+        "is_current": any(compare_db_version(db_version, v) == 0 for v in running_versions),
+    }
+
+
+def get_cluster_storage_versions_for_upgrade(cluster_id: int, ip: str = None) -> List[Dict[str, Any]]:
     """
     获取集群可升级到的存储版本
+    返回: [{db_version_id, version_name, full_version, phase, series_name, recommend, is_current}]
     """
     cluster = Cluster.objects.get(id=cluster_id)
+    pkg_type = storage_pkg_type(cluster.cluster_type)
+    if not pkg_type:
+        return []
     online_redis_ver = get_cluster_redis_version(cluster_id, ip)
     versions = []
-    if is_redis_instance_type(cluster.cluster_type):
-        ret = (
-            Package.objects.filter(db_type=DBType.Redis.value, pkg_type=MediumEnum.Redis.value, enable=True)
-            .order_by("-priority")
-            .values_list("name", flat=True)
-        )
-        online_family = get_redis_engine_family(online_redis_ver)
-        for version in ret:
-            if get_redis_engine_family(version) != online_family:
+    for db_version in upgrade_candidate_versions(pkg_type):
+        cmp = compare_db_version(db_version, online_redis_ver)
+        if is_tendisssd_instance_type(cluster.cluster_type):
+            # TendisSSD 不支持跨版本, 只能原版本重装
+            if cmp != 0:
                 continue
-            if version_ge(version, online_redis_ver):
-                versions.append(version)
-    elif is_tendisplus_instance_type(cluster.cluster_type):
-        ret = (
-            Package.objects.filter(db_type=DBType.Redis.value, pkg_type=MediumEnum.TendisPlus.value, enable=True)
-            .order_by("-priority")
-            .values_list("name", flat=True)
-        )
-        for version in ret:
-            if version_ge(version, online_redis_ver):
-                versions.append(version)
-    elif is_tendisssd_instance_type(cluster.cluster_type):
-        versions.append(online_redis_ver)
-    versions = [version.replace(".tar.gz", "") for version in versions]
-    versions = [version.replace(".tgz", "") for version in versions]
+        elif is_cross_engine(db_version, online_redis_ver) or cmp not in (0, 1):
+            continue
+        versions.append(build_upgrade_version_item(db_version, [online_redis_ver]))
     return versions
 
 
 def get_major_version_by_version_name(name: str) -> str:
     """
-    根据 name 返回对应主版本
+    根据 name 返回对应主版本（版本管理V2 系列名）, 解析不出唯一版本时返回空串
     如: name=='redis-6.2.14'
     返回结果 'Redis-6'
     如: name=='predixy-1.4.0'
     返回结果 'Predixy-latest'
     """
-    row = Package.objects.filter(
-        db_type=DBType.Redis.value,
-        pkg_type__in=(
-            MediumEnum.Redis.value,
-            MediumEnum.TendisPlus.value,
-            MediumEnum.TendisSsd.value,
-            MediumEnum.Predixy.value,
-            MediumEnum.Twemproxy.value,
-        ),
-        name__startswith=name,
-    ).first()
-    if not row:
+    resolver = RedisUpgradePackageResolver()
+    try:
+        target = resolver.resolve_target(name)
+    except RedisUpgradeTargetError:
         return ""
-    return row.version
+    return resolver.series_name(target)
 
 
 def get_proxy_version_names_by_cluster_type(cluster_type: str, trimSuffix: bool = False) -> list:
@@ -508,12 +517,17 @@ def get_proxy_version_names_by_cluster_type(cluster_type: str, trimSuffix: bool 
     return versions
 
 
-def get_cluster_proxy_version_for_upgrade(cluster_id: int) -> list:
+def get_cluster_proxy_version_for_upgrade(cluster_id: int, ip: str = None) -> List[Dict[str, Any]]:
     """
     获取集群可升级到的proxy版本
+    返回: [{db_version_id, version_name, full_version, phase, series_name, recommend, is_current}]
     """
     cluster = Cluster.objects.get(id=cluster_id)
-    return get_proxy_version_names_by_cluster_type(cluster.cluster_type, True)
+    pkg_type = proxy_pkg_type(cluster.cluster_type)
+    if not pkg_type:
+        raise Exception(_("集群类型:{} 不是一个 redis 集群类型?").format(cluster.cluster_type))
+    running_versions = get_cluster_proxy_version(cluster_id, {ip} if ip else None)
+    return [build_upgrade_version_item(v, running_versions) for v in upgrade_candidate_versions(pkg_type)]
 
 
 def get_twemproxy_cluster_hash_tag(cluster_type: str, cluster_id: int) -> str:

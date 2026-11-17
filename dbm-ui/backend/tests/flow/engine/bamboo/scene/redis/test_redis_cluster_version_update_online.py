@@ -4,16 +4,56 @@ from types import SimpleNamespace
 
 import pytest
 
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.enums.comm import RedisVerUpdateNodeType
+from backend.db_meta.models.db_version import DBVersion
+from backend.db_package.models import Package
+from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.redis import redis_cluster_version_update_online as mod
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_version_update_online import RedisClusterVersionUpdateOnline
 from backend.flow.utils.redis import redis_version_upgrade_validate as validate_mod
+from backend.flow.utils.redis.redis_package_resolver import RedisUpgradeTarget, RedisUpgradeTargetError
+from backend.tests.mock_data.db_package.v2 import create_redis_package
 
 TARGET_VERSION = "redis-6.2.14"
+TARGET_DB_VERSION_ID = 42
+OTHER_DB_VERSION_ID = 43
+TARGET = RedisUpgradeTarget(TARGET_DB_VERSION_ID, TARGET_VERSION)
 TARGET_MAJOR_VERSION = "Redis-6"
 CURRENT_VERSION = "redis-5.0.9"
 UNKNOWN_CLUSTER_IP = "not-in-cluster-ip"
+
+
+@pytest.fixture
+def db_versions(db):
+    """version_name -> DBVersion, 预检校验用的真实版本管理V2版本"""
+    Package.objects.filter(db_type=DBType.Redis.value).delete()
+    specs = [
+        ("redis-6.2.14", MediumEnum.Redis.value, "Redis-6", "6.2.14.0.0.0"),
+        ("redis-7.2.4", MediumEnum.Redis.value, "Redis-7", "7.2.4.0.0.0"),
+        ("valkey-8.0.1", MediumEnum.Redis.value, "Valkey-8", "8.0.1.0.0.0"),
+        ("tendisplus-2.7.6", MediumEnum.TendisPlus.value, "Tendisplus-2.7", "2.7.6.0.0.0"),
+        ("predixy-1.4.3", MediumEnum.Predixy.value, "Predixy-latest", "1.4.3.0.0.0"),
+    ]
+    by_name = {}
+    for name, pkg_type, series, full_version in specs:
+        pkg = create_redis_package(
+            f"{name}.tar.gz",
+            pkg_type=pkg_type,
+            series=series,
+            full_version=full_version,
+            phase="release",
+            version_name=name,
+        )
+        by_name[name] = DBVersion.objects.select_related("version_series__distribution").get(pk=pkg.db_version_id)
+    return by_name
+
+
+def _use_targets(flow, db_versions, *names):
+    """把指定版本挂到 flow.target_db_versions, 返回各自 db_version_id"""
+    flow.target_db_versions = {db_versions[n].id: db_versions[n] for n in names}
+    return [db_versions[n].id for n in names]
 
 
 class _FakeQuery:
@@ -84,9 +124,21 @@ class _FakeGetFileList:
     def __init__(self, *args, **kwargs):
         pass
 
-    def redis_cluster_version_update(self, version, name_prefix=None):
-        _FakeGetFileList.calls.append((version, name_prefix))
+    def redis_cluster_version_update(self, version, upgrade_target=None):
+        _FakeGetFileList.calls.append((version, upgrade_target))
         return []
+
+
+class _FakeResolver:
+    def __init__(self, *args, **kwargs):
+        pass
+
+    @staticmethod
+    def series_name(target):
+        _FakeResolver.series_calls.append(target)
+        return TARGET_MAJOR_VERSION
+
+    series_calls = []
 
 
 class _RecorderBuilder:
@@ -141,11 +193,27 @@ def _new_flow(data=None):
     flow.instance_pair_buckets = {}
     flow.instance_ip_index = {}
     flow.instance_cluster_meta = {}
+    flow.target_db_versions = {}
+    flow.upgrade_targets = _AnyVersionTargets()
     return flow
 
 
+class _AnyVersionTargets(dict):
+    """跳过 precheck 的用例里, 任意 db_version_id 都视为已解析, 版本名为 TARGET_VERSION"""
+
+    def __contains__(self, db_version_id):
+        return True
+
+    def __missing__(self, db_version_id):
+        return RedisUpgradeTarget(db_version_id, TARGET_VERSION)
+
+
+def _skip_precheck(self):
+    self.upgrade_targets = _AnyVersionTargets()
+
+
 def _construct_flow_without_precheck(monkeypatch, data=None):
-    monkeypatch.setattr(RedisClusterVersionUpdateOnline, "precheck", lambda self: None)
+    monkeypatch.setattr(RedisClusterVersionUpdateOnline, "precheck", _skip_precheck)
     return RedisClusterVersionUpdateOnline(root_id="root-1", data=data or _ticket_data())
 
 
@@ -165,7 +233,7 @@ def _info_item(node_type=RedisVerUpdateNodeType.Backend.value, cluster_id=1, tar
         "node_type": node_type,
         "target_versions": target_versions
         if target_versions is not None
-        else [{"ip": "1.1.1.2", "version": TARGET_VERSION}],
+        else [{"ip": "1.1.1.2", "db_version_id": TARGET_DB_VERSION_ID}],
     }
 
 
@@ -222,7 +290,8 @@ def _install_recorder_build_stubs(monkeypatch, meta_by_id, host_ports=None):
     monkeypatch.setattr(mod, "RedisMakeSyncAtomJob", lambda *args, **kwargs: {"atom": "sync"})
     _FakeGetFileList.calls = []
     monkeypatch.setattr(mod, "GetFileList", _FakeGetFileList)
-    monkeypatch.setattr(mod, "get_major_version_by_version_name", lambda version: TARGET_MAJOR_VERSION)
+    _FakeResolver.series_calls = []
+    monkeypatch.setattr(mod, "RedisUpgradePackageResolver", _FakeResolver)
     monkeypatch.setattr(
         mod,
         "async_get_multi_cluster_info_by_cluster_ids",
@@ -267,43 +336,47 @@ def test_index_info_item_rejects_multiple_versions_for_redis_instance_backend():
     flow = _new_flow()
     flow._cluster_objs[1] = _FakeCluster(cluster_type=ClusterType.TendisRedisInstance)
 
-    with pytest.raises(Exception, match="多个 version"):
+    with pytest.raises(Exception, match="多个目标版本"):
         flow._index_info_item(
             _info_item(
                 target_versions=[
-                    {"ip": "1.1.1.1", "version": TARGET_VERSION},
-                    {"ip": "1.1.1.2", "version": "redis-7.0.0"},
+                    {"ip": "1.1.1.1", "db_version_id": TARGET_DB_VERSION_ID},
+                    {"ip": "1.1.1.2", "db_version_id": OTHER_DB_VERSION_ID},
                 ]
             )
         )
 
 
-def test_validate_proxy_buckets_rejects_unsupported_target_version(monkeypatch):
+def test_validate_proxy_buckets_rejects_target_of_other_pkg_type(monkeypatch, db_versions):
     flow = _new_flow()
     flow._cluster_objs[1] = _FakeCluster(cluster_type=ClusterType.TendisPredixyRedisCluster)
-    flow.cluster_versions_ips["Proxy"][1]["bad-version"] = {"2.2.2.2"}
-    monkeypatch.setattr(mod, "get_proxy_version_names_by_cluster_type", lambda *args, **kwargs: [TARGET_VERSION])
+    (target_id,) = _use_targets(flow, db_versions, "redis-6.2.14")
+    flow.cluster_versions_ips["Proxy"][1][target_id] = {"2.2.2.2"}
+    monkeypatch.setattr(mod, "get_proxy_version_by_ip", lambda *args, **kwargs: "predixy-1.4.0")
 
-    with pytest.raises(Exception, match="目标版本 bad-version 不合法"):
+    with pytest.raises(Exception, match="不是 predixy 介质版本"):
         flow._validate_proxy_buckets()
 
 
-def test_validate_proxy_buckets_rejects_noop_upgrade(monkeypatch):
+def test_validate_proxy_buckets_rejects_noop_upgrade(monkeypatch, db_versions):
     flow = _new_flow()
     flow._cluster_objs[1] = _FakeCluster(cluster_type=ClusterType.TendisPredixyRedisCluster)
-    flow.cluster_versions_ips["Proxy"][1][TARGET_VERSION] = {"2.2.2.2", "2.2.2.3"}
-    monkeypatch.setattr(mod, "get_proxy_version_names_by_cluster_type", lambda *args, **kwargs: [TARGET_VERSION])
-    monkeypatch.setattr(mod, "get_proxy_version_by_ip", lambda *args, **kwargs: TARGET_VERSION)
+    (target_id,) = _use_targets(flow, db_versions, "predixy-1.4.3")
+    flow.cluster_versions_ips["Proxy"][1][target_id] = {"2.2.2.2", "2.2.2.3"}
+    monkeypatch.setattr(mod, "get_proxy_version_by_ip", lambda *args, **kwargs: "predixy-1.4.3")
 
     with pytest.raises(Exception, match="所有proxy当前版本等于目标版本"):
         flow._validate_proxy_buckets()
+
+    monkeypatch.setattr(mod, "get_proxy_version_by_ip", lambda *args, **kwargs: "predixy-1.4.0")
+    flow._validate_proxy_buckets()
 
 
 def test_validate_backend_buckets_rejects_multiple_target_versions():
     flow = _new_flow()
     flow._cluster_objs[1] = _FakeCluster(cluster_type=ClusterType.TendisPredixyRedisCluster)
-    flow.cluster_versions_ips["Backend"][1][TARGET_VERSION] = {"1.1.1.2"}
-    flow.cluster_versions_ips["Backend"][1]["redis-7.0.0"] = {"1.1.1.1"}
+    flow.cluster_versions_ips["Backend"][1][TARGET_DB_VERSION_ID] = {"1.1.1.2"}
+    flow.cluster_versions_ips["Backend"][1][OTHER_DB_VERSION_ID] = {"1.1.1.1"}
 
     with pytest.raises(Exception, match="不允许在同一单据中升级到多个目标版本"):
         flow._validate_backend_buckets()
@@ -312,7 +385,7 @@ def test_validate_backend_buckets_rejects_multiple_target_versions():
 def test_validate_backend_has_no_modules_rejects_cluster_with_modules(monkeypatch):
     flow = _new_flow()
     flow._cluster_objs[1] = _FakeCluster(cluster_type=ClusterType.TendisPredixyRedisCluster)
-    flow.cluster_versions_ips["Backend"][1][TARGET_VERSION] = {"1.1.1.2"}
+    flow.cluster_versions_ips["Backend"][1][TARGET_DB_VERSION_ID] = {"1.1.1.2"}
     monkeypatch.setattr(
         mod.ClusterRedisModuleAssociate.objects,
         "filter",
@@ -328,7 +401,7 @@ def test_validate_backend_has_no_modules_rejects_cluster_with_modules(monkeypatc
 def test_validate_backend_has_no_modules_allows_cluster_without_modules(monkeypatch):
     flow = _new_flow()
     flow._cluster_objs[1] = _FakeCluster(cluster_type=ClusterType.TendisPredixyRedisCluster)
-    flow.cluster_versions_ips["Backend"][1][TARGET_VERSION] = {"1.1.1.2"}
+    flow.cluster_versions_ips["Backend"][1][TARGET_DB_VERSION_ID] = {"1.1.1.2"}
     monkeypatch.setattr(
         mod.ClusterRedisModuleAssociate.objects,
         "filter",
@@ -343,7 +416,7 @@ def test_validate_backend_has_no_modules_rejects_redis_instance_pair_with_module
     flow._cluster_objs[2] = _FakeCluster(cluster_id=2, cluster_type=ClusterType.TendisRedisInstance)
     flow.instance_pair_buckets[("1.1.1.1", "1.1.1.2")] = {
         "cluster_ids": [2],
-        "target_version": TARGET_VERSION,
+        "target_version": TARGET_DB_VERSION_ID,
         "upgrade_master": True,
     }
     monkeypatch.setattr(
@@ -356,71 +429,79 @@ def test_validate_backend_has_no_modules_rejects_redis_instance_pair_with_module
         flow._validate_backend_has_no_modules()
 
 
-def test_validate_backend_target_pair_rejects_unsupported_target_version():
+def test_validate_backend_target_pair_rejects_target_of_other_pkg_type(monkeypatch, db_versions):
     flow = _new_flow()
     cluster = _FakeCluster(cluster_type=ClusterType.TendisPredixyRedisCluster)
+    (target_id,) = _use_targets(flow, db_versions, "tendisplus-2.7.6")
+    monkeypatch.setattr(mod, "get_redis_version_by_ip", lambda *args, **kwargs: CURRENT_VERSION)
 
-    with pytest.raises(Exception, match="目标版本 bad-version 不合法"):
-        flow._validate_backend_target_pair(cluster, [TARGET_VERSION], "bad-version", {"1.1.1.2"})
+    with pytest.raises(Exception, match="不是 redis 介质版本"):
+        flow._validate_backend_target_pair(cluster, target_id, {"1.1.1.2"})
 
 
-def test_validate_backend_target_pair_rejects_downgrade(monkeypatch):
+def test_validate_backend_target_pair_rejects_downgrade(monkeypatch, db_versions):
     flow = _new_flow()
+    flow.target_db_versions = {v.id: v for v in db_versions.values()}
     cluster = _FakeCluster(cluster_type=ClusterType.TendisPredixyRedisCluster)
     flow.cluster_cache[cluster.id] = _cluster_meta(cluster.cluster_type)
     monkeypatch.setattr(mod, "get_redis_version_by_ip", lambda *args, **kwargs: "redis-7.0.0")
 
     with pytest.raises(Exception, match="不支持降级"):
-        flow._validate_backend_target_pair(cluster, [TARGET_VERSION], TARGET_VERSION, {"1.1.1.2"})
+        flow._validate_backend_target_pair(cluster, db_versions["redis-6.2.14"].id, {"1.1.1.2"})
 
 
-def test_validate_backend_target_pair_rejects_redis_to_valkey(monkeypatch):
+def test_validate_backend_target_pair_rejects_redis_to_valkey(monkeypatch, db_versions):
     flow = _new_flow()
+    flow.target_db_versions = {v.id: v for v in db_versions.values()}
     cluster = _FakeCluster(cluster_type=ClusterType.TendisPredixyRedisCluster)
     flow.cluster_cache[cluster.id] = _cluster_meta(cluster.cluster_type)
     monkeypatch.setattr(mod, "get_redis_version_by_ip", lambda *args, **kwargs: "redis-6.2.14")
 
     with pytest.raises(Exception, match="请使用 DTS 数据迁移"):
-        flow._validate_backend_target_pair(cluster, ["valkey-8.0.1"], "valkey-8.0.1", {"1.1.1.2"})
+        flow._validate_backend_target_pair(cluster, db_versions["valkey-8.0.1"].id, {"1.1.1.2"})
 
 
-def test_validate_backend_target_pair_rejects_valkey_to_redis(monkeypatch):
+def test_validate_backend_target_pair_rejects_valkey_to_redis(monkeypatch, db_versions):
     flow = _new_flow()
+    flow.target_db_versions = {v.id: v for v in db_versions.values()}
     cluster = _FakeCluster(cluster_type=ClusterType.TendisPredixyRedisCluster)
     flow.cluster_cache[cluster.id] = _cluster_meta(cluster.cluster_type)
     monkeypatch.setattr(mod, "get_redis_version_by_ip", lambda *args, **kwargs: "valkey-8.0.1")
 
     with pytest.raises(Exception, match="请使用 DTS 数据迁移"):
-        flow._validate_backend_target_pair(cluster, ["redis-7.2.4"], "redis-7.2.4", {"1.1.1.2"})
+        flow._validate_backend_target_pair(cluster, db_versions["redis-7.2.4"].id, {"1.1.1.2"})
 
 
-def test_validate_backend_target_pair_rejects_unknown_ip(monkeypatch):
+def test_validate_backend_target_pair_rejects_unknown_ip(monkeypatch, db_versions):
     flow = _new_flow()
+    flow.target_db_versions = {v.id: v for v in db_versions.values()}
     cluster = _FakeCluster(cluster_type=ClusterType.TendisPredixyRedisCluster)
     flow.cluster_cache[cluster.id] = _cluster_meta(cluster.cluster_type)
     monkeypatch.setattr(mod, "get_redis_version_by_ip", lambda *args, **kwargs: CURRENT_VERSION)
 
     with pytest.raises(Exception, match="既不是master也不是slave"):
-        flow._validate_backend_target_pair(cluster, [TARGET_VERSION], TARGET_VERSION, {UNKNOWN_CLUSTER_IP})
+        flow._validate_backend_target_pair(cluster, db_versions["redis-6.2.14"].id, {UNKNOWN_CLUSTER_IP})
 
 
-def test_validate_backend_target_pair_rejects_master_without_paired_slave(monkeypatch):
+def test_validate_backend_target_pair_rejects_master_without_paired_slave(monkeypatch, db_versions):
     flow = _new_flow()
+    flow.target_db_versions = {v.id: v for v in db_versions.values()}
     cluster = _FakeCluster(cluster_type=ClusterType.TendisPredixyRedisCluster)
     flow.cluster_cache[cluster.id] = _cluster_meta(cluster.cluster_type)
     monkeypatch.setattr(mod, "get_redis_version_by_ip", lambda *args, **kwargs: CURRENT_VERSION)
 
     with pytest.raises(Exception, match="必须同时将对应 Slave"):
-        flow._validate_backend_target_pair(cluster, [TARGET_VERSION], TARGET_VERSION, {"1.1.1.1"})
+        flow._validate_backend_target_pair(cluster, db_versions["redis-6.2.14"].id, {"1.1.1.1"})
 
 
-def test_validate_backend_target_pair_accepts_master_and_slave(monkeypatch):
+def test_validate_backend_target_pair_accepts_master_and_slave(monkeypatch, db_versions):
     flow = _new_flow()
+    flow.target_db_versions = {v.id: v for v in db_versions.values()}
     cluster = _FakeCluster(cluster_type=ClusterType.TendisPredixyRedisCluster)
     flow.cluster_cache[cluster.id] = _cluster_meta(cluster.cluster_type)
     monkeypatch.setattr(mod, "get_redis_version_by_ip", lambda *args, **kwargs: CURRENT_VERSION)
 
-    flow._validate_backend_target_pair(cluster, [TARGET_VERSION], TARGET_VERSION, {"1.1.1.1", "1.1.1.2"})
+    flow._validate_backend_target_pair(cluster, db_versions["redis-6.2.14"].id, {"1.1.1.1", "1.1.1.2"})
 
 
 def test_register_instance_info_item_rejects_unknown_pair_ip():
@@ -428,7 +509,7 @@ def test_register_instance_info_item_rejects_unknown_pair_ip():
     cluster = _FakeCluster(cluster_type=ClusterType.TendisRedisInstance)
 
     with pytest.raises(Exception, match="不属于该集群的主从对"):
-        flow._register_instance_info_item(cluster, TARGET_VERSION, {"1.1.1.2", UNKNOWN_CLUSTER_IP})
+        flow._register_instance_info_item(cluster, TARGET_DB_VERSION_ID, {"1.1.1.2", UNKNOWN_CLUSTER_IP})
 
 
 def test_register_instance_info_item_rejects_missing_slave_ip():
@@ -436,21 +517,21 @@ def test_register_instance_info_item_rejects_missing_slave_ip():
     cluster = _FakeCluster(cluster_type=ClusterType.TendisRedisInstance)
 
     with pytest.raises(Exception, match="必须包含 slave_ip"):
-        flow._register_instance_info_item(cluster, TARGET_VERSION, {"1.1.1.1"})
+        flow._register_instance_info_item(cluster, TARGET_DB_VERSION_ID, {"1.1.1.1"})
 
 
 def test_validate_instance_pair_buckets_rejects_one_ip_with_multiple_partners():
     flow = _new_flow()
     flow.instance_pair_buckets = {
         ("1.1.1.1", "1.1.1.2"): {
-            "target_versions": {TARGET_VERSION},
+            "target_versions": {TARGET_DB_VERSION_ID},
             "cluster_ids": [1],
             "upgrade_master_flags": {False},
         }
     }
     flow.instance_ip_index = {
         "1.1.1.1": {
-            "target_versions": {TARGET_VERSION},
+            "target_versions": {TARGET_DB_VERSION_ID},
             "cluster_ids": {1},
             "pair_partners": {"1.1.1.2", "1.1.1.3"},
             "as_master_cluster_ids": {1},
@@ -466,14 +547,14 @@ def test_validate_instance_pair_buckets_rejects_inconsistent_ip_target_versions(
     flow = _new_flow()
     flow.instance_pair_buckets = {
         ("1.1.1.1", "1.1.1.2"): {
-            "target_versions": {TARGET_VERSION},
+            "target_versions": {TARGET_DB_VERSION_ID},
             "cluster_ids": [1],
             "upgrade_master_flags": {False},
         }
     }
     flow.instance_ip_index = {
         "1.1.1.1": {
-            "target_versions": {TARGET_VERSION, "redis-7.0.0"},
+            "target_versions": {TARGET_DB_VERSION_ID, OTHER_DB_VERSION_ID},
             "cluster_ids": {1},
             "pair_partners": {"1.1.1.2"},
             "as_master_cluster_ids": {1},
@@ -481,7 +562,12 @@ def test_validate_instance_pair_buckets_rejects_inconsistent_ip_target_versions(
         }
     }
 
-    with pytest.raises(Exception, match="目标版本不一致"):
+    flow.target_db_versions = {
+        TARGET_DB_VERSION_ID: SimpleNamespace(name=TARGET_VERSION),
+        OTHER_DB_VERSION_ID: SimpleNamespace(name="redis-7.0.0"),
+    }
+
+    with pytest.raises(Exception, match=r"目标版本不一致: \['redis-6.2.14', 'redis-7.0.0'\]"):
         flow._validate_instance_pair_buckets()
 
 
@@ -489,21 +575,21 @@ def test_validate_instance_pair_buckets_rejects_missing_sibling_clusters(monkeyp
     flow = _new_flow()
     flow.instance_pair_buckets = {
         ("1.1.1.1", "1.1.1.2"): {
-            "target_versions": {TARGET_VERSION},
+            "target_versions": {TARGET_DB_VERSION_ID},
             "cluster_ids": [1],
             "upgrade_master_flags": {False},
         }
     }
     flow.instance_ip_index = {
         "1.1.1.1": {
-            "target_versions": {TARGET_VERSION},
+            "target_versions": {TARGET_DB_VERSION_ID},
             "cluster_ids": {1},
             "pair_partners": {"1.1.1.2"},
             "as_master_cluster_ids": {1},
             "as_slave_cluster_ids": set(),
         },
         "1.1.1.2": {
-            "target_versions": {TARGET_VERSION},
+            "target_versions": {TARGET_DB_VERSION_ID},
             "cluster_ids": {1},
             "pair_partners": {"1.1.1.1"},
             "as_master_cluster_ids": set(),
@@ -530,7 +616,7 @@ def test_validate_instance_pair_buckets_rejects_inconsistent_upgrade_scope(monke
     flow = _new_flow()
     flow.instance_pair_buckets = {
         ("1.1.1.1", "1.1.1.2"): {
-            "target_versions": {TARGET_VERSION},
+            "target_versions": {TARGET_DB_VERSION_ID},
             "cluster_ids": [1, 2],
             "upgrade_master_flags": {True, False},
         }
@@ -542,41 +628,39 @@ def test_validate_instance_pair_buckets_rejects_inconsistent_upgrade_scope(monke
         flow._validate_instance_pair_buckets()
 
 
-def test_validate_instance_pair_buckets_rejects_unsupported_target_version(monkeypatch):
-    flow = _valid_instance_pair_flow(target_version="bad-version")
-    monkeypatch.setattr(validate_mod.StorageInstance, "objects", _instance_storage_objects({1}))
-    monkeypatch.setattr(
-        validate_mod, "get_storage_version_names_by_cluster_type", lambda *args, **kwargs: [TARGET_VERSION]
-    )
+def _valid_instance_pair_flow_with(db_versions, name="redis-6.2.14", upgrade_master=False):
+    flow = _valid_instance_pair_flow(target_version=db_versions[name].id, upgrade_master=upgrade_master)
+    _use_targets(flow, db_versions, name)
+    return flow
 
-    with pytest.raises(Exception, match="目标版本 bad-version 不合法"):
+
+def test_validate_instance_pair_buckets_rejects_target_of_other_pkg_type(monkeypatch, db_versions):
+    flow = _valid_instance_pair_flow_with(db_versions, "tendisplus-2.7.6")
+    monkeypatch.setattr(validate_mod.StorageInstance, "objects", _instance_storage_objects({1}))
+    monkeypatch.setattr(validate_mod, "get_redis_version_by_ip", lambda *args, **kwargs: CURRENT_VERSION)
+
+    with pytest.raises(Exception, match="不是 redis 介质版本"):
         flow._validate_instance_pair_buckets()
 
 
-def test_validate_instance_pair_buckets_rejects_downgrade(monkeypatch):
-    flow = _valid_instance_pair_flow()
+def test_validate_instance_pair_buckets_rejects_downgrade(monkeypatch, db_versions):
+    flow = _valid_instance_pair_flow_with(db_versions)
     monkeypatch.setattr(validate_mod.StorageInstance, "objects", _instance_storage_objects({1}))
-    monkeypatch.setattr(
-        validate_mod, "get_storage_version_names_by_cluster_type", lambda *args, **kwargs: [TARGET_VERSION]
-    )
     monkeypatch.setattr(validate_mod, "get_redis_version_by_ip", lambda *args, **kwargs: "redis-7.0.0")
 
     with pytest.raises(Exception, match="不支持降级"):
         flow._validate_instance_pair_buckets()
 
 
-def test_validate_instance_pair_buckets_finalizes_valid_bucket(monkeypatch):
-    flow = _valid_instance_pair_flow(upgrade_master=True)
+def test_validate_instance_pair_buckets_finalizes_valid_bucket(monkeypatch, db_versions):
+    flow = _valid_instance_pair_flow_with(db_versions, upgrade_master=True)
     monkeypatch.setattr(validate_mod.StorageInstance, "objects", _instance_storage_objects({1}))
-    monkeypatch.setattr(
-        validate_mod, "get_storage_version_names_by_cluster_type", lambda *args, **kwargs: [TARGET_VERSION]
-    )
     monkeypatch.setattr(validate_mod, "get_redis_version_by_ip", lambda *args, **kwargs: CURRENT_VERSION)
 
     flow._validate_instance_pair_buckets()
 
     bucket = flow.instance_pair_buckets[("1.1.1.1", "1.1.1.2")]
-    assert bucket["target_version"] == TARGET_VERSION
+    assert bucket["target_version"] == db_versions["redis-6.2.14"].id
     assert bucket["upgrade_master"] is True
     assert "target_versions" not in bucket
     assert "upgrade_master_flags" not in bucket
@@ -585,14 +669,14 @@ def test_validate_instance_pair_buckets_finalizes_valid_bucket(monkeypatch):
 def _valid_instance_ip_index(cluster_ids):
     return {
         "1.1.1.1": {
-            "target_versions": {TARGET_VERSION},
+            "target_versions": {TARGET_DB_VERSION_ID},
             "cluster_ids": set(cluster_ids),
             "pair_partners": {"1.1.1.2"},
             "as_master_cluster_ids": set(cluster_ids),
             "as_slave_cluster_ids": set(),
         },
         "1.1.1.2": {
-            "target_versions": {TARGET_VERSION},
+            "target_versions": {TARGET_DB_VERSION_ID},
             "cluster_ids": set(cluster_ids),
             "pair_partners": {"1.1.1.1"},
             "as_master_cluster_ids": set(),
@@ -610,7 +694,7 @@ def _instance_storage_objects(cluster_ids):
     )
 
 
-def _valid_instance_pair_flow(target_version=TARGET_VERSION, upgrade_master=False):
+def _valid_instance_pair_flow(target_version=TARGET_DB_VERSION_ID, upgrade_master=False):
     flow = _new_flow()
     flow.instance_pair_buckets = {
         ("1.1.1.1", "1.1.1.2"): {
@@ -639,7 +723,7 @@ def test_proxy_upgrade_flow_builds_for_proxy_supported_cluster_types(monkeypatch
     meta_by_id = {1: _cluster_meta(cluster_type)}
     _install_recorder_build_stubs(monkeypatch, meta_by_id)
     flow = _construct_flow_without_precheck(monkeypatch)
-    flow.cluster_versions_ips["Proxy"][1][TARGET_VERSION] = {"2.2.2.2", "2.2.2.3"}
+    flow.cluster_versions_ips["Proxy"][1][TARGET_DB_VERSION_ID] = {"2.2.2.2", "2.2.2.3"}
 
     flow.version_update_flow()
 
@@ -669,7 +753,7 @@ def test_backend_flow_builds_redis_cluster_protocol_switch_branch(monkeypatch, c
     meta_by_id = {1: _cluster_meta(cluster_type)}
     _install_recorder_build_stubs(monkeypatch, meta_by_id)
     flow = _construct_flow_without_precheck(monkeypatch)
-    flow.cluster_versions_ips["Backend"][1][TARGET_VERSION] = {"1.1.1.1", "1.1.1.2"}
+    flow.cluster_versions_ips["Backend"][1][TARGET_DB_VERSION_ID] = {"1.1.1.1", "1.1.1.2"}
 
     flow.version_update_flow()
 
@@ -694,7 +778,7 @@ def test_backend_flow_builds_twemproxy_switch_branch(monkeypatch, cluster_type):
     meta_by_id = {1: _cluster_meta(cluster_type)}
     _install_recorder_build_stubs(monkeypatch, meta_by_id)
     flow = _construct_flow_without_precheck(monkeypatch)
-    flow.cluster_versions_ips["Backend"][1][TARGET_VERSION] = {"1.1.1.1", "1.1.1.2"}
+    flow.cluster_versions_ips["Backend"][1][TARGET_DB_VERSION_ID] = {"1.1.1.1", "1.1.1.2"}
 
     flow.version_update_flow()
 
@@ -725,7 +809,7 @@ def test_backend_flow_builds_slave_only_for_remaining_storage_supported_types(mo
     meta_by_id = {1: _cluster_meta(cluster_type)}
     _install_recorder_build_stubs(monkeypatch, meta_by_id)
     flow = _construct_flow_without_precheck(monkeypatch)
-    flow.cluster_versions_ips["Backend"][1][TARGET_VERSION] = {"1.1.1.2"}
+    flow.cluster_versions_ips["Backend"][1][TARGET_DB_VERSION_ID] = {"1.1.1.2"}
 
     flow.version_update_flow()
 
@@ -747,7 +831,7 @@ def test_redis_instance_pair_flow_builds_slave_only_and_master_upgrade_variants(
     flow.instance_pair_buckets = {
         ("1.1.1.1", "1.1.1.2"): {
             "cluster_ids": [1],
-            "target_version": TARGET_VERSION,
+            "target_version": TARGET_DB_VERSION_ID,
             "upgrade_master": upgrade_master,
         }
     }
@@ -796,7 +880,7 @@ def _run_backend_flow(monkeypatch, cluster_type, ips):
     meta_by_id = {1: _cluster_meta(cluster_type)}
     _install_recorder_build_stubs(monkeypatch, meta_by_id)
     flow = _construct_flow_without_precheck(monkeypatch)
-    flow.cluster_versions_ips["Backend"][1][TARGET_VERSION] = set(ips)
+    flow.cluster_versions_ips["Backend"][1][TARGET_DB_VERSION_ID] = set(ips)
     flow.version_update_flow()
     return flow
 
@@ -885,7 +969,7 @@ def test_instance_pair_master_upgrade_establishes_sync_itself(monkeypatch):
     )
     flow = _construct_flow_without_precheck(monkeypatch)
     flow.instance_pair_buckets = {
-        ("1.1.1.1", "1.1.1.2"): {"cluster_ids": [1], "target_version": TARGET_VERSION, "upgrade_master": True}
+        ("1.1.1.1", "1.1.1.2"): {"cluster_ids": [1], "target_version": TARGET_DB_VERSION_ID, "upgrade_master": True}
     }
 
     flow.version_update_flow()
@@ -905,17 +989,19 @@ def test_instance_pair_master_upgrade_establishes_sync_itself(monkeypatch):
         ClusterType.TendisTendisplusInsance,
     ],
 )
-def test_validate_backend_target_pair_rejects_master_upgrade_without_handler(monkeypatch, cluster_type):
+def test_validate_backend_target_pair_rejects_master_upgrade_without_handler(monkeypatch, cluster_type, db_versions):
     flow = _new_flow()
+    flow.target_db_versions = {v.id: v for v in db_versions.values()}
     cluster = _FakeCluster(cluster_type=cluster_type)
     flow.cluster_cache[cluster.id] = _cluster_meta(cluster.cluster_type)
-    monkeypatch.setattr(mod, "get_redis_version_by_ip", lambda *args, **kwargs: CURRENT_VERSION)
+    monkeypatch.setattr(mod, "get_redis_version_by_ip", lambda *args, **kwargs: "tendisplus-2.7.5-rocksdb-v8.5.3")
+    target_id = db_versions["tendisplus-2.7.6"].id
 
     with pytest.raises(Exception, match="master 在线版本升级"):
-        flow._validate_backend_target_pair(cluster, [TARGET_VERSION], TARGET_VERSION, {"1.1.1.1", "1.1.1.2"})
+        flow._validate_backend_target_pair(cluster, target_id, {"1.1.1.1", "1.1.1.2"})
 
     # 只升 slave 不受影响
-    flow._validate_backend_target_pair(cluster, [TARGET_VERSION], TARGET_VERSION, {"1.1.1.2"})
+    flow._validate_backend_target_pair(cluster, target_id, {"1.1.1.2"})
 
 
 def test_build_conf_redispatch_infos_picks_ports_of_each_cluster_on_the_host():
@@ -949,7 +1035,7 @@ def test_slave_upgrade_act_carries_conf_redispatch_infos(monkeypatch):
     meta_by_id = {1: _cluster_meta(ClusterType.TendisRedisCluster)}
     _install_recorder_build_stubs(monkeypatch, meta_by_id)
     flow = _construct_flow_without_precheck(monkeypatch)
-    flow.cluster_versions_ips["Backend"][1][TARGET_VERSION] = {"1.1.1.2"}
+    flow.cluster_versions_ips["Backend"][1][TARGET_DB_VERSION_ID] = {"1.1.1.2"}
 
     flow.version_update_flow()
 
@@ -960,19 +1046,107 @@ def test_slave_upgrade_act_carries_conf_redispatch_infos(monkeypatch):
     assert infos[0]["immute_domain"] == "cache-1.test.db"
     assert infos[0]["target_version"] == TARGET_MAJOR_VERSION
     assert acts[0]["kwargs"]["cluster"]["db_version"] == TARGET_MAJOR_VERSION
-    assert acts[0]["kwargs"]["cluster"]["pkg_name_prefix"] == TARGET_VERSION
+    assert acts[0]["kwargs"]["cluster"]["upgrade_target"] == TARGET.to_dict()
 
 
-def test_backend_media_and_upgrade_acts_pin_selected_package_prefix(monkeypatch):
+def test_backend_media_and_upgrade_acts_carry_upgrade_target(monkeypatch):
     _run_backend_flow(monkeypatch, ClusterType.TendisPredixyRedisCluster, ["1.1.1.1", "1.1.1.2"])
 
-    assert _FakeGetFileList.calls == [(TARGET_MAJOR_VERSION, TARGET_VERSION)]
+    assert _FakeResolver.series_calls == [TARGET]
+    assert _FakeGetFileList.calls == [(TARGET_MAJOR_VERSION, TARGET)]
     upgrade_acts = _find_acts("版本升级")
     assert upgrade_acts
     for act in upgrade_acts:
         cluster_kwargs = act["kwargs"]["cluster"]
         assert cluster_kwargs["db_version"] == TARGET_MAJOR_VERSION
-        assert cluster_kwargs["pkg_name_prefix"] == TARGET_VERSION
+        assert cluster_kwargs["upgrade_target"] == TARGET.to_dict()
+        assert "pkg_name_prefix" not in cluster_kwargs
+
+
+def test_proxy_flow_passes_upgrade_target_to_atom_job(monkeypatch):
+    _install_recorder_build_stubs(monkeypatch, {1: _cluster_meta(ClusterType.TendisPredixyRedisCluster)})
+    flow = _construct_flow_without_precheck(monkeypatch)
+    flow.cluster_versions_ips["Proxy"][1][TARGET_DB_VERSION_ID] = {"2.2.2.2"}
+
+    flow.version_update_flow()
+
+    assert _RecorderBuilder.proxy_atom_params[0]["upgrade_target"] == TARGET.to_dict()
+    assert "target_version" not in _RecorderBuilder.proxy_atom_params[0]
+
+
+_FAKE_TARGET_DB_VERSION = SimpleNamespace(id=TARGET_DB_VERSION_ID, name=TARGET_VERSION)
+
+
+def test_precheck_rejects_unresolvable_target(monkeypatch):
+    for name in (
+        "_index_info_item",
+        "_prefetch_cluster_cache",
+        "_validate_backend_databases_consistent",
+        "_validate_proxy_buckets",
+        "_validate_backend_has_no_modules",
+        "_validate_backend_buckets",
+        "_validate_instance_pair_buckets",
+    ):
+        monkeypatch.setattr(RedisClusterVersionUpdateOnline, name, lambda self, *args, **kwargs: None)
+    monkeypatch.setattr(mod, "async_multi_clusters_precheck", lambda cluster_ids: None)
+
+    def reject(infos):
+        raise RedisUpgradeTargetError("db_version_id mismatch")
+
+    monkeypatch.setattr(mod, "resolve_ticket_upgrade_targets", reject)
+    infos = [{"cluster_id": 1, "node_type": "Backend", "target_versions": [{"ip": "1.1.1.1", "db_version_id": 9}]}]
+
+    with pytest.raises(Exception, match="目标版本解析失败: db_version_id mismatch"):
+        RedisClusterVersionUpdateOnline(root_id="root-1", data=_ticket_data(infos))
+
+
+def test_precheck_indexes_targets_after_version_write_back(monkeypatch):
+    for name in (
+        "_prefetch_cluster_cache",
+        "_validate_backend_databases_consistent",
+        "_validate_proxy_buckets",
+        "_validate_backend_has_no_modules",
+        "_validate_backend_buckets",
+        "_validate_instance_pair_buckets",
+    ):
+        monkeypatch.setattr(RedisClusterVersionUpdateOnline, name, lambda self, *args, **kwargs: None)
+    monkeypatch.setattr(mod, "async_multi_clusters_precheck", lambda cluster_ids: None)
+
+    def write_back(infos):
+        for info in infos:
+            for entry in info["target_versions"]:
+                entry["db_version_id"] = int(entry["db_version_id"])
+                entry["version_name"] = TARGET_VERSION
+        return {TARGET_DB_VERSION_ID: _FAKE_TARGET_DB_VERSION}
+
+    monkeypatch.setattr(mod, "resolve_ticket_upgrade_targets", write_back)
+    infos = [{"cluster_id": 1, "node_type": "Proxy", "target_versions": [{"ip": "2.2.2.2", "db_version_id": "42"}]}]
+
+    flow = RedisClusterVersionUpdateOnline(root_id="root-1", data=_ticket_data(infos))
+
+    assert flow.cluster_versions_ips["Proxy"][1] == {TARGET_DB_VERSION_ID: {"2.2.2.2"}}
+
+
+def test_precheck_stores_resolved_targets(monkeypatch):
+    for name in (
+        "_index_info_item",
+        "_prefetch_cluster_cache",
+        "_validate_backend_databases_consistent",
+        "_validate_proxy_buckets",
+        "_validate_backend_has_no_modules",
+        "_validate_backend_buckets",
+        "_validate_instance_pair_buckets",
+    ):
+        monkeypatch.setattr(RedisClusterVersionUpdateOnline, name, lambda self, *args, **kwargs: None)
+    monkeypatch.setattr(mod, "async_multi_clusters_precheck", lambda cluster_ids: None)
+    monkeypatch.setattr(
+        mod, "resolve_ticket_upgrade_targets", lambda infos: {TARGET_DB_VERSION_ID: _FAKE_TARGET_DB_VERSION}
+    )
+
+    flow = RedisClusterVersionUpdateOnline(root_id="root-1", data=_ticket_data([]))
+
+    assert flow.target_db_versions == {TARGET_DB_VERSION_ID: _FAKE_TARGET_DB_VERSION}
+    assert flow.upgrade_targets == {TARGET_DB_VERSION_ID: TARGET}
 
 
 def test_instance_pair_upgrade_acts_carry_per_cluster_conf_redispatch_infos(monkeypatch):
@@ -989,7 +1163,7 @@ def test_instance_pair_upgrade_acts_carry_per_cluster_conf_redispatch_infos(monk
     flow.instance_pair_buckets = {
         ("1.1.1.1", "1.1.1.2"): {
             "cluster_ids": [1, 2],
-            "target_version": TARGET_VERSION,
+            "target_version": TARGET_DB_VERSION_ID,
             "upgrade_master": True,
         }
     }
@@ -1007,11 +1181,11 @@ def test_instance_pair_upgrade_acts_carry_per_cluster_conf_redispatch_infos(monk
         "cache-1.test.db": [30000],
         "cache-2.test.db": [30001],
     }
-    assert _FakeGetFileList.calls == [(TARGET_MAJOR_VERSION, TARGET_VERSION)]
+    assert _FakeGetFileList.calls == [(TARGET_MAJOR_VERSION, TARGET)]
     slave_cluster = _find_acts("old_slave:1.1.1.2 版本升级至")[0]["kwargs"]["cluster"]
     master_cluster = _find_acts("new_slave(1.1.1.1)-版本升级至")[0]["kwargs"]["cluster"]
-    assert slave_cluster["pkg_name_prefix"] == TARGET_VERSION
-    assert master_cluster["pkg_name_prefix"] == TARGET_VERSION
+    assert slave_cluster["upgrade_target"] == TARGET.to_dict()
+    assert master_cluster["upgrade_target"] == TARGET.to_dict()
     assert slave_cluster["db_version"] == TARGET_MAJOR_VERSION
     assert master_cluster["db_version"] == TARGET_MAJOR_VERSION
 
@@ -1032,14 +1206,14 @@ def test_real_builder_smoke_validates_representative_proxy_and_backend_pipeline(
         )
         return sub_builder.build_sub_process(name)
 
-    monkeypatch.setattr(RedisClusterVersionUpdateOnline, "precheck", lambda self: None)
+    monkeypatch.setattr(RedisClusterVersionUpdateOnline, "precheck", _skip_precheck)
     monkeypatch.setattr(mod, "ClusterProxysUpgradeAtomJob", lambda *args, **kwargs: empty_sub_process("proxy-upgrade"))
     monkeypatch.setattr(
         mod,
         "GetFileList",
-        lambda *args, **kwargs: SimpleNamespace(redis_cluster_version_update=lambda version, name_prefix=None: []),
+        lambda *args, **kwargs: SimpleNamespace(redis_cluster_version_update=lambda version, **kw: []),
     )
-    monkeypatch.setattr(mod, "get_major_version_by_version_name", lambda version: TARGET_MAJOR_VERSION)
+    monkeypatch.setattr(mod, "RedisUpgradePackageResolver", _FakeResolver)
     monkeypatch.setattr(
         mod,
         "async_get_multi_cluster_info_by_cluster_ids",
@@ -1054,8 +1228,8 @@ def test_real_builder_smoke_validates_representative_proxy_and_backend_pipeline(
     EngineApiMock.last_exception = None
 
     flow = RedisClusterVersionUpdateOnline(root_id="root-1", data=_ticket_data())
-    flow.cluster_versions_ips["Proxy"][1]["predixy-1.4.0"] = {"2.2.2.2"}
-    flow.cluster_versions_ips["Backend"][1][TARGET_VERSION] = {"1.1.1.2"}
+    flow.cluster_versions_ips["Proxy"][1][OTHER_DB_VERSION_ID] = {"2.2.2.2"}
+    flow.cluster_versions_ips["Backend"][1][TARGET_DB_VERSION_ID] = {"1.1.1.2"}
 
     flow.version_update_flow()
 
@@ -1067,7 +1241,7 @@ def _flow_for_databases_precheck(cluster_type=ClusterType.TendisRedisInstance, r
     flow = _new_flow()
     cluster = _FakeCluster(cluster_type=cluster_type)
     flow._cluster_objs[cluster.id] = cluster
-    flow.cluster_versions_ips[RedisVerUpdateNodeType.Backend.value][cluster.id][TARGET_VERSION].add("1.1.1.2")
+    flow.cluster_versions_ips[RedisVerUpdateNodeType.Backend.value][cluster.id][TARGET_DB_VERSION_ID].add("1.1.1.2")
     meta = _cluster_meta(cluster.cluster_type)
     meta["redis_databases"] = redis_databases
     flow.cluster_cache[cluster.id] = meta

@@ -6,27 +6,36 @@ import pytest
 
 from backend.configuration.constants import DBType
 from backend.db_package.exceptions import PackageNotExistException
+from backend.db_package.models import Package
 from backend.flow.consts import MediumEnum
 from backend.flow.utils.redis import redis_util as redis_util_mod
+from backend.flow.utils.redis.redis_package_resolver import RedisUpgradeTarget
 from backend.flow.utils.redis.redis_util import get_latest_redis_package_by_version, get_redis_package_v2_release
+from backend.tests.mock_data.db_package.v2 import create_redis_package
 
 
-def test_get_latest_redis_package_by_version_forwards_name_prefix(monkeypatch):
-    captured = {}
+@pytest.fixture
+def clean_redis_packages(db):
+    Package.objects.filter(db_type=DBType.Redis.value).delete()
 
-    def fake_get_latest_package_v2_release(**kwargs):
-        captured.update(kwargs)
-        return SimpleNamespace(name="tendisplus-2.7.4-rocksdb-v8.5.3.tgz")
 
-    monkeypatch.setattr(redis_util_mod.Package, "get_latest_package_v2_release", fake_get_latest_package_v2_release)
+@pytest.mark.usefixtures("clean_redis_packages")
+class TestLatestRedisPackageByVersion:
+    def test_upgrade_target_resolves_alpha_package(self):
+        create_redis_package("redis-7.2.4.tar.gz", series="Redis-7", full_version="7.2.4.0.0.0", phase="release")
+        alpha = create_redis_package("redis-7.2.5.tar.gz", series="Redis-7", full_version="7.2.5.0.0.0", phase="alpha")
 
-    pkg = get_latest_redis_package_by_version("Tendisplus-2.7", name_prefix="tendisplus-2.7.4-rocksdb-v8.5.3")
+        pkg = get_latest_redis_package_by_version(
+            "Redis-7", upgrade_target=RedisUpgradeTarget(alpha.db_version_id, "redis-7.2.5")
+        )
 
-    assert pkg.name == "tendisplus-2.7.4-rocksdb-v8.5.3.tgz"
-    assert captured["series"] == "Tendisplus-2.7"
-    assert captured["pkg_type"] == MediumEnum.TendisPlus
-    assert captured["db_type"] == DBType.Redis
-    assert captured["name_prefix"] == "tendisplus-2.7.4-rocksdb-v8.5.3"
+        assert pkg.id == alpha.id
+
+    def test_regular_deploy_only_takes_release(self):
+        create_redis_package("redis-7.2.4.tar.gz", series="Redis-7", full_version="7.2.4.0.0.0", phase="release")
+        create_redis_package("redis-7.2.5.tar.gz", series="Redis-7", full_version="7.2.5.0.0.0", phase="alpha")
+
+        assert get_latest_redis_package_by_version("Redis-7").name == "redis-7.2.4.tar.gz"
 
 
 def test_get_latest_redis_package_by_version_maps_db_version_to_series(monkeypatch):
