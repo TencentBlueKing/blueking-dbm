@@ -8,7 +8,7 @@
 - 监听地址取自 `receiver.yaml` 的 `apm.listenAddress`，指标路径为 `/metrics`，同端口提供 `/health`。
   实现见 [pkg/haapm/server.go](../../pkg/haapm/server.go)。
 - 示例地址取自 [etc/dbha-v2.server.rc.example](../../etc/dbha-v2.server.rc.example) 的
-  `RECEIVER_APM_LISTEN_ADDRESS`，为 `127.0.0.1:50081`。该变量为空时，渲染脚本会改用本机自动检测的 IPv4。
+  `RECEIVER_APM_LISTEN_ADDRESS`，为 `http://127.0.0.1:50081`。该变量为空时，渲染脚本会改用 `http://<本机自动检测的 IPv4>:50081`。
 - 下文指标名统一省略前缀 `dbha_v2_receiver_`。
 
 > 代码里的 Subsystem 为 `dbha-v2-receiver`（[internal/receiver/service.go](../../internal/receiver/service.go)），
@@ -22,6 +22,7 @@ Histogram 在抓取结果里展开为 `_bucket`、`_sum`、`_count`，下表写�
 ## 2. 指标清单
 
 业务指标共 20 个，定义见 [internal/receiver/apm/metric.go](../../internal/receiver/apm/metric.go)。
+`dbha_startup_time_sec` 例外，定义见 [pkg/haapm/metric.go](../../pkg/haapm/metric.go)。
 
 | 分组 | 指标名 | 类型 | 标签 | 含义 |
 | --- | --- | --- | --- | --- |
@@ -54,7 +55,7 @@ Histogram 在抓取结果里展开为 `_bucket`、`_sum`、`_count`，下表写�
 | `mysql` | Kafka 消息为所属 topic；Probe 直连上报固定为 `probe` |
 | `sink` | Kafka 消息为所属 topic；Probe 直连上报固定为 `probe` |
 | `probe` | 固定为 `probe` |
-| `db_type` | 消息解析出的 DB 类型；尚未解析出类型就被丢弃时为空串 |
+| `db_type` | 消息解析出的已知 DB 类型（如 `mysql`、`redis`）；为空（尚未解析出类型就被丢弃）或不是已知类型时统一记为 `unknown` |
 | `reason` | `stale`、`no_sink`、`empty`、`queue_full`、`sink_closed`、`invalid_json`、`unknown_type`、`dedup`、`data_error`、`retry_timeout`、`fatal`、`write_error`、`degrade_timeout`、`panic` |
 
 - `reason` 常量定义见 [internal/receiver/sink/stats.go](../../internal/receiver/sink/stats.go)。内部值 `ctx_done` 不会成为标签。
@@ -82,11 +83,11 @@ scrape_configs:
 | `db_type` | Query | `label_values({__name__=~"dbha_v2_receiver_sink_.+"}, db_type)`，勾选 Multi-value 与 Include All，Custom all value 留空 |
 | `rate_window` | Custom | `1m,5m,15m`，默认 `5m`，只允许单选 |
 
-- `db_type` 同时取自 `sink_write_delay_ms` 与 `sink_drop_messages_total`。前者只在写入成功时记录，只取它会漏掉
-  只出现在丢弃里的 `db_type`（如整段时间都写入失败的类型、`unknown_type` 带的未知类型），选 All 时丢弃面板会把它们过滤掉。
+- `db_type` 同时取自 `sink_write_delay_ms` 与 `sink_drop_messages_total`。前者只在写入成功时记录。只用它取值会漏掉
+  只出现在丢弃里的 `db_type`，例如整段时间都写入失败的类型，以及未解析出类型或类型未知时记录的 `unknown`。选 All 时，丢弃面板会把它们过滤掉。
 
 - 筛选变量在查询里统一写成 `=~"$var"`。Prometheus 数据源会对多选值做正则转义并拼成 `(a|b)`。
-  不要写成 `${var:regex}`：它会把 `/` 转义成 `\/`，PromQL 解析时报 `unknown escape sequence`。
+  不要写成 `${var:regex}`。它会把 `/` 转义成 `\/`，PromQL 解析时报 `unknown escape sequence`。
 - Custom all value 留空，选 All 时只展开成实际存在的取值。写成 `.*` 会同时匹配空串，把启动时生成的空标签零值序列带进查询。
 - `rate_window` 不能开启 Multi-value，否则 `[$rate_window]` 会变成非法区间。
 - 时间窗变量统一命名为 `rate_window`，避免与 Grafana 内置的 `$__interval` 混淆。
@@ -132,13 +133,13 @@ sum by (instance) (rate(dbha_v2_receiver_mysql_batch_fallback_total[$rate_window
 丢弃速率：
 
 ```promql
-sum by (instance, db_type, reason) (rate(dbha_v2_receiver_sink_drop_messages_total{db_type=~"$db_type|", reason!=""}[$rate_window]))
+sum by (instance, db_type, reason) (rate(dbha_v2_receiver_sink_drop_messages_total{db_type=~"$db_type", reason!=""}[$rate_window]))
 ```
 
-- 丢弃速率面板的 `db_type` 匹配末尾带 `|`，用于同时匹配空串。`stale`、`no_sink`、`empty`、`queue_full`、`sink_closed`、
-  `invalid_json`、`degrade_timeout`、`panic` 上报时 `db_type` 为空；`write_error` 在 Kafka 消费路径上为空，在单条写入路径上带
-  `db_type`。只按 `$db_type` 过滤会漏掉这些丢弃。`unknown_type`、`dedup`、`data_error`、`retry_timeout`、`fatal`
-  带解析出的 `db_type`。
+- `stale`、`no_sink`、`empty`、`queue_full`、`sink_closed`、`invalid_json`、`degrade_timeout`、`panic` 在尚未解析出类型时上报，
+  `db_type` 记为 `unknown`；`write_error` 在 Kafka 消费路径上记为 `unknown`，在单条写入路径上带解析出的 `db_type`。
+  `unknown_type`、`dedup`、`data_error`、`retry_timeout`、`fatal` 带解析出的 `db_type`，类型未知时同样记为 `unknown`。
+  `unknown` 会出现在 `$db_type` 变量里，选 All 即可覆盖这些丢弃。
 - 进程启动时，每个带标签的指标会预先生成一条标签全为空、值为 0 的序列。没有其他筛选条件的分组面板，用 `!=""` 排除这条序列。
 - 启动时间面板的单位选 `From Now`（日期时间），乘以 1000 是因为 Grafana 按毫秒解释时间戳。
 - 落库延迟 P95 接近 60000 ms 时，数据已接近 analysis 的指标读取窗口（`readDbMetricOffsetDuration`，默认 `-60s`）。

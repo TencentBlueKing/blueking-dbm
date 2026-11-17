@@ -1,0 +1,166 @@
+<?xml version="1.0" ?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" id="my-svg" width="1088" style="max-width:100%;height:auto;background-color:#ffffff;" viewBox="-201.5 -10 1088.5 969" role="graphics-document document" aria-roledescription="sequence" height="969" preserveAspectRatio="xMidYMid meet">
+  <title>配置下发时序</title>
+  <desc>Probe 调用 GetProbeConfig、元数据新鲜度判定与 probe.yaml 渲染</desc>
+  <rect x="-201.5" y="-10" width="1088.5" height="969" fill="#ffffff" stroke="none"/>
+  <g>
+    <rect x="687" y="883" fill="#eaeaea" stroke="#666" width="150" height="65" name="Meta" rx="3" ry="3" class="actor actor-bottom"/>
+    <text x="762" y="915.5" dominant-baseline="central" alignment-baseline="central" class="actor actor-box" style="text-anchor: middle; font-size: 16px; font-weight: 400;">
+      <tspan x="762" dy="0">MySQL_or_DBM</tspan>
+    </text>
+  </g>
+  <g>
+    <rect x="384" y="883" fill="#eaeaea" stroke="#666" width="150" height="65" name="Admin" rx="3" ry="3" class="actor actor-bottom"/>
+    <text x="459" y="915.5" dominant-baseline="central" alignment-baseline="central" class="actor actor-box" style="text-anchor: middle; font-size: 16px; font-weight: 400;">
+      <tspan x="459" dy="0">dbha_admin</tspan>
+    </text>
+  </g>
+  <g>
+    <rect x="0" y="883" fill="#eaeaea" stroke="#666" width="150" height="65" name="Probe" rx="3" ry="3" class="actor actor-bottom"/>
+    <text x="75" y="915.5" dominant-baseline="central" alignment-baseline="central" class="actor actor-box" style="text-anchor: middle; font-size: 16px; font-weight: 400;">
+      <tspan x="75" dy="0">dbha_probe</tspan>
+    </text>
+  </g>
+  <g>
+    <line id="actor2" x1="762" y1="65" x2="762" y2="883" class="actor-line 200" stroke-width="0.5px" stroke="#999" name="Meta" data-et="life-line" data-id="Meta"/>
+    <g id="root-2" data-et="participant" data-type="participant" data-id="Meta">
+      <rect x="687" y="0" fill="#eaeaea" stroke="#666" width="150" height="65" name="Meta" rx="3" ry="3" class="actor actor-top"/>
+      <text x="762" y="32.5" dominant-baseline="central" alignment-baseline="central" class="actor actor-box" style="text-anchor: middle; font-size: 16px; font-weight: 400;">
+        <tspan x="762" dy="0">MySQL_or_DBM</tspan>
+      </text>
+    </g>
+  </g>
+  <g>
+    <line id="actor1" x1="459" y1="65" x2="459" y2="883" class="actor-line 200" stroke-width="0.5px" stroke="#999" name="Admin" data-et="life-line" data-id="Admin"/>
+    <g id="root-1" data-et="participant" data-type="participant" data-id="Admin">
+      <rect x="384" y="0" fill="#eaeaea" stroke="#666" width="150" height="65" name="Admin" rx="3" ry="3" class="actor actor-top"/>
+      <text x="459" y="32.5" dominant-baseline="central" alignment-baseline="central" class="actor actor-box" style="text-anchor: middle; font-size: 16px; font-weight: 400;">
+        <tspan x="459" dy="0">dbha_admin</tspan>
+      </text>
+    </g>
+  </g>
+  <g>
+    <line id="actor0" x1="75" y1="65" x2="75" y2="883" class="actor-line 200" stroke-width="0.5px" stroke="#999" name="Probe" data-et="life-line" data-id="Probe"/>
+    <g id="root-0" data-et="participant" data-type="participant" data-id="Probe">
+      <rect x="0" y="0" fill="#eaeaea" stroke="#666" width="150" height="65" name="Probe" rx="3" ry="3" class="actor actor-top"/>
+      <text x="75" y="32.5" dominant-baseline="central" alignment-baseline="central" class="actor actor-box" style="text-anchor: middle; font-size: 16px; font-weight: 400;">
+        <tspan x="75" dy="0">dbha_probe</tspan>
+      </text>
+    </g>
+  </g>
+  <style>#my-svg{font-family:Noto Sans CJK SC,PingFang SC,Microsoft YaHei,sans-serif;font-size:14px;fill:#0f172a;}@keyframes edge-animation-frame{from{stroke-dashoffset:0;}}@keyframes dash{to{stroke-dashoffset:0;}}#my-svg .edge-animation-slow{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 50s linear infinite;stroke-linecap:round;}#my-svg .edge-animation-fast{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 20s linear infinite;stroke-linecap:round;}#my-svg .error-icon{fill:hsl(33.75, 100%, 100%);}#my-svg .error-text{fill:#000000;stroke:#000000;}#my-svg .edge-thickness-normal{stroke-width:1px;}#my-svg .edge-thickness-thick{stroke-width:3.5px;}#my-svg .edge-pattern-solid{stroke-dasharray:0;}#my-svg .edge-thickness-invisible{stroke-width:0;fill:none;}#my-svg .edge-pattern-dashed{stroke-dasharray:3;}#my-svg .edge-pattern-dotted{stroke-dasharray:2;}#my-svg .marker{fill:#334155;stroke:#334155;}#my-svg .marker.cross{stroke:#334155;}#my-svg svg{font-family:Noto Sans CJK SC,PingFang SC,Microsoft YaHei,sans-serif;font-size:14px;}#my-svg p{margin:0;}#my-svg .actor{stroke:#93c5fd;fill:#eff6ff;stroke-width:1;}#my-svg rect.actor.outer-path[data-look=&quot;neo&quot;]{filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#my-svg rect.note[data-look=&quot;neo&quot;]{stroke:hsl(52.6829268293, 60%, 73.9215686275%);fill:#fff5ad;filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#my-svg text.actor&gt;tspan{fill:#0f172a;stroke:none;}#my-svg .actor-line{stroke:#93c5fd;}#my-svg .innerArc{stroke-width:1.5;stroke-dasharray:none;}#my-svg .messageLine0{stroke-width:1.5;stroke-dasharray:none;stroke:#0f172a;}#my-svg .messageLine1{stroke-width:1.5;stroke-dasharray:2,2;stroke:#0f172a;}#my-svg [id$=&quot;-arrowhead&quot;] path{fill:#0f172a;stroke:#0f172a;}#my-svg .sequenceNumber{fill:#ccbeaa;}#my-svg [id$=&quot;-sequencenumber&quot;]{fill:#0f172a;}#my-svg [id$=&quot;-crosshead&quot;] path{fill:#0f172a;stroke:#0f172a;}#my-svg .messageText{fill:#0f172a;stroke:none;}#my-svg .labelBox{stroke:#93c5fd;fill:#eff6ff;filter:none;}#my-svg .labelText,#my-svg .labelText&gt;tspan{fill:#0f172a;stroke:none;}#my-svg .loopText,#my-svg .loopText&gt;tspan{fill:#0f172a;stroke:none;}#my-svg .sectionTitle,#my-svg .sectionTitle&gt;tspan{fill:#0f172a;stroke:none;}#my-svg .loopLine{stroke-width:2px;stroke-dasharray:2,2;stroke:#93c5fd;fill:#93c5fd;}#my-svg .note{stroke:hsl(52.6829268293, 60%, 73.9215686275%);fill:#fff5ad;}#my-svg .noteText,#my-svg .noteText&gt;tspan{fill:#333;stroke:none;font-weight:normal;}#my-svg .activation0{fill:hsl(93.75, 100%, 96.862745098%);stroke:hsl(93.75, 100%, 86.862745098%);}#my-svg .activation1{fill:hsl(93.75, 100%, 96.862745098%);stroke:hsl(93.75, 100%, 86.862745098%);}#my-svg .activation2{fill:hsl(93.75, 100%, 96.862745098%);stroke:hsl(93.75, 100%, 86.862745098%);}#my-svg .actorPopupMenu{position:absolute;}#my-svg .actorPopupMenuPanel{position:absolute;fill:#eff6ff;box-shadow:0px 8px 16px 0px rgba(0,0,0,0.2);filter:drop-shadow(3px 5px 2px rgb(0 0 0 / 0.4));}#my-svg .actor-man circle,#my-svg line{fill:#eff6ff;stroke-width:2px;}#my-svg g rect.rect{filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));stroke:#93c5fd;}#my-svg .node .neo-node{stroke:#93c5fd;}#my-svg [data-look=&quot;neo&quot;].node rect,#my-svg [data-look=&quot;neo&quot;].cluster rect,#my-svg [data-look=&quot;neo&quot;].node polygon{stroke:url(#my-svg-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#my-svg [data-look=&quot;neo&quot;].node path{stroke:url(#my-svg-gradient);stroke-width:1px;}#my-svg [data-look=&quot;neo&quot;].node .outer-path{filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#my-svg [data-look=&quot;neo&quot;].node .neo-line path{stroke:#93c5fd;filter:none;}#my-svg [data-look=&quot;neo&quot;].node circle{stroke:url(#my-svg-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#my-svg [data-look=&quot;neo&quot;].node circle .state-start{fill:#000000;}#my-svg [data-look=&quot;neo&quot;].icon-shape .icon{fill:url(#my-svg-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#my-svg [data-look=&quot;neo&quot;].icon-shape .icon-neo path{stroke:url(#my-svg-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#my-svg :root{--mermaid-font-family:&quot;trebuchet ms&quot;,verdana,arial,sans-serif;}#my-svg .edgeLabel rect.background{opacity:1;fill:#ffffff;}#my-svg .labelBkg{background-color:#ffffff;}#my-svg circle.state-start{fill:#334155;stroke:#334155;}</style>
+  <g/>
+  <defs>
+    <marker id="my-svg-arrowhead" refX="7.9" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto-start-reverse">
+      <path d="M -1 0 L 10 5 L 0 10 z"/>
+    </marker>
+  </defs>
+  <defs>
+    <marker id="my-svg-crosshead" markerWidth="15" markerHeight="8" orient="auto" refX="4" refY="4.5">
+      <path fill="none" stroke="#000000" stroke-width="1pt" d="M 1,2 L 6,7 M 6,2 L 1,7" style="stroke-dasharray: 0, 0;"/>
+    </marker>
+  </defs>
+  <defs>
+    <marker id="my-svg-filled-head" refX="15.5" refY="7" markerWidth="20" markerHeight="28" orient="auto">
+      <path d="M 18,7 L9,13 L14,7 L9,1 Z"/>
+    </marker>
+  </defs>
+  <defs>
+    <marker id="my-svg-sequencenumber" refX="15" refY="15" markerWidth="60" markerHeight="40" orient="auto">
+      <circle cx="15" cy="15" r="6"/>
+    </marker>
+  </defs>
+  <defs>
+    <marker id="my-svg-solidTopArrowHead" refX="7.9" refY="7.25" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 8 L 0 8 z"/>
+    </marker>
+  </defs>
+  <defs>
+    <marker id="my-svg-solidBottomArrowHead" refX="7.9" refY="0.75" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 0 L 0 8 z"/>
+    </marker>
+  </defs>
+  <defs>
+    <marker id="my-svg-stickTopArrowHead" refX="7.5" refY="7" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto-start-reverse">
+      <path d="M 0 0 L 7 7" stroke="black" stroke-width="1.5" fill="none"/>
+    </marker>
+  </defs>
+  <defs>
+    <marker id="my-svg-stickBottomArrowHead" refX="7.5" refY="0" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto-start-reverse">
+      <path d="M 0 7 L 7 0" stroke="black" stroke-width="1.5" fill="none"/>
+    </marker>
+  </defs>
+  <g data-et="note" data-id="i1">
+    <rect x="50" y="123" fill="#EDF2AE" stroke="#666" width="434" height="44" class="note"/>
+    <text x="267" y="128" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="noteText" dy="1em" style="font-size: 16px; font-weight: 400;">
+      <tspan x="267">bkCloudId+ip 参与 GenProbeConfig；clientID 仅日志</tspan>
+    </text>
+  </g>
+  <g data-et="note" data-id="i3">
+    <rect x="366.34" y="225" fill="#EDF2AE" stroke="#666" width="488.31" height="68" class="note"/>
+    <text x="611" y="230" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="noteText" dy="1em" style="font-size: 16px; font-weight: 400;">
+      <tspan x="611">本地 DBHA 库整机行均在 cacheMaxAge 内才采用</tspan>
+    </text>
+    <text x="611" y="254" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="noteText" dy="1em" style="font-size: 16px; font-weight: 400;">
+      <tspan x="611">否则整机回退 DBM API（回源按 bk_cloud_id + ip 合并并发请求）</tspan>
+    </text>
+  </g>
+  <g data-et="note" data-id="i6">
+    <rect x="50" y="398" fill="#EDF2AE" stroke="#666" width="434" height="44" class="note"/>
+    <text x="267" y="403" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="noteText" dy="1em" style="font-size: 16px; font-weight: 400;">
+      <tspan x="267">该 ip 无可用元数据，下发失败</tspan>
+    </text>
+  </g>
+  <g data-et="note" data-id="i9">
+    <rect x="229" y="575" fill="#EDF2AE" stroke="#666" width="460" height="44" class="note"/>
+    <text x="459" y="580" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="noteText" dy="1em" style="font-size: 16px; font-weight: 400;">
+      <tspan x="459">payload：GSE 默认块 + 探测元数据 + Harvester 公共配置</tspan>
+    </text>
+  </g>
+  <g data-et="note" data-id="i11">
+    <rect x="50" y="677" fill="#EDF2AE" stroke="#666" width="434" height="44" class="note"/>
+    <text x="267" y="682" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="noteText" dy="1em" style="font-size: 16px; font-weight: 400;">
+      <tspan x="267">gRPC 返回 JSON 字符串</tspan>
+    </text>
+  </g>
+  <g data-et="note" data-id="i13">
+    <rect x="-141.5" y="809" fill="#EDF2AE" stroke="#666" width="433" height="44" class="note"/>
+    <text x="75" y="814" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="noteText" dy="1em" style="font-size: 16px; font-weight: 400;">
+      <tspan x="75">供本机 harvester/reporter；改 gRPC 上报见采集与上报</tspan>
+    </text>
+  </g>
+  <g data-et="control-structure" data-id="i14">
+    <line x1="-151.5" y1="303" x2="699" y2="303" class="loopLine"/>
+    <line x1="699" y1="303" x2="699" y2="863" class="loopLine"/>
+    <line x1="-151.5" y1="863" x2="699" y2="863" class="loopLine"/>
+    <line x1="-151.5" y1="303" x2="-151.5" y2="863" class="loopLine"/>
+    <line x1="-151.5" y1="457" x2="699" y2="457" class="loopLine" style="stroke-dasharray: 3, 3;"/>
+    <polygon points="-151.5,303 -101.5,303 -101.5,316 -109.9,323 -151.5,323" class="labelBox"/>
+    <rect class="text-bg" x="-139.80" y="300.29" width="28.38" height="25.13" style="fill:#ffffff;opacity:1;stroke:none;"/>
+    <text x="-126" y="316" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="labelText" style="font-size: 16px; font-weight: 400;">alt</text>
+    <rect class="text-bg" x="257.36" y="300.95" width="82.77" height="25.13" style="fill:#ffffff;opacity:1;stroke:none;"/>
+    <text x="298.75" y="321" text-anchor="middle" class="loopText" style="font-size: 16px; font-weight: 400;">
+      <tspan x="298.75">[无元数据]</tspan>
+    </text>
+    <text x="273.75" y="475" text-anchor="middle" class="sectionTitle" style="font-size: 16px; font-weight: 400;">[有元数据]</text>
+  </g>
+  <rect class="text-bg" x="114.85" y="80.29" width="302.30" height="25.13" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="266" y="80" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">GetProbeConfig(bkCloudId, ip, clientID)</text>
+  <line x1="76" y1="113" x2="455" y2="113" class="messageLine0" data-et="message" data-id="i0" data-from="Probe" data-to="Admin" stroke-width="2" stroke="none" marker-end="url(#my-svg-arrowhead)" style="fill: none;"/>
+  <rect class="text-bg" x="531.42" y="182.29" width="155.16" height="25.13" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="609" y="182" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">loadProbeMetadata</text>
+  <line x1="460" y1="215" x2="758" y2="215" class="messageLine0" data-et="message" data-id="i2" data-from="Admin" data-to="Meta" stroke-width="2" stroke="none" marker-end="url(#my-svg-arrowhead)" style="fill: none;"/>
+  <rect class="text-bg" x="166.00" y="353.29" width="207.15" height="25.13" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="269" y="353" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">PROBE_CONFIG_NO_DATA</text>
+  <line x1="458" y1="388" x2="79" y2="388" class="messageLine1" data-et="message" data-id="i5" data-from="Admin" data-to="Probe" stroke-width="2" stroke="none" marker-end="url(#my-svg-arrowhead)" style="stroke-dasharray: 3, 3; fill: none;"/>
+  <rect class="text-bg" x="299.00" y="502.29" width="322.01" height="25.13" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="460" y="502" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">GenProbeConfig 组装 ProbeConfigPayload</text>
+  <path d="M 460,535 C 520,525 520,565 460,555" class="messageLine0" data-et="message" data-id="i8" data-from="Admin" data-to="Admin" stroke-width="2" stroke="none" marker-end="url(#my-svg-arrowhead)" style="fill: none;"/>
+  <rect class="text-bg" x="127.84" y="634.29" width="282.32" height="25.13" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="269" y="634" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">ProbeConfigResponse.payload JSON</text>
+  <line x1="458" y1="667" x2="79" y2="667" class="messageLine1" data-et="message" data-id="i10" data-from="Admin" data-to="Probe" stroke-width="2" stroke="none" marker-end="url(#my-svg-arrowhead)" style="stroke-dasharray: 3, 3; fill: none;"/>
+  <rect class="text-bg" x="-26.57" y="736.29" width="205.14" height="25.13" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="76" y="736" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">genconfig 渲染 probe.yaml</text>
+  <path d="M 76,769 C 136,759 136,799 76,789" class="messageLine0" data-et="message" data-id="i12" data-from="Probe" data-to="Probe" stroke-width="2" stroke="none" marker-end="url(#my-svg-arrowhead)" style="fill: none;"/>
+  <g class="cluster-titles"/>
+</svg>

@@ -182,7 +182,7 @@ service AdminService {
 | 场景 | gRPC 状态 | 业务码 | errmsg | 调用方处理建议 |
 | --- | --- | --- | --- | --- |
 | 成功 | OK | `HA_SERVER_LIST_SUCCESS` | `success` | 读取 `servers` 和 `ips` |
-| discovery 不可用：etcd 不可达、读取超时、discovery 槽为空、任一角色前缀读取失败 | OK | `HA_SERVER_LIST_FAIL` | `service discovery unavailable` | 稍后重试，不要把空列表当作“没有实例” |
+| discovery 不可用：etcd 不可达、读取超时、discovery 槽为空、任一角色前缀读取失败 | OK | `HA_SERVER_LIST_FAIL` | `service discovery unavailable` | 稍后重试，不要把空列表当作「没有实例」 |
 | 连不上 Admin | `Unavailable` | 无 | 无 | 检查地址和进程状态；这是传输层错误，不由本接口产生 |
 | 调用方 deadline 到期 | `DeadlineExceeded`（客户端侧） | 无 | 无 | 调大 deadline，建议大于服务端超时 |
 | 连到不支持该方法的旧版 Admin | `Unimplemented` | 无 | 无 | 升级 Admin |
@@ -209,7 +209,7 @@ grpcurl -plaintext -emit-defaults -import-path pkg/proto/idl -proto admin.proto 
 
 > grpcurl 本身未实测（验证环境没有安装 grpcurl）。第 3 节的 protojson 样例已用 Go 客户端实测：
 > 以 `protojson` 加 `EmitUnpopulated` 序列化真实响应，字段名、枚举名和空数组的输出与样例一致；
-> 不开启 `EmitUnpopulated` 时，成功响应省略 `code`，失败响应省略 `servers` 和 `ips`，与“默认值省略规则”一致。
+> 不开启 `EmitUnpopulated` 时，成功响应省略 `code`，失败响应省略 `servers` 和 `ips`，与「默认值省略规则」一致。
 
 ## 6. 行为说明
 

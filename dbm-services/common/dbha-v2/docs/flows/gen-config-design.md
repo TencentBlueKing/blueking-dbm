@@ -33,7 +33,7 @@ dbha-probe gen-config --admin-endpoints 127.0.0.1:19001 -o etc/probe.yaml --relo
 
 ## 2. 执行顺序
 
-参数校验刻意排在网络调用之前：非法端口或缺少 `-o` 的调用不应该先去连 Admin。
+参数校验刻意排在网络调用之前：`--admin-endpoints` 为空或无有效地址、非法端口、`--reload` 缺少 `-o` 的调用不应该先去连 Admin。校验通过后按是否传 `-o` 分流：未传 `-o` 时走 stdout 路径（不读文件、不加锁，同样决议 cloud-id / local-ip 后经 gRPC 拉配置并打印），传了 `-o` 时走写文件路径。
 
 写已有文件时分三阶段：锁外 best-effort 读文件并决议参数 → 用决议参数 fetch → 持锁再读、校验基线、带 `LocalFields` 渲染并 `WriteFileLocked`。stdout 与新建文件只注入 `clearPorts` 与 admin 块两项，其余本机字段不注入。
 
@@ -41,24 +41,9 @@ dbha-probe gen-config --admin-endpoints 127.0.0.1:19001 -o etc/probe.yaml --relo
 
 fetch 期间若文件的 admin 三字段或 `clearPorts` 被另一个写入者改过，gen-config 放弃本次写入并以非 0 退出，提示重试。不在锁内重新决议，以免打破与已完成 fetch 的同源关系。
 
-```mermaid
-flowchart TD
-  A[读取 flag] --> B{admin-endpoints 为空?}
-  B -- 是 --> E1[报错退出 1]
-  B -- 否 --> C{clear-port 合法?<br/>reload 是否有 -o?}
-  C -- 否 --> E1
-  C -- 是 --> D[决议 cloud-id / local-ip / clearPorts]
-  D --> F[gRPC 拉取 ProbeConfigPayload]
-  F --> H[持锁读文件、校验基线、LocalFields 渲染]
-  H --> I{有 -o?}
-  I -- 否 --> J[打印到 stdout]
-  I -- 是 --> K[WriteFileLocked 原子写]
-  K --> L[打印 Config written to]
-  L --> M{--reload?}
-  M -- 否 --> N[退出 0]
-  M -- 是 --> O[ReloadCmdRunE 发信号]
-  O --> N
-```
+![gen-config 执行流程](../assets/diagrams/flow-gen-config.svg)
+
+> 本图不使用语义配色。
 
 ## 3. 写入模型：旁路锁 + 临时文件 + 原子替换
 
@@ -83,7 +68,7 @@ flowchart TD
 - 直接 rename 到软链路径会把软链本身替换成普通文件，解析后就不会破坏软链；
 - 两个软链指向同一个真实文件时，锁落在同一个真实路径上，互斥仍然成立。
 
-替换时保留原文件的权限位（`os.Chmod`）与属主（`os.Chown`）。**属主还原失败只记 warning，不让整次写入失败**：非特权用户本来就无法 chown，而它替换掉的原始实现（直接覆盖写）在这种场景下是能成功的，失败退出会造成回归。
+替换时保留原文件的权限位（`os.Chmod`）与属主（`os.Chown`）。**属主还原失败只记 warning，不让整次写入失败**：非特权用户本来就无法 chown。被替换掉的原始实现（直接覆盖写）在这种场景下能成功，失败退出会造成回归。
 
 ### 3.4 内容无变化则跳过
 
@@ -99,7 +84,7 @@ flowchart TD
 | --- | --- |
 | 写临时文件中途失败 | 删除临时文件，原文件保持完好 |
 | 写完未 rename 就被杀 | 下一次写入在**持锁期间**清理同前缀的残留临时文件 |
-| rename 失败 | 重试 3 次（间隔 100ms），覆盖 Windows 上读者占用目标文件引发的 sharing violation；仍失败则删除临时文件并报错 |
+| rename 失败 | 共尝试 3 次（两次之间间隔 100ms），覆盖 Windows 上读者占用目标文件引发的 sharing violation；仍失败则删除临时文件并报错 |
 | rename 后目录项未落盘时崩溃 | rename 后对父目录 `fsync`；该步失败只记 warning，不推翻一次已经成功的写入 |
 | 持锁进程被杀 | flock 由内核在进程退出时自动释放 |
 
@@ -128,7 +113,7 @@ flowchart TD
 | `100; 200, 300` | `[100, 200, 300]` |
 | `100,,200;;300` | `[100, 200, 300]`（空段忽略） |
 | `100,100;200` | `[100, 200]`（去重、保序） |
-| 空串 / 纯空白 | 空，等同于不传 |
+| 空串 / 纯空白 | 空列表；未传 flag 时沿用文件，显式传空串（`--clear-port ""` / `--clear-port=`）则清空 `clearPorts` |
 | `,,;` / `,` | 报错（非空输入却一个端口都没有） |
 | `0` / `70000` | 报错（范围必须是 1-65535） |
 | `abc` / `100,abc` | 报错 |
@@ -154,7 +139,7 @@ payload 里本来就没有的端口静默忽略，不报错——批量下发同
 
 mysql-proxy 有一条既有规则：**没有管理端口的 endpoint 整条跳过**，包括它剩下的数据端口。因此用 `--clear-port` 清掉某个 proxy 的唯一管理端口时，该 proxy 的数据端口也会一并消失。
 
-改成渲染后剔除之后，这条规则不再由分组逻辑自动兜住——分组跑在未裁剪的 payload 上，那时管理端口还在。`dropOrphanMysqlProxyData` 显式重放它：先记下裁剪前带管理端口的 endpoint 身份，裁剪后再看谁的管理端口全没了，把这些身份对应的数据端口一并删掉。管理端口一般在 `mysqlProxyAdmin` 块里，但 payload 缺 proxy-admin 凭据时 `GenProbeYAML` 会把它们并进 `mysql` 块，所以两个块都要扫，否则旧版 Admin 下会漏删。新旧实现的等价性由 `TestWithClearPorts_MatchesLegacyZeroing` 的表格守着，缺凭据的回退路径也在表内。
+改成渲染后剔除之后，这条规则不再由分组逻辑自动兜住——分组跑在未裁剪的 payload 上，那时管理端口还在。`dropOrphanMysqlProxyData` 显式重放它：先记下裁剪前带管理端口的 endpoint 身份，裁剪后再看谁的管理端口全没了，把这些身份对应的数据端口一并删掉。管理端口一般在 `mysqlProxyAdmin` 块里。payload 缺 proxy-admin 凭据时，`GenProbeYAML` 会把它们并进 `mysql` 块。两个块都要扫，否则旧版 Admin 下会漏删。新旧实现的等价性由 `TestWithClearPorts_MatchesLegacyZeroing` 的表格守着，缺凭据的回退路径也在表内。
 
 清空某类 harvester 的全部端口后，对应的 `harvester.mysql` / `harvester.redis` 块不会输出，这同样是既有逻辑。
 
@@ -171,13 +156,13 @@ mysql-proxy 有一条既有规则：**没有管理端口的 endpoint 整条跳�
 需要区分两类字段：
 
 - **Admin 拥有**：`reporter`（GSE 默认块）、`harvester`。由 payload 决定。
-- **本机拥有**：`version`、`serviceID`、`pidFile`、`log`、`client`、`admin`、`reporter.bkCloudID`、`clearPorts`。payload 里没有，必须由调用方通过 option 注入，否则渲染时会静默消失。
+- **本机拥有**：`version`、`serviceID`、`pidFile`、`log`、`client`、`admin`、`collect`、`reporter.bkCloudID`、`clearPorts`、`pausePorts`。payload 里没有，必须由调用方通过 option 注入，否则渲染时会静默消失。
 
 `config.LocalFields(cfg)` 把一份 `Configuration` 里所有本机字段打包成 option 列表。周期同步和写已有文件的 `gen-config` 都走这一入口。
 
-新建文件与 stdout 走不了这一入口——没有文件可读，`LocalFields` 只能拿到 `defaultConfiguration()` 的默认值，把它们写进新文件等于把当前默认值钉死在配置里。这两条路径因此只注入两项有真实来源的字段：`clearPorts` 来自 `--clear-port`，admin 块来自本次决议出的 `endpoints` / `bkCloudID` / `localIP`，也就是刚刚用来请求 Admin 的那组参数，同源不变量成立。`syncInterval` 没有 flag 也无处继承，保持零值被 `omitempty` 省略，周期同步不会被首次部署意外打开。
+新建文件与 stdout 走不了这一入口——没有文件可读，`LocalFields` 只能拿到 `defaultConfiguration()` 的默认值，把它们写进新文件等于把当前默认值钉死在配置里。这两条路径因此只注入两项有真实来源的字段：`clearPorts` 来自 `--clear-port`；admin 块来自本次决议出的 `endpoints` / `bkCloudID` / `localIP`，也就是刚刚用来请求 Admin 的那组参数。因此同源不变量成立。`syncInterval` 没有 flag 也无处继承，保持零值被 `omitempty` 省略，周期同步不会被首次部署意外打开。
 
-首次部署（目标文件不存在）必须写出 admin 块：漏掉它的话，`--admin-endpoints` 传了也不落盘，下一次 `gen-config` 无值可继承，周期同步永远开不起来，运维得把同一条命令跑两遍才能拿到完整配置。写出之后首跑与次跑的输出逐字节相同。
+首次部署（目标文件不存在）必须写出 admin 块。漏掉它的话，`--admin-endpoints` 传了也不落盘，下一次 `gen-config` 无值可继承，周期同步永远开不起来，运维得把同一条命令跑两遍才能拿到完整配置。写出之后首跑与次跑的输出逐字节相同。
 
 `client` / `admin` 这两块通过镜像结构 `probeClientYAML` / `probeAdminYAML` 渲染，把 `time.Duration` 转成 `"30s"` 这类字符串——直接渲染 `time.Duration` 会得到纳秒整数，probe 解析不回来。镜像结构全字段 `omitempty`：零值 duration 渲染成空串而 viper 拒绝空串，所以整块为零值时必须一个键都不输出。镜像结构与源结构的字段一致性由反射测试守住，漏加字段会在测试而不是在生产中暴露。
 
@@ -224,7 +209,7 @@ probe 收到 reload 信号后（`gen-config --reload` 或独立子命令 `dbha-p
 - **两代有界重叠**：`stop` 只等 `runPlugin` 退出，不等 harvester 内部在途 collector；上一代可能还有一次在途查询（上限约等于该 harvester 的 `Timeout`）。
 - **新世代立即采集一轮**，之后按 interval 周期执行。不要以短于采集间隔的频率反复触发「确有变化」的 reload。
 - **`-o` 必须与进程 `-c` 指向同一文件**，否则信号发到了进程，但进程读的仍是旧路径下的内容。
-- **admin / analysis / receiver** 的 reload 仍是 stub，只有 probe 实现了进程内热加载。
+- **analysis / receiver** 的 reload 仍是 stub；probe 与 admin 实现了进程内热加载（admin 见 [`internal/admin/reload.go`](../../internal/admin/reload.go)）。
 
 flag 帮助文案仍写作 "signal the running probe to reload it"：CLI 侧只负责发信号，应用由运行中的 probe 完成。
 
@@ -251,7 +236,7 @@ flag 帮助文案仍写作 "signal the running probe to reload it"：CLI 侧只�
 | 加锁原子写 | [pkg/process/filelock.go](../../pkg/process/filelock.go)（`AcquireFileLock` / `LockPathFor` / `WriteFileWithLock` / `WriteFileLocked`） |
 | 平台相关：属主 | [pkg/process/fileowner_unix.go](../../pkg/process/fileowner_unix.go)、[fileowner_windows.go](../../pkg/process/fileowner_windows.go) |
 | 平台相关：目录 fsync | [pkg/process/dirsync_unix.go](../../pkg/process/dirsync_unix.go)、[dirsync_windows.go](../../pkg/process/dirsync_windows.go) |
-| reload 信号 | [pkg/process/cmds.go](../../pkg/process/cmds.go)（`ReloadCmdRunE`）、[stopper_unix.go](../../pkg/process/stopper_unix.go)、[stopper_windows.go](../../pkg/process/stopper_windows.go) |
+| reload 信号 | [pkg/process/cmds.go](../../pkg/process/cmds.go)（`ReloadCmdRunE`；`gen-config --reload` 用 `ReloadIfRunning`，进程未运行时返回错误、退出 1）、[stopper_unix.go](../../pkg/process/stopper_unix.go)、[stopper_windows.go](../../pkg/process/stopper_windows.go) |
 | probe 热加载应用 | [internal/probe/reload.go](../../internal/probe/reload.go) |
 | YAML 渲染 | [internal/probe/config/genconfig.go](../../internal/probe/config/genconfig.go)（`GenProbeYAML` / `GenOption` / `LocalFields`） |
 | 拉取与渲染共用逻辑 | [internal/probe/configsync](../../internal/probe/configsync)（`Fetch` / `Render` / `ErrNoData`） |
@@ -268,6 +253,6 @@ flag 帮助文案仍写作 "signal the running probe to reload it"：CLI 侧只�
 - **`--reload` / `dbha-probe reload` 会让运行中的 probe 热加载新配置**（见 §6.5）。配置确有变化时新世代会立刻采集一轮。不要高频触发「有变化」的 reload。
 - **打包安装下 `gen-config` 与 `reload` 会切到安装根目录**定位 pid 与相对 `-o`；`-o` 应与进程 `-c` 为同一文件。首次部署不要在进程启动前带 `--reload`。
 - **`Python` 侧的 `scripts/render_configs.py` 也会写 `probe.yaml`，但不参与这把锁**。两者并发不是常见运维场景，属于已知缺口。
-- **在已部署机器上重跑 `render_configs.py` 会清掉 `clearPorts`**。模板 `etc/templates/probe.yaml` 里没有这个键，其余本机字段都由 rc 提供、属有意覆盖，只有排除端口是无源可依而被抹掉，下一轮同步会把端口加回采集范围。重新部署后需再执行一次 `gen-config --clear-port`。
+- **在已部署机器上重跑 `render_configs.py` 会清掉 `clearPorts` 与 `pausePorts`**。模板 `etc/templates/probe.yaml` 里没有这两个键，其余本机字段都由 rc 或模板提供、属有意覆盖，只有排除 / 暂停端口是无源可依而被抹掉，下一轮同步会把端口加回采集范围。重新部署后需再执行一次 `gen-config --clear-port`（暂停端口需重新 `dbha-probe collect-pause`）。
 - **开了周期同步后，`probe.yaml` 会被后台改写**（见 [config-sync.md](config-sync.md) §5）。手工编辑 `reporter` / `harvester` 会在下一轮被改回 admin 的版本；改其余部分（含 `admin` 块、`clearPorts`）会被保留。同步与 `gen-config` 共用同一把锁，现在对同一 payload 收敛到同一份文件。
 - 文件里已有 `admin.localIP` 且未传 `--local-ip`（或传了空串）时不再自动探测。机器换 IP 后需显式 `--local-ip`，否则 admin 可能返回无数据。

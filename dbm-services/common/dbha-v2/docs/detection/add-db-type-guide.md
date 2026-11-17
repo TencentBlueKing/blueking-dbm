@@ -7,7 +7,7 @@
 新增一个 DB 类型时只需：
 
 1. **框架共享类型定义**（无法下沉到 provider）：在 [`pkg/storage/haprobe`](../../pkg/storage/haprobe) 补 `DbType`、`DbmMetadataClusterType`、切换告警用的 `DbEventName` 常量，并新建 `<db>_status.go` 实现 `DBTyper`（仅 `GetDbType() DbType`）
-2. 新建 `internal/provider/<db>/`（按能力分子包：`dbtypedesc` / `harvest` / `switch` / `parse` / `metrics`）
+2. 新建 `internal/provider/<db>/`（按能力分子包：`dbtypedesc` / `harvest` / `switch` / `parse` / `metrics` / `credential`）
 3. 在**单一清单** [`internal/provider/manifest.go`](../../internal/provider/manifest.go) 加一条并执行 `go generate ./internal/provider/...`
 4. （可选）在 `admin.yaml` 的 `probeHarvesters` 加凭证块
 5. （可选）在 analysis config 增加对应 `DbmApi*` 字段
@@ -22,7 +22,8 @@
 | `harvest` | 注册采集 Factory；端点路由（`RegisterEndpointRouter` 或 `RegisterHarvestBlock`） | 仅 probe |
 | `switch` | 注册切换器 + 切换告警事件名 | 仅 analysis |
 | `parse` | 注册 status parser（`parser.Register`） | 仅 analysis |
-| `metrics` | 注册 DB 专属 APM 指标（`apm.RegisterDbMetrics`） | 仅 analysis |
+| `metrics` | 注册 DB 专属 APM 指标（`apm.RegisterDbMetrics`）；当前 MySQL / Redis 的 `metrics` 子包为空占位，切换指标由框架 `internal/analysis/apm` 统一注册 | 仅 analysis |
+| `credential` | 注册实例凭证解析器（admin 生成 probe 配置时按实例取凭证） | 仅 admin（via `allcredential`） |
 
 ### Builtin 弱注册
 
@@ -42,7 +43,7 @@ Redis 故意不在 builtin 中，作为纯 provider 范例；其映射在 `provi
 },
 ```
 
-**注意**：填了 `CapParse` / `CapHarvest` / `CapSwitch` / `CapDesc` 就必须建对应子包，否则生成的 import 指向不存在的包会编译失败。
+**注意**：`Caps` 中填了哪项能力（`CapDesc` / `CapHarvest` / `CapSwitch` / `CapParse` / `CapMetrics` / `CapCredential`）就必须建对应子包，否则生成的 import 指向不存在的包会编译失败。
 
 然后：
 
@@ -55,10 +56,11 @@ make check-generate
 生成物：
 
 - `provider/allprobe`：注入 `dbtypedesc` + `harvest`
-- `provider/allanalysis`：注入 `dbtypedesc` + `switch`(+`parse`)
+- `provider/allanalysis`：注入 `dbtypedesc` + `switch` + `parse` + `metrics`
 - `provider/alldesc`：仅注入 `dbtypedesc`（供 admin / receiver）
+- `provider/allcredential`：注入 `dbtypedesc` + `credential`（供 admin）
 
-`cmd/probe` / `cmd/analysis` / `cmd/admin` / `cmd/receiver` 各 blank-import 一次对应聚合包，之后不再改。
+`cmd/probe`（`allprobe`）/ `cmd/analysis`（`allanalysis`）/ `cmd/receiver`（`alldesc`）/ `cmd/admin`（`alldesc` + `allcredential`）各 blank-import 一次对应聚合包，之后不再改。
 
 **receiver 边界**：receiver 只透传落库探针报文，可导入 `alldesc` 这类公共 desc 聚合，但不得依赖具体 DB 的能力包（`harvest` / `switch` / `parse` / `metrics`）；新增 DB 类型无需改动 receiver。
 
@@ -96,16 +98,16 @@ Probe `genconfig` 经 `dbtype.RouteEndpoint` 分派端点：
 ## 采集与配置
 
 - Probe 运行时配置：命名块 `mysql` / `mysqlProxyAdmin` / `redis` 保持零回归；新 DB 走 `HarvesterConfig.Extra`（YAML 同级键）。
-- Admin 下发：命名 `probeMysql` / `probeRedis` / `probeProxyAdmin` 不变；新 DB 凭证写入 `probeHarvesters`，admin **纯 pass-through** 到 payload `harvesters`（不 import provider 业务包，只 blank-import `alldesc`）。
+- Admin 下发：命名 `probeMysql` / `probeRedis` / `probeProxyAdmin` 不变；新 DB 凭证写入 `probeHarvesters`，admin **pass-through** 到 payload `harvesters`（不 import provider 业务包，只 blank-import `alldesc` 与 `allcredential`；后者用于按实例解析凭证）。
 - Probe `genconfig`：经 `RouteEndpoint` 得到 `map[blockName]endpoints`，再按命名三块常量拆回 `mysql` / `mysqlProxyAdmin` / `redis` 与 Extra；凭证仍走命名字段 + `lookupExtraHarvesterCred`。
-- 上报数据必须设置 `HarvestBaseData.HarvestType`：只有一档采集的 DB 填 `haprobe.HarvestTypeDefault`；`harvest_type` 是 `t_dbha_status` 主键的一部分，缺失时 receiver 会兜底为 `default` 并打 warn。
+- 上报数据必须设置 `HarvestBaseData.HarvestType`：只有一档采集的 DB 填 `haprobe.HarvestTypeDefault`；`harvest_type` 是 `t_dbha_status` 主键的一部分，缺失时 receiver 会静默兜底为 `default`。
 - `heartbeatInterval` / `replDelayInterval` 是 MySQL 家族专属，通用凭证块（`probeHarvesters` / `RawHarvesterConfig` 的对应字段）留空即可，新 DB 只用 `interval`。
 
 ## 切换与解析
 
 - 在 `provider/<db>/switch` 的 `init()` 中调用 `switcher.Register` 与 `dbtype.RegisterSwitchAlarmEvents`（顺序：先 Register switcher 再注册告警亦可；启动期 `switcher.Validate()` 会校验告警事件已注册）。
 - 在 `provider/<db>/parse` 的 `init()` 中调用 `parser.Register(dbType, processer)`。
-- 未注册的 `DbType` 在 `TriggerSwitching` 中告警跳过（行为不变）。
+- 未注册的 `DbType` 在 `TriggerSwitching` 中记录 warn 日志后跳过，不发切换告警（行为不变）。
 - 新主信息经 `switchcore.NewMasterInfo` 返回；各 DB 可实现 `switchcore.InstanceNewMasterProvider` / `ClusterNewMasterProvider` 写入 `switcher.Response`。
 
 ## Provider 骨架示例（kafka）
@@ -158,7 +160,7 @@ func init() {
 | switch | 实现 + 注册均在 `provider/mysql/switch` | 同左 |
 | harvest | 实现 + Factory + Router 均在 `provider/mysql/harvest` | 同左；单块用 HarvestBlock，双产必须 Router |
 
-框架包 `internal/analysis/parser` 与 `internal/analysis/switcher` 仅保留接口与注册表；analysis 启动要求 parser / switcher 注册表非空（当前由 MySQL `CapParse` / `CapSwitch` 满足）。
+框架包 `internal/analysis/parser` 与 `internal/analysis/switcher` 仅保留接口与注册表；analysis 启动要求 parser / switcher 注册表非空（当前由 MySQL 与 Redis 的 `CapParse` / `CapSwitch` 满足）。
 
 ## 自检清单
 

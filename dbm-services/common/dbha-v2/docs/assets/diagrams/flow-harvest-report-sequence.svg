@@ -1,0 +1,173 @@
+<?xml version="1.0" ?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" id="my-svg" width="1054" style="max-width:100%;height:auto;background-color:#ffffff;" viewBox="-50 -10 1054 650" role="graphics-document document" aria-roledescription="sequence" height="650" preserveAspectRatio="xMidYMid meet">
+  <title>采集与上报时序</title>
+  <desc>Harvester 采集、Probe 序列化、Reporter 经 gRPC 或 GSE 上报、Receiver 入库</desc>
+  <rect x="-50" y="-10" width="1054" height="650" fill="#ffffff" stroke="none"/>
+  <g>
+    <rect x="804" y="564" fill="#eaeaea" stroke="#666" width="150" height="65" name="Status" rx="3" ry="3" class="actor actor-bottom"/>
+    <text x="879" y="596.5" dominant-baseline="central" alignment-baseline="central" class="actor actor-box" style="text-anchor: middle; font-size: 16px; font-weight: 400;">
+      <tspan x="879" dy="0">t_dbha_status</tspan>
+    </text>
+  </g>
+  <g>
+    <rect x="604" y="564" fill="#eaeaea" stroke="#666" width="150" height="65" name="Recv" rx="3" ry="3" class="actor actor-bottom"/>
+    <text x="679" y="596.5" dominant-baseline="central" alignment-baseline="central" class="actor actor-box" style="text-anchor: middle; font-size: 16px; font-weight: 400;">
+      <tspan x="679" dy="0">dbha_receiver</tspan>
+    </text>
+  </g>
+  <g>
+    <rect x="404" y="564" fill="#eaeaea" stroke="#666" width="150" height="65" name="Reporter" rx="3" ry="3" class="actor actor-bottom"/>
+    <text x="479" y="596.5" dominant-baseline="central" alignment-baseline="central" class="actor actor-box" style="text-anchor: middle; font-size: 16px; font-weight: 400;">
+      <tspan x="479" dy="0">reporter</tspan>
+    </text>
+  </g>
+  <g>
+    <rect x="204" y="564" fill="#eaeaea" stroke="#666" width="150" height="65" name="Probe" rx="3" ry="3" class="actor actor-bottom"/>
+    <text x="279" y="596.5" dominant-baseline="central" alignment-baseline="central" class="actor actor-box" style="text-anchor: middle; font-size: 16px; font-weight: 400;">
+      <tspan x="279" dy="0">dbha_probe</tspan>
+    </text>
+  </g>
+  <g>
+    <rect x="0" y="564" fill="#eaeaea" stroke="#666" width="154" height="65" name="Harvester" rx="3" ry="3" class="actor actor-bottom"/>
+    <text x="77" y="596.5" dominant-baseline="central" alignment-baseline="central" class="actor actor-box" style="text-anchor: middle; font-size: 16px; font-weight: 400;">
+      <tspan x="77" dy="0">harvester_plugin</tspan>
+    </text>
+  </g>
+  <g>
+    <line id="actor4" x1="879" y1="65" x2="879" y2="564" class="actor-line 200" stroke-width="0.5px" stroke="#999" name="Status" data-et="life-line" data-id="Status"/>
+    <g id="root-4" data-et="participant" data-type="participant" data-id="Status">
+      <rect x="804" y="0" fill="#eaeaea" stroke="#666" width="150" height="65" name="Status" rx="3" ry="3" class="actor actor-top"/>
+      <text x="879" y="32.5" dominant-baseline="central" alignment-baseline="central" class="actor actor-box" style="text-anchor: middle; font-size: 16px; font-weight: 400;">
+        <tspan x="879" dy="0">t_dbha_status</tspan>
+      </text>
+    </g>
+  </g>
+  <g>
+    <line id="actor3" x1="679" y1="65" x2="679" y2="564" class="actor-line 200" stroke-width="0.5px" stroke="#999" name="Recv" data-et="life-line" data-id="Recv"/>
+    <g id="root-3" data-et="participant" data-type="participant" data-id="Recv">
+      <rect x="604" y="0" fill="#eaeaea" stroke="#666" width="150" height="65" name="Recv" rx="3" ry="3" class="actor actor-top"/>
+      <text x="679" y="32.5" dominant-baseline="central" alignment-baseline="central" class="actor actor-box" style="text-anchor: middle; font-size: 16px; font-weight: 400;">
+        <tspan x="679" dy="0">dbha_receiver</tspan>
+      </text>
+    </g>
+  </g>
+  <g>
+    <line id="actor2" x1="479" y1="65" x2="479" y2="564" class="actor-line 200" stroke-width="0.5px" stroke="#999" name="Reporter" data-et="life-line" data-id="Reporter"/>
+    <g id="root-2" data-et="participant" data-type="participant" data-id="Reporter">
+      <rect x="404" y="0" fill="#eaeaea" stroke="#666" width="150" height="65" name="Reporter" rx="3" ry="3" class="actor actor-top"/>
+      <text x="479" y="32.5" dominant-baseline="central" alignment-baseline="central" class="actor actor-box" style="text-anchor: middle; font-size: 16px; font-weight: 400;">
+        <tspan x="479" dy="0">reporter</tspan>
+      </text>
+    </g>
+  </g>
+  <g>
+    <line id="actor1" x1="279" y1="65" x2="279" y2="564" class="actor-line 200" stroke-width="0.5px" stroke="#999" name="Probe" data-et="life-line" data-id="Probe"/>
+    <g id="root-1" data-et="participant" data-type="participant" data-id="Probe">
+      <rect x="204" y="0" fill="#eaeaea" stroke="#666" width="150" height="65" name="Probe" rx="3" ry="3" class="actor actor-top"/>
+      <text x="279" y="32.5" dominant-baseline="central" alignment-baseline="central" class="actor actor-box" style="text-anchor: middle; font-size: 16px; font-weight: 400;">
+        <tspan x="279" dy="0">dbha_probe</tspan>
+      </text>
+    </g>
+  </g>
+  <g>
+    <line id="actor0" x1="77" y1="65" x2="77" y2="564" class="actor-line 200" stroke-width="0.5px" stroke="#999" name="Harvester" data-et="life-line" data-id="Harvester"/>
+    <g id="root-0" data-et="participant" data-type="participant" data-id="Harvester">
+      <rect x="0" y="0" fill="#eaeaea" stroke="#666" width="154" height="65" name="Harvester" rx="3" ry="3" class="actor actor-top"/>
+      <text x="77" y="32.5" dominant-baseline="central" alignment-baseline="central" class="actor actor-box" style="text-anchor: middle; font-size: 16px; font-weight: 400;">
+        <tspan x="77" dy="0">harvester_plugin</tspan>
+      </text>
+    </g>
+  </g>
+  <style>#my-svg{font-family:Noto Sans CJK SC,PingFang SC,Microsoft YaHei,sans-serif;font-size:14px;fill:#0f172a;}@keyframes edge-animation-frame{from{stroke-dashoffset:0;}}@keyframes dash{to{stroke-dashoffset:0;}}#my-svg .edge-animation-slow{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 50s linear infinite;stroke-linecap:round;}#my-svg .edge-animation-fast{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 20s linear infinite;stroke-linecap:round;}#my-svg .error-icon{fill:hsl(33.75, 100%, 100%);}#my-svg .error-text{fill:#000000;stroke:#000000;}#my-svg .edge-thickness-normal{stroke-width:1px;}#my-svg .edge-thickness-thick{stroke-width:3.5px;}#my-svg .edge-pattern-solid{stroke-dasharray:0;}#my-svg .edge-thickness-invisible{stroke-width:0;fill:none;}#my-svg .edge-pattern-dashed{stroke-dasharray:3;}#my-svg .edge-pattern-dotted{stroke-dasharray:2;}#my-svg .marker{fill:#334155;stroke:#334155;}#my-svg .marker.cross{stroke:#334155;}#my-svg svg{font-family:Noto Sans CJK SC,PingFang SC,Microsoft YaHei,sans-serif;font-size:14px;}#my-svg p{margin:0;}#my-svg .actor{stroke:#93c5fd;fill:#eff6ff;stroke-width:1;}#my-svg rect.actor.outer-path[data-look=&quot;neo&quot;]{filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#my-svg rect.note[data-look=&quot;neo&quot;]{stroke:hsl(52.6829268293, 60%, 73.9215686275%);fill:#fff5ad;filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#my-svg text.actor&gt;tspan{fill:#0f172a;stroke:none;}#my-svg .actor-line{stroke:#93c5fd;}#my-svg .innerArc{stroke-width:1.5;stroke-dasharray:none;}#my-svg .messageLine0{stroke-width:1.5;stroke-dasharray:none;stroke:#0f172a;}#my-svg .messageLine1{stroke-width:1.5;stroke-dasharray:2,2;stroke:#0f172a;}#my-svg [id$=&quot;-arrowhead&quot;] path{fill:#0f172a;stroke:#0f172a;}#my-svg .sequenceNumber{fill:#ccbeaa;}#my-svg [id$=&quot;-sequencenumber&quot;]{fill:#0f172a;}#my-svg [id$=&quot;-crosshead&quot;] path{fill:#0f172a;stroke:#0f172a;}#my-svg .messageText{fill:#0f172a;stroke:none;}#my-svg .labelBox{stroke:#93c5fd;fill:#eff6ff;filter:none;}#my-svg .labelText,#my-svg .labelText&gt;tspan{fill:#0f172a;stroke:none;}#my-svg .loopText,#my-svg .loopText&gt;tspan{fill:#0f172a;stroke:none;}#my-svg .sectionTitle,#my-svg .sectionTitle&gt;tspan{fill:#0f172a;stroke:none;}#my-svg .loopLine{stroke-width:2px;stroke-dasharray:2,2;stroke:#93c5fd;fill:#93c5fd;}#my-svg .note{stroke:hsl(52.6829268293, 60%, 73.9215686275%);fill:#fff5ad;}#my-svg .noteText,#my-svg .noteText&gt;tspan{fill:#333;stroke:none;font-weight:normal;}#my-svg .activation0{fill:hsl(93.75, 100%, 96.862745098%);stroke:hsl(93.75, 100%, 86.862745098%);}#my-svg .activation1{fill:hsl(93.75, 100%, 96.862745098%);stroke:hsl(93.75, 100%, 86.862745098%);}#my-svg .activation2{fill:hsl(93.75, 100%, 96.862745098%);stroke:hsl(93.75, 100%, 86.862745098%);}#my-svg .actorPopupMenu{position:absolute;}#my-svg .actorPopupMenuPanel{position:absolute;fill:#eff6ff;box-shadow:0px 8px 16px 0px rgba(0,0,0,0.2);filter:drop-shadow(3px 5px 2px rgb(0 0 0 / 0.4));}#my-svg .actor-man circle,#my-svg line{fill:#eff6ff;stroke-width:2px;}#my-svg g rect.rect{filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));stroke:#93c5fd;}#my-svg .node .neo-node{stroke:#93c5fd;}#my-svg [data-look=&quot;neo&quot;].node rect,#my-svg [data-look=&quot;neo&quot;].cluster rect,#my-svg [data-look=&quot;neo&quot;].node polygon{stroke:url(#my-svg-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#my-svg [data-look=&quot;neo&quot;].node path{stroke:url(#my-svg-gradient);stroke-width:1px;}#my-svg [data-look=&quot;neo&quot;].node .outer-path{filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#my-svg [data-look=&quot;neo&quot;].node .neo-line path{stroke:#93c5fd;filter:none;}#my-svg [data-look=&quot;neo&quot;].node circle{stroke:url(#my-svg-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#my-svg [data-look=&quot;neo&quot;].node circle .state-start{fill:#000000;}#my-svg [data-look=&quot;neo&quot;].icon-shape .icon{fill:url(#my-svg-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#my-svg [data-look=&quot;neo&quot;].icon-shape .icon-neo path{stroke:url(#my-svg-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#my-svg :root{--mermaid-font-family:&quot;trebuchet ms&quot;,verdana,arial,sans-serif;}#my-svg .edgeLabel rect.background{opacity:1;fill:#ffffff;}#my-svg .labelBkg{background-color:#ffffff;}</style>
+  <g/>
+  <defs>
+    <marker id="my-svg-arrowhead" refX="7.9" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto-start-reverse">
+      <path d="M -1 0 L 10 5 L 0 10 z"/>
+    </marker>
+  </defs>
+  <defs>
+    <marker id="my-svg-crosshead" markerWidth="15" markerHeight="8" orient="auto" refX="4" refY="4.5">
+      <path fill="none" stroke="#000000" stroke-width="1pt" d="M 1,2 L 6,7 M 6,2 L 1,7" style="stroke-dasharray: 0, 0;"/>
+    </marker>
+  </defs>
+  <defs>
+    <marker id="my-svg-filled-head" refX="15.5" refY="7" markerWidth="20" markerHeight="28" orient="auto">
+      <path d="M 18,7 L9,13 L14,7 L9,1 Z"/>
+    </marker>
+  </defs>
+  <defs>
+    <marker id="my-svg-sequencenumber" refX="15" refY="15" markerWidth="60" markerHeight="40" orient="auto">
+      <circle cx="15" cy="15" r="6"/>
+    </marker>
+  </defs>
+  <defs>
+    <marker id="my-svg-solidTopArrowHead" refX="7.9" refY="7.25" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 8 L 0 8 z"/>
+    </marker>
+  </defs>
+  <defs>
+    <marker id="my-svg-solidBottomArrowHead" refX="7.9" refY="0.75" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 0 L 0 8 z"/>
+    </marker>
+  </defs>
+  <defs>
+    <marker id="my-svg-stickTopArrowHead" refX="7.5" refY="7" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto-start-reverse">
+      <path d="M 0 0 L 7 7" stroke="black" stroke-width="1.5" fill="none"/>
+    </marker>
+  </defs>
+  <defs>
+    <marker id="my-svg-stickBottomArrowHead" refX="7.5" refY="0" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto-start-reverse">
+      <path d="M 0 7 L 7 0" stroke="black" stroke-width="1.5" fill="none"/>
+    </marker>
+  </defs>
+  <g data-et="note" data-id="i8">
+    <rect x="654" y="480" fill="#EDF2AE" stroke="#666" width="250" height="44" class="note"/>
+    <text x="779" y="485" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="noteText" dy="1em" style="font-size: 16px; font-weight: 400;">
+      <tspan x="779">可选经 Kafka 再入 receiver</tspan>
+    </text>
+  </g>
+  <g data-et="control-structure" data-id="i9">
+    <line x1="395" y1="216" x2="914" y2="216" class="loopLine"/>
+    <line x1="914" y1="216" x2="914" y2="534" class="loopLine"/>
+    <line x1="395" y1="534" x2="914" y2="534" class="loopLine"/>
+    <line x1="395" y1="216" x2="395" y2="534" class="loopLine"/>
+    <line x1="395" y1="362" x2="914" y2="362" class="loopLine" style="stroke-dasharray: 3, 3;"/>
+    <polygon points="395,216 445,216 445,229 436.6,236 395,236" class="labelBox"/>
+    <rect class="text-bg" x="406.20" y="213.90" width="28.15" height="24.40" style="fill:#ffffff;opacity:1;stroke:none;"/>
+    <text x="420" y="229" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="labelText" style="font-size: 16px; font-weight: 400;">alt</text>
+    <rect class="text-bg" x="650.37" y="214.55" width="58.25" height="24.40" style="fill:#ffffff;opacity:1;stroke:none;"/>
+    <text x="679.5" y="234" text-anchor="middle" class="loopText" style="font-size: 16px; font-weight: 400;">
+      <tspan x="679.5">[gRPC]</tspan>
+    </text>
+    <text x="654.5" y="380" text-anchor="middle" class="sectionTitle" style="font-size: 16px; font-weight: 400;">[GSE]</text>
+  </g>
+  <g data-et="control-structure" data-id="i10">
+    <line x1="66" y1="75" x2="924" y2="75" class="loopLine"/>
+    <line x1="924" y1="75" x2="924" y2="544" class="loopLine"/>
+    <line x1="66" y1="544" x2="924" y2="544" class="loopLine"/>
+    <line x1="66" y1="75" x2="66" y2="544" class="loopLine"/>
+    <polygon points="66,75 116,75 116,88 107.6,95 66,95" class="labelBox"/>
+    <rect class="text-bg" x="70.09" y="72.90" width="41.82" height="24.40" style="fill:#ffffff;opacity:1;stroke:none;"/>
+    <text x="91" y="88" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="labelText" style="font-size: 16px; font-weight: 400;">loop</text>
+    <rect class="text-bg" x="478.65" y="73.55" width="82.71" height="24.40" style="fill:#ffffff;opacity:1;stroke:none;"/>
+    <text x="520" y="93" text-anchor="middle" class="loopText" style="font-size: 16px; font-weight: 400;">
+      <tspan x="520">[周期采集]</tspan>
+    </text>
+  </g>
+  <rect class="text-bg" x="127.02" y="125.90" width="99.96" height="24.40" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="177" y="125" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">HarvestData</text>
+  <line x1="78" y1="158" x2="275" y2="158" class="messageLine0" data-et="message" data-id="i1" data-from="Harvester" data-to="Probe" stroke-width="2" stroke="none" marker-end="url(#my-svg-arrowhead)" style="fill: none;"/>
+  <rect class="text-bg" x="335.21" y="173.90" width="86.12" height="24.40" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="378" y="173" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">JSON Post</text>
+  <line x1="280" y1="206" x2="475" y2="206" class="messageLine0" data-et="message" data-id="i2" data-from="Probe" data-to="Reporter" stroke-width="2" stroke="none" marker-end="url(#my-svg-arrowhead)" style="fill: none;"/>
+  <rect class="text-bg" x="515.68" y="266.90" width="125.53" height="24.40" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="578" y="266" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">PushDataUnary</text>
+  <line x1="480" y1="299" x2="675" y2="299" class="messageLine0" data-et="message" data-id="i4" data-from="Reporter" data-to="Recv" stroke-width="2" stroke="none" marker-end="url(#my-svg-arrowhead)" style="fill: none;"/>
+  <rect class="text-bg" x="758.77" y="314.90" width="38.85" height="24.40" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="778" y="314" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">sink</text>
+  <line x1="680" y1="347" x2="875" y2="347" class="messageLine0" data-et="message" data-id="i5" data-from="Recv" data-to="Status" stroke-width="2" stroke="none" marker-end="url(#my-svg-arrowhead)" style="fill: none;"/>
+  <rect class="text-bg" x="419.93" y="407.90" width="120.69" height="24.40" style="fill:#ffffff;opacity:1;stroke:none;"/>
+  <text x="480" y="407" text-anchor="middle" dominant-baseline="middle" alignment-baseline="middle" class="messageText" dy="1em" style="font-size: 16px; font-weight: 400;">写入 GSE Agent</text>
+  <path d="M 480,440 C 540,430 540,470 480,460" class="messageLine0" data-et="message" data-id="i7" data-from="Reporter" data-to="Reporter" stroke-width="2" stroke="none" marker-end="url(#my-svg-arrowhead)" style="fill: none;"/>
+  <g class="cluster-titles"/>
+</svg>

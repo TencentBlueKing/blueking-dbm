@@ -30,8 +30,8 @@
 | `--type schema` | 执行 | 不执行 | 有全局 `CREATE` 时建库 |
 | `--type data` | 不执行 | 执行 | 失败，不建库 |
 | `--type all` | 先执行 | 后执行 | 有全局 `CREATE` 时建库 |
-| `data` 加 `--repair-missing-schema` | 拒绝执行 | 拒绝执行 | 不连接后改库 |
-| `schema` 加 `--repair-missing-data` | 拒绝执行 | 拒绝执行 | 不连接后改库 |
+| `data` 加 `--repair-missing-schema` | 拒绝执行 | 拒绝执行 | 不连接，不改库 |
+| `schema` 加 `--repair-missing-data` | 拒绝执行 | 拒绝执行 | 不连接，不改库 |
 | `data` 加 `--repair-missing-data` | 不执行 | 执行，并允许补缺失默认身份 | 失败，不建库 |
 | `data` 加 `--repair-missing` | 不执行 | 执行，并允许补缺失默认身份 | 失败，不建库 |
 | `--inventory` 加任一 repair | 拒绝执行 | 拒绝执行 | 不改库 |
@@ -45,7 +45,7 @@
 
 已记账的策略表被重建后是空表。data 版本 1 已在账本里时，只有打开数据修复（`--repair-missing` 或 `--repair-missing-data`）才会重新插入默认策略；只带 `--repair-missing-schema` 时策略表保持为空。只有 data 账本也不存在时，重建后的空表才会按初始化插入默认策略。
 
-不修复、在预检查阶段报 conflict 的结构：列类型族不符、唯一与非唯一索引互相冲突、同名但形状不对的索引（前缀比模型短或列不同）、未知主键形状、账本名冲突或账本表结构异常。多余的列和索引保留，不删除。
+不修复、在预检查阶段报 conflict 的结构有：列类型族不符；唯一与非唯一索引互相冲突；同名但形状不对的索引（前缀比模型短或列不同）；未知主键形状；账本名冲突或账本表结构异常。多余的列和索引保留，不删除。
 
 兼容性变化：
 
@@ -60,23 +60,15 @@ Admin 进程只接受一个 `storage.endpoint`。`migrate` 和 receiver 的 sink
 
 迁移连接只设置 10 秒连接超时，不设置读写超时。长 DDL 或回填不会被 30 秒读超时打断；语句卡住时由操作者停止进程。`GET_LOCK` 仍最多等待 30 秒。
 
-schema 收敛可能锁住受管表，执行前要停止这些表的写入。每条 `ALTER` 都会把会话的 `lock_wait_timeout` 和 `innodb_lock_wait_timeout` 临时设为 5 秒，包括普通补列、建索引和收敛计划里的每一条 `ALTER`。语句结束后恢复会话原值；恢复失败时本次迁移失败、该步不记账，重跑时从未完成处继续。收敛里的回填 `UPDATE` 同样使用这个上限，并且每批最多 1000 行、各自提交，直到某一批不足 1000 行为止；中途失败时已提交的批次保留，日志记录 `filled_rows`，重跑从剩余行继续。建表语句不使用这个上限。5 秒限制的是等待元数据锁或行锁，锁拿到之后语句可以继续执行。迁移连接不设置读写超时。`idx_description` 在 `mediumtext` 上使用 255 字符前缀；utf8mb4 下该前缀是 1020 字节，老的 COMPACT 行格式或 `innodb_large_prefix=OFF` 可能超过 767 字节。
+schema 收敛可能锁住受管表，执行前要停止这些表的写入。每条 `ALTER` 都会把会话的 `lock_wait_timeout` 和 `innodb_lock_wait_timeout` 临时设为 5 秒，包括普通补列、建索引和收敛计划里的每一条 `ALTER`。语句结束后恢复会话原值。恢复失败时，本次迁移失败、该步不记账，重跑时从未完成处继续。收敛里的回填 `UPDATE` 同样使用这个上限，每批最多 1000 行、各自提交，直到某一批不足 1000 行为止。中途失败时已提交的批次保留，日志记录 `filled_rows`，重跑从剩余行继续。建表语句不使用这个上限。5 秒限制的是等待元数据锁或行锁，锁拿到之后语句可以继续执行。迁移连接不设置读写超时。`idx_description` 在 `mediumtext` 上使用 255 字符前缀；utf8mb4 下该前缀是 1020 字节，老的 COMPACT 行格式或 `innodb_large_prefix=OFF` 可能超过 767 字节。
 
 部署顺序是停写、`--inventory`、`migrate`、启动。Makefile 和 `scripts/` 不自动调用 migrate。
 
 ## 3. 一次执行
 
-```mermaid
-flowchart TD
-  identity[读取服务器身份并排序] --> dedup[按 uuid 去重]
-  dedup --> lock[逐个目标获取 GET_LOCK]
-  lock --> precheck[全端点预检查]
-  precheck -->|任一端点冲突| zeroWrite[所有端点零写入]
-  precheck -->|全部通过| schema[按端点执行 schema]
-  schema --> data[需要时执行 data]
-  data --> unlock[逆序解锁]
-  schema -->|中途失败| unlock
-```
+![migrate 单次执行流程](../assets/diagrams/migrator-single-run.svg)
+
+> 本图不使用语义配色。
 
 身份优先读 `@@server_uuid`。只有服务器不认识这个变量（错误码 1193，例如 MariaDB 或老版本）时才用 `@@server_id`，并记一条警告；其他读取错误直接失败。这种回退身份不参与跨端点去重或冲突判断；`server_id`、主机和端口都相同的回退连接只保留一条，复用时记警告。容器场景下不同实例常有相同的主机名和端口，靠 `server_id` 区分。端口使用服务器内部的 `@@port`，不是客户端看到的映射端口。真实 `server_uuid` 的排序键是 `server_uuid|hostname|port`。排序后每个 uuid 只保留一条连接；排序键完全相同时保持配置里的相对顺序。uuid 相同但主机或端口不同则冲突。其余别名连接只用于识别，随后关闭，不迁移。
 
@@ -156,7 +148,7 @@ flowchart TD
 - `longtext` 满足 `mediumtext`，`mediumtext` 满足 `text`。
 - 线上整数宽度更大、符号性相同，且模型也是整数时，视为满足，不把列缩窄。
 - `datetime` 与 `timestamp` 只因类型不同不算冲突。模型没有默认值或自动更新时间时，线上的 `NOT NULL DEFAULT CURRENT_TIMESTAMP`、`CURRENT_TIMESTAMP(n)` 和 `ON UPDATE CURRENT_TIMESTAMP[(n)]` 视为满足，只告警并保留，不把 `timestamp` 改成 `datetime`。确需其他收敛时，`MODIFY` 仍保留这些时间属性。
-- 模型显式写了 `default:null` 时，可空时间列上的 `CURRENT_TIMESTAMP[(n)]` 默认值和 `ON UPDATE CURRENT_TIMESTAMP[(n)]` 不保留，作为安全差异执行 `MODIFY` 去掉它们，目前只有策略表 `deleted_at`。线上为 `NOT NULL` 时按“改为可空”判冲突。已经被默认值写成当前时间的存量行不改写，需人工核对是否被误判为软删除。
+- 模型显式写了 `default:null` 时，可空时间列上的 `CURRENT_TIMESTAMP[(n)]` 默认值和 `ON UPDATE CURRENT_TIMESTAMP[(n)]` 不保留，作为安全差异执行 `MODIFY` 去掉它们，目前只有策略表 `deleted_at`。线上为 `NOT NULL` 时按「改为可空」判冲突。已经被默认值写成当前时间的存量行不改写，需人工核对是否被误判为软删除。
 - 把 `timestamp` 当作满足 `datetime` 时，列仍受 `timestamp` 的 2038 年上限和会话时区转换约束。`explicit_defaults_for_timestamp=OFF` 时，后续 `timestamp` 列被自动加上的 `DEFAULT '0000-00-00 00:00:00'` 仍判冲突。
 - 可空列上 MariaDB 返回的文本 `NULL` 按 SQL NULL 处理。MariaDB 10.2.7 起 `COLUMN_DEFAULT` 给字符串字面量加单引号；服务器版本含 `MariaDB` 时，完整的单引号字面量去掉外层引号并把 `''` 还原为 `'` 后再比较，`'NULL'` 仍是非空字面量。MySQL 返回的值不做处理。
 - `varchar`、整数、时间、`json` 和 text 之间不按容量互相满足。`text` 不满足 `varchar`。线上整数更窄仍然是冲突。
@@ -188,7 +180,7 @@ flowchart TD
 
 空字符串只在主键仍是历史主键并准备替换时处理，而且列必须带 `emptyAsDefault`。主键已经是目标形态时不再改空字符串。NULL 回填属于列定义步骤，主键步骤不重复填充 NULL。
 
-主键替换前按模型主键探测重复行，探测值与收敛后的值一致：有具体默认值的列按 `COALESCE(列, 默认值)` 分组，带 `emptyAsDefault` 的列先把空字符串视为默认值，自增列的 NULL 行不参与分组。发现重复时预检查阻断（`result: duplicate`），所有端点零写入，并按 `table, columns, key, rows` 打印最多 5 组样例。线上主键的列全部属于模型主键、且都不带 `emptyAsDefault` 时，旧主键的唯一性已经保证新主键不重复，跳过探测，不扫描全表。
+主键替换前按模型主键探测重复行，探测值与收敛后的值一致。有具体默认值的列按 `COALESCE(列, 默认值)` 分组，带 `emptyAsDefault` 的列先把空字符串视为默认值，自增列的 NULL 行不参与分组。发现重复时预检查阻断（`result: duplicate`），所有端点零写入，并按 `table, columns, key, rows` 打印最多 5 组样例。线上主键的列全部属于模型主键、且都不带 `emptyAsDefault` 时，旧主键的唯一性已经保证新主键不重复，跳过探测，不扫描全表。
 
 ### 5.4 自增临时索引
 
@@ -218,15 +210,15 @@ DDL、复查或记账失败都返回失败。DDL 已经提交时无法回滚，�
 
 ### 6.2 默认策略
 
-[`planDefaultStrategies`](../../internal/admin/migrator/data.go) 只维护五条 `bk_biz_id=0` 的默认策略。身份是 `(bk_biz_id, trigger_event_name)`，与分析侧切换流程的匹配方式一致：运行时只按事件名匹配策略，不读 `trigger_event_name_reason`；admin 界面创建策略时不设置原因，更新时也不改原因。因此同业务、同事件的行不论原因是什么（包括 NULL），都算命中，不会为同一事件再插一条默认策略。唯一索引 `idx_biz_event_reason` 只保证唯一性，不决定是否命中。同一身份可能有多行（原因不同）；读到多行时，优先取未软删除的行。身份匹配在数据库里完成，大小写等比较由列的排序规则决定。默认策略的读写通过 GORM 使用 hamodel 模型，不手写列名；`created_at`、`updated_at` 和账本的 `applied_at` 取数据库的 `NOW()`。迁移连接按 UTC 解析与写回时间，字面值不随迁移机时区变化。
+[`planDefaultStrategies`](../../internal/admin/migrator/data.go) 只维护五条 `bk_biz_id=0` 的默认策略。身份是 `(bk_biz_id, trigger_event_name)`，与分析侧切换流程的匹配方式一致。运行时只按事件名匹配策略，不读 `trigger_event_name_reason`；admin 界面创建策略时不设置原因，更新时也不改原因。因此同业务、同事件的行不论原因是什么（包括 NULL），都算命中，不会为同一事件再插一条默认策略。唯一索引 `idx_biz_event_reason` 只保证唯一性，不决定是否命中。同一身份可能有多行（原因不同）。读到多行时，优先取未软删除的行。身份匹配在数据库里完成，大小写等比较由列的排序规则决定。默认策略的读写通过 GORM 使用 hamodel 模型，不手写列名；`created_at`、`updated_at` 和账本的 `applied_at` 取数据库的 `NOW()`。迁移连接按 UTC 解析与写回时间，字面值不随迁移机时区变化。
 
-| 事件名 | 事件原因 |
+| 事件名 | 事件原因（常量，DB 存整数枚举） |
 | --- | --- |
-| `dbha_doublecheck_ssh_fail` | `ConnectionException` |
-| `dbha_ssh_auth_failure` | `SSHAuthException` |
-| `dbha_ssh_timeout` | `SshTimeout` |
-| `dbha_disk_write_failure` | `DiskWriteException` |
-| `dbha_uptime_failure` | `UptimeException` |
+| `dbha_doublecheck_ssh_fail` | `DbEventNameReasonConnectionException` |
+| `dbha_ssh_auth_failure` | `DbEventNameReasonSSHAuthException` |
+| `dbha_ssh_timeout` | `DbEventNameReasonSshTimeout` |
+| `dbha_disk_write_failure` | `DbEventNameReasonDiskWriteException` |
+| `dbha_uptime_failure` | `DbEventNameReasonUptimeException` |
 
 共同字段是 `status=enabled`、`trigger_count=1`、`priority=9999`、`scope=host`、`action=switch`、空 description。`name` 等于事件名。
 
@@ -298,9 +290,9 @@ data 只在 `ApplyStrategies` 成功返回后逐条打印。日志字段是 `end
 
 当前已发布步骤保存在 [`published_steps.go`](../../internal/admin/migrator/published_steps.go)。运行时原样使用其中的 version、name 和 Apply。模型里新出现的列、索引和对应收敛步骤从最大 version 之后追加，不改写已发布 `CREATE TABLE`。带 `historical` 的已发布列以冻结 SQL 为基准校验，Target 变宽后由列定义步骤收敛，不重写旧的 `ADD` 或 `CREATE`。执行顺序是已发布普通步骤、新增普通步骤、已发布收敛步骤、新增收敛步骤。已发布步骤缺失，或没有 `historical` 标签的已发布 Apply 与模型生成结果不同，启动和测试直接失败。
 
-追加步骤的 version 按"表顺序、普通步骤、收敛步骤"在运行时依次分配，没有冻结就会被后续模型改动挤到别的 version，存量库账本随之冲突。因此每次模型变更都要在同一个改动里把追加步骤冻结进 `published_steps.go`。`TestNoUnpublishedSchemaSteps` 在存在未冻结步骤时失败，并打印可直接粘贴的步骤字面量。
+追加步骤的 version 按「表顺序、普通步骤、收敛步骤」在运行时依次分配，没有冻结就会被后续模型改动挤到别的 version，存量库账本随之冲突。因此每次模型变更都要在同一个改动里把追加步骤冻结进 `published_steps.go`。`TestNoUnpublishedSchemaSteps` 在存在未冻结步骤时失败，并打印可直接粘贴的步骤字面量。
 
-策略表在主键收敛前追加唯一索引 `idx_biz_event_reason(bk_biz_id, trigger_event_name, trigger_event_name_reason)`，用来保留旧三元组唯一性。软删除只改状态或删除时间，行仍占用这三列，因此不能按同一业务、事件和原因再插入一行。admin 的创建、批量创建、更新和批量更新遇到该唯一键冲突时返回 400，说明同一业务、事件和原因已存在（可能已软删除），不返回原始数据库错误；名称唯一键 `idx_name` 的并发冲突同样返回“名称已存在”。即将创建的唯一索引会先做重复行探测；可空列上的多个 `NULL` 按 MySQL 规则不算重复，非空且完全相同的行才会阻断，并打印最多 5 组样例。唯一索引和主键步骤在执行 DDL 前会再探测一次，预检查之后才写入的重复行同样阻断，不执行 DDL。`NOT NULL`、无默认值、非自增的列在表已有数据时也会在预检查被阻断。`--type data` 要求模型里的唯一索引已经存在，所以存量库要先完成 schema。
+策略表在主键收敛前追加唯一索引 `idx_biz_event_reason(bk_biz_id, trigger_event_name, trigger_event_name_reason)`，用来保留旧三元组唯一性。软删除只改状态或删除时间，行仍占用这三列，因此不能按同一业务、事件和原因再插入一行。admin 的创建、批量创建、更新和批量更新遇到该唯一键冲突时返回 400，说明同一业务、事件和原因已存在（可能已软删除），不返回原始数据库错误；名称唯一键 `idx_name` 的并发冲突同样返回「名称已存在」。即将创建的唯一索引会先做重复行探测；可空列上的多个 `NULL` 按 MySQL 规则不算重复，非空且完全相同的行才会阻断，并打印最多 5 组样例。唯一索引和主键步骤在执行 DDL 前会再探测一次，预检查之后才写入的重复行同样阻断，不执行 DDL。`NOT NULL`、无默认值、非自增的列在表已有数据时也会在预检查被阻断。`--type data` 要求模型里的唯一索引已经存在，所以存量库要先完成 schema。
 
 普通已记账步骤不会因为 Apply 文本变化而重放。列定义和主键只收敛代码明确识别的安全历史形态。改旧字段标签、旧索引标签或旧建表 SQL，不能假定存量库会自动重放。
 

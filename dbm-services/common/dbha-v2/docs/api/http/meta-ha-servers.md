@@ -136,7 +136,7 @@
 | 场景 | HTTP 状态码 | 业务码 | message | 调用方处理建议 |
 | --- | --- | --- | --- | --- |
 | 成功 | 200 | `0` | `""` | 读取 `data` |
-| discovery 不可用：etcd 不可达、读取超时、discovery 槽为空、任一角色前缀读取失败 | 400 | `1` | `service discovery unavailable`，`data` 为 `""` | 稍后重试，不要把它当作“没有实例” |
+| discovery 不可用：etcd 不可达、读取超时、discovery 槽为空、任一角色前缀读取失败 | 400 | `1` | `service discovery unavailable`，`data` 为 `""` | 稍后重试，不要把失败响应当作「没有实例」 |
 | GET 且路径末尾带 `/` | 301 | 无 | 无业务响应体 | 改用不带 `/` 的路径 |
 | 非 GET 方法（POST、PUT、DELETE、PATCH、HEAD、OPTIONS），包括路径末尾带 `/` 时 | 404；storage 资源不可用时为 503 | 无 | 纯文本 `404 page not found`；503 时响应体为空 | 改用 GET |
 | 路径不精确匹配（如 `/api/admin/meta/ha-server`、`/api/admin/meta/HA-SERVERS`，路径区分大小写） | 404；storage 资源不可用时为 503 | 无 | 同上 | 检查路径 |

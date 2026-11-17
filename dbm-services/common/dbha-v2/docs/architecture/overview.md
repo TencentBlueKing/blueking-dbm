@@ -23,75 +23,23 @@ DBHA v2 负责数据库实例的**持续探测**、**故障判定**与**自动�
 | **dbha-cluster** | [tools/cmd/cluster](../../tools/cmd/cluster)                                    | 集群运维（如 CLB、DBM 调用）     |
 | **dbha-bwmgr**   | [tools/cmd/bwmgr](../../tools/cmd/bwmgr)                                        | 黑白名单管理（见其 README）      |
 | **probe-sandbox-mock** | [tools/cmd/probe-sandbox-mock](../../tools/cmd/probe-sandbox-mock) | 本地全链路 mock（Admin/Receiver/Redis，不随 server 安装） |
+| **ha-sandbox-mock** | [tools/cmd/ha-sandbox-mock](../../tools/cmd/ha-sandbox-mock) | 本地 HA 测试依赖 mock（etcd gRPC / MySQL 协议 / HTTP 控制，不随 server 安装、不进入 `make toolkits`） |
 
 
 ## 3. 系统架构图
 
-```mermaid
----
-config:
-  flowchart:
-    curve: stepAfter
-    padding: 16
-    nodeSpacing: 24
-    rankSpacing: 48
----
-flowchart LR
-  subgraph edge [边缘节点]
-    direction TB
-    Probe[dbha_probe]
-    KA[keepalive_HTTP]
-  end
-  subgraph server [服务端]
-    direction TB
-    Admin[dbha_admin]
-    Recv[dbha_receiver]
-    MySQL[(MySQL_dbha_data)]
-    AM[dbha_analysis]
-    Etcd[(etcd)]
-  end
-  subgraph platform [周边平台]
-    direction TB
-    DBInst[(MySQL_Redis_Proxy)]
-    GSE[GSE_Agent]
-    Kafka[Kafka]
-    DBM[DBM_API]
-  end
-
-  Probe -->|配置与心跳| Admin
-  Probe -->|采集| DBInst
-  Probe -->|gRPC上报| Recv
-  Recv -->|sink| MySQL
-  AM -->|读状态与元数据| MySQL
-  AM -->|同步与换角| DBM
-  Admin -.->|配置回退| DBM
-  Probe -.->|GSE上报| GSE
-  GSE -.->|可选| Kafka
-  Kafka -.-> Recv
-  Admin -.->|Register/Watch| Etcd
-  Recv -.->|Register/Watch| Etcd
-  AM -.->|Register/Watch| Etcd
-  AM -->|"SSH + health -j"| Probe
-  Probe -.->|运维可选| KA
-
-  linkStyle 0,1,2,3,4,5 stroke:#2563eb,stroke-width:2px
-  linkStyle 6 stroke:#64748b,stroke-width:2px,stroke-dasharray:5
-  linkStyle 7,8,9 stroke:#ea580c,stroke-width:2px,stroke-dasharray:5
-  linkStyle 10,11,12 stroke:#16a34a,stroke-width:2px,stroke-dasharray:5
-  linkStyle 13 stroke:#7c3aed,stroke-width:2px
-  linkStyle 14 stroke:#64748b,stroke-width:2px,stroke-dasharray:5
-```
+![DBHA v2 系统架构图](../assets/diagrams/architecture-system-overview.svg)
 
 
 
-> 层次：左=边缘，中=服务端，右=周边。连线为横竖直角折线（无斜线、无中继断点）。
+> 层次：上=边缘节点，中=服务端，下=周边平台。连线为横竖直角折线（无斜线、无中继断点）。
 >
 > 色例：蓝实线=主路径；橙虚线=GSE 旁路；绿虚线=etcd Register/Watch；紫实线=SSH 二次探测；灰虚线=keepalive / 配置回退。
 >
-> 图中未画出：Admin/Recv/AM 的 `/metrics`；AM→BKMonitor 告警；AM→v1 黑白名单；Admin 写策略/切换日志到 MySQL。
-> metrics/告警/白名单见 §5、§6；Admin 写策略/日志见本注与 §8。
+> 图中未画出：Admin/Recv/AM 的 `/metrics`；AM→BKMonitor 告警；AM→v1 黑白名单；Admin 读写 MySQL 中的策略、查询切换日志。
+> metrics/告警/白名单见 §5、§6；Admin 读写策略、查询日志见本注与 §8。
 >
-> keepalive HTTP：analysis **不调用**、**不参与入窗**，亦非二次探测组成。
+> keepalive HTTP 的语义见 §6。
 
 ## 4. 部署拓扑
 
@@ -118,7 +66,7 @@ flowchart LR
 | -------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | **etcd**             | 服务注册、analysis 实例发现与业务分片                                                            | [pkg/discovery](../../pkg/discovery)                                                            |
 | **MySQL**            | 探测状态、元数据缓存、策略、切换日志等                                                                | [pkg/storage/hamodel](../../pkg/storage/hamodel)、[hamysql](../../pkg/storage/hamysql)           |
-| **DBM API**          | 元数据拉取、实例状态更新、MySQL/Tendis 角色交换、域名增删、CLB 摘除、Polaris 解绑、Dumper 切换；admin 在本地无元数据时回退查询 | [internal/analysis/dbm](../../internal/analysis/dbm)、analysis 配置中的 `dbmApi`*                    |
+| **DBM API**          | 元数据拉取、实例状态更新、MySQL/Tendis 角色交换、域名增删、CLB 摘除、Polaris 解绑、Dumper 切换；admin 在本地无元数据时回退查询 | [internal/analysis/dbm](../../internal/analysis/dbm)、analysis 配置中的 `dbmApi` 前缀项                    |
 | **BKMonitor**        | analysis 经 `bkmonitorbeat` 上报告警/事件（切换成败、策略 Notify、扫描失败、二次探测结果等）                    | [pkg/monitor](../../pkg/monitor)、[workflow/alarm.go](../../internal/analysis/workflow/alarm.go) |
 | **DBHA v1 API**      | 按需拉取黑白名单（`dbhav1ApiBlackWhitelistGet`）；Scan/Switch 分别由 `enableWhiteListForScan` / `enableWhiteListForSwitch` 控制 | [workflow/dbhav1_whitelist.go](../../internal/analysis/workflow/dbhav1_whitelist.go)            |
 | **GSE**              | probe 可选上报通道                                                                       | [internal/probe/client/gse.go](../../internal/probe/client/gse.go)                              |
@@ -133,13 +81,14 @@ flowchart LR
 
 - **DBHA → DBM**：analysis 主动调用 DBM HTTP API——周期性同步元数据到 `t_dbm_metadata`；切换时执行换角、更新实例状态，并按集群类型触发域名 / CLB / Polaris / Dumper 等副作用。admin 在 `GetProbeConfig` 本地无元数据时也会回退访问 DBM。CLB、Polaris 等不单独成系统，统一经 DBM API 完成。
 - **DBHA → BKMonitor**：analysis 通过本机/配置的 `bkmonitorbeat` 将事件投递到 BKMonitor（`PostBKMonitor`），用于故障与切换相关告警；不是业务探测数据主通道。
-- **DBHA → DBHA v1**：analysis 查询 v1 黑白名单 API。`enableWhiteListForScan`（默认关闭）控制探测前是否过滤；`enableWhiteListForSwitch`（默认开启）控制切换前是否过滤。旧配置键 `enableWhiteList` 不再解析。
+- **DBHA → DBHA v1**：analysis 查询 v1 黑白名单 API。`enableWhiteListForScan`（默认关闭）控制 Scan 阶段是否先按白名单过滤待探测实例；`enableWhiteListForSwitch`（默认开启）控制 Pop 阶段策略为 `action=switch` 时是否按白名单过滤待切换实例，未在白名单的只告警。旧配置键 `enableWhiteList` 不再解析。
 - **Probe → GSE →（可选 Kafka）→ Receiver**：边缘上报的旁路；直连路径为 Probe gRPC → Receiver。
 - **服务端 → Prometheus / BKMonitor 抓取**：各服务 haapm 暴露 `/metrics`，由外部抓取做容量与延迟观测，与 BKMonitor 事件上报互补。
-- **Analysis → Probe（SSH +** `dbha-probe health -j`**）**：二次探测主路径为 SSH 远端执行 `dbha-probe health -j`。**仅 SSH dial/session 失败**时确认故障并入滑动窗口；其余二次探测结果（含 probe 进程不可用、存活但无指标等）只告警不入窗。入窗细则见 [MySQL 探测设计 §5](../detection/mysql-detection-design.md)；Scan/Pop/窗口/锁/白名单运行时见 [故障判定与切换](../flows/failure-detection-and-failover.md)。边缘 keepalive HTTP 为运维可选探活，analysis **不调用**、**不参与入窗**，亦非二次探测组成。
+- **Analysis → Probe（SSH + `dbha-probe health -j`）**：二次探测主路径为 SSH 远端执行 `dbha-probe health -j`。五类结果确认故障并入滑动窗口：SSH dial/session 失败（`DoubleCheckSshFailureV1`）、SSH 鉴权失败（`SshAuthFailure`）、SSH 连接/执行超时（`SshTimeout`）、health 磁盘写校验失败（`DiskWriteFailure`）、uptime 采集失败或 uptime 低于 `maxUptime`（`UptimeFailure`）。入窗前剔除 provider 注册为不可切换的实例（当前为 Redis 集群协议类型中非 predixy 的实例），这些实例只告警。其余二次探测结果（含 probe 进程不可用、存活但无指标等）只告警不入窗。入窗细则见 [MySQL 探测设计 §5](../detection/mysql-detection-design.md)，Scan/Pop/窗口/锁/白名单运行时见 [故障判定与切换](../flows/failure-detection-and-failover.md)。keepalive HTTP 是运维可选的探活手段，analysis **不调用**它，它**不参与入窗**，也不是二次探测的组成部分。
 
-能力边界：analysis `switchers` 当前仅注册 MySQL。策略表为空时，`dbha-admin migrate --type data`
-写入默认全局策略，触发事件为 `DoubleCheckSshFailureV1`（`action=switch`，`scope=host`）。
+能力边界：analysis `switchers` 当前注册 MySQL 与 Redis。策略表为空时，`dbha-admin migrate --type data`
+写入 5 条默认全局策略，触发事件分别为 `DoubleCheckSshFailureV1`、`SshAuthFailure`、`SshTimeout`、`DiskWriteFailure`、
+`UptimeFailure`（均为 `action=switch`，`scope=host`，见 [migrator 设计 §6.2](migrator-design.md)）。
 表中已有任意行时，缺失行要加 `--repair-missing-data` 才会插入，软删除行保持删除。
 
 ## 7. 端到端主路径
@@ -174,7 +123,7 @@ flowchart LR
 | `t_skip_dbinstance`           | 跳过实例                               |
 
 
-运行时 Scan/Switch 白名单来自 **DBHA v1 API**（`enableWhiteListForScan` / `enableWhiteListForSwitch` 分别可关，见 [dbhav1_whitelist.go](../../internal/analysis/workflow/dbhav1_whitelist.go)），**不是** analysis 直读 `t_db_black_white_list`。admin `migrate` 的 `tables` **不含**该表；本地表模型见 [hamodel](../../pkg/storage/hamodel)，运维工具见 `dbha-bwmgr`。
+运行时 Scan/Switch 白名单来自 **DBHA v1 API**（`enableWhiteListForScan` 默认关闭、`enableWhiteListForSwitch` 默认开启，见 [dbhav1_whitelist.go](../../internal/analysis/workflow/dbhav1_whitelist.go)），**不是** analysis 直读 `t_db_black_white_list`。admin `migrate` 的受管表清单**不含**该表；本地表模型见 [hamodel](../../pkg/storage/hamodel)，运维工具见 `dbha-bwmgr`。
 
 探测载荷类型见 [pkg/storage/haprobe](../../pkg/storage/haprobe)（如 `HarvestData`、各 DB 状态结构、事件名常量）。  
 表结构迁移由 admin：`dbha-admin migrate`（[internal/admin/migrator](../../internal/admin/migrator)）。常规 `--type schema` 和 `--type all` 会按模型收敛主键和列定义，可能锁住受管表，执行窗口需要先停止这些表的写入。维护规则见 [migrator 设计](migrator-design.md)。
@@ -197,7 +146,7 @@ Probe 另有 `ensure` / `ensure-keepalive`（crontab / schtasks）。细节以�
 | Analysis 编排          | `internal/analysis/workflow/`                                    |
 | 切换执行                 | `internal/analysis/switcher/`                                    |
 | Probe 框架与插件          | `internal/probe/probe.go`、`internal/probe/harvester/`            |
-| 上报客户端                | `internal/probe/client/`、`internal/probe/reporter/`              |
+| 上报客户端                | `internal/probe/client/`（Reporter 见 `reporter.go`）              |
 | Proto                | `pkg/proto/idl/*.proto`                                          |
 | 构建                   | `Makefile`、`build.ps1`                                           |
 

@@ -30,7 +30,7 @@
 Admin 收到 `SIGHUP`（或执行 `admin reload`）后，会先解析并校验配置，再按资源槽依次更新
 Discovery、APM 指标服务、Storage、gRPC 和 Web 服务。单个资源更新失败不会阻止配置快照生效，
 失败资源会在后续 reload 时重试。`admin reload` 在发送信号前执行一次解析和校验；配置文件缺失时
-仍向当前进程的 `pidFile` 发信号，损坏的 yaml 或校验失败则不发信号。
+仍按内置默认的 `pidFile` 寻址发信号（若运行中的进程启动时改过 `pidFile`，信号可能发不到它），损坏的 yaml 或校验失败则不发信号。
 
 各槽切换窗口：
 
@@ -39,15 +39,14 @@ Discovery、APM 指标服务、Storage、gRPC 和 Web 服务。单个资源更�
 - **gRPC**：改地址时先起新监听再关旧；同址改参数时必须等旧 server 停干净后再在同一 listener 上起新
   server，关闭超时则本次不切代。
 - **Discovery**：Coexist，新旧注册短暂并存，不是空窗。
-- **Storage**：Coexist；退休等待短于 drain 超时时，刚换代立刻再 SIGHUP 可能因退休未完成失败并重试。
+- **Storage**：Coexist；退休等待短于 drain 超时时，刚换代立刻再 SIGHUP，本次 reload 的 Storage 槽更新可能因旧资源退休未完成而失败，留待后续 reload 重试。
 
 `log.level` 可即时生效；日志文件路径、滚动大小和保留数量仍需重启。`name`、`version` 和
 `pidFile` 在进程生命周期内保持不变。hanet 监听地址冲突视为该槽启动失败，不会改用外部 listener。
 
 改 probe 下发相关配置会触发全网 harvester 重建，不宜频繁 SIGHUP。
 
-进程级回归（无真实 etcd / mysqld）见 skill `ha-sandbox-test` 与
-`scripts/ha-sandbox-admin-reload.sh`（依赖 `tools/cmd/ha-sandbox-mock`）。
+进程级回归（无真实 etcd / mysqld）见 `scripts/ha-sandbox-admin-reload.sh`（依赖 `tools/cmd/ha-sandbox-mock`）。
 脚本会抓取 Admin APM `/metrics` 并核对 reload 相关 gauge 的数值（成功/失败、槽计数、last_success），
 以及 Admin gRPC 拦截器指标（`grpc_requests_total`、错误计数、耗时/体积 histogram、`grpc_probe_config_result_total`）。
 
@@ -66,6 +65,10 @@ Discovery、APM 指标服务、Storage、gRPC 和 Web 服务。单个资源更�
 | [接口文档索引](api/README.md) | Admin HTTP 与 gRPC 接口清单、服务地址、公共约定和文档模板 |
 | [HA Server 列表（HTTP）](api/http/meta-ha-servers.md) | `GET /api/admin/meta/ha-servers`，列出存活的 HA Server 实例及其 IP |
 | [HA Server 列表（gRPC）](api/grpc/list-ha-servers.md) | `AdminService/ListHaServers`，与 HTTP 接口返回相同数据 |
+
+## 7. 配图维护
+
+全部配图为 SVG 图片，统一存放于 [assets/diagrams/](assets/diagrams/)；图片是唯一图源，正文中不再保留图源码。修改配图请直接编辑 SVG，并遵循该目录 README 中的结构契约、图清单与**逐图**配色对照；文档中涉及颜色的「色例」说明必须与图片实际配色保持一致。
 
 ---
 
