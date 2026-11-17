@@ -26,6 +26,7 @@ from backend.ticket.constants import (
     TODO_RUNNING_STATUS,
     ClusterType,
     FlowType,
+    TicketExpireType,
     TicketFlowStatus,
     TicketModifyType,
     TicketStatus,
@@ -463,10 +464,91 @@ class CheckTicketFlowConfigClusterTagRepeatSerializer(serializers.Serializer):
         return value
 
 
+class TicketExpireHoursField(serializers.IntegerField):
+    def to_internal_value(self, data):
+        if type(data) is not int or (data != -1 and not 1 <= data <= 2160):
+            raise serializers.ValidationError(_("超时时间必须是 -1 或 1～2160 的整数小时"))
+        return data
+
+
+class TicketFlowConfigUpdateSerializer(serializers.Serializer):
+    need_itsm = serializers.BooleanField(required=False)
+    need_manual_confirm = serializers.BooleanField(required=False)
+    expire_config = serializers.DictField(
+        child=TicketExpireHoursField(help_text=_("-1 表示关闭，否则为 1～2160 的整数小时")),
+        required=False,
+        allow_empty=False,
+    )
+
+    def to_internal_value(self, data):
+        if isinstance(data, dict):
+            unknown_fields = set(data) - set(self.fields)
+            if unknown_fields:
+                raise serializers.ValidationError({key: _("不支持的配置项") for key in sorted(unknown_fields)})
+        return super().to_internal_value(data)
+
+    def validate_expire_config(self, value):
+        unknown_types = set(value) - set(TicketExpireType.get_values())
+        if unknown_types:
+            raise serializers.ValidationError({key: _("不支持的超时类型") for key in sorted(unknown_types)})
+        return value
+
+    def validate(self, attrs):
+        if not attrs:
+            raise serializers.ValidationError(_("请至少提供一个需要更新的配置项"))
+        return attrs
+
+
 class UpdateTicketFlowConfigSerializer(CreateTicketFlowConfigSerializer):
+    configs = serializers.DictField(help_text=_("平台配置支持部分更新，超时时间单位为小时；业务配置沿用原规则"))
     config_ids = serializers.ListField(
         help_text=_("流程规则ID列表)"), child=serializers.IntegerField(), required=False, default=[]
     )
+
+    def to_internal_value(self, data):
+        attrs = super().to_internal_value(data)
+        if attrs["bk_biz_id"] == PLAT_BIZ_ID:
+            attrs["configs"] = TicketFlowConfigUpdateSerializer().run_validation(attrs["configs"])
+            if "remark" not in data:
+                attrs.pop("remark", None)
+        return attrs
+
+    def validate(self, attrs):
+        if attrs["bk_biz_id"] != PLAT_BIZ_ID:
+            return attrs
+        if not attrs.get("ticket_types"):
+            raise serializers.ValidationError({"ticket_types": _("单据类型不能为空")})
+        if attrs.get("cluster_ids") and attrs.get("cluster_tags"):
+            raise serializers.ValidationError(_("cluster_ids 和 cluster_tags 不允许同时存在"))
+        return attrs
+
+
+class CheckUpdateTicketFlowConfigSerializer(UpdateTicketFlowConfigSerializer):
+    def validate(self, attrs):
+        if attrs["bk_biz_id"] != PLAT_BIZ_ID:
+            raise serializers.ValidationError({"bk_biz_id": _("更新预检查仅支持平台配置（bk_biz_id=0）")})
+        return super().validate(attrs)
+
+
+class TicketFlowConfigCheckErrorSerializer(serializers.Serializer):
+    field = serializers.CharField(help_text=_("校验未通过的配置字段"))
+    code = serializers.ChoiceField(choices=["inactive", "not_applicable", "unchanged", "preset"])
+    code_display = serializers.CharField(help_text=_("原因分类：当前不生效、不适用、无变更、单据预设"))
+    message = serializers.CharField(help_text=_("校验原因"))
+
+
+class TicketFlowConfigCheckDetailSerializer(serializers.Serializer):
+    config_id = serializers.IntegerField(help_text=_("配置ID"))
+    ticket_type = serializers.CharField(help_text=_("单据类型"))
+    ticket_type_display = serializers.CharField(help_text=_("单据类型中文名称"))
+    errors = TicketFlowConfigCheckErrorSerializer(many=True)
+
+
+class TicketFlowConfigCheckResultSerializer(serializers.Serializer):
+    valid = serializers.BooleanField(help_text=_("整批配置是否通过校验"))
+    config_errors = TicketFlowConfigCheckDetailSerializer(many=True)
+    missing_config_ids = serializers.ListField(child=serializers.IntegerField())
+    missing_ticket_types = serializers.ListField(child=serializers.CharField())
 
 
 class SaveTicketFlowConfigSerializer(UpdateTicketFlowConfigSerializer):
@@ -481,7 +563,14 @@ class DeleteTicketFlowConfigSerializer(serializers.Serializer):
     config_ids = serializers.ListField(help_text=_("流程规则ID列表)"), child=serializers.IntegerField())
 
 
+class SupportedExpireTypeSerializer(serializers.Serializer):
+    value = serializers.ChoiceField(help_text=_("expire_config 的 key"), choices=TicketExpireType.get_choices())
+    label = serializers.CharField(help_text=_("超时类型展示名称"))
+
+
 class TicketFlowDescribeDetailSerializer(serializers.Serializer):
+    configs = serializers.DictField(help_text=_("流程配置，平台配置的 expire_config 正数以小时返回"), read_only=True)
+    supported_expire_types = SupportedExpireTypeSerializer(help_text=_("当前规则支持配置的超时类型及名称"), many=True, read_only=True)
     flow_desc = serializers.ListField(help_text=_("单据流程描述"), child=serializers.CharField())
     db_type = serializers.ChoiceField(help_text=_("单据分组类型"), choices=DBType.get_choices())
     ticket_type = serializers.ChoiceField(help_text=_("单据类型"), choices=TicketType.get_choices())
