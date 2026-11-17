@@ -22,9 +22,7 @@ from backend.utils.redis import check_set_member_in_redis
 
 def get_client_ip(request: Request):
     ip = (
-        request.query_params.get("ip")
-        or request.data.get("ip")
-        or (request.META.get("HTTP_X_FORWARDED_FOR") or "").split(",")[0].strip()
+        request.query_params.get("ip") or (request.META.get("HTTP_X_FORWARDED_FOR") or "").split(",")[0].strip()
     )  # 最后这一段是为了平滑过渡, 最终要删掉
     if not ip:
         raise Exception("client ip not found in request")
