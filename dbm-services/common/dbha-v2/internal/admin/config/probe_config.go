@@ -272,9 +272,9 @@ func resolveAdminPort(adminPort int, instanceRole haprobe.DbmMetadataInstanceRol
 // tombstoneAge.
 //
 // The filter matters because metadata sync only upserts, it never deletes: rows for instances
-// that were decommissioned stay in the table forever. Without the cut-off, one such row would
-// be permanently stale and would push every request for that IP to the DBM API, turning the
-// cache off for that machine for good.
+// that were decommissioned stay in the table until analysis retention removes them (14 days by
+// default). Without the cut-off, such a row would stay stale all that time and push every request
+// for that IP to the DBM API, turning the cache off for that machine.
 func getMetadataFromDBHA(
 	db *hamysql.GormDB, bkCloudID int, ip string, tombstoneAge time.Duration,
 ) ([]*hamodel.DbmMetadata, error) {

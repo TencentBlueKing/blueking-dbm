@@ -46,7 +46,7 @@ Probe 经 Admin 拉取 `ProbeConfigPayload` 后在本机渲染为 `probe.yaml`�
 Admin 回答 `GetProbeConfig` 时优先用本地 `t_dbm_metadata`，但只在整机新鲜时采用：
 
 - **`probeMetadata.cacheMaxAge`**（默认 `10m`，下限 `1m`）：该 IP 的缓存行只要有一行的 `updated_at` 超出窗口，整机都回源 DBM。不做逐行取舍，是因为混用新旧行会让 probe 拿到半更新的机器视图——继续探测已迁走的实例，或漏掉新到的实例——比多一次 DBM 查询更糟。
-- **`probeMetadata.tombstoneAge`**（默认 `24h`，不得小于 `cacheMaxAge`）：早于该窗口的行直接忽略。元数据同步只 upsert 不删除，已下架实例的残留行否则会永远过期，把这台机器的缓存彻底关掉。
+- **`probeMetadata.tombstoneAge`**（默认 `24h`，不得小于 `cacheMaxAge`）：早于该窗口的行直接忽略。元数据同步只 upsert 不删除，已下架实例的残留行要等 analysis [过期数据清理](data-retention.md)（默认保留 14 天）才会被删除，在此之前这些行一直过期，不忽略就会把这台机器的缓存彻底关掉。
 - 回源按 `(bk_cloud_id, ip)` 合并并发请求，一台机器同一时刻只打一次 DBM。probe 改为周期拉取后，同步滞后会让整片机器同时回源，这层合并是必要的。
 
 可观测：`probe_metadata_fallback_total{reason="miss"|"stale"}`。该指标持续上升说明 admin 正在把 probe 的周期流量放大到 DBM 上，应先查元数据同步是否滞后，而不是直接调大 `cacheMaxAge`。

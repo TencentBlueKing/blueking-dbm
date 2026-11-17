@@ -21,7 +21,7 @@ Histogram 在抓取结果里展开为 `_bucket`、`_sum`、`_count`，下表写�
 
 ## 2. 指标清单
 
-业务指标共 28 个（含 `dbha_startup_time_sec`），全部由框架注册。定义见
+业务指标共 40 个（含 `dbha_startup_time_sec`），全部由框架注册。定义见
 [internal/analysis/apm/metric.go](../../internal/analysis/apm/metric.go)，注册清单见
 [internal/analysis/apm/provider_metrics.go](../../internal/analysis/apm/provider_metrics.go) 的 `frameworkMetrics`。
 `dbha_startup_time_sec` 例外，定义见 [pkg/haapm/metric.go](../../pkg/haapm/metric.go)。
@@ -56,6 +56,18 @@ Histogram 在抓取结果里展开为 `_bucket`、`_sum`、`_count`，下表写�
 | 覆盖 | `dbha_data_status_updated_count` | Gauge | `service_id`, `service_name`, `db_type`, `harvest_type` | 统计窗口内更新的实例数 |
 | 覆盖 | `dbha_data_status_updated_ip_count` | Gauge | `service_id`, `service_name`, `db_type`, `harvest_type` | 统计窗口内更新的 IP 数 |
 | 覆盖 | `dbha_data_status_active_ip_count` | Gauge | `service_id`, `service_name`, `db_type` | 统计窗口内持续上报的 IP 数，不是部署总量 |
+| 清理 | `retention_enabled` | Gauge | `service_id`, `service_name` | 本实例是否开启过期数据清理（1/0） |
+| 清理 | `retention_leader` | Gauge | `service_id`, `service_name` | 本实例是否持有清理选举（1/0） |
+| 清理 | `retention_deleted_rows_total` | Counter | `service_id`, `service_name`, `table` | 物理删除的过期行累计数 |
+| 清理 | `retention_attempted_rows_total` | Counter | `service_id`, `service_name`, `table` | 提交到 DELETE 的候选行累计数；与删除数之差为复核时已被刷新或因锁冲突跳过的行 |
+| 清理 | `retention_skipped_total` | Counter | `service_id`, `service_name`, `table`, `reason` | 清理主动让路的次数 |
+| 清理 | `retention_errors_total` | Counter | `service_id`, `service_name`, `table`, `stage`, `kind` | 清理语句失败次数 |
+| 清理 | `retention_statement_time_consuming_ms` | Histogram | `service_id`, `service_name`, `table`, `stage` | 清理各类语句耗时，单位 ms |
+| 清理 | `retention_round_time_consuming_ms` | Histogram | `service_id`, `service_name`, `table` | 单表单次执行耗时，单位 ms，分桶上限 120s |
+| 清理 | `retention_pass_stale_rows` | Gauge | `service_id`, `service_name`, `table` | 最近一遍完整遍历中提交删除的过期行数 |
+| 清理 | `retention_pass_scanned_rows` | Gauge | `service_id`, `service_name`, `table` | 最近一遍完整遍历覆盖的行数，近似表行数 |
+| 清理 | `retention_last_pass_completed_timestamp_seconds` | Gauge | `service_id`, `service_name`, `table` | 最近一次完成遍历的 Unix 时间；当选时先写入当选时间 |
+| 清理 | `retention_stalled` | Gauge | `service_id`, `service_name`, `table` | 清理是否停滞（1/0） |
 
 有限标签取值：
 
@@ -66,6 +78,14 @@ Histogram 在抓取结果里展开为 `_bucket`、`_sum`、`_count`，下表写�
 | `api_name` | `query_metadata`、`sync_metadata` |
 | `db_type`（切换指标） | 已知 DbType（如 `mysql`、`redis`），其余记为 `unknown` |
 | `action_scope` | `cluster`、`host`、`db_instance`，其余记为 `unknown` |
+| `table` | `t_dbm_metadata`、`t_dbha_status` |
+| `reason` | `switching`、`unhealthy`、`backpressure`、`budget` |
+| `stage` | `switch_check`、`health_check`、`scan`、`delete` |
+| `kind` | `timeout`、`deadlock`、`error`、`unknown` |
+
+清理指标的含义与处理规则见 [过期数据清理](../flows/data-retention.md)。全局切换检查不属于某张表，命中或出错时对本次到期的每张表各记一次。
+清理只在 leader 实例上运行；失去 leader 时本实例的 `retention_stalled`、`retention_pass_*`、
+`retention_last_pass_completed_timestamp_seconds` 会被清空，查询统一按 `max by (table)` 跨实例聚合。
 
 `internal/provider/mysql/metrics`、`internal/provider/redis/metrics` 当前是空占位，`apm.RegisterDbMetrics` 没有生产调用方，不会额外注册 DB 专属指标。按 DB 类型观察切换结果时，用框架切换指标的 `db_type` 标签筛选。
 
@@ -128,12 +148,36 @@ scrape_configs:
 | 外部依赖 | SSH 探测错误速率 | Time series | `sum by (instance, status_code) (rate(dbha_v2_analysis_detector_ssh_error_total{service_id=~"$service_id"}[$rate_window]))` |
 | 采集覆盖 | 活跃上报 IP | Time series | `sum by (instance, db_type) (dbha_v2_analysis_dbha_data_status_active_ip_count{service_id=~"$service_id", db_type=~"$db_type"})` |
 | 采集覆盖 | 更新实例数 | Time series | `sum by (instance, db_type, harvest_type) (dbha_v2_analysis_dbha_data_status_updated_count{service_id=~"$service_id", db_type=~"$db_type"})` |
+| 数据清理 | 删除速率 | Time series | `sum by (table) (rate(dbha_v2_analysis_retention_deleted_rows_total{table!=""}[$rate_window]))` |
+| 数据清理 | 让路次数 | Time series | `sum by (table, reason) (rate(dbha_v2_analysis_retention_skipped_total{table!=""}[$rate_window]))` |
+| 数据清理 | 错误次数 | Time series | `sum by (table, stage, kind) (rate(dbha_v2_analysis_retention_errors_total{table!=""}[$rate_window]))` |
+| 数据清理 | 删除 P95 耗时 | Time series | `histogram_quantile(0.95, sum by (le, table) (rate(dbha_v2_analysis_retention_statement_time_consuming_ms_bucket{stage="delete"}[$rate_window])))` |
+| 数据清理 | 陈旧占比 | Stat | `max by (table) (dbha_v2_analysis_retention_pass_stale_rows) / clamp_min(max by (table) (dbha_v2_analysis_retention_pass_scanned_rows), 1)` |
+| 数据清理 | 距上次完成遍历 | Stat | `time() - max by (table) (dbha_v2_analysis_retention_last_pass_completed_timestamp_seconds{table!=""})` |
+| 数据清理 | 诊断影响对照 | Time series | 与"扫描 P95 耗时"同一面板叠加删除速率，验证清理期间扫描耗时没有明显上升 |
 
 - 启动时间面板的单位选 `From Now`（日期时间），乘以 1000 是因为 Grafana 按毫秒解释时间戳。
 - 进程启动时，每个带标签的指标会预先生成一条标签全为空、值为 0 的序列。带 `service_id` 筛选的面板会自动排除它；
   没有其他筛选条件的分组面板，用 `!=""` 排除这条序列。
 
-## 6. 基数说明
+## 6. 数据清理告警与上线验收
+
+| 告警 | 表达式 | 持续 | 级别 | 含义 |
+| --- | --- | --- | --- | --- |
+| 清理停滞 | `max by (table) (dbha_v2_analysis_retention_stalled) == 1` | 0m | warning | 24h 没删任何行且存在待删行或错误，查 `retention_errors_total` |
+| 长期未完成遍历 | `time() - max by (table) (dbha_v2_analysis_retention_last_pass_completed_timestamp_seconds{table!=""}) > 172800` | 30m | warning | 48h 没有完成一遍遍历（如持续背压）；写入源中断时遍历无法完成，该告警也会触发，属预期 |
+| 无清理 leader | `max(dbha_v2_analysis_retention_enabled) == 1 and max(dbha_v2_analysis_retention_leader) == 0` | 30m | warning | 已开启但没有实例持有选举 |
+| 清理持续报错 | `sum by (table, stage) (increase(dbha_v2_analysis_retention_errors_total{kind="error"}[1h])) > 0` | 1h | warning | 权限、表缺失、连接等非超时错误 |
+| 删除变慢 | `histogram_quantile(0.99, sum by (le, table) (rate(dbha_v2_analysis_retention_statement_time_consuming_ms_bucket{stage="delete"}[30m]))) > 1000` | 30m | info | 删除 P99 超过背压阈值，清理会频繁让路；阈值与 `slowDeleteThreshold` 默认值一致，修改配置时需同步调整 |
+| 陈旧占比过高 | `max by (table) (dbha_v2_analysis_retention_pass_stale_rows) / clamp_min(max by (table) (dbha_v2_analysis_retention_pass_scanned_rows), 1) > 0.5` | 6h | info | 一遍遍历中过期行超过一半，说明积压大或写入源长期异常 |
+
+上线验收：
+
+- 首轮执行后：`retention_leader` 有且仅有一个实例为 1；`retention_deleted_rows_total` 开始增长；`retention_errors_total{kind="error"}` 为 0。
+- 积压期间：`scan_business_time_consuming_ms` P95 相比上线前基线上升不超过 10%；`retention_skipped_total{reason="backpressure"}` 偶发而非持续。
+- 第一遍遍历完成后：`retention_pass_stale_rows` 与上线前预检中"超过 14 天的行数"同量级，之后各遍趋于稳定的小值。
+
+## 7. 基数说明
 
 `url`、`biz_id` 的取值会随接口地址和业务数增长，只用于排障明细面板，不作为总览图的分组维度。
 滑窗面板用 `topk` 限制每个时间点最多 10 条；时间范围内不同时刻的前 10 不同，曲线总数可能超过 10 条。
