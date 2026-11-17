@@ -291,7 +291,6 @@ class RedisClusterApplyFlow(object):
         acts_list = list(clb_polaris_subs)
         act_kwargs.cluster = {
             "conf": {
-                "maxmemory": str(self.data["maxmemory"]),
                 "databases": str(self.data["databases"]),
             },
             "db_version": self.data["db_version"],

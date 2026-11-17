@@ -437,7 +437,6 @@ class RedisInstanceApplyFlow(object):
             for rule in info["ip_install_dict"][master_ip]:
                 act_kwargs.cluster = {
                     "conf": {
-                        "maxmemory": str(rule["maxmemory"]),
                         "databases": str(rule["databases"]),
                     },
                     "pwd_conf": {
