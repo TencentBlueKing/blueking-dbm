@@ -13,9 +13,12 @@ package spiderctl
 import (
 	"errors"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 
 	"github.com/stretchr/testify/require"
 )
@@ -108,4 +111,23 @@ func TestPrepareCtlForwardSchemaFileRejectsCommentedDrop(t *testing.T) {
 
 	err := prepareCtlForwardSchemaFile(path)
 	require.Error(t, err)
+}
+
+func TestChooseSchemaDumpBin(t *testing.T) {
+	tdbctlDump := path.Join(cst.TdbctlInstallPath, "bin", "mysqldump")
+	legacyDump := "/home/mysql/dbbackup/mysqldump"
+	mysqlDump := path.Join(cst.MysqldInstallPath, "bin", "mysqldump")
+
+	got := chooseSchemaDumpBin(func(p string) bool {
+		return p == tdbctlDump || p == legacyDump
+	})
+	require.Equal(t, tdbctlDump, got)
+
+	got = chooseSchemaDumpBin(func(p string) bool {
+		return p == legacyDump
+	})
+	require.Equal(t, legacyDump, got)
+
+	got = chooseSchemaDumpBin(func(string) bool { return false })
+	require.Equal(t, mysqlDump, got)
 }
