@@ -87,6 +87,7 @@ from backend.ticket.serializers import (
     CheckDomainRepeatSerializer,
     CheckTicketFlowConfigClusterRepeatSerializer,
     CheckTicketFlowConfigClusterTagRepeatSerializer,
+    CheckUpdateTicketFlowConfigSerializer,
     ClusterDisableTodoSerializer,
     ClusterModifyOpSerializer,
     CreateTicketFlowConfigSerializer,
@@ -102,6 +103,7 @@ from backend.ticket.serializers import (
     RevokeTicketSLZ,
     SaveTicketFlowConfigSerializer,
     SensitiveTicketSerializer,
+    TicketFlowConfigCheckResultSerializer,
     TicketFlowDescribeSerializer,
     TicketFlowSerializer,
     TicketModifySerializer,
@@ -145,6 +147,9 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     pagination_class = AuditedLimitOffsetPagination
 
     def _get_custom_permissions(self):
+        if self.action == "check_update_ticket_flow_config":
+            # 预检查读取同一批配置，沿用更新接口权限。
+            return ticket_flows_config_permission("update_ticket_flow_config", self.request)
         if self.action == "list":
             return [TicketListPermission()]
         # 创建单据，关联单据类型的动作
@@ -819,7 +824,18 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
         return Response(TicketHandler.query_ticket_flows_describe(**data))
 
     @swagger_auto_schema(
-        operation_summary=_("修改可编辑的单据流程规则"),
+        operation_summary=_("预检查平台单据流程配置更新"),
+        request_body=CheckUpdateTicketFlowConfigSerializer(),
+        responses={status.HTTP_200_OK: TicketFlowConfigCheckResultSerializer()},
+        tags=[TICKET_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=CheckUpdateTicketFlowConfigSerializer)
+    def check_update_ticket_flow_config(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        return Response(TicketHandler.check_update_ticket_flow_config(**data))
+
+    @swagger_auto_schema(
+        operation_summary=_("部分更新单据流程规则"),
         request_body=UpdateTicketFlowConfigSerializer(),
         tags=[TICKET_TAG],
     )

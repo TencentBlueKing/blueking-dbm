@@ -440,6 +440,11 @@ class TestTicketViewSet:
         assert len(data) >= 1
         assert "flow_desc" in data[0]
         assert isinstance(data[0]["flow_desc"], list)
+        assert isinstance(data[0]["supported_expire_types"], list)
+        expire_types = {item["value"]: item["label"] for item in data[0]["supported_expire_types"]}
+        assert {"confirm_modify", "inner_flow_expire", "flow_todo_expire"} <= expire_types.keys()
+        assert ("itsm_expire" in expire_types) == any("审批" in description for description in data[0]["flow_desc"])
+        assert "timer" not in expire_types
 
     @patch("backend.ticket.handler.Ticket.create_ticket")
     @patch("backend.ticket.handler.HostHandler.details")
@@ -725,7 +730,7 @@ class TestTicketViewSet:
                 "configs": {
                     FlowTypeConfig.NEED_ITSM.value: False,
                     FlowTypeConfig.NEED_MANUAL_CONFIRM.value: False,
-                    FlowTypeConfig.EXPIRE_CONFIG.value: {"enable": False},
+                    FlowTypeConfig.EXPIRE_CONFIG.value: {"inner_flow_expire": 2},
                 },
                 "config_ids": [],
                 "cluster_ids": [],
