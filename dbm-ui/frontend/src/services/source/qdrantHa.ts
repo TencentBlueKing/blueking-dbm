@@ -145,7 +145,7 @@ export const getQdrantHaOperationLog = function (params: {
   // isPublic?: boolean;
   k8sClusterName: string;
   limit: number;
-  namespace: string;
+  nameSpace: string;
   offset: number;
   requestParams?: string;
   requestType?: string;

@@ -180,7 +180,7 @@
       bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
       clusterName: props.clusterData.cluster_name,
       k8sClusterName: props.clusterData.k8s_cluster_name,
-      namespace: props.clusterData.namespace,
+      nameSpace: props.clusterData.namespace,
     });
 
   const fetchData = () => {
@@ -224,9 +224,9 @@
     isShowDetail.value = true;
   };
 
-  onMounted(() => {
-    fetchData();
-  });
+  // onMounted(() => {
+  //   fetchData();
+  // });
 </script>
 
 <style lang="less">
