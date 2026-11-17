@@ -152,8 +152,7 @@
     :execute-object="currentExecuteObject"
     :path="ticketDetails.details.path"
     :select-file-name="selectFileName"
-    :version-list="versionList"
-    :whole-file-list="uploadFileList" />
+    :version-list="versionList" />
 </template>
 
 <script setup lang="tsx">
@@ -196,10 +195,6 @@
   const selectFileName = ref('');
   const currentExecuteObject = ref<TargetDbRow>();
   const isShowSqlfile = ref(false);
-
-  const uploadFileList = computed(() =>
-    _.flatten(props.ticketDetails.details.execute_objects.map((item) => item.sql_files)),
-  );
 
   const targetClusterData = computed(() =>
     props.ticketDetails.details.cluster_ids.map((item) => ({
