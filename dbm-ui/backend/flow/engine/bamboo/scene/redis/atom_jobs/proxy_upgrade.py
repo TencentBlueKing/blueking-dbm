@@ -18,7 +18,11 @@ from django.utils.translation import gettext as _
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import InstanceStatus
 from backend.db_meta.models import Cluster
+from backend.db_package.models import Package
 from backend.db_services.redis.redis_dts.util import get_cluster_info_by_id
+from backend.db_services.redis.util import is_predixy_proxy_type
+from backend.db_services.version.constants import PredixyVersion, TwemproxyVersion
+from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
@@ -28,6 +32,8 @@ from backend.flow.plugins.components.collections.redis.get_redis_payload import 
 from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs
+from backend.flow.utils.redis.redis_package_resolver import RedisUpgradeTarget
+from backend.flow.utils.redis.redis_util import get_redis_package_v2_release
 
 logger = logging.getLogger("flow")
 
@@ -39,7 +45,7 @@ def ClusterProxysUpgradeAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, par
         param (Dict): {
             "cluster_domain": "cache.test.testapp.db",
             "target_ips" (optional): {"1.1.1.1", "2.2.2.2"}
-            "target_version" (optional): "twemproxy-0.4.1-v29"
+            "upgrade_target" (optional): {"db_version_id": 12, "version_name": "twemproxy-0.4.1-v37"}
             "alarm_shield" (optional): {"act_name": str, "kwargs": dict}
             "disable_alarm_shield" (optional): {"act_name": str, "kwargs": dict}
         }
@@ -60,18 +66,11 @@ def ClusterProxysUpgradeAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, par
     act_kwargs.cluster = {}
     trans_files = GetFileList(db_type=DBType.Redis)
 
-    proxy_pkg_prefix = param.get("target_version", None)
-    # If version not specified, the latest proxy will be selected.
-    act_kwargs.file_list = trans_files.redis_cluster_apply_proxy(cluster.cluster_type, proxy_pkg_prefix)
-
-    if not proxy_pkg_prefix:
-        # This in fact extract the whole file name instead of prefix only, but it also works.
-        def extract_file_name(path: str):
-            parts = path.split("/")
-            return parts[-1] if parts else ""
-
-        # The second file is the proxy pkg.
-        proxy_pkg_prefix = extract_file_name(act_kwargs.file_list[1])
+    upgrade_target = RedisUpgradeTarget.from_dict(param.get("upgrade_target"))
+    if upgrade_target is None:
+        # If version not specified, the latest proxy will be selected.
+        upgrade_target = RedisUpgradeTarget.from_package(_latest_release_proxy_package(cluster.cluster_type))
+    act_kwargs.file_list = trans_files.redis_cluster_apply_proxy(cluster.cluster_type, upgrade_target)
 
     sub_pipeline.add_act(
         act_name=_("初始化配置"), act_component_code=GetRedisActPayloadComponent.code, kwargs=asdict(act_kwargs)
@@ -95,7 +94,7 @@ def ClusterProxysUpgradeAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, par
             "port": cluster_info["cluster_port"],
             "password": cluster_info["cluster_password"],
             "cluster_type": cluster.cluster_type,
-            "proxy_pkg_prefix": proxy_pkg_prefix,
+            "upgrade_target": upgrade_target.to_dict(),
         }
         act_kwargs.get_redis_payload_func = RedisActPayload.redis_proxy_upgrade_online_payload.__name__
         acts_list.append(
@@ -114,4 +113,10 @@ def ClusterProxysUpgradeAtomJob(root_id, ticket_data, sub_kwargs: ActKwargs, par
             act_component_code=DisableAlarmShieldComponent.code,
             kwargs=disable_alarm_shield["kwargs"],
         )
-    return sub_pipeline.build_sub_process(sub_name=_("目标版本-{}").format(proxy_pkg_prefix))
+    return sub_pipeline.build_sub_process(sub_name=_("目标版本-{}").format(upgrade_target.version_name))
+
+
+def _latest_release_proxy_package(cluster_type: str) -> Package:
+    if is_predixy_proxy_type(cluster_type):
+        return get_redis_package_v2_release(pkg_type=MediumEnum.Predixy, series=PredixyVersion.PredixyLatest.value)
+    return get_redis_package_v2_release(pkg_type=MediumEnum.Twemproxy, series=TwemproxyVersion.TwemproxyLatest.value)

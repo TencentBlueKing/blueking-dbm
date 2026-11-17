@@ -23,6 +23,7 @@ from backend.db_meta.api.cluster import nosqlcomm
 from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus
 from backend.db_meta.enums.comm import RedisVerUpdateNodeType
 from backend.db_meta.models import Cluster
+from backend.db_meta.models.db_version import DBVersion
 from backend.db_services.redis.redis_modules.models.redis_module_support import ClusterRedisModuleAssociate
 from backend.db_services.redis.util import (
     is_predixy_standalone_type,
@@ -53,19 +54,24 @@ from backend.flow.plugins.components.collections.redis.trans_flies import TransF
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload, query_cluster_dbconf_map
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext
 from backend.flow.utils.redis.redis_db_meta import RedisDBMeta
+from backend.flow.utils.redis.redis_package_resolver import (
+    RedisUpgradePackageResolver,
+    RedisUpgradeTarget,
+    RedisUpgradeTargetError,
+    resolve_ticket_upgrade_targets,
+    validate_proxy_upgrade,
+    validate_storage_upgrade,
+)
 from backend.flow.utils.redis.redis_proxy_util import (
     async_get_multi_cluster_info_by_cluster_ids,
     async_multi_clusters_precheck,
     get_cache_backup_mode,
     get_cluster_info_by_ip,
-    get_major_version_by_version_name,
     get_proxy_version_by_ip,
-    get_proxy_version_names_by_cluster_type,
     get_redis_version_by_ip,
-    get_storage_version_names_by_cluster_type,
     get_twemproxy_cluster_server_shards,
 )
-from backend.flow.utils.redis.redis_util import is_cross_engine_version_change, version_ge, version_gt
+from backend.flow.utils.redis.redis_util import version_ge
 from backend.flow.utils.redis.redis_version_upgrade_validate import register_pair_entry, validate_pair_buckets
 
 logger = logging.getLogger("flow")
@@ -107,11 +113,15 @@ def _apply_empty_start_params(cluster_kwargs: Dict, cluster_type: str):
     cluster_kwargs["sync_wait_timeout_seconds"] = _SYNC_WAIT_TIMEOUT_SECONDS
 
 
-def _apply_upgrade_pkg_params(cluster_kwargs: Dict, target_major_version: str, target_pkg_prefix: Optional[str]):
-    """db_version 走系列(元数据/dbconfig), pkg_name_prefix 钉住用户选中的精确介质包."""
+def _apply_upgrade_pkg_params(
+    cluster_kwargs: Dict,
+    target_major_version: str,
+    upgrade_target: Optional[RedisUpgradeTarget],
+):
+    """db_version 走系列(元数据/dbconfig), upgrade_target 钉住用户选中的版本管理V2版本."""
     cluster_kwargs["db_version"] = target_major_version
-    if target_pkg_prefix:
-        cluster_kwargs["pkg_name_prefix"] = target_pkg_prefix
+    if upgrade_target:
+        cluster_kwargs["upgrade_target"] = upgrade_target.to_dict()
 
 
 def _upgrade_owns_replication(cluster_type: str) -> bool:
@@ -202,7 +212,7 @@ class _ClusterUpgradeCtx:
     cluster_meta_data: Dict
     ips: Set[str]
     target_major_version: str
-    target_pkg_prefix: str = ""
+    upgrade_target: Optional[RedisUpgradeTarget] = None
     trans_files: Optional[GetFileList] = None
     # 流程中后段才会被填充, 见 _create_redis_cluster_upgrade_flow
     pairs_to_switch: List = field(default_factory=list)
@@ -229,7 +239,7 @@ class _InstancePairUpgradeCtx:
     master_ports_union: List[int]
     slave_ports_union: List[int]
     target_major_version: str
-    target_pkg_prefix: str
+    upgrade_target: RedisUpgradeTarget
     upgrade_master: bool
 
     @property
@@ -259,7 +269,7 @@ class RedisClusterVersionUpdateOnline(object):
         self.cluster_versions_ips = defaultdict(lambda: defaultdict(lambda: defaultdict(set)))
         # TendisRedisInstance专用:按 (master_ip, slave_ip) 分桶的升级单元
         # value 结构: {
-        #     "target_version": str,        # 同一 IP 上所有集群的目标版本必须一致
+        #     "target_version": int,        # 目标 db_version_id, 同一 IP 上所有集群必须一致
         #     "cluster_ids": List[int],     # IP 对上所有参与升级的集群 id (经 precheck 校验完整)
         #     "upgrade_master": bool,       # False => 仅升级 slave; True => 主从都升级
         # }
@@ -271,6 +281,9 @@ class RedisClusterVersionUpdateOnline(object):
         self.instance_ip_index: Dict[str, Dict] = {}
         # 记录每个 TendisRedisInstance cluster_id 的 pair 与目标版本,避免重复查询 meta
         self.instance_cluster_meta: Dict[int, Dict] = {}
+        # db_version_id -> 预检解析出的版本管理V2版本; 索引与桶都以 db_version_id 作为目标版本键
+        self.target_db_versions: Dict[int, DBVersion] = {}
+        self.upgrade_targets: Dict[int, RedisUpgradeTarget] = {}
         self.precheck()
 
     def precheck(self):
@@ -293,6 +306,14 @@ class RedisClusterVersionUpdateOnline(object):
         # 并发检查多个cluster的proxy、redis实例状态
         async_multi_clusters_precheck(to_precheck_cluster_ids)
 
+        try:
+            self.target_db_versions = resolve_ticket_upgrade_targets(self.data["infos"])
+        except RedisUpgradeTargetError as e:
+            raise Exception(_("目标版本解析失败: {}").format(e))
+        self.upgrade_targets = {
+            db_version_id: RedisUpgradeTarget.from_db_version(db_version)
+            for db_version_id, db_version in self.target_db_versions.items()
+        }
         for input_item in self.data["infos"]:
             self._index_info_item(input_item)
 
@@ -302,6 +323,14 @@ class RedisClusterVersionUpdateOnline(object):
         self._validate_backend_has_no_modules()
         self._validate_backend_buckets()
         self._validate_instance_pair_buckets()
+
+    def _upgrade_target(self, db_version_id: int) -> RedisUpgradeTarget:
+        if db_version_id not in self.upgrade_targets:
+            raise Exception(_("目标版本 db_version_id={} 未在 precheck 中解析").format(db_version_id))
+        return self.upgrade_targets[db_version_id]
+
+    def _version_names(self, db_version_ids) -> List[str]:
+        return sorted(self._upgrade_target(i).version_name for i in db_version_ids)
 
     def _make_act_kwargs(self) -> ActKwargs:
         """构造默认的 ActKwargs (绑定 CommonContext + 启用 trans_data 合并)."""
@@ -400,16 +429,16 @@ class RedisClusterVersionUpdateOnline(object):
                     continue
             # 非 TendisRedisInstance Backend / 所有 Proxy 沿用旧索引
             for target in input_item["target_versions"]:
-                self.cluster_versions_ips[node_type][cid][target["version"]].add(target["ip"])
+                self.cluster_versions_ips[node_type][cid][target["db_version_id"]].add(target["ip"])
 
     def _index_instance_backend_entry(self, cluster: Cluster, input_item: Dict):
-        """TendisRedisInstance Backend 分支: 校验单 version 并调用 _register_instance_info_item."""
-        versions_in_item = {t["version"] for t in input_item["target_versions"]}
+        """TendisRedisInstance Backend 分支: 校验单目标版本并调用 _register_instance_info_item."""
+        versions_in_item = {t["db_version_id"] for t in input_item["target_versions"]}
         if len(versions_in_item) > 1:
             # 同 IP 对无法承载多版本
             raise Exception(
-                _("集群 {} 的 target_versions 里包含多个 version {}, 主从版升级不支持此组合").format(
-                    cluster.immute_domain, versions_in_item
+                _("集群 {} 的 target_versions 里包含多个目标版本 {}, 主从版升级不支持此组合").format(
+                    cluster.immute_domain, self._version_names(versions_in_item)
                 )
             )
         target_version = next(iter(versions_in_item))
@@ -420,19 +449,11 @@ class RedisClusterVersionUpdateOnline(object):
         """Proxy 升降级合法性检查."""
         for cluster_id, target_pairs in self.cluster_versions_ips["Proxy"].items():
             cluster = self._get_cluster(cluster_id)
-            valid_versions = get_proxy_version_names_by_cluster_type(cluster.cluster_type, True)
-            for target_version, ips in target_pairs.items():
-                if target_version not in valid_versions:
-                    raise Exception(
-                        _("Redis集群 {}, 目标版本 {} 不合法, 合法的版本: {}").format(
-                            cluster.immute_domain, target_version, valid_versions
-                        )
-                    )
+            for db_version_id, ips in target_pairs.items():
                 ip_cur_ver = {ip: get_proxy_version_by_ip(cluster_id, ip) for ip in ips}
-                if all(target_version == ip_cur_ver[ip] for ip in ips):
-                    raise Exception(
-                        _("集群 {} 所有proxy当前版本等于目标版本: {}, 无需执行").format(cluster.immute_domain, target_version)
-                    )
+                validate_proxy_upgrade(
+                    self.target_db_versions[db_version_id], cluster.cluster_type, cluster.immute_domain, ip_cur_ver
+                )
 
     def _validate_backend_has_no_modules(self):
         """
@@ -468,41 +489,25 @@ class RedisClusterVersionUpdateOnline(object):
             if len(target_pairs) > 1:
                 raise Exception(
                     _("集群 {} Backend 不允许在同一单据中升级到多个目标版本: {}").format(
-                        cluster.immute_domain, sorted(target_pairs.keys())
+                        cluster.immute_domain, self._version_names(target_pairs.keys())
                     )
                 )
-            valid_versions = get_storage_version_names_by_cluster_type(cluster.cluster_type, True)
-            for target_version, ips in target_pairs.items():
-                self._validate_backend_target_pair(cluster, valid_versions, target_version, ips)
+            for db_version_id, ips in target_pairs.items():
+                self._validate_backend_target_pair(cluster, db_version_id, ips)
 
-    def _validate_backend_target_pair(
-        self, cluster: Cluster, valid_versions: List[str], target_version: str, ips: Set[str]
-    ):
-        """对单个 (target_version, ips) 组合做版本合法性 / 降级 / master-slave 配对校验."""
-        if target_version not in valid_versions:
-            raise Exception(
-                _("Redis集群 {}, 目标版本 {} 不合法, 合法的版本: {}").format(cluster.immute_domain, target_version, valid_versions)
-            )
+    def _validate_backend_target_pair(self, cluster: Cluster, db_version_id: int, ips: Set[str]):
+        """对单个 (目标版本, ips) 组合做版本合法性 / 降级 / master-slave 配对校验."""
         cluster_id = cluster.id
         ip_cur_ver = {ip: get_redis_version_by_ip(cluster_id, ip) for ip in ips}
+        validate_storage_upgrade(
+            self.target_db_versions[db_version_id], cluster.cluster_type, cluster.immute_domain, ip_cur_ver
+        )
         cluster_info = self.cluster_cache[cluster_id]
         master_ip_to_slave_ip = cluster_info.get("master_ip_to_slave_ip", {})
         master_ports = cluster_info.get("master_ports", {})
         slave_ports = cluster_info.get("slave_ports", {})
 
         for ip in ips:
-            if is_cross_engine_version_change(ip_cur_ver[ip], target_version):
-                raise Exception(
-                    _("集群 {} IP {} 当前版本 {} 与目标版本 {} 引擎不同(Redis/Valkey), 不支持跨引擎版本升级, 请使用 DTS 数据迁移").format(
-                        cluster.immute_domain, ip, ip_cur_ver[ip], target_version
-                    )
-                )
-            if version_gt(ip_cur_ver[ip], target_version):
-                raise Exception(
-                    _("集群 {} storage IP {} 当前版本 {} > 目标版本: {},不支持降级").format(
-                        cluster.immute_domain, ip, ip_cur_ver[ip], target_version
-                    )
-                )
             if ip in master_ports:
                 self._validate_master_upgrade_supported(cluster)
                 self._validate_master_slave_pairing(cluster, ip, ips, master_ip_to_slave_ip)
@@ -548,7 +553,7 @@ class RedisClusterVersionUpdateOnline(object):
                 )
             )
 
-    def _register_instance_info_item(self, cluster: Cluster, target_version: str, ips_in_item: Set[str]):
+    def _register_instance_info_item(self, cluster: Cluster, target_version: int, ips_in_item: Set[str]):
         """
         TendisRedisInstance 单条 info 项注册到 pair 桶与 IP 索引.
         仅做单集群元信息解析 + 聚合, 完整校验在 _validate_instance_pair_buckets 里进行.
@@ -568,6 +573,7 @@ class RedisClusterVersionUpdateOnline(object):
             pair_buckets=self.instance_pair_buckets,
             ip_index=self.instance_ip_index,
             cluster_meta=self.instance_cluster_meta,
+            db_versions=self.target_db_versions,
         )
 
     @staticmethod
@@ -667,7 +673,7 @@ class RedisClusterVersionUpdateOnline(object):
         cluster_meta_data = self.cluster_cache[cluster_id]
         act_kwargs = self._make_act_kwargs()
 
-        for version, ips in version_pairs.items():
+        for db_version_id, ips in version_pairs.items():
             sub_process = ClusterProxysUpgradeAtomJob(
                 self.root_id,
                 self.data,
@@ -675,7 +681,7 @@ class RedisClusterVersionUpdateOnline(object):
                 {
                     "cluster_domain": cluster_meta_data["immute_domain"],
                     "target_ips": ips,
-                    "target_version": version,
+                    "upgrade_target": self._upgrade_target(db_version_id).to_dict(),
                     "alarm_shield": self._build_alarm_shield_spec(act_kwargs, ips, cluster_meta_data),
                     "disable_alarm_shield": (
                         self._build_disable_alarm_shield_spec(act_kwargs, cluster_meta_data) if ips else None
@@ -716,11 +722,12 @@ class RedisClusterVersionUpdateOnline(object):
         cc_update_acts = []
         role_meta_acts = []
         dbmon_reinstall_ips = set()
-        for target_version, ips in version_pairs.items():
-            target_major_version = get_major_version_by_version_name(target_version)
+        for db_version_id, ips in version_pairs.items():
+            upgrade_target = self._upgrade_target(db_version_id)
+            target_major_version = RedisUpgradePackageResolver.series_name(upgrade_target)
             target_major_versions.append(target_major_version)
             target_process, target_cc_update_acts, target_role_meta_acts = self._create_redis_cluster_upgrade_flow(
-                act_kwargs, cluster_meta_data, target_major_version, target_version, ips, trans_files
+                act_kwargs, cluster_meta_data, target_major_version, upgrade_target, ips, trans_files
             )
             version_pipelines.append(target_process)
             cc_update_acts.extend(target_cc_update_acts)
@@ -754,9 +761,9 @@ class RedisClusterVersionUpdateOnline(object):
         """
         master_ip, slave_ip = pair_key
         cluster_ids: List[int] = list(bucket["cluster_ids"])
-        target_version: str = bucket["target_version"]
+        upgrade_target = self._upgrade_target(bucket["target_version"])
         upgrade_master: bool = bucket["upgrade_master"]
-        target_major_version = get_major_version_by_version_name(target_version)
+        target_major_version = RedisUpgradePackageResolver.series_name(upgrade_target)
 
         act_kwargs = self._make_act_kwargs()
         # 用桶内第一个 cluster 的 meta 填充通用字段 (bk_cloud_id 等跨兄弟集群一致)
@@ -769,13 +776,13 @@ class RedisClusterVersionUpdateOnline(object):
             master_ip=master_ip,
             slave_ip=slave_ip,
             target_major_version=target_major_version,
-            target_pkg_prefix=target_version,
+            upgrade_target=upgrade_target,
             upgrade_master=upgrade_master,
         )
         return sub_builder
 
     def _create_redis_cluster_upgrade_flow(
-        self, act_kwargs, cluster_meta_data, target_major_version, target_pkg_prefix, ips, trans_files
+        self, act_kwargs, cluster_meta_data, target_major_version, upgrade_target, ips, trans_files
     ):
         """创建Redis集群升级流水线"""
         ctx = _ClusterUpgradeCtx(
@@ -784,7 +791,7 @@ class RedisClusterVersionUpdateOnline(object):
             cluster_meta_data=cluster_meta_data,
             ips=ips,
             target_major_version=target_major_version,
-            target_pkg_prefix=target_pkg_prefix,
+            upgrade_target=upgrade_target,
             trans_files=trans_files,
         )
 
@@ -821,7 +828,7 @@ class RedisClusterVersionUpdateOnline(object):
         """添加目标 IP 下发介质包的动作."""
         ctx.act_kwargs.exec_ip = list(ctx.ips)
         ctx.act_kwargs.file_list = ctx.trans_files.redis_cluster_version_update(
-            ctx.target_major_version, name_prefix=ctx.target_pkg_prefix
+            ctx.target_major_version, upgrade_target=ctx.upgrade_target
         )
         ctx.pipeline.add_act(
             act_name=_("目标IP 下发介质包"),
@@ -929,7 +936,7 @@ class RedisClusterVersionUpdateOnline(object):
             ctx.act_kwargs.cluster["ip"] = ip
             ctx.act_kwargs.cluster["ports"] = ports
             ctx.act_kwargs.cluster["password"] = ctx.cluster_meta_data["redis_password"]
-            _apply_upgrade_pkg_params(ctx.act_kwargs.cluster, ctx.target_major_version, ctx.target_pkg_prefix)
+            _apply_upgrade_pkg_params(ctx.act_kwargs.cluster, ctx.target_major_version, ctx.upgrade_target)
             ctx.act_kwargs.cluster["role"] = InstanceRole.REDIS_SLAVE.value
             ctx.act_kwargs.cluster["cluster_type"] = ctx.cluster_meta_data["cluster_type"]
             # 主库不变, 配置里已有的 replicaof 会被原样带到新版本配置里, 不需要 sync_masters
@@ -988,7 +995,7 @@ class RedisClusterVersionUpdateOnline(object):
             ctx.act_kwargs.cluster["ip"] = ip
             ctx.act_kwargs.cluster["ports"] = ports
             ctx.act_kwargs.cluster["password"] = ctx.cluster_meta_data["redis_password"]
-            _apply_upgrade_pkg_params(ctx.act_kwargs.cluster, ctx.target_major_version, ctx.target_pkg_prefix)
+            _apply_upgrade_pkg_params(ctx.act_kwargs.cluster, ctx.target_major_version, ctx.upgrade_target)
             ctx.act_kwargs.cluster["role"] = InstanceRole.REDIS_SLAVE.value
             ctx.act_kwargs.cluster["cluster_type"] = ctx.cluster_meta_data["cluster_type"]
             # cluster failover 已经把它变成了 new_master 的从库, 主从关系在 nodes.conf 里;
@@ -1077,7 +1084,7 @@ class RedisClusterVersionUpdateOnline(object):
             ctx.act_kwargs.cluster["ip"] = ip
             ctx.act_kwargs.cluster["ports"] = ports
             ctx.act_kwargs.cluster["password"] = ctx.cluster_meta_data["redis_password"]
-            _apply_upgrade_pkg_params(ctx.act_kwargs.cluster, ctx.target_major_version, ctx.target_pkg_prefix)
+            _apply_upgrade_pkg_params(ctx.act_kwargs.cluster, ctx.target_major_version, ctx.upgrade_target)
             # role 取当前运行态而非 act_name 暗示的目标态: 此时进程仍以 master 运行,
             # 由这次升级把它接到 new_master 上, actuator 的 isAllInstanceMaster 据此校验.
             ctx.act_kwargs.cluster["role"] = InstanceRole.REDIS_MASTER.value
@@ -1223,7 +1230,7 @@ class RedisClusterVersionUpdateOnline(object):
         master_ip: str,
         slave_ip: str,
         target_major_version: str,
-        target_pkg_prefix: str,
+        upgrade_target: RedisUpgradeTarget,
         upgrade_master: bool,
     ) -> SubBuilder:
         """
@@ -1232,7 +1239,7 @@ class RedisClusterVersionUpdateOnline(object):
         @param cluster_ids 经 precheck 校验的、pair 上所有待升级集群 id (含 sibling)
         @param master_ip / slave_ip pair 的物理 IP
         @param target_major_version 目标主版本 (如 'Redis-6')
-        @param target_pkg_prefix 用户选中的精确包名前缀 (如 'redis-6.2.14')
+        @param upgrade_target 预检解析出的目标版本
         @param upgrade_master True: master/slave 都升级并切换; False: 仅升级 slave
         """
         sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
@@ -1291,7 +1298,7 @@ class RedisClusterVersionUpdateOnline(object):
         act_kwargs.exec_ip = all_ips
         trans_files = GetFileList(db_type=DBType.Redis)
         act_kwargs.file_list = trans_files.redis_cluster_version_update(
-            target_major_version, name_prefix=target_pkg_prefix
+            target_major_version, upgrade_target=upgrade_target
         )
         sub_pipeline.add_act(
             act_name=_("主从IP 下发介质包"),
@@ -1305,7 +1312,7 @@ class RedisClusterVersionUpdateOnline(object):
         act_kwargs.exec_ip = slave_ip
         act_kwargs.cluster["ip"] = slave_ip
         act_kwargs.cluster["ports"] = slave_ports_union
-        _apply_upgrade_pkg_params(act_kwargs.cluster, target_major_version, target_pkg_prefix)
+        _apply_upgrade_pkg_params(act_kwargs.cluster, target_major_version, upgrade_target)
         act_kwargs.cluster["role"] = InstanceRole.REDIS_SLAVE.value
         act_kwargs.cluster["cluster_type"] = anchor_meta["cluster_type"]
         # 主库不变, 配置里已有的 replicaof 会被原样带到新版本配置里, 不需要 sync_masters
@@ -1332,7 +1339,7 @@ class RedisClusterVersionUpdateOnline(object):
                 master_ports_union=master_ports_union,
                 slave_ports_union=slave_ports_union,
                 target_major_version=target_major_version,
-                target_pkg_prefix=target_pkg_prefix,
+                upgrade_target=upgrade_target,
                 upgrade_master=upgrade_master,
             )
             self._add_instance_switch_and_master_upgrade(ctx)
@@ -1463,7 +1470,7 @@ class RedisClusterVersionUpdateOnline(object):
         act_kwargs.exec_ip = master_ip
         act_kwargs.cluster["ip"] = master_ip
         act_kwargs.cluster["ports"] = master_ports_union
-        _apply_upgrade_pkg_params(act_kwargs.cluster, target_major_version, ctx.target_pkg_prefix)
+        _apply_upgrade_pkg_params(act_kwargs.cluster, target_major_version, ctx.upgrade_target)
         act_kwargs.cluster["role"] = InstanceRole.REDIS_MASTER.value
         act_kwargs.cluster["cluster_type"] = ctx.anchor_meta["cluster_type"]
         act_kwargs.cluster["sync_masters"] = _build_sync_masters(
