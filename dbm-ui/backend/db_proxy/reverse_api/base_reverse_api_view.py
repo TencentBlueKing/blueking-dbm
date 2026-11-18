@@ -16,30 +16,16 @@ from django.utils.translation import gettext as _
 from rest_framework import permissions
 from rest_framework.request import Request
 
-from backend import env
 from backend.bk_web.viewsets import SystemViewSet
-from backend.db_proxy.reverse_api.helper import validate_machine_ip, validate_nginx_ip
+from backend.db_proxy.reverse_api.helper import validate_machine_ip
 
 logger = logging.getLogger("root")
 
 
 class IPHasRegisteredPermission(permissions.BasePermission):
     def has_permission(self, request: Request, view):
-        if env.DEBUG_REVERSE_API:
-            logger.info("in debug mode")
-        else:
-            logger.info(
-                f"[checking reverse-api-perm] request path: {request.path},"
-                f"REMOTE_ADDR: {request.META.get('REMOTE_ADDR')},"
-                f"HTTP_X_FORWARDED_FOR: {request.META.get('HTTP_X_FORWARDED_FOR')}"
-            )
-
         try:
             bk_cloud_id = int(request.query_params.get("bk_cloud_id"))
-
-            # DEBUG或者代理跳过模式下，不校验nginx ip
-            if not env.DEBUG_REVERSE_API and not env.DOMAIN_SKIP_PROXY and not env.CLOUD_CONTAINER_ENABLE:
-                validate_nginx_ip(bk_cloud_id, request)
 
             validate_machine_ip(bk_cloud_id, request)
 
