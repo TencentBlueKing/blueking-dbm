@@ -14,8 +14,10 @@ from types import FunctionType
 
 from django.utils.translation import gettext as _
 from rest_framework import permissions
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 
+from backend import env
 from backend.bk_web.viewsets import SystemViewSet
 from backend.db_proxy.reverse_api.helper import validate_machine_ip
 
@@ -24,6 +26,9 @@ logger = logging.getLogger("root")
 
 class IPHasRegisteredPermission(permissions.BasePermission):
     def has_permission(self, request: Request, view):
+        if not env.ENABLE_BACKEND_API:
+            raise PermissionDenied(_("当前服务未开启 backend-api 接口(ENABLE_BACKEND_API)"))
+
         try:
             bk_cloud_id = int(request.query_params.get("bk_cloud_id"))
 
