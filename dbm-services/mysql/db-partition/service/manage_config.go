@@ -400,8 +400,8 @@ func (m *CreatePartitionsInput) UpdatePartitionsConfig() error {
 			} else {
 				CreateManageLog(tbName, logTbName, partitionConfig.ID, "Update", m.Updator)
 			}
-			// 对于不在页面的几种分区类型(1,3,4)，不允许修改字段值、字段类型和分区类型，只能改保留时间、分区间隔
-			if ContainsMap(Slice2Map([]int{1, 3, 4}), partitionConfig.PartitionType) {
+			// 标准类型 0、5、101 按入参重算；其余都是非标准，不允许修改字段值、字段类型和分区类型
+			if !ContainsMap(Slice2Map([]int{0, 5, 101}), partitionConfig.PartitionType) {
 				if m.PartitionColumn != partitionConfig.PartitionColumn || m.PartitionColumnType !=
 					partitionConfig.PartitionColumnType {
 					return errors.New("非标准分区类型，不可修改分区字段和分区字段类型！")
