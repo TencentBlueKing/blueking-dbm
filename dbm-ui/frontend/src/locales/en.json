@@ -6849,7 +6849,7 @@
   "请输入不带端口的 IPv4 地址": "Enter IPv4 addresses without ports",
   "请输入域名前缀，如 api.game": "Enter the domain prefix, e.g. api.game",
   "删除后不可恢复。请输入完整域名 n 确认。": "This cannot be undone. Enter the full domain {0} to confirm.",
-  "至少 3 段，如 api.game.db；仅支持小写字母、数字、连字符和点号；创建后不可修改": "At least 3 labels, e.g. api.game.db; only lowercase letters, digits, hyphens and dots; cannot be changed after creation",
+  "至少 3 段，如 api.game.db；仅支持小写字母、数字、连字符和点号；": "At least 3 labels, e.g. api.game.db; only lowercase letters, digits, hyphens and dots; ",
   "仅支持小写字母、数字、连字符和点号": "Only lowercase letters, digits, hyphens and dots are supported",
   "域名至少 3 段，如 api.game.db": "The domain must have at least 3 labels, e.g. api.game.db",
   "每段首尾须为字母或数字，单段不超过 63 字符，总长不超过 253 字符": "Each label must start and end with a letter or digit and be at most 63 characters; total length is at most 253 characters",
