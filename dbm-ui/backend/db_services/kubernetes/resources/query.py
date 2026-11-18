@@ -181,7 +181,10 @@ class KubernetesBaseListRetrieveResource(query.ListRetrieveResource, KubernetesB
         cluster_map = {}
         # 注意：必须迭代 cluster_queryset 的副本(.all())，避免提前评估传入父类的同一 QuerySet 对象，
         # 否则父类 _filter_cluster_hook 中对 cluster_queryset 切片会得到 list 而非 QuerySet，导致 prefetch_related 报错
-        for cluster in cluster_queryset.all():
+        # 仅请求当前页的远程数据，分页范围与父类保持一致。
+        page_queryset = cluster_queryset.all()
+        page_queryset = page_queryset[offset:] if limit == -1 else page_queryset[offset : offset + limit]
+        for cluster in page_queryset:
             cluster_detail = KubernetesApi.cluster_detail({"cluster_id": cluster.id}, use_admin=True)
             component_params = {
                 "clusterName": cluster.name,
