@@ -7,8 +7,8 @@ import pytest
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.enums.comm import RedisVerUpdateNodeType
-from backend.db_meta.models.db_version import DBVersion
 from backend.db_package.models import Package
+from backend.db_package.models.db_version import DBVersion
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.redis import redis_cluster_version_update_online as mod
 from backend.flow.engine.bamboo.scene.redis.redis_cluster_version_update_online import RedisClusterVersionUpdateOnline
