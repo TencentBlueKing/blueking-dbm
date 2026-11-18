@@ -12,6 +12,7 @@ from rest_framework.routers import DefaultRouter
 
 from backend.dbm_aiagent.mcp_tools.es.views.es_bill_mcp import EsBillMcpToolsViewSet
 from backend.dbm_aiagent.mcp_tools.es.views.es_metrics_mcp import EsMetricsMcpToolsViewSet
+from backend.dbm_aiagent.mcp_tools.es.views.es_readonly_api_mcp import EsReadonlyApiMcpToolsViewSet
 from backend.dbm_aiagent.mcp_tools.es.views.query_meta import EsQueryMetaMcpToolsViewSet
 
 routers = DefaultRouter(trailing_slash=True)
@@ -22,5 +23,7 @@ routers.register(r"", EsQueryMetaMcpToolsViewSet, basename="mcp-es-query-meta")
 routers.register(r"", EsBillMcpToolsViewSet, basename="mcp-es-bill")
 # 监控指标查询
 routers.register(r"", EsMetricsMcpToolsViewSet, basename="mcp-es-metrics")
+# ES 只读 API 查询
+routers.register(r"", EsReadonlyApiMcpToolsViewSet, basename="mcp-es-readonly-api")
 
 urlpatterns = routers.urls

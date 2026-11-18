@@ -687,6 +687,19 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "tools": [],
     },
     {
+        "name": "es-readonly-api",
+        "description": """Elasticsearch readonly API query services via bkjob curl GET""",
+        # 主动授权 app_code
+        "target_app_codes": [env.APP_CODE, "ai-dbm"],
+        "labels": ["es-readonly-api"],
+        # 是否启用：1-启用，0-停止
+        "status": 1,
+        # 是否公开
+        "is_public": False,
+        # 自动发现并填充该 MCP 服务器对应的工具
+        "tools": [],
+    },
+    {
         "name": "doris-metrics",
         "description": """Doris cluster monitoring metrics query services, covering FE/BE system resources
         and Doris internal metrics such as capacity, JVM heap, query error rate, transaction,
