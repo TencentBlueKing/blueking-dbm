@@ -197,6 +197,11 @@ POLARIS_URL = get_type_env(key="POLARIS_URL", _type=str, default="http://polaris
 # 仅在容器中暴露service，提供内部服务调用，不暴露ingress
 SERVICE_ONLY = get_type_env(key="SERVICE_ONLY", _type=str, default=False)
 
+# 当前进程是否提供 backend-api 专属接口。这类接口只凭来源IP鉴权，应只暴露在仅允许云区域nginx访问的入口上。
+# 目前仅覆盖反向查询接口 /apis/proxypass/reverse_api/，proxypass 下的其他接口有 token 鉴权，不受此开关影响。
+# 默认开启以兼容存量部署；已部署独立 backend-api 入口、且云区域nginx已指向该入口的环境，应在 saas-api 上关闭
+ENABLE_BACKEND_API = get_type_env(key="ENABLE_BACKEND_API", _type=bool, default=True)
+
 ADMIN_USERS = [u.strip() for u in get_type_env(key="ADMIN_USERS", default="admin", _type=str).split(",") if u]
 
 # 标准运维

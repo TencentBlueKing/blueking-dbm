@@ -124,9 +124,10 @@ http {
 
     }
 
-    map $args $args_with_ip {
-        ""       "ip=$remote_addr";
-        default  "$args&ip=$remote_addr";
+    # 反向接口鉴权只认这里追加的 ip，必须放在参数末尾，覆盖客户端自带的同名参数
+    map \$args \$args_with_ip {
+        ''       ip=\$remote_addr;
+        default  \$args&ip=\$remote_addr;
     }
 
     # 转发dbm的透传服务
@@ -137,19 +138,18 @@ http {
         client_max_body_size 500M;
         proxy_connect;
         proxy_connect_allow 443 563;
-        set_real_ip_from 0.0.0.0/0;
-        real_ip_header X-Forwarded-For;
-        real_ip_recursive on;
+        # 不能启用 realip：\$remote_addr 必须是真实的 TCP 对端，不能被客户端的 XFF 改写
         proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-For \$remote_addr;
+
+        location ^~ /apis/proxypass/reverse_api/ {
+            set \$args \$args_with_ip;
+            proxy_pass {{dbm_momain}};
+        }
 
         location /apis/proxypass/ {
             # 重写上传接口的uri
             rewrite /generic/(.*)/(.*)/(.*)/  /apis/proxypass/generic/\$1/\$2/\$3/ break;
-
-            if ($request_uri ~ ^/apis/proxypass/reverse_api(/|$|\?)) {
-                set $args $args_with_ip;
-            }
 
             # 注意如果dbm_momain是以https开头的，则需要配置SSL
             proxy_pass {{dbm_momain}};
