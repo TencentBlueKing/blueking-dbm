@@ -23,22 +23,29 @@
       v-model="modelValue"
       :clearable="false">
       <DbOption
-        v-for="(item, index) in versions"
-        :id="item"
-        :key="item"
-        :name="item">
+        v-for="item in versions"
+        :id="item.db_version_id"
+        :key="item.db_version_id"
+        :name="item.version_name">
         <TextOverflowLayout>
-          {{ item }}
+          {{ item.version_name }}
           <template #append>
             <DbTag
-              v-if="isCurrentVersion(item)"
+              v-if="versionStageMap[item.phase]"
+              class="ml-4"
+              size="small"
+              :theme="versionStageMap[item.phase].theme">
+              {{ versionStageMap[item.phase].label }}
+            </DbTag>
+            <DbTag
+              v-if="item.is_current"
               class="ml-4"
               size="small"
               theme="info">
               {{ t('当前版本') }}
             </DbTag>
             <DbTag
-              v-if="index === 0"
+              v-if="item.recommend"
               class="ml-4"
               size="small"
               theme="warning">
@@ -54,19 +61,22 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getClusterVersions } from '@services/source/redisToolbox';
+  import { getClusterVersions, type RedisUpgradeVersionItem } from '@services/source/redisToolbox';
+
+  import { versionStageMap } from '@common/const';
 
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
 
   interface Props {
     clusterId: number;
-    currentVersions?: string[];
     nodeType: string;
+    versionName?: string; // 批量导入的版本名，候选加载后映射成 db_version_id
   }
 
   const props = defineProps<Props>();
 
-  const modelValue = defineModel<string>();
+  // 值为版本管理 V2 的 db_version_id
+  const modelValue = defineModel<number>();
 
   const { t } = useI18n();
 
@@ -74,11 +84,11 @@
     data: versions,
     loading,
     run: runGetClusterVersions,
-  } = useRequest(getClusterVersions, {
+  } = useRequest<RedisUpgradeVersionItem[], [Parameters<typeof getClusterVersions>[0]]>(getClusterVersions, {
     manual: true,
     onSuccess(versionResult) {
-      if (modelValue.value && versionResult.every((item) => item !== modelValue.value)) {
-        modelValue.value = '';
+      if (modelValue.value && versionResult.every((item) => item.db_version_id !== modelValue.value)) {
+        modelValue.value = undefined;
       }
     },
   });
@@ -99,5 +109,18 @@
     },
   );
 
-  const isCurrentVersion = (value: string) => (props.currentVersions || []).includes(value);
+  watch(
+    () => [props.versionName, versions.value],
+    () => {
+      if (props.versionName && !modelValue.value && versions.value) {
+        const matchItem = versions.value.find((item) => item.version_name === props.versionName);
+        if (matchItem) {
+          modelValue.value = matchItem.db_version_id;
+        }
+      }
+    },
+    {
+      immediate: true,
+    },
+  );
 </script>

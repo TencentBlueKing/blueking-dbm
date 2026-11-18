@@ -30,8 +30,8 @@
       <TargetVersionColumn
         v-model="item.target_version"
         :cluster-id="item.cluster.id"
-        :current-versions="item.current_versions"
-        :node-type="nodeType" />
+        :node-type="nodeType"
+        :version-name="item.target_version_name" />
       <OperationColumn
         :create-row-method="createRowData"
         :table-data="tableData" />
@@ -73,11 +73,11 @@
         node_type: string;
         slave_current_versions: string[]; // 回显
         target_versions: {
-          instance_role: string; // 回显
+          db_version_id: number;
+          instance_role: string;
           ip: string;
-          related_clusters: string[]; // 回显
-          slave_ip: string; // 回显
-          version: string;
+          related_clusters: string[];
+          slave_ip: string;
         }[];
       }[]
     >;
@@ -93,12 +93,13 @@
       proxy: RedisModel['proxy'];
     };
     current_versions: string[];
-    target_version: string;
+    target_version: number | undefined; // db_version_id
+    target_version_name?: string; // 批量导入的版本名
   }
 
   const props = defineProps<Props>();
 
-  const createRowData = (values = {} as Partial<IDataRow>) => ({
+  const createRowData = (values = {} as Partial<IDataRow>): IDataRow => ({
     cluster: Object.assign(
       {
         cluster_type: '',
@@ -110,7 +111,8 @@
       values.cluster,
     ),
     current_versions: values?.current_versions || ([] as string[]),
-    target_version: values?.target_version || '',
+    target_version: values?.target_version,
+    target_version_name: values?.target_version_name,
   });
 
   const { t } = useI18n();
@@ -122,11 +124,14 @@
       const { details } = ticketDetail;
       const { clusters, infos } = details;
       tableData.value = infos.map((infoItem) => {
+        // 新协议有 db_version_id，旧协议按 version 兜底，回填版本名由目标版本列映射成 id
         return createRowData({
           cluster: {
             master_domain: clusters[infoItem.cluster_id].immute_domain,
           } as IDataRow['cluster'],
-          target_version: infoItem.target_versions[0].version,
+          target_version: infoItem.target_versions[0].db_version_id,
+          target_version_name:
+            infoItem.target_version || infoItem.target_versions[0].version_name || infoItem.target_versions[0].version,
         });
       });
     },
@@ -188,7 +193,7 @@
           cluster: {
             master_domain: item.master_domain,
           } as IDataRow['cluster'],
-          target_version: item.version,
+          target_version_name: item.version,
         }),
       );
       return acc;
@@ -211,11 +216,11 @@
           slave_current_versions: [],
           target_versions: _.uniqBy(
             tableItem.cluster.proxy.map((proxyItem) => ({
+              db_version_id: tableItem.target_version as number,
               instance_role: '',
               ip: proxyItem.ip,
               related_clusters: [],
               slave_ip: '',
-              version: tableItem.target_version,
             })),
             'ip',
           ),

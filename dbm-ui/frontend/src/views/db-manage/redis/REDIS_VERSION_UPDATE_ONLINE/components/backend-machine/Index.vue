@@ -32,9 +32,9 @@
       <TargetVersionColumn
         v-model="item.target_version"
         :cluster-id="item.host.related_clusters.length ? item.host.related_clusters[0].id : 0"
-        :current-versions="item.current_versions"
         :ip="item.host.ip"
-        :node-type="nodeType" />
+        :node-type="nodeType"
+        :version-name="item.target_version_name" />
       <OperationColumn
         :create-row-method="createRowData"
         :table-data="tableData" />
@@ -76,11 +76,11 @@
         node_type: string;
         slave_current_versions: string[]; // 回显
         target_versions: {
-          instance_role: string; // 回显
+          db_version_id: number;
+          instance_role: string;
           ip: string;
-          related_clusters: string[]; // 回显
-          slave_ip: string; // 回显
-          version: string;
+          related_clusters: string[];
+          slave_ip: string;
         }[];
       }[]
     >;
@@ -91,12 +91,13 @@
     current_versions: string[];
     host: ComponentProps<typeof HostColumn>['modelValue'];
     slave_current_versions: string[];
-    target_version: string;
+    target_version: number | undefined; // db_version_id
+    target_version_name?: string; // 批量导入的版本名
   }
 
   const props = defineProps<Props>();
 
-  const createRowData = (values = {} as Partial<IDataRow>) => ({
+  const createRowData = (values = {} as Partial<IDataRow>): IDataRow => ({
     current_versions: values?.current_versions || ([] as string[]),
     host: Object.assign(
       {
@@ -115,7 +116,8 @@
       values.host,
     ),
     slave_current_versions: values?.slave_current_versions || ([] as string[]),
-    target_version: values?.target_version || '',
+    target_version: values?.target_version,
+    target_version_name: values?.target_version_name,
   });
 
   const { t } = useI18n();
@@ -127,29 +129,27 @@
       const { details } = ticketDetail;
       const { infos } = details;
 
-      const ipMap: Record<string, Redis.VersionUpdateOnline['infos'][number]['target_versions'][number]> = {};
-      const pairSlaveIpMap: Record<string, boolean> = {};
-      infos.forEach((infoItem) => {
-        infoItem.target_versions.forEach((targetItem) => {
-          if (pairSlaveIpMap[targetItem.ip]) {
-            return;
-          }
-
-          ipMap[targetItem.ip] = targetItem;
-          if (targetItem.slave_ip) {
-            pairSlaveIpMap[targetItem.slave_ip] = true;
-          }
-        });
-      });
-
-      tableData.value = Object.values(ipMap).map((item) => {
-        return createRowData({
-          host: {
-            ip: item.ip,
-          } as IDataRow['host'],
-          target_version: item.version,
-        });
-      });
+      // 新协议：每台机器独立一条 target_versions 记录；同一 ip 只保留一条（一台主机可关联多个集群）；旧协议按 version 兜底，回填版本名由目标版本列映射成 id
+      const targetIpSet = new Set<string>();
+      tableData.value = infos
+        .flatMap((infoItem) =>
+          infoItem.target_versions.filter((targetItem) => {
+            if (targetIpSet.has(targetItem.ip)) {
+              return false;
+            }
+            targetIpSet.add(targetItem.ip);
+            return true;
+          }),
+        )
+        .map((targetItem) =>
+          createRowData({
+            host: {
+              ip: targetItem.ip,
+            } as IDataRow['host'],
+            target_version: targetItem.db_version_id,
+            target_version_name: targetItem.version_name || targetItem.version,
+          }),
+        );
     },
   });
 
@@ -204,7 +204,7 @@
           host: {
             ip: item.ip,
           } as IDataRow['host'],
-          target_version: item.version,
+          target_version_name: item.version,
         }),
       );
       return acc;
@@ -227,11 +227,11 @@
           tableItem.host.related_clusters.forEach((clusterItem) => {
             const clusterId = clusterItem.id;
             const targetVersionItem = {
+              db_version_id: tableItem.target_version as number,
               instance_role: tableItem.host.instance_role,
               ip: tableItem.host.ip,
               related_clusters: tableItem.host.related_clusters.map((item) => item.immute_domain),
               slave_ip: tableItem.host.instance_role === 'redis_master' ? tableItem.host.pair_machine.ip : '',
-              version: tableItem.target_version,
             };
             if (clusterMap[clusterId]) {
               clusterMap[clusterId].target_versions.push(targetVersionItem);
@@ -251,11 +251,11 @@
             tableItem.host.pair_machine.related_clusters.forEach((pairClusterItem) => {
               const clusterId = pairClusterItem.id;
               const targetVersionItem = {
+                db_version_id: tableItem.target_version as number,
                 instance_role: 'redis_slave',
                 ip: tableItem.host.pair_machine.ip,
                 related_clusters: tableItem.host.related_clusters.map((item) => item.immute_domain),
                 slave_ip: '',
-                version: tableItem.target_version,
               };
               if (clusterMap[clusterId]) {
                 clusterMap[clusterId].slave_current_versions = tableItem.slave_current_versions;
