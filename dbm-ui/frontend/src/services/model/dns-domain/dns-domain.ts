@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import { utcDisplayTime } from '@utils';
+
 export type DnsDomainMaintainType = 'self' | 'cluster';
 
 /**
@@ -31,6 +33,8 @@ export default class DnsDomain {
     dns_manage: boolean;
   };
   remark: string;
+  update_at: string;
+  updater: string;
 
   constructor(payload = {} as DnsDomain) {
     this.bk_biz_id = payload.bk_biz_id;
@@ -45,10 +49,16 @@ export default class DnsDomain {
     this.owners = payload.owners || [];
     this.permission = payload.permission || { dns_manage: false };
     this.remark = payload.remark;
+    this.update_at = payload.update_at || '';
+    this.updater = payload.updater || '';
   }
 
   // 自主维护：可在域名服务中编辑、删除；集群托管只读
   get isSelfMaintain() {
     return this.maintain_type === 'self';
+  }
+
+  get updateAtDisplay() {
+    return utcDisplayTime(this.update_at) || '--';
   }
 }
