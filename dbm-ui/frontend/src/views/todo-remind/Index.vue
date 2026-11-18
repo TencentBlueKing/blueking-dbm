@@ -131,6 +131,7 @@
                 <template #title>
                   <span class="rule-required">*</span>
                   {{ t('待办人员范围') }}
+                  <span class="rule-description">（{{ t('仅取所选组件的主 DBA') }}）</span>
                 </template>
                 <template #default="{ row, rowIndex }: { row: IRuleRow; rowIndex: number }">
                   <DbFormItem
@@ -235,7 +236,7 @@
 
   // 待办人员范围可选组件（全部 DBTypes）
   const ruleComponentOptions = Object.values(DBTypes).map((id) => ({
-    label: DBTypeInfos[id].name,
+    label: `${DBTypeInfos[id].name} DBA`,
     value: id,
   }));
 
@@ -554,6 +555,11 @@
       .rule-required {
         margin-right: 4px;
         color: #ea3636;
+      }
+
+      .rule-description {
+        font-size: 12px;
+        color: #979ba5;
       }
 
       .rule-table {
