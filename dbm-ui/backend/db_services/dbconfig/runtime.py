@@ -340,6 +340,7 @@ def patch_conf_items_runtime(
                 "instance": runtime.get("address"),
                 "instance_role": runtime.get("instance_role", ""),
                 "flag_difference": FLAG_DIFF_SAME if conf_value_equal(conf_value, value) else FLAG_DIFF_DIFFERENT,
+                "conf_value_runtime": runtime_value_to_str(value),
                 "updated_at": runtime.get("updated_at"),
             }
             for runtime, value in runtime_values

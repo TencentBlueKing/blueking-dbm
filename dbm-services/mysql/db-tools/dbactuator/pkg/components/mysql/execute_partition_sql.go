@@ -334,7 +334,7 @@ func (e *ExecutePartitionSQLComp) excuteInitSql(
 		user := e.GeneralParam.RuntimeAccountParam.PartitionYwUser
 		pwd := e.GeneralParam.RuntimeAccountParam.PartitionYwPwd
 		command := fmt.Sprintf("%s/%s -u%s -p%s --socket %s %s", cst.DBAToolkitPath,
-			pt_tool, user, pwd, myInsInfo.Socket, partitionSQL.Sql)
+			pt_tool, user, cmutil.ShellQuote(pwd), myInsInfo.Socket, partitionSQL.Sql)
 		if err != nil {
 			return err
 		}

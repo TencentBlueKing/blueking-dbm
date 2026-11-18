@@ -83,7 +83,8 @@ func DsnBySocket(socket, user, password string) string {
 
 // MySQLClientCmd TODO
 func (o InsObject) MySQLClientCmd(mysqlClient string) string {
-	cmd := fmt.Sprintf(`%s --host=%s --port=%d --user=%s -p%s`, mysqlClient, o.Host, o.Port, o.User, o.Pwd)
+	cmd := fmt.Sprintf(`%s --host=%s --port=%d --user=%s -p%s`,
+		mysqlClient, o.Host, o.Port, o.User, cmutil.ShellQuote(o.Pwd))
 	if o.Socket != "" {
 		cmd += fmt.Sprintf(" --socket %s", o.Socket)
 	}

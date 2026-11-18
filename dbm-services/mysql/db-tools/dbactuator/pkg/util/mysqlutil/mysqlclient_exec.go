@@ -25,6 +25,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/mysqlcomm"
 
 	"dbm-services/common/go-pubpkg/logger"
@@ -73,7 +74,7 @@ func (e ExecuteSqlAtLocal) CreateLoadSQLCommand() (command string) {
 	}
 	passwd := ""
 	if !util.StrIsEmpty(e.Password) {
-		passwd = fmt.Sprintf("-p%s", e.Password)
+		passwd = fmt.Sprintf("-p%s", cmutil.ShellQuote(e.Password))
 	}
 	initCmd := ""
 	if !util.StrIsEmpty(e.InitCommand) {
