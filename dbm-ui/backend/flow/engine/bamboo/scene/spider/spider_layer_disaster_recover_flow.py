@@ -37,6 +37,7 @@ from backend.flow.plugins.components.collections.common.pause import PauseCompon
 from backend.flow.plugins.components.collections.common.pause_with_ticket_lock_check import (
     PauseWithTicketLockCheckComponent,
 )
+from backend.flow.plugins.components.collections.mysql.drop_user import DropUserComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.flow_output_summary import MysqlFlowOutputSummaryComponent
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
@@ -56,6 +57,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     AddSpiderSystemUserKwargs,
     DBMetaOPKwargs,
     DownloadMediaKwargs,
+    DropUserKwargs,
     ExecActuatorKwargs,
 )
 from backend.flow.utils.mysql.mysql_act_playload import MysqlActPayload
@@ -137,6 +139,8 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
     - master_new 与 slave_new 不可有重叠 IP（同一台机器不能既装 master 又装 slave），由 Validator 阻断。
     - 仅恢复 slave 时 Validator 已通过 L1+L3 双层校验中控（DBMeta RUNNING + DRS 探活）。
     - 权限恢复只取 spider master 角色的 grant 备份，按 spider_port 恢复；TDBCTL 权限不恢复。
+      恢复成功后，在同一段上尝试删除备份带回的 spider@旧 master IP。账号不存在只告警。
+      新 master IP 不删。只恢复 slave 时旧 master 列表为空，不删。
     - 查不到最近 SPIDER_PRIV_BACKUP_DEADLINE_DAYS 天内的权限备份时，在域名恢复段前插入人工确认节点，
       提示需手动恢复权限；disable_manual_confirm=True 时跳过该确认。
     - 域名恢复之后、释放 SQL 类互斥锁之前，对本次新装 Spider 做标准化，参数与扩容周边一致。
@@ -348,6 +352,7 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
         info: dict,
         cluster_ticket: dict,
         priv_backup_missing: dict,
+        drop_hosts: List[str],
     ) -> Any:
         """
         Stage 2 - master 路由段：DBMeta 写入 → 初始化并下发接入层路由（三步合一）→ 表结构同步 → 权限恢复。
@@ -412,6 +417,7 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
             restore_ips=[h["ip"] for h in new_masters],
             spider_port=spider_port,
             priv_backup_missing=priv_backup_missing,
+            drop_hosts=drop_hosts,
         )
         return seg.build_sub_process(sub_name=_("[{}] master 路由段").format(cluster.immute_domain))
 
@@ -428,6 +434,7 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
         info: dict,
         cluster_ticket: dict,
         priv_backup_missing: dict,
+        drop_hosts: List[str],
     ) -> Any:
         """
         Stage 3 - slave 路由段：（仅重建 slave：先定向清理旧 slave 路由）→ 主中控登记 slave 路由
@@ -491,6 +498,7 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
             restore_ips=[h["ip"] for h in new_slaves],
             spider_port=spider_port,
             priv_backup_missing=priv_backup_missing,
+            drop_hosts=drop_hosts,
         )
 
         seg.add_act(
@@ -664,12 +672,16 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
         restore_ips: List[str],
         spider_port: int,
         priv_backup_missing: dict,
+        drop_hosts: List[str],
     ) -> None:
         """从 spider master grant 备份按 spider_port 恢复权限，挂在指定 segment 上。
+
+        权限子流程挂上之后，对 drop_hosts 尝试删除 spider@host。权限没挂上时不删。
 
         @param target_role: 当前 segment 恢复的目标 spider 角色，仅用于日志区分 master/slave 段。
         @param priv_backup_missing: 本集群的跳过状态容器，仅「明确查不到备份」时置位，
                                     供上层在域名恢复段前插入人工确认节点。
+        @param drop_hosts: 要删除的 spider 账号 host，调用方传入旧 master IP 去掉新 master IP 的结果。
         """
         # 缺省视为 from_spider_grant_backup，与 Serializer/Validator 默认值保持一致（兼容直调 FlowTestView）
         mode = info.get("privilege_recovery_mode") or "from_spider_grant_backup"
@@ -705,6 +717,40 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
         )
         if priv_sub:
             seg.add_sub_pipeline(sub_flow=priv_sub)
+            self._add_drop_restored_spider_user_acts(
+                seg=seg,
+                cluster=cluster,
+                restore_ips=restore_ips,
+                spider_port=spider_port,
+                drop_hosts=drop_hosts,
+            )
+
+    @staticmethod
+    def _add_drop_restored_spider_user_acts(
+        seg: SubBuilder,
+        cluster: Cluster,
+        restore_ips: List[str],
+        spider_port: int,
+        drop_hosts: List[str],
+    ) -> None:
+        """权限灌入之后，在每台新 Spider 上尝试删除 spider@旧 master IP。"""
+        for restore_ip in restore_ips:
+            address = "{}{}{}".format(restore_ip, IP_PORT_DIVIDER, spider_port)
+            for host in drop_hosts:
+                kwargs = asdict(
+                    DropUserKwargs(
+                        bk_cloud_id=cluster.bk_cloud_id,
+                        host=host,
+                        user=TDBCTL_USER,
+                        address=address,
+                    )
+                )
+                kwargs["ignore_errors"] = True
+                seg.add_act(
+                    act_name=_("删除备份带回的 spider@{}").format(host),
+                    act_component_code=DropUserComponent.code,
+                    kwargs=kwargs,
+                )
 
     @staticmethod
     def _build_role_summary_items(
@@ -786,6 +832,8 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
 
         master_old = self._resolve_old_master_hosts(cluster, info) if recover_master else []
         slave_old = self._resolve_old_slave_hosts(cluster, info) if recover_slave else []
+        # 备份里的 spider@host 用的是旧中控 IP。新 master IP 是当前中控，不能删。
+        drop_hosts = sorted({host["ip"] for host in master_old} - {host["ip"] for host in master_new})
 
         # 构建期校验：新 master 至少 2 台不同机器（中控与 master 同机部署，不允许单点中控）
         if recover_master and len({h["ip"] for h in master_new}) < 2:
@@ -888,6 +936,7 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
                     info=info,
                     cluster_ticket=cluster_ticket,
                     priv_backup_missing=priv_backup_missing,
+                    drop_hosts=drop_hosts,
                 )
             )
 
@@ -918,6 +967,7 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
                     info=info,
                     cluster_ticket=cluster_ticket,
                     priv_backup_missing=priv_backup_missing,
+                    drop_hosts=drop_hosts,
                 )
             )
 

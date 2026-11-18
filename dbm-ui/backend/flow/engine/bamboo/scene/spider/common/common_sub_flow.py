@@ -684,7 +684,8 @@ def add_spider_masters_sub_flow(
                             slaves=[Instance(host=s["ip"], port=ctl_master_port_str) for s in rest_ctls],
                             is_gtid=True,
                             is_add_any=True,
-                            is_master_add_priv=False,
+                            # 冷启动的主中控是新装实例，没有 repl。is_add_any 时只有打开此项才会给主中控授权。
+                            is_master_add_priv=True,
                         )
                     ),
                 )
