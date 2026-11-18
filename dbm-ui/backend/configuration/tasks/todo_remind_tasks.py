@@ -208,8 +208,9 @@ def get_todo_context(count, text):
 
 
 def get_db_type_dba_map() -> Dict[str, Set[str]]:
-    """获取 数据库组件类型 -> 当前 DBA 人员 的映射
+    """获取 数据库组件类型 -> 当前主 DBA 人员 的映射
 
+    只取每个 (业务, 组件) 配置里的第一个 DBA（即主 DBA），协助 DBA 不进群消息。
     按组件类型跨业务合并（含 bk_biz_id 为 0 的平台默认 DBA 记录）。
     每次发送时实时读取，人员变更从下一次提醒自动生效。
     """
@@ -217,12 +218,13 @@ def get_db_type_dba_map() -> Dict[str, Set[str]]:
     for db_type, users in DBAdministrator.objects.values_list("db_type", "users"):
         if not users or db_type not in DBType.get_values():
             continue
-        db_type_dba_map[db_type].update(users)
+        # 只要主 DBA：DBA 人员列表的第一顺位
+        db_type_dba_map[db_type].add(users[0])
     return db_type_dba_map
 
 
 def resolve_rule_dba_users(rule, db_type_dba_map) -> Set[str]:
-    """计算单条群通知规则圈定的 DBA 人员（所选组件当前 DBA 的并集）"""
+    """计算单条群通知规则圈定的 DBA 人员（所选组件的主 DBA 并集）"""
     users = set()
     for db_type in rule.get("components") or []:
         db_type_users = db_type_dba_map.get(db_type)
@@ -404,11 +406,11 @@ def send_todo_remind():
     todo_types = user_todo_map["types"]
     dba_infos = get_dba_infos()
 
-    # 待办人员范围以每次发送时的最新组件 DBA 关系计算
+    # 待办人员范围以每次发送时的最新组件主 DBA 关系计算
     db_type_dba_map = get_db_type_dba_map() if wecom_group_rules else {}
     rule_dba_users = [(rule, resolve_rule_dba_users(rule, db_type_dba_map)) for rule in wecom_group_rules]
 
-    # 只计算需要通知的用户：群规则圈定的 DBA + 个人通知开启时的全量用户
+    # 只计算需要通知的用户：群规则圈定的主 DBA + 个人通知开启时的全量用户
     target_usernames = set()
     for _rule, dba_users in rule_dba_users:
         target_usernames.update(dba_users)

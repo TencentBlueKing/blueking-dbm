@@ -87,7 +87,7 @@ class TodoRemindWecomRuleSerializer(serializers.Serializer):
     components = serializers.ListField(
         child=serializers.ChoiceField(help_text=_("数据库组件类型"), choices=DBType.get_choices()),
         allow_empty=False,
-        help_text=_("待办人员范围：数据库组件类型，如 mysql、redis，按所选组件圈定全平台当前 DBA"),
+        help_text=_("待办人员范围：数据库组件类型，如 mysql、redis，按所选组件圈定全平台当前主 DBA"),
     )
 
     def validate_chat_id(self, value):
