@@ -3761,8 +3761,8 @@
   },
   {
     "conf_name": "mysqld.thread_cache_size",
-    "value_default": "8",
-    "value_allowed": "[4,64]",
+    "value_default": "16",
+    "value_allowed": "[4,1024]",
     "value_type": "INT",
     "value_type_sub": "RANGE",
     "conf_name_lc": "",

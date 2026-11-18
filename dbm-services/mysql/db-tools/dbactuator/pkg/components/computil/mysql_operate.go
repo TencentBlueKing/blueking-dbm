@@ -252,7 +252,8 @@ func (param ShutdownMySQLParam) ShutdownMySQLBySocket() (err error) {
 		addSkipSSLOpt = "--skip-ssl"
 	}
 	shellCMD := fmt.Sprintf(
-		"mysqladmin -u%s -p%s %s -S %s shutdown", param.MySQLUser, param.MySQLPwd, addSkipSSLOpt, param.Socket,
+		"mysqladmin -u%s -p%s %s -S %s shutdown",
+		param.MySQLUser, cmutil.ShellQuote(param.MySQLPwd), addSkipSSLOpt, param.Socket,
 	)
 	output, err := mysqlutil.ExecCommandMySQLShell(shellCMD)
 	if err != nil {
