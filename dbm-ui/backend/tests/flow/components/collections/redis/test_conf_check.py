@@ -852,6 +852,103 @@ class TestStorageConfCompare:
         result = compare_directives(_expected(dbconfig), parse_disk_conf(disk_text), memory)
         assert [d.render() for d in result] == drifts
 
+    _COMPILED_IN_DB = {
+        "maxmemory-policy": "noeviction",
+        "slowlog-log-slower-than": "10000",
+        "slowlog-max-len": "128",
+        "appendonly": "no",
+    }
+    _PORT_ONLY = "port 30000\n"
+
+    @staticmethod
+    def _drifts(dbconfig, disk_text, memory, directive_rules=None):
+        result = compare_directives(
+            _expected(dbconfig), parse_disk_conf(disk_text), memory, directive_rules=directive_rules
+        )
+        return [d.render() for d in result]
+
+    def test_disk_absent_builtin_defaults_pass(self):
+        # compiled-in defaults restore the same value on restart, so absence is not drift
+        assert self._drifts(self._COMPILED_IN_DB, self._PORT_ONLY, dict(self._COMPILED_IN_DB)) == []
+        # the policy value uses the same normalization as the memory comparison
+        mem = dict(self._COMPILED_IN_DB, appendonly="0")
+        assert self._drifts(self._COMPILED_IN_DB, self._PORT_ONLY, mem) == []
+
+    def test_disk_absent_non_default_runtime_value_still_drifts(self):
+        db = {"maxmemory-policy": "volatile-lru", "slowlog-max-len": "256"}
+        assert self._drifts(db, self._PORT_ONLY, dict(db)) == [
+            "maxmemory-policy(dbconfig=volatile-lru, memory=volatile-lru, disk=<absent>)",
+            "slowlog-max-len(dbconfig=256, memory=256, disk=<absent>)",
+        ]
+
+    def test_disk_absent_memory_drift_still_reported(self):
+        db = {"maxmemory-policy": "volatile-lru"}
+        assert self._drifts(db, self._PORT_ONLY, {"maxmemory-policy": "noeviction"}) == [
+            "maxmemory-policy(dbconfig=volatile-lru, memory=noeviction, disk=<absent>)"
+        ]
+
+    @pytest.mark.parametrize("policy", [True, "*"])
+    def test_disk_absent_wildcard_allows_any_runtime_value(self, policy):
+        db = {"maxmemory-policy": "volatile-lru"}
+        rules = {"maxmemory-policy": {"allow_disk_absent": policy}}
+        assert self._drifts(db, self._PORT_ONLY, dict(db), rules) == []
+        # runtime memory is still verified against dbconfig
+        assert self._drifts(db, self._PORT_ONLY, {"maxmemory-policy": "noeviction"}, rules) == [
+            "maxmemory-policy(dbconfig=volatile-lru, memory=noeviction, disk=<absent>)"
+        ]
+
+    def test_disk_absent_value_list_matches_any_listed_value(self):
+        rules = {"maxmemory-policy": {"allow_disk_absent": ["noeviction", "allkeys-lru"]}}
+        db = {"maxmemory-policy": "allkeys-lru"}
+        assert self._drifts(db, self._PORT_ONLY, dict(db), rules) == []
+        miss = {"maxmemory-policy": "volatile-lru"}
+        assert self._drifts(miss, self._PORT_ONLY, dict(miss), rules) == [
+            "maxmemory-policy(dbconfig=volatile-lru, memory=volatile-lru, disk=<absent>)"
+        ]
+
+    def test_disk_absent_policy_value_uses_memory_units(self):
+        db = {"repl-backlog-size": "512mb"}
+        rules = {"repl-backlog-size": {"allow_disk_absent": "512mb"}}
+        assert self._drifts(db, self._PORT_ONLY, {"repl-backlog-size": "536870912"}, rules) == []
+
+    def test_disk_absent_save_stays_strict_until_opted_in(self):
+        db = {"save": ""}
+        mem = {"save": ""}
+        assert self._drifts(db, self._PORT_ONLY, mem) == ['save(dbconfig="", memory="", disk=<absent>)']
+        # an explicit empty-string policy opts save out only while runtime save is empty
+        assert self._drifts(db, self._PORT_ONLY, mem, {"save": {"allow_disk_absent": ""}}) == []
+        assert self._drifts(db, self._PORT_ONLY, {"save": "3600 1"}, {"save": {"allow_disk_absent": ""}}) == [
+            'save(dbconfig="", memory=3600 1, disk=<absent>)'
+        ]
+
+    def test_disk_absent_policy_still_compares_present_disk_value(self):
+        db = {"maxmemory-policy": "noeviction"}
+        disk = self._PORT_ONLY + "maxmemory-policy allkeys-lru\n"
+        assert self._drifts(db, disk, dict(db)) == [
+            "maxmemory-policy(dbconfig=noeviction, memory=noeviction, disk=allkeys-lru)"
+        ]
+
+    def test_disk_absent_wildcard_skips_directive_memory_does_not_report(self):
+        # memory was not collected (or CONFIG GET did not return the directive): absent on
+        # both sides is skipped rather than reported, with or without a wildcard policy
+        db = {"maxmemory-policy": "noeviction"}
+        rules = {"maxmemory-policy": {"allow_disk_absent": "*"}}
+        assert self._drifts(db, self._PORT_ONLY, None, rules) == []
+
+    def test_disk_absent_false_disables_builtin_policy(self):
+        db = {"maxmemory-policy": "noeviction"}
+        rules = {"maxmemory-policy": {"allow_disk_absent": False}}
+        assert self._drifts(db, self._PORT_ONLY, dict(db), rules) == [
+            "maxmemory-policy(dbconfig=noeviction, memory=noeviction, disk=<absent>)"
+        ]
+
+    def test_disk_absent_builtin_policy_follows_version_alias(self):
+        name = "commandlog-execution-slower-than"
+        assert self._drifts({name: "10000"}, self._PORT_ONLY, {name: "10000"}) == []
+        assert self._drifts({name: "20000"}, self._PORT_ONLY, {name: "20000"}) == [
+            "commandlog-execution-slower-than(dbconfig=20000, memory=20000, disk=<absent>)"
+        ]
+
     def test_placeholders_resolved_and_unresolved_skipped(self):
         expected = _expected(
             {
@@ -915,13 +1012,37 @@ class TestStorageConfCompare:
                 "timeout": {"by_role": {"master": "300", "slave": "$dbconfig"}},
             }
         )
-        assert rules["slowlog-log-slower-than"] == {"expected": "20000"}
+        assert rules["slowlog-log-slower-than"] == {"allow_disk_absent": "10000", "expected": "20000"}
         assert "slowlog-log-lower-than" not in rules
         # per-directive merge keeps default cluster_types; by_role merges per role
         assert rules["appendonly"]["cluster_types"] == DEFAULT_DIRECTIVE_RULES["appendonly"]["cluster_types"]
         assert rules["appendonly"]["by_role"] == {"master": "no", "slave": "no"}
+        assert rules["appendonly"]["allow_disk_absent"] == "no"
         assert rules["timeout"]["by_role"] == {"master": "300", "slave": "$dbconfig"}
         assert DEFAULT_DIRECTIVE_RULES["appendonly"]["by_role"] == {"master": "no", "slave": "yes"}
+
+    def test_default_rules_allow_disk_absent_only_for_compiled_in_defaults(self):
+        assert DEFAULT_DIRECTIVE_RULES["maxmemory-policy"]["allow_disk_absent"] == "noeviction"
+        assert DEFAULT_DIRECTIVE_RULES["databases"]["allow_disk_absent"] == "16"
+        assert DEFAULT_DIRECTIVE_RULES["slowlog-log-slower-than"]["allow_disk_absent"] == "10000"
+        assert DEFAULT_DIRECTIVE_RULES["slowlog-max-len"]["allow_disk_absent"] == "128"
+        assert DEFAULT_DIRECTIVE_RULES["appendonly"]["allow_disk_absent"] == "no"
+        assert "allow_disk_absent" not in DEFAULT_DIRECTIVE_RULES["save"]
+
+    @pytest.mark.parametrize(
+        "custom,policy",
+        [
+            ({"allow_disk_absent": False}, False),
+            ({"allow_disk_absent": True}, True),
+            ({"allow_disk_absent": "*"}, "*"),
+            ({"allow_disk_absent": ["noeviction", "allkeys-lru"]}, ["noeviction", "allkeys-lru"]),
+        ],
+    )
+    def test_merge_directive_rules_disk_absent_overrides(self, custom, policy):
+        rules = merge_directive_rules({"maxmemory-policy": custom})
+        assert rules["maxmemory-policy"]["allow_disk_absent"] == policy
+        # the single override keeps the rest of the built-in rule intact
+        assert rules["maxmemory-policy"]["exclude_cluster_types"] == ["TwemproxyTendisSSDInstance"]
 
     def test_default_rules_use_stored_cluster_type_values(self):
         assert set(CACHE_REDIS_CLUSTER_TYPES) == {
@@ -960,7 +1081,7 @@ class TestStorageConfCompare:
 
     def test_custom_rule_with_version_alias_key_is_not_shadowed(self):
         rules = merge_directive_rules({"commandlog-execution-slower-than": {"expected": "20000"}})
-        assert rules["slowlog-log-slower-than"] == {"expected": "20000"}
+        assert rules["slowlog-log-slower-than"] == {"allow_disk_absent": "10000", "expected": "20000"}
         assert "commandlog-execution-slower-than" not in rules
         for db_name in ("slowlog-log-slower-than", "commandlog-execution-slower-than"):
             result = resolve_expected_conf(
@@ -1300,6 +1421,129 @@ _SCOPE_CASES = [
 ]
 
 
+_ABSENT_POLICY_DB = {"port": "{{port}}", "maxmemory-policy": "noeviction"}
+_ABSENT_VOLATILE_DB = {"port": "{{port}}", "maxmemory-policy": "volatile-lru"}
+_ABSENT_POLICY_BLOCK = {"mem": _mem(maxmemory_policy="noeviction")}
+_ABSENT_VOLATILE_BLOCK = {"mem": _mem(maxmemory_policy="volatile-lru")}
+_ABSENT_WILDCARD_RULES = {
+    "true": {"directive_rules": {"maxmemory-policy": {"allow_disk_absent": True}}},
+    "*": {"directive_rules": {"maxmemory-policy": {"allow_disk_absent": "*"}}},
+}
+_ABSENT_DISABLED_RULE = {"directive_rules": {"maxmemory-policy": {"allow_disk_absent": False}}}
+
+# id, meta role, cluster context overrides, _storage_block overrides, checker_config, state, msg expectations
+_ABSENT_CASES = [
+    (
+        "policy_absent_builtin_default",
+        "master",
+        {"dbconfig": _ABSENT_POLICY_DB},
+        _ABSENT_POLICY_BLOCK,
+        None,
+        NORMAL,
+        [],
+    ),
+    (
+        "policy_absent_nondefault_drift",
+        "master",
+        {"dbconfig": _ABSENT_VOLATILE_DB},
+        _ABSENT_VOLATILE_BLOCK,
+        None,
+        ABNORMAL,
+        ["maxmemory-policy(dbconfig=volatile-lru, memory=volatile-lru, disk=<absent>)"],
+    ),
+    (
+        "policy_absent_memory_drift",
+        "master",
+        {"dbconfig": _ABSENT_VOLATILE_DB},
+        _ABSENT_POLICY_BLOCK,
+        None,
+        ABNORMAL,
+        ["maxmemory-policy(dbconfig=volatile-lru, memory=noeviction, disk=<absent>)"],
+    ),
+    (
+        "policy_absent_explicit_wrong_disk",
+        "master",
+        {"dbconfig": _ABSENT_POLICY_DB},
+        {"disk": _P + "maxmemory-policy allkeys-lru\n", "mem": _mem(maxmemory_policy="noeviction")},
+        None,
+        ABNORMAL,
+        ["maxmemory-policy(dbconfig=noeviction, memory=noeviction, disk=allkeys-lru)"],
+    ),
+    (
+        "policy_absent_wildcard_true",
+        "master",
+        {"dbconfig": _ABSENT_VOLATILE_DB},
+        _ABSENT_VOLATILE_BLOCK,
+        _ABSENT_WILDCARD_RULES["true"],
+        NORMAL,
+        [],
+    ),
+    (
+        "policy_absent_wildcard_star",
+        "master",
+        {"dbconfig": _ABSENT_VOLATILE_DB},
+        _ABSENT_VOLATILE_BLOCK,
+        _ABSENT_WILDCARD_RULES["*"],
+        NORMAL,
+        [],
+    ),
+    (
+        "policy_absent_disabled_by_custom_rule",
+        "master",
+        {"dbconfig": _ABSENT_POLICY_DB},
+        _ABSENT_POLICY_BLOCK,
+        _ABSENT_DISABLED_RULE,
+        ABNORMAL,
+        ["maxmemory-policy(dbconfig=noeviction, memory=noeviction, disk=<absent>)"],
+    ),
+    (
+        "databases_absent_builtin_default",
+        "master",
+        dict(_SINGLE, dbconfig={"port": "{{port}}", "databases": "16"}),
+        {"mem": _mem(databases=16)},
+        None,
+        NORMAL,
+        [],
+    ),
+    (
+        "appendonly_absent_builtin_default",
+        "master",
+        dict(_TWEM, dbconfig={"port": "{{port}}", "appendonly": "yes"}),
+        {"mem": _mem(appendonly="no")},
+        None,
+        NORMAL,
+        [],
+    ),
+    (
+        "appendonly_absent_nondefault_drift",
+        "slave",
+        dict(_TWEM, dbconfig={"port": "{{port}}", "appendonly": "no"}),
+        {"mem": _mem(appendonly="yes")},
+        None,
+        ABNORMAL,
+        ["appendonly(dbconfig=yes, memory=yes, disk=<absent>)"],
+    ),
+    (
+        "slowlog_absent_builtin_default",
+        "master",
+        {"dbconfig": {"port": "{{port}}", "slowlog-log-slower-than": "10000", "slowlog-max-len": "128"}},
+        {"mem": _mem(slowlog_log_slower_than=10000, slowlog_max_len=128)},
+        None,
+        NORMAL,
+        [],
+    ),
+    (
+        "save_absent_stays_strict",
+        "master",
+        dict(_TWEM, dbconfig={"port": "{{port}}", "save": "900 1"}),
+        {"mem": _mem(save="")},
+        None,
+        ABNORMAL,
+        ['save(dbconfig="", memory="", disk=<absent>)'],
+    ),
+]
+
+
 class TestStorageConfChecker:
     @pytest.mark.parametrize("role,ctx,block,state,expectations", **_table(_CHECKER_CASES))
     def test_evaluate(self, role, ctx, block, state, expectations):
@@ -1311,6 +1555,13 @@ class TestStorageConfChecker:
 
     @pytest.mark.parametrize("role,ctx,block,checker_config,state,expectations", **_table(_SCOPE_CASES))
     def test_evaluate_scope(self, role, ctx, block, checker_config, state, expectations):
+        results = _evaluate_storage(role, ctx, block, checker_config=checker_config)
+
+        assert [r.state for r in results] == [state]
+        _assert_msg(results[0].msg, expectations)
+
+    @pytest.mark.parametrize("role,ctx,block,checker_config,state,expectations", **_table(_ABSENT_CASES))
+    def test_evaluate_disk_absent_policy(self, role, ctx, block, checker_config, state, expectations):
         results = _evaluate_storage(role, ctx, block, checker_config=checker_config)
 
         assert [r.state for r in results] == [state]

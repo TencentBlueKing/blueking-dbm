@@ -310,13 +310,25 @@ DEFAULT_STORAGE_CONF_WHITELIST = (
 # Rule keys: cluster_types / exclude_cluster_types restrict where the directive applies;
 # by_role {"master"|"slave": literal or "$dbconfig"} and expected (literal or "$dbconfig")
 # override the dbconfig value. A missing rule means "compare against dbconfig everywhere".
+# allow_disk_absent tolerates the directive being absent from redis.conf: True / "*" for any
+# runtime value memory returns, otherwise the value (or list of values) runtime memory must hold.
+# Only Redis compiled-in defaults are exempted here, so omitting them on disk still restores the
+# same value on restart; any other runtime value missing from disk keeps reporting disk=<absent>.
 DEFAULT_DIRECTIVE_RULES: Dict[str, Dict] = {
-    "maxmemory-policy": {"exclude_cluster_types": ["TwemproxyTendisSSDInstance"]},
-    "databases": {"cluster_types": ["RedisInstance"]},
-    "slowlog-log-slower-than": {},
-    "slowlog-max-len": {},
+    "maxmemory-policy": {
+        "exclude_cluster_types": ["TwemproxyTendisSSDInstance"],
+        "allow_disk_absent": "noeviction",
+    },
+    "databases": {"cluster_types": ["RedisInstance"], "allow_disk_absent": "16"},
+    "slowlog-log-slower-than": {"allow_disk_absent": "10000"},
+    "slowlog-max-len": {"allow_disk_absent": "128"},
     # cache masters run without persistence; slaves carry AOF and the dbconfig save policy
-    "appendonly": {"cluster_types": list(CACHE_REDIS_CLUSTER_TYPES), "by_role": {"master": "no", "slave": "yes"}},
+    "appendonly": {
+        "cluster_types": list(CACHE_REDIS_CLUSTER_TYPES),
+        "by_role": {"master": "no", "slave": "yes"},
+        "allow_disk_absent": "no",
+    },
+    # save stays strict by default: omitting it on disk re-enables the built-in RDB schedule
     "save": {"cluster_types": list(CACHE_REDIS_CLUSTER_TYPES), "by_role": {"master": "", "slave": DBCONFIG_REF}},
 }
 
@@ -619,10 +631,35 @@ def _display(value: str, limit: int = 80) -> str:
     return shown if len(shown) <= limit else shown[: limit - 3] + "..."
 
 
+def _disk_absent_allowed(name: str, rule: Dict, mem_value: Optional[str]) -> bool:
+    """
+    Whether a directive missing from redis.conf may pass given what runtime memory reported.
+
+    ``allow_disk_absent`` is ``False`` / ``None`` (directive required on disk), ``True`` or
+    ``"*"`` (any value runtime memory returned is acceptable) or a value / list of values
+    runtime memory must match, using the same normalization as the memory comparison.
+    """
+    policy = rule.get("allow_disk_absent")
+    if policy is None or mem_value is None:
+        return False
+    if isinstance(policy, bool):
+        return policy
+    if policy == WHITELIST_WILDCARD:
+        return True
+    if isinstance(policy, str):
+        candidates = [policy]
+    elif isinstance(policy, (list, tuple, set)):
+        candidates = list(policy)
+    else:
+        return False
+    return any(same_conf_value_for(name, str(candidate), mem_value) for candidate in candidates)
+
+
 def compare_directives(
     expected: Dict[str, List[str]],
     disk: Optional[DiskConf],
     memory: Optional[Dict[str, str]],
+    directive_rules: Optional[Dict[str, Dict]] = None,
 ) -> List[DirectiveDrift]:
     """
     Compare each expected directive with runtime memory and the on-disk config.
@@ -630,7 +667,11 @@ def compare_directives(
     Directives only on disk or in memory are ignored. A directive absent from both is
     skipped (not supported by this version, or not rendered); a directive CONFIG GET does
     not return is compared against disk only. ``disk``/``memory`` of None skip that side.
+    ``directive_rules`` (merged over DEFAULT_DIRECTIVE_RULES, as in ``resolve_expected_conf``)
+    may set ``allow_disk_absent`` to tolerate a directive missing from redis.conf; explicit
+    on-disk values are still compared whenever the directive is present.
     """
+    rules = merge_directive_rules(directive_rules)
     drifts = []
     for name in sorted(expected):
         entries = expected[name]
@@ -651,8 +692,12 @@ def compare_directives(
         if disk is not None:
             if not disk_values:
                 disk_display = ABSENT
-                # rendering skips empty values except `save ""`
-                disk_drift = want != "" or name == "save"
+                rule = _lookup_with_alias(rules, name) or {}
+                if _disk_absent_allowed(name, rule, mem_value):
+                    disk_drift = False
+                else:
+                    # rendering skips empty values except `save ""`
+                    disk_drift = want != "" or name == "save"
             else:
                 have = join_directive_values(disk_values) if name in MULTI_ENTRY_DIRECTIVES else disk_values[-1]
                 disk_display = _display(have)
