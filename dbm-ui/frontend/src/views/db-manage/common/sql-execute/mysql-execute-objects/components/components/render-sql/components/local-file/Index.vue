@@ -237,8 +237,8 @@
     const fileNameList: string[] = [];
     const currentFileDataMap = {} as Record<string, SqlFileModel>;
     const params = new FormData();
-    // 通过文件名校验、实际附加到语法检测请求的文件数
-    let validFileCount = 0;
+    // 通过校验、实际附加到语法检测请求的文件名
+    const validFileNameList: string[] = [];
 
     Array.from(files).forEach((curFile, fileIndex) => {
       fileNameList.push(curFile.name);
@@ -271,7 +271,7 @@
           return;
         }
         params.append(`sql_files[${fileIndex}]`, curFile);
-        validFileCount += 1;
+        validFileNameList.push(curFile.name);
       } else {
         getFileContent(currentFileDataMap[curFile.name]).then((fileContent) => {
           Object.assign(currentFileDataMap[curFile.name], { content: fileContent });
@@ -295,7 +295,7 @@
     }
 
     // 本批没有合法文件，不发起语法检测
-    if (validFileCount === 0) {
+    if (validFileNameList.length === 0) {
       uploadRef.value.value = '';
       triggerChange();
       return;
@@ -315,7 +315,7 @@
           dbnames: props.dbNames,
           ignore_dbnames: props.ignoreDbnames,
           line_id: 1,
-          sql_files: ['/'],
+          sql_files: validFileNameList,
         },
       ]),
     );
@@ -378,7 +378,7 @@
           dbnames: props.dbNames,
           ignore_dbnames: props.ignoreDbnames,
           line_id: 1,
-          sql_files: ['/'],
+          sql_files: [currentFileData.file!.name],
         },
       ]),
     );
