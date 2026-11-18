@@ -81,7 +81,8 @@
       current_versions: infoItem.current_versions,
       ip: versionItem.ip,
       related_clusters: versionItem.related_clusters,
-      target_version: versionItem.version,
+      // 新协议 version_name 由后台写回，旧协议为 version
+      target_version: versionItem.version_name || versionItem.version || '',
     })),
   );
 </script>

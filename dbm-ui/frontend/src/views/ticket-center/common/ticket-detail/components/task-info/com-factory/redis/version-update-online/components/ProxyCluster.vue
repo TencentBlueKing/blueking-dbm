@@ -59,7 +59,11 @@
       :min-width="250"
       :title="t('目标版本')">
       <template #default="{ row }: { row : RowData }">
-        {{ row.target_version ? row.target_version : row.target_versions[0].version }}
+        {{
+          row.target_version
+            ? row.target_version
+            : row.target_versions[0].version_name || row.target_versions[0].version
+        }}
       </template>
     </TicketInfoTableColumn>
   </TicketInfoTable>

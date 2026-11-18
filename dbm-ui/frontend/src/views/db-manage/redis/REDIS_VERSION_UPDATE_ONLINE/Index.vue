@@ -149,11 +149,11 @@
       node_type: string;
       slave_current_versions: string[]; // 回显
       target_versions: {
-        instance_role: string; // 回显
+        db_version_id: number;
+        instance_role: string;
         ip: string;
-        related_clusters: string[]; // 回显
-        slave_ip: string; // 回显
-        version: string;
+        related_clusters: string[];
+        slave_ip: string;
       }[];
     }[];
     update_type: string;
