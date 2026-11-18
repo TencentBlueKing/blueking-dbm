@@ -1,6 +1,6 @@
 import type { PropType } from 'vue';
 
-import type { Props as ContextProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
+import type { IValue, Props as ContextProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
 
 export default defineComponent({
   props: {
@@ -8,12 +8,13 @@ export default defineComponent({
       required: true,
       type: Object as PropType<ContextProps['data'][number]>,
     },
+    // 值面板传入的是已选值列表；新建条件时为空
     modelValue: {
-      required: true,
-      type: String,
+      default: undefined,
+      type: Array as PropType<IValue['values']>,
     },
     remoteSearch: {
-      required: true,
+      default: false,
       type: Boolean,
     },
   },

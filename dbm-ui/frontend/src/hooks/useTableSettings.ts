@@ -21,6 +21,11 @@ interface Settings {
   checked?: string[];
   disabled?: string[];
   fontSize?: 'large' | 'medium';
+  /**
+   * 后续迭代新增的列在用户已保存列顺序中的位置：key 为新列，value 为要插到其前面的列。
+   * 不配置时新列沿用表格默认行为，补在已保存顺序的最后
+   */
+  insertColumnsBefore?: Record<string, string>;
   order?: string[];
   rowSize?: 'large' | 'medium' | 'mini' | 'small';
   /**
@@ -36,6 +41,24 @@ interface SettingsChangePayload {
   rowSize?: Settings['rowSize'];
   size?: Settings['size'];
 }
+
+/**
+ * 已保存的列顺序里没有新列时，把新列插到配置的目标列前面；目标列不在顺序中时不处理
+ */
+const insertColumnsToOrder = (order: string[] | undefined, insertColumnsBefore?: Record<string, string>) => {
+  if (!order || !insertColumnsBefore) {
+    return order;
+  }
+  const result = [...order];
+  Object.entries(insertColumnsBefore).forEach(([column, beforeColumn]) => {
+    const beforeIndex = result.indexOf(beforeColumn);
+    if (result.includes(column) || beforeIndex < 0) {
+      return;
+    }
+    result.splice(beforeIndex, 0, column);
+  });
+  return result;
+};
 
 /**
  * 用户个人配置表头字段
@@ -60,7 +83,7 @@ export const useTableSettings = (key: string, defaultSettings: Settings) => {
       checked,
       disabled: defaultSettings.disabled,
       fontSize: profileSettings?.fontSize ?? defaultSettings.fontSize ?? 'medium',
-      order: profileSettings?.order ?? defaultSettings.order,
+      order: insertColumnsToOrder(profileSettings?.order ?? defaultSettings.order, defaultSettings.insertColumnsBefore),
       rowSize,
       size: rowSize === 'large' ? undefined : rowSize,
     };

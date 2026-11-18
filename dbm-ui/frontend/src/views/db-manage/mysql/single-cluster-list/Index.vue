@@ -173,6 +173,11 @@
           @go-detail="handleToDetails"
           @refresh="fetchData" />
       </template>
+      <template #status>
+        <ClusterStateColumn
+          :cluster-type="ClusterTypes.TENDBSINGLE"
+          @go-detail="handleToDetails" />
+      </template>
       <template #role>
         <RoleColumn
           :cluster-type="ClusterTypes.TENDBSINGLE"
@@ -228,6 +233,7 @@
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import ClusterTable, {
+    ClusterStateColumn,
     MasterDomainColumn,
     ModuleNameColumn,
     OperationColumn,
@@ -271,7 +277,12 @@
 
   // 设置用户个人表头信息
   const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.TENDBSINGLE_TABLE_SETTINGS, {
+    appendColumns: ['cluster_state'],
     disabled: ['master_domain'],
+    // 已保存过列顺序的用户，运行概况放在容量使用率前面
+    insertColumnsBefore: {
+      cluster_state: 'cluster_stats',
+    },
   });
 
   const fetchData = () => {
