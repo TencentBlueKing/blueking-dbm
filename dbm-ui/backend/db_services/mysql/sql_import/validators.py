@@ -53,7 +53,7 @@ def validate_sql_file_name(file_name: str, suffix: str = None) -> str:
             _("SQL 文件名[{}]超长，最多允许{}个字符").format(_display(name), MAX_UPLOAD_SQL_FILE_NAME_LENGTH)
         )
 
-    if "/" in name or "\\" in name:
+    if "\\" in name:
         raise serializers.ValidationError(_("SQL 文件名[{}]不允许包含路径分隔符").format(_display(name)))
 
     if ".." in name:
