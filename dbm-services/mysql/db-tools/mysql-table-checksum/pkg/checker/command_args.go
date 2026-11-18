@@ -107,7 +107,7 @@ func (r *Checker) ptArgsConnectInfo() []string {
 		fmt.Sprintf("--host=%s", r.Config.Ip),
 		fmt.Sprintf("--port=%d", r.Config.Port),
 		fmt.Sprintf("--user=%s", r.Config.User),
-		fmt.Sprintf("--password=%s", r.Config.Password),
+		fmt.Sprintf("--password=%s", strings.ReplaceAll(r.Config.Password, ",", `\,`)),
 	}
 }
 
