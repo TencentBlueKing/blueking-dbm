@@ -19,6 +19,7 @@ from backend.flow.consts import DBA_ROOT_USER, TDBCTL_USER, DnsOpType
 from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.entrys_manager import BuildEntrysManageSubflow
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
+from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
 from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import (
     add_spider_masters_sub_flow,
     add_spider_slaves_sub_flow,
@@ -138,6 +139,8 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
     - 权限恢复只取 spider master 角色的 grant 备份，按 spider_port 恢复；TDBCTL 权限不恢复。
     - 查不到最近 SPIDER_PRIV_BACKUP_DEADLINE_DAYS 天内的权限备份时，在域名恢复段前插入人工确认节点，
       提示需手动恢复权限；disable_manual_confirm=True 时跳过该确认。
+    - 域名恢复之后、释放 SQL 类互斥锁之前，对本次新装 Spider 做标准化，参数与扩容周边一致。
+      disable_manual_confirm 只跳过人工确认，标准化仍会执行。
     - 直调 FlowTestView 不会触发 Validator，需自行确保参数合法。
     """
 
@@ -271,6 +274,68 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
             )
         )
         return seg.build_sub_process(sub_name=_("[{}] slave 安装段").format(cluster.immute_domain))
+
+    def _spider_standardize_subflow(
+        self,
+        *,
+        cluster: Cluster,
+        hosts: List[dict],
+        spider_port: int,
+        cluster_ticket: dict,
+        with_bk_plugin: bool = True,
+        with_instance_standardize: bool = True,
+        with_collect_sysinfo: bool = True,
+    ):
+        """按扩容 add_spider_master_notes / add_spider_slave_notes 的参数做周边标准化。"""
+        return standardize_mysql_cluster_subflow(
+            bk_cloud_id=cluster.bk_cloud_id,
+            bk_biz_id=cluster.bk_biz_id,
+            instances=["{}:{}".format(host["ip"], spider_port) for host in hosts],
+            root_id=self.root_id,
+            data=copy.deepcopy(cluster_ticket),
+            with_actuator=False,
+            with_bk_plugin=with_bk_plugin,
+            with_instance_standardize=with_instance_standardize,
+            with_collect_sysinfo=with_collect_sysinfo,
+        )
+
+    def _build_new_spider_standardize_segment(
+        self,
+        *,
+        cluster: Cluster,
+        master_new: List[dict],
+        slave_new: List[dict],
+        spider_port: int,
+        cluster_ticket: dict,
+    ) -> Any:
+        """域名恢复后、释放互斥锁前，只标准化本次新装的 Spider。
+
+        master 用扩容 master 的默认周边参数；slave 关掉 bk_plugin、实例标准化和系统信息采集。
+        只恢复一侧时只挂这一侧。disable_manual_confirm 也会走到这里。
+        """
+        seg = SubBuilder(root_id=self.root_id, data=cluster_ticket)
+        if master_new:
+            seg.add_sub_pipeline(
+                sub_flow=self._spider_standardize_subflow(
+                    cluster=cluster,
+                    hosts=master_new,
+                    spider_port=spider_port,
+                    cluster_ticket=cluster_ticket,
+                )
+            )
+        if slave_new:
+            seg.add_sub_pipeline(
+                sub_flow=self._spider_standardize_subflow(
+                    cluster=cluster,
+                    hosts=slave_new,
+                    spider_port=spider_port,
+                    cluster_ticket=cluster_ticket,
+                    with_bk_plugin=False,
+                    with_instance_standardize=False,
+                    with_collect_sysinfo=False,
+                )
+            )
+        return seg.build_sub_process(sub_name=_("[{}] 标准化新接入层").format(cluster.immute_domain))
 
     def _build_master_routing_segment(
         self,
@@ -875,6 +940,18 @@ class TenDBClusterSpiderLayerDisasterRecoverFlow(TenDBClusterAddNodesFlow, TenDB
                 recover_master=recover_master,
                 recover_slave=recover_slave,
                 spider_port=spider_port,
+            )
+        )
+
+        # ────── 标准化新接入层：周边就绪后再放开 SQL 类单据，并请人确认缩容 ──────
+        # 安装段走 cold 底层装机，没有扩容流程里的「安装周边程序」。DBMeta 已在路由段写入。
+        sub_pipeline.add_sub_pipeline(
+            sub_flow=self._build_new_spider_standardize_segment(
+                cluster=cluster,
+                master_new=master_new,
+                slave_new=slave_new,
+                spider_port=spider_port,
+                cluster_ticket=cluster_ticket,
             )
         )
 
