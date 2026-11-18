@@ -13,7 +13,6 @@ import logging
 from django.utils.translation import gettext_lazy as _
 from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from backend.bk_web.swagger import common_swagger_auto_schema
@@ -21,9 +20,8 @@ from backend.db_meta import api
 from backend.db_meta.api import dbha as DBHA
 from backend.db_meta.api.cluster import nosqlcomm as NOSQLMETA
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import BKCity, Machine
+from backend.db_meta.models import BKCity
 from backend.db_proxy.constants import SWAGGER_TAG
-from backend.db_proxy.reverse_api.helper import validate_nginx_ip
 from backend.db_proxy.views.db_meta.serializers import (
     BizClusterSerializer,
     BKCityNameSerializer,
@@ -377,25 +375,3 @@ class DBMetaApiProxyPassViewSet(BaseProxyPassViewSet):
             cluster_type=ClusterType.SqlserverSingle.value,
         )
         return Response(data)
-
-    @common_swagger_auto_schema(operation_summary=_("云区域 nginx 拉取本区域 IP 列表"))
-    @action(methods=["GET"], detail=False, url_path="dbmeta/iplist_by_cloud")
-    def iplist_by_cloud(self, request):
-        try:
-            bk_cloud_id = int(request.query_params.get("bk_cloud_id"))
-        except (TypeError, ValueError):
-            raise PermissionDenied(_("非法 nginx 来源"))
-
-        try:
-            validate_nginx_ip(bk_cloud_id, request)
-        except Exception as e:
-            logger.warning(
-                "iplist_by_cloud denied, nginx_ip=%s, bk_cloud_id=%s, err=%s",
-                request.META.get("REMOTE_ADDR"),
-                bk_cloud_id,
-                e,
-            )
-            raise PermissionDenied(_("非法 nginx 来源"))
-
-        data = Machine.objects.filter(bk_cloud_id=bk_cloud_id).values_list("ip", flat=True)
-        return Response(list(data))
