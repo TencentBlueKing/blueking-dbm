@@ -1,8 +1,9 @@
 import dayjs from 'dayjs';
 import _ from 'lodash';
-import { computed, ref } from 'vue';
+import { computed, markRaw, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { getClusterStateSchema } from '@services/source/clusterState';
 import { queryBizClusterAttrs } from '@services/source/dbbase';
 import { listTag } from '@services/source/tag';
 import { getUserList } from '@services/source/user';
@@ -10,7 +11,15 @@ import { getUserList } from '@services/source/user';
 import { clusterTypeInfos, ClusterTypes } from '@common/const';
 import { domainPort, domainRegex, ipPort, ipv4 } from '@common/regex';
 
+import ClusterStateSearchPanel from '@components/cluster-state-search-panel/Index.vue';
 import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
+
+import {
+  clusterStateSupportedTypes,
+  formatClusterStateFilterText,
+  getClusterStateFilterCascaderList,
+  getClusterStateFilterFields,
+} from './useClusterStateSchema';
 
 const clusterAttrs = [
   'bk_cloud_id',
@@ -26,6 +35,28 @@ export const useClusterQuickSearch = (cluster_type: ClusterTypes | ClusterTypes[
 
   const searchValue = ref<Record<string, string>>({});
   const isSearching = computed(() => Object.keys(searchValue.value).length > 0);
+
+  const isClusterStateSupported = !Array.isArray(cluster_type) && clusterStateSupportedTypes.includes(cluster_type);
+  // 运行概况字段 key 与名称的映射，用于标签回显「字段名 ： 取值」
+  const clusterStateFieldNameMap = ref<Record<string, string>>({});
+
+  const getClusterStateCascaderList = () =>
+    getClusterStateSchema({
+      bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
+      cluster_type: cluster_type as ClusterTypes,
+    }).then((schema) => {
+      const fields = getClusterStateFilterFields(schema);
+      clusterStateFieldNameMap.value = fields.reduce<Record<string, string>>(
+        (result, field) => Object.assign(result, { [field.key]: field.name }),
+        {},
+      );
+      return getClusterStateFilterCascaderList(fields);
+    });
+
+  if (isClusterStateSupported) {
+    // 预取字段名，标签回显时可直接取到；接口带缓存，面板打开时不会重复请求
+    getClusterStateCascaderList().catch(_.noop);
+  }
 
   const getBizClusterAttrs = (attr: (typeof clusterAttrs)[number]) => {
     return queryBizClusterAttrs({
@@ -141,7 +172,8 @@ export const useClusterQuickSearch = (cluster_type: ClusterTypes | ClusterTypes[
           remoteMethod: () => getBizClusterAttrs('db_module_id'),
           type: 'multiple',
         },
-      {
+      // 接入运行概况的集群类型去掉原「状态」条件，状态筛选统一走「运行概况」（产品 2026-11-17 需求备注）
+      !isClusterStateSupported && {
         id: 'status',
         list: [
           {
@@ -155,6 +187,19 @@ export const useClusterQuickSearch = (cluster_type: ClusterTypes | ClusterTypes[
         ],
         name: t('状态'),
         type: 'multiple',
+      },
+      isClusterStateSupported && {
+        component: markRaw(ClusterStateSearchPanel),
+        formatValuesText: (values: { label: string; value: string | number }[]) =>
+          formatClusterStateFilterText(values, clusterStateFieldNameMap.value),
+        id: 'cluster_state',
+        name: t('运行概况'),
+        props: {
+          clusterType: cluster_type,
+        },
+        // 面板自行取字段；这里的候选只用于 URL 回显时把编码值还原成文案
+        remoteMethod: getClusterStateCascaderList,
+        type: 'multiple-cascader',
       },
       {
         id: 'major_version',

@@ -169,26 +169,30 @@
         :cluster-role-node-group="clusterRoleNodeGroup"
         :cluster-type="ClusterTypes.TENDBHA">
         <template #infoContent>
-          <BaseInfo
+          <ClusterStateInfo
             :cluster-type="ClusterTypes.TENDBHA"
-            :data="data"
-            @refresh="fetchDetailData">
-            <template #clbMaster>
-              <ClbInfo
-                :cluster-type="ClusterTypes.TENDBHA"
-                :data="data" />
-            </template>
-            <template #slaveDomain>
-              <SlaveDomain
-                :cluster-type="ClusterTypes.TENDBHA"
-                :data="data.slaveEntryList" />
-            </template>
-            <template #moduleName>
-              <ModuleNameInfo
-                :cluster-type="ClusterTypes.TENDBHA"
-                :data="data" />
-            </template>
-          </BaseInfo>
+            :data="data">
+            <BaseInfo
+              :cluster-type="ClusterTypes.TENDBHA"
+              :data="data"
+              @refresh="fetchDetailData">
+              <template #clbMaster>
+                <ClbInfo
+                  :cluster-type="ClusterTypes.TENDBHA"
+                  :data="data" />
+              </template>
+              <template #slaveDomain>
+                <SlaveDomain
+                  :cluster-type="ClusterTypes.TENDBHA"
+                  :data="data.slaveEntryList" />
+              </template>
+              <template #moduleName>
+                <ModuleNameInfo
+                  :cluster-type="ClusterTypes.TENDBHA"
+                  :data="data" />
+              </template>
+            </BaseInfo>
+          </ClusterStateInfo>
         </template>
       </ActionPanel>
       <ClusterAuthorize
@@ -224,6 +228,7 @@
     ActionPanel,
     BaseInfo,
     BaseInfoField,
+    ClusterStateInfo,
     DisplayBox,
     SlaveDomain,
   } from '@views/db-manage/common/cluster-details';

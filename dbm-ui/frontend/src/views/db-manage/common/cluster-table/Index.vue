@@ -80,6 +80,7 @@
 
   import ClusterAliasColumn from './ClusterAliasColumn.vue';
   import ClusterNameColumn from './ClusterNameColumn.vue';
+  import ClusterStateColumn from './ClusterStateColumn.vue';
   import ClusterStatsColumn from './ClusterStatsColumn.vue';
   import ClusterTagColumn from './ClusterTagColumn.vue';
   import CommonColumn from './CommonColumn.vue';
@@ -93,6 +94,7 @@
 
   export {
     ClusterNameColumn,
+    ClusterStateColumn,
     ClusterStatsColumn,
     ClusterTagColumn,
     CommonColumn,
