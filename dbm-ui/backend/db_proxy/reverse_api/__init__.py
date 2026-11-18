@@ -11,6 +11,5 @@ specific language governing permissions and limitations under the License.
 import threading
 from collections import defaultdict
 
-nginx_ips_mcache = defaultdict(list)
 registered_machines_mcache = defaultdict(set)
 mcache_lock = threading.Lock()
