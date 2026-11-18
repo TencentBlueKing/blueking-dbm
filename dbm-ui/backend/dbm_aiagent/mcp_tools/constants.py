@@ -75,6 +75,7 @@ class DBMMcpTools(StrStructuredEnum):
     ES_QUERY_META = EnumField("es-query-meta", "es-query-meta")
     ES_BILL = EnumField("es-bill", "es-bill")
     ES_METRICS = EnumField("es-metrics", "es-metrics")
+    ES_READONLY_API = EnumField("es-readonly-api", "es-readonly-api")
     DORIS_METRICS = EnumField("doris-metrics", "doris-metrics")
     DORIS_QUERY_META = EnumField("doris-query-meta", "doris-query-meta")
 
