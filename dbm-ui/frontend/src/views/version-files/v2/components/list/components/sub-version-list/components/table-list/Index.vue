@@ -203,12 +203,10 @@
 
   import { getDbVersionList, getVersionSeriesList } from '@services/source/version';
 
-  import type { DBTypes } from '@common/const';
+  import { type DBTypes, versionStageMap } from '@common/const';
 
   import EmptyStatus from '@components/empty-status/EmptyStatus.vue';
   import TextOverflowLayout from '@components/text-overflow-layout/Index.vue';
-
-  import { versionStageMap } from '@views/version-files/v2/common';
 
   import { utcDisplayTime } from '@utils';
 

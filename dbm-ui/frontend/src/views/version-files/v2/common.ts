@@ -24,33 +24,3 @@ export const IDENTIFIER_NAME_REG = /^[A-Za-z0-9_.-]+$/;
  * 其余 DB 类型 / 包类型下只有一个隐式发行版，不展示左侧发行版列表
  */
 export const isPureMysqlPkgType = (dbType: string, pkgType: string) => dbType === DBTypes.MYSQL && pkgType === 'mysql';
-
-/** 版本阶段，按从早到晚排列，表格 tag、编辑表单、搜索栏候选项都由此派生 */
-export const versionStageList: { label: string; theme: 'danger' | 'warning' | 'info' | 'success'; value: string }[] = [
-  {
-    label: 'Alpha',
-    theme: 'danger',
-    value: 'alpha',
-  },
-  {
-    label: 'Beta',
-    theme: 'warning',
-    value: 'beta',
-  },
-  {
-    label: 'RC',
-    theme: 'info',
-    value: 'rc',
-  },
-  {
-    label: 'Release',
-    theme: 'success',
-    value: 'release',
-  },
-];
-
-/** 按阶段值索引的版本阶段 */
-export const versionStageMap = versionStageList.reduce<Record<string, (typeof versionStageList)[number]>>(
-  (result, item) => Object.assign(result, { [item.value]: item }),
-  {},
-);

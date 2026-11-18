@@ -17,10 +17,10 @@ import { useI18n } from 'vue-i18n';
 
 import DbVersionModel from '@services/model/version-file/db-version';
 
+import { versionStageList } from '@common/const';
+
 import DbQuickSearch from '@components/db-quick-search/Index.vue';
 import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
-
-import { versionStageList } from '@views/version-files/v2/common';
 
 type QuickSearchData = ComponentProps<typeof DbQuickSearch>['data'];
 
