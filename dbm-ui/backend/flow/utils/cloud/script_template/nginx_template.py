@@ -124,6 +124,11 @@ http {
 
     }
 
+    map $args $args_with_ip {
+        ""       "ip=$remote_addr";
+        default  "$args&ip=$remote_addr";
+    }
+
     # 转发dbm的透传服务
     server {
         listen {{dbm_port}};
@@ -141,6 +146,10 @@ http {
         location /apis/proxypass/ {
             # 重写上传接口的uri
             rewrite /generic/(.*)/(.*)/(.*)/  /apis/proxypass/generic/\$1/\$2/\$3/ break;
+
+            if ($request_uri ~ ^/apis/proxypass/reverse_api(/|$|\?)) {
+                set $args $args_with_ip;
+            }
 
             # 注意如果dbm_momain是以https开头的，则需要配置SSL
             proxy_pass {{dbm_momain}};
