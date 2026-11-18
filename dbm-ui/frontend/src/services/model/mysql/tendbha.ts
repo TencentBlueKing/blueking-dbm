@@ -17,6 +17,7 @@ import type {
   ClusterListNode,
   ClusterListOperation,
   ClusterListSpec,
+  ClusterStateValue,
   MachineSpec,
 } from '@services/types';
 
@@ -105,6 +106,8 @@ export default class Tendbha extends ClusterBase {
   proxies: ClusterListNode[];
   slave_domain: string;
   slaves: ({ is_stand_by: boolean } & ClusterListNode)[];
+  // 集群状态框架字段取值，key 为字段 key
+  states: Record<string, ClusterStateValue>;
   status: string;
   update_at: string;
   updater: string;
@@ -144,6 +147,7 @@ export default class Tendbha extends ClusterBase {
     this.proxies = payload.proxies || [];
     this.slave_domain = payload.slave_domain || '';
     this.slaves = payload.slaves || [];
+    this.states = payload.states || {};
     this.status = payload.status || '';
     this.update_at = payload.update_at;
     this.updater = payload.updater;

@@ -1,4 +1,5 @@
 import ActionPanel from './ActionPanel.vue';
+import ClusterStateInfo from './base-info/ClusterStateInfo.vue';
 import BaseInfo, {
   ClbInfo,
   ColdResourceInfo,
@@ -26,6 +27,7 @@ export {
   // BaseInfoList,
   BigDataInstanceList,
   // BaseInfoItem,
+  ClusterStateInfo,
   ColdResourceInfo,
   DisplayBox,
   HostListFieldColumn,

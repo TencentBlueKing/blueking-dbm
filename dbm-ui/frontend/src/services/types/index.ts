@@ -13,6 +13,7 @@
 
 export * from './bizItem';
 export * from './clusterCommonInfo';
+export * from './clusterState';
 export * from './common';
 export * from './db';
 export * from './hostInfo';

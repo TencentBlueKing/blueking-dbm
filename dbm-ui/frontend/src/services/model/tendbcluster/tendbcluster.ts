@@ -18,6 +18,7 @@ import type {
   ClusterListNode,
   ClusterListOperation,
   ClusterListSpec,
+  ClusterStateValue,
   MachineSpec,
 } from '@services/types';
 
@@ -116,6 +117,8 @@ export default class TendbCluster extends ClusterBase {
   spider_master: ClusterListNode[];
   spider_mnt: ClusterListNode[];
   spider_slave: ClusterListNode[];
+  // 集群状态框架字段取值，key 为字段 key
+  states: Record<string, ClusterStateValue>;
   status: string;
   temporary_info: {
     source_cluster: string;
@@ -166,6 +169,7 @@ export default class TendbCluster extends ClusterBase {
     this.spider_master = payload.spider_master || [];
     this.spider_mnt = payload.spider_mnt || [];
     this.spider_slave = payload.spider_slave || [];
+    this.states = payload.states || {};
     this.status = payload.status;
     this.temporary_info = payload.temporary_info;
     this.update_at = payload.update_at;
