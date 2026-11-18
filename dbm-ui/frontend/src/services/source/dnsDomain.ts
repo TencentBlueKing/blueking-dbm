@@ -59,8 +59,6 @@ export const getDnsDomainList = (
 ) =>
   http
     .get<{
-      can_create: boolean;
-      can_view_global_audit: boolean;
       count: number;
       permission: {
         dns_audit_view: boolean;
