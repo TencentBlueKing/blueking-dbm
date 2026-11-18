@@ -142,6 +142,11 @@ func DoMigratePlatformPassword() error {
 	if err != nil {
 		return err
 	}
+	// common_password规则，主要用于平台密码初始化
+	err = AddRule("common_password", service.CommonRule)
+	if err != nil {
+		return err
+	}
 
 	// 初始化平台密码，随机密码
 	type ComponentPlatformUser struct {
@@ -170,13 +175,21 @@ func DoMigratePlatformPassword() error {
 			if count == 0 {
 				insertPara := &service.ModifyPasswordPara{UserName: user, Component: component.Component, Operator: "admin",
 					Instances:    []service.Address{{"0.0.0.0", &defaultInt, &defaultInt}},
-					InitPlatform: true, SecurityRuleName: "mysql_password"}
-				if component.Component == "redis" {
-					insertPara = &service.ModifyPasswordPara{UserName: user, Component: component.Component, Operator: "admin",
-						Instances:    []service.Address{{"0.0.0.0", &defaultInt, &defaultInt}},
-						InitPlatform: true, SecurityRuleName: "redis_password_v2"}
+					InitPlatform: true, SecurityRuleName: "common_password"}
+				// redis组件下的mysql账号，与mysql组件下的mysql账号共用同一个密码
+				if component.Component == "redis" && user == "mysql" {
+					psw, errInner := GetPlatformPassword("mysql", "mysql")
+					if errInner != nil {
+						return fmt.Errorf("get mysql os password for redis error: %s",
+							errInner.Error())
+					}
+					// 直接使用已有密码，不再校验复杂度以及生成随机密码
+					insertPara.Psw = psw
+					insertPara.SecurityRuleName = ""
 				}
-				b, _ := json.Marshal(*insertPara)
+				logPara := *insertPara
+				logPara.Psw = ""
+				b, _ := json.Marshal(logPara)
 				err = insertPara.ModifyPassword(string(b), "modify_password")
 				if err != nil {
 					return fmt.Errorf("%s error: %s", "init platform password, modify password", err.Error())
@@ -184,7 +197,24 @@ func DoMigratePlatformPassword() error {
 			}
 		}
 	}
+
 	return nil
+}
+
+// GetPlatformPassword 获取平台通用账号的明文密码，不存在返回空字符串
+func GetPlatformPassword(user string, component string) (string, error) {
+	defaultInt := int64(0)
+	getPara := &service.GetPasswordPara{
+		Users:     []service.UserInComponent{{user, component}},
+		Instances: []service.Address{{"0.0.0.0", &defaultInt, &defaultInt}}}
+	passwords, count, err := getPara.GetPassword()
+	if err != nil {
+		return "", err
+	}
+	if count == 0 || len(passwords) == 0 {
+		return "", fmt.Errorf("platform password for user %s component %s not found", user, component)
+	}
+	return passwords[0].Password, nil
 }
 
 func AddRule(name string, content string) error {

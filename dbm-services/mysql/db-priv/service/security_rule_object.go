@@ -3,9 +3,10 @@ package service
 import "time"
 
 const BigDataRule = "{\"max_length\":32,\"min_length\":6,\"include_rule\":{\"numbers\":true,\"symbols\":false,\"lowercase\":true,\"uppercase\":true},\"number_of_types\":2,\"symbols_allowed\":\"\",\"weak_password\":false,\"repeats\":4}"
-const MysqlSqlserverRule = "{\"max_length\":32,\"min_length\":6,\"include_rule\":{\"numbers\":true,\"symbols\":true,\"lowercase\":true,\"uppercase\":true},\"number_of_types\":2,\"symbols_allowed\":\"!#%&()*+,-./;<=>?[]^_{|}~@:$\",\"weak_password\":false,\"repeats\":4}"
+const MysqlSqlserverRule = "{\"max_length\":32,\"min_length\":6,\"include_rule\":{\"numbers\":true,\"symbols\":true,\"lowercase\":true,\"uppercase\":true},\"number_of_types\":2,\"symbols_allowed\":\"!@#_+[?(%*&\",\"weak_password\":false,\"repeats\":4}"
 const RedisRule = "{\"max_length\":32,\"min_length\":8,\"include_rule\":{\"numbers\":true,\"symbols\":true,\"lowercase\":true,\"uppercase\":true},\"number_of_types\":2,\"symbols_allowed\":\"#@%=+-;\",\"weak_password\":false,\"repeats\":4}"
 const MongodbRule = "{\"max_length\":32,\"min_length\":8,\"include_rule\":{\"numbers\":true,\"symbols\":true,\"lowercase\":true,\"uppercase\":true},\"number_of_types\":2,\"symbols_allowed\":\"#%=+-;\",\"weak_password\":false,\"repeats\":4}"
+const CommonRule = "{\"max_length\":32,\"min_length\":8,\"include_rule\":{\"numbers\":true,\"symbols\":true,\"lowercase\":true,\"uppercase\":true},\"number_of_types\":2,\"symbols_allowed\":\"@#_%\",\"weak_password\":false,\"repeats\":4}"
 
 // SecurityRulePara 安全规则相关函数的入参
 type SecurityRulePara struct {
