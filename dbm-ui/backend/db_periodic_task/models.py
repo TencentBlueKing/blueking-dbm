@@ -454,6 +454,137 @@ class FailoverDrillConfig(AuditedModel):
     cluster_domain = models.CharField(max_length=255, default="", blank=True, help_text=_("演练集群域名"))
 
 
+class MysqlFailoverDrillV1Config(AuditedModel):
+    """一座城市、一种集群类型、一个 DBHA 版本一行。旧 FailoverDrillConfig 继续给原定时任务用。"""
+
+    cluster_type = models.CharField(max_length=64, choices=ClusterType.get_choices(), default="")
+    city = models.CharField(max_length=128, default="", help_text=_("逻辑城市名"))
+    city_abbr = models.CharField(max_length=64, default="", blank=True, help_text=_("城市缩写，用于演练域名"))
+    version = models.CharField(
+        max_length=16,
+        choices=((FailoverDrillVersion.V1.value, _("DBHA v1")), (FailoverDrillVersion.V2.value, _("DBHA v2"))),
+        default=FailoverDrillVersion.V1.value,
+        help_text=_("DBHA 版本。同一城市可以各有一行 v1 和 v2"),
+    )
+    enabled = models.BooleanField(default=False, help_text=_("是否演练这座城市的这个版本"))
+    bk_biz_id = models.IntegerField(default=0, help_text=_("业务的 cmdb id"))
+    bk_cloud_id = models.IntegerField(default=0, help_text=_("云区域 id"))
+    db_module_id = models.IntegerField(default=0, help_text=_("db模块 id"))
+    labels = models.JSONField(default=list, help_text=_("资源申请和退回时使用的标签"))
+    db_version = models.CharField(max_length=64, default="MySQL-5.7", help_text=_("演练集群版本"))
+    spider_version = models.CharField(
+        max_length=64,
+        default="Spider-3",
+        help_text=_("TenDBCluster 演练使用的 Spider 版本"),
+    )
+    charset = models.CharField(max_length=32, default="utf8mb4", help_text=_("演练集群字符集"))
+    disaster_tolerance_level = models.CharField(max_length=64, default="CROS_SUBZONE", help_text=_("容灾要求，传给上架元数据"))
+    start_mysql_port = models.IntegerField(default=20000, help_text=_("MySQL 起始端口"))
+    start_proxy_port = models.IntegerField(default=10000, help_text=_("Proxy 起始端口"))
+    remark = models.CharField(max_length=255, default="", blank=True, help_text=_("备注"))
+
+    class Meta:
+        verbose_name = verbose_name_plural = _("MySQL容灾演练v1独立配置")
+        unique_together = (("cluster_type", "city", "version"),)
+
+    @staticmethod
+    def select_enabled(configs):
+        """按传入顺序保留已启用、城市名非空的配置。"""
+        chosen = []
+        for conf in configs:
+            if conf.enabled and (conf.city or "").strip():
+                chosen.append(conf)
+        return chosen
+
+
+class MysqlFailoverDrillV1Run(AuditedModel):
+    """一座城市一次独立演练的结果。阶段流水在 MysqlFailoverDrillV1Stage。"""
+
+    root_id = models.CharField(max_length=64, default="", db_index=True, help_text=_("Bamboo 根流程"))
+    main_task_id = models.CharField(max_length=64, unique=True, help_text=_("这座城市的演练号"))
+    bk_biz_id = models.IntegerField(default=0)
+    bk_cloud_id = models.IntegerField(default=0)
+    city = models.CharField(max_length=128, default="")
+    cluster_type = models.CharField(max_length=64, default="")
+    version = models.CharField(
+        max_length=16,
+        default=FailoverDrillVersion.V1.value,
+        db_index=True,
+        help_text=_("这次演练的 DBHA 版本，用来区分 v1 和 v2 的结果"),
+    )
+    master_domain = models.CharField(max_length=255, default="")
+    slave_domain = models.CharField(max_length=255, default="")
+    labels = models.JSONField(default=list)
+    hosts = models.JSONField(default=list)
+    phase = models.CharField(max_length=32, default="resource_apply", help_text=_("当前阶段"))
+    flow_result = models.CharField(max_length=32, default="running", help_text=_("流程结果"))
+    dbha_result = models.CharField(
+        max_length=32,
+        default="unknown",
+        help_text=_("DBHA 切换汇总。各实例类型都切换成功才是 switched，分类型结果在 MysqlFailoverDrillV1Dbha"),
+    )
+    resource_returned = models.BooleanField(default=False)
+    labels_applied = models.BooleanField(default=False)
+    started_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+    error_message = models.TextField(default="", blank=True)
+
+    class Meta:
+        verbose_name = verbose_name_plural = _("MySQL容灾演练v1结果")
+
+
+class MysqlFailoverDrillV1Stage(models.Model):
+    """演练过程流水。同一节点从开始到结束各记一行。"""
+
+    run = models.ForeignKey(MysqlFailoverDrillV1Run, on_delete=models.CASCADE, related_name="stages")
+    stage = models.CharField(max_length=255, help_text=_("阶段或节点名"))
+    target = models.CharField(max_length=255, default="", blank=True)
+    status = models.CharField(max_length=32)
+    node_id = models.CharField(max_length=64, default="", blank=True)
+    phase = models.CharField(max_length=32, default="")
+    error_message = models.TextField(default="", blank=True)
+    started_at = models.DateTimeField(auto_now_add=True)
+    finished_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = verbose_name_plural = _("MySQL容灾演练v1过程")
+        indexes = [
+            models.Index(fields=["run", "status"], name="drill_v1_stage_run_status"),
+            models.Index(fields=["node_id"], name="drill_v1_stage_node_id"),
+        ]
+
+
+class MysqlFailoverDrillV1Dbha(models.Model):
+    """一次演练里一个实例类型的 DBHA 切换结果。TenDBCluster 是 remote、spider，TenDBHA 是 backend、proxy。"""
+
+    run = models.ForeignKey(MysqlFailoverDrillV1Run, on_delete=models.CASCADE, related_name="dbha_rows")
+    version = models.CharField(
+        max_length=16,
+        default=FailoverDrillVersion.V1.value,
+        help_text=_("这次触发用的 DBHA 版本，v1 或 v2"),
+    )
+    instance_type = models.CharField(max_length=64, help_text=_("实例类型"))
+    ip = models.CharField(max_length=64, default="", blank=True, help_text=_("这次触发的 IP"))
+    dbha_result = models.CharField(
+        max_length=32,
+        default="unknown",
+        help_text=_("switched、timeout、query_error、unknown"),
+    )
+    dbha_status = models.CharField(max_length=64, default="", blank=True, help_text=_("HADB 返回的切换状态"))
+    error_message = models.TextField(default="", blank=True)
+    switch_start_time = models.DateTimeField(null=True, blank=True)
+    switch_finished_time = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = verbose_name_plural = _("MySQL容灾演练v1切换结果")
+        constraints = [
+            models.UniqueConstraint(fields=["run", "instance_type"], name="drill_v1_dbha_run_type"),
+        ]
+        indexes = [
+            models.Index(fields=["version", "instance_type", "dbha_result"], name="drill_v1_dbha_ver_type"),
+        ]
+
+
 class ExerciseIgnoreType:
     """演练忽略类型枚举"""
 
