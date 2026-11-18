@@ -34,9 +34,9 @@
       <TargetVersionColumn
         v-model="item.target_version"
         :cluster-id="item.host.related_clusters.length ? item.host.related_clusters[0].id : 0"
-        :current-versions="item.current_versions"
         :ip="item.host.ip"
-        :node-type="nodeType" />
+        :node-type="nodeType"
+        :version-name="item.target_version_name" />
       <OperationColumn
         :create-row-method="createRowData"
         :table-data="tableData" />
@@ -76,11 +76,11 @@
         node_type: string;
         slave_current_versions: string[]; // 回显
         target_versions: {
-          instance_role: string; // 回显
+          db_version_id: number;
+          instance_role: string;
           ip: string;
-          related_clusters: string[]; // 回显
-          slave_ip: string; // 回显
-          version: string;
+          related_clusters: string[];
+          slave_ip: string;
         }[];
       }[]
     >;
@@ -98,12 +98,13 @@
         immute_domain: string;
       }[];
     };
-    target_version: string;
+    target_version: number | undefined; // db_version_id
+    target_version_name?: string; // 批量导入的版本名
   }
 
   const props = defineProps<Props>();
 
-  const createRowData = (values = {} as Partial<IDataRow>) => ({
+  const createRowData = (values = {} as Partial<IDataRow>): IDataRow => ({
     current_versions: values?.current_versions || ([] as string[]),
     host: Object.assign(
       {
@@ -114,7 +115,8 @@
       },
       values.host,
     ),
-    target_version: values?.target_version || '',
+    target_version: values?.target_version,
+    target_version_name: values?.target_version_name,
   });
 
   const { t } = useI18n();
@@ -124,13 +126,24 @@
   useTicketDetail<Redis.VersionUpdateOnline>(TicketTypes.REDIS_VERSION_UPDATE_ONLINE, {
     onSuccess(ticketDetail) {
       const { infos } = ticketDetail.details;
-      const targerVersionList = infos.flatMap((item) => item.target_versions);
+      // 同一 ip 只保留一条（一台主机可关联多个集群）；新协议有 db_version_id，旧协议按 version 兜底，回填版本名由目标版本列映射成 id
+      const targetIpSet = new Set<string>();
+      const targerVersionList = infos
+        .flatMap((item) => item.target_versions)
+        .filter((item) => {
+          if (targetIpSet.has(item.ip)) {
+            return false;
+          }
+          targetIpSet.add(item.ip);
+          return true;
+        });
       tableData.value = targerVersionList.map((item) => {
         return createRowData({
           host: {
             ip: item.ip,
           } as IDataRow['host'],
-          target_version: item.version,
+          target_version: item.db_version_id,
+          target_version_name: item.version_name || item.version,
         });
       });
     },
@@ -188,7 +201,7 @@
           host: {
             ip: item.ip,
           } as IDataRow['host'],
-          target_version: item.version,
+          target_version_name: item.version,
         }),
       );
       return acc;
@@ -209,11 +222,11 @@
           (prev, item) => {
             const clusterId = item.host.related_clusters[0].id;
             const targetVersionItem = {
+              db_version_id: item.target_version as number,
               instance_role: '',
               ip: item.host.ip,
               related_clusters: item.host.related_clusters.map((item) => item.immute_domain),
               slave_ip: '',
-              version: item.target_version,
             };
             if (prev[clusterId]) {
               return Object.assign(prev, {
