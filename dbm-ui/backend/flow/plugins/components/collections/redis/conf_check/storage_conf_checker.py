@@ -338,7 +338,7 @@ class StorageConfChecker(BaseConfChecker):
             whitelist=whitelist,
             directive_rules=directive_rules,
         )
-        drifts = compare_directives(expected, data.disk, data.mem)
+        drifts = compare_directives(expected, data.disk, data.mem, directive_rules=directive_rules)
         if not drifts:
             return []
         shown = ", ".join(d.render() for d in drifts[:MAX_DRIFTS_IN_MSG])
