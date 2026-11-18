@@ -56,7 +56,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { versionStageList, versionStageMap } from '@views/version-files/v2/common';
+  import { versionStageList, versionStageMap } from '@common/const';
 
   type Emits = (e: 'valueChange') => void;
 

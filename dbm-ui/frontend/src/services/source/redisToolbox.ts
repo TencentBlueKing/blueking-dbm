@@ -60,22 +60,53 @@ export const listClustersCreateSlaveProxy = async (params: { bk_biz_id: number }
     );
 
 /**
- * 查询集群版本信息
+ * 版本管理 V2 可升级版本项
  */
-export function getClusterVersions(params: {
+export interface RedisUpgradeVersionItem {
+  db_version_id: number;
+  full_version: string;
+  is_current: boolean;
+  phase: string;
+  recommend: boolean;
+  series_name: string;
+  version_name: string;
+}
+
+interface GetClusterVersionsParams {
   cluster_id?: number;
   cluster_type?: string;
   node_type: string;
   type: string;
-}) {
-  return http.get<string[]>(`${getRootPath()}/get_cluster_versions/`, params);
+}
+
+/**
+ * 查询集群版本信息
+ * type=online：返回当前运行版本字符串数组
+ * type=update：返回版本管理 V2 可升级候选列表
+ */
+export function getClusterVersions(params: { type: 'online' } & GetClusterVersionsParams): Promise<string[]>;
+export function getClusterVersions(
+  params: { type: 'update' } & GetClusterVersionsParams,
+): Promise<RedisUpgradeVersionItem[]>;
+export function getClusterVersions(params: GetClusterVersionsParams) {
+  return http.get<string[] | RedisUpgradeVersionItem[]>(`${getRootPath()}/get_cluster_versions/`, params);
+}
+
+interface GetClusterVersionsByIpParams extends GetClusterVersionsParams {
+  ip: string;
 }
 
 /**
  * 查询主机版本信息
+ * type=online：返回当前运行版本字符串数组
+ * type=update：返回版本管理 V2 可升级候选列表（按该 IP 当前运行版本过滤）
  */
-export function getClusterVersionsByIp(params: { cluster_id?: number; ip: string; node_type: string; type: string }) {
-  return http.get<string[]>(`${getRootPath()}/get_cluster_version_by_ip/`, params);
+export function getClusterVersionsByIp(params: { type: 'online' } & GetClusterVersionsByIpParams): Promise<string[]>;
+export function getClusterVersionsByIp(
+  params: { type: 'update' } & GetClusterVersionsByIpParams,
+): Promise<RedisUpgradeVersionItem[]>;
+export function getClusterVersionsByIp(params: GetClusterVersionsByIpParams) {
+  return http.get<string[] | RedisUpgradeVersionItem[]>(`${getRootPath()}/get_cluster_version_by_ip/`, params);
 }
 
 /**

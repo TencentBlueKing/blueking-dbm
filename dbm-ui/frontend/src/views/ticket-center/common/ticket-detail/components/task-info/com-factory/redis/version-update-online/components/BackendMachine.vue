@@ -129,7 +129,8 @@
           slave_current_versions: infoItem.slave_current_versions || [],
         },
         related_clusters: targetItem.related_clusters,
-        target_version: targetItem.version,
+        // 新协议 version_name 由后台写回，旧协议为 version
+        target_version: targetItem.version_name || targetItem.version || '',
       };
       if (targetItem.slave_ip) {
         pairSlaveIpMap[targetItem.slave_ip] = true;
