@@ -24,13 +24,19 @@
       form-type="vertical"
       :model="formData"
       :rules="rules">
-      <BkFormItem
-        :description="t('至少 3 段，如 api.game.db；仅支持小写字母、数字、连字符和点号；创建后不可修改')"
+      <!-- 格式提示放在输入框下方，校验报错时由错误信息替换 -->
+      <FormItemWithHint
         :label="t('域名')"
+        :model="formData.prefix"
         property="prefix"
-        required>
+        required
+        :rules="rules.prefix">
         <DomainInput v-model="formData.prefix" />
-      </BkFormItem>
+        <template #hint>
+          {{ t('至少 3 段，如 api.game.db；仅支持小写字母、数字、连字符和点号；') }}
+          <span class="dns-domain-create-hint-warning">{{ t('创建后不可改') }}</span>
+        </template>
+      </FormItemWithHint>
       <BkFormItem
         :description="t('一个域名可对应多个 IP，重复地址自动去重')"
         label="IP"
@@ -84,6 +90,7 @@
   import { useUserProfile } from '@stores';
 
   import DbMemberSelector from '@components/db-member-selector/index.vue';
+  import FormItemWithHint from '@components/form-item-with-hint/Index.vue';
 
   import {
     DOMAIN_SUFFIX,
@@ -97,7 +104,7 @@
 
   import DomainInput from './components/DomainInput.vue';
 
-  type Emits = (e: 'success') => void;
+  type Emits = (e: 'success', domain: string) => void;
 
   const emits = defineEmits<Emits>();
 
@@ -185,10 +192,10 @@
         owners: formData.owners,
         remark: formData.remark,
       })
-        .then(() => {
+        .then((data) => {
           messageSuccess(t('创建成功'));
           isShow.value = false;
-          emits('success');
+          emits('success', data.domain);
         })
         .finally(() => {
           isSubmitting.value = false;
@@ -200,6 +207,10 @@
   .dns-domain-create {
     .dns-domain-create-form {
       padding: 20px 24px;
+    }
+
+    .dns-domain-create-hint-warning {
+      color: #ff9c01;
     }
   }
 </style>

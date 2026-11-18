@@ -39,6 +39,7 @@
       ref="table"
       :data-source="dataSource"
       releate-url-query
+      :row-class-name="getRowClass"
       row-key="domain"
       @clear-search="handleClearSearch"
       @request-success="handleRequestSuccess">
@@ -56,6 +57,13 @@
             @click="handleOpenDetail(row)">
             {{ row.domain }}
           </AuthButton>
+          <DbTag
+            v-if="newDomainList.includes(row.domain)"
+            class="ml-4"
+            size="small"
+            theme="success">
+            NEW
+          </DbTag>
         </template>
       </TableColumn>
       <TableColumn
@@ -75,6 +83,25 @@
             v-if="row.owners.length > 0"
             :user-id="row.owners.join(',')" />
           <span v-else>--</span>
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="updater"
+        :min-width="140"
+        :title="t('更新人')">
+        <template #default="{ row }: { row: DnsDomainModel }">
+          <bk-user-display-name
+            v-if="row.updater"
+            :user-id="row.updater" />
+          <span v-else>--</span>
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="update_at"
+        :min-width="180"
+        :title="t('更新时间')">
+        <template #default="{ row }: { row: DnsDomainModel }">
+          {{ row.updateAtDisplay }}
         </template>
       </TableColumn>
       <TableColumn
@@ -121,7 +148,7 @@
     </DbTable>
     <DomainCreate
       v-model:is-show="isShowCreate"
-      @success="fetchData" />
+      @success="handleCreateSuccess" />
     <DomainDetail
       v-model:is-show="detailState.isShow"
       :domain="detailState.domain"
@@ -198,8 +225,39 @@
     },
   ];
 
-  const dataSource = (params: ServiceParameters<typeof getDnsDomainList>, payload: IRequestPayload) =>
-    getDnsDomainList(params, payload);
+  // 本页新建的域名，最新的在前；只存内存，刷新页面即清空，列表恢复自然序
+  const newDomainList = ref<string[]>([]);
+
+  const dataSource = async (params: ServiceParameters<typeof getDnsDomainList>, payload: IRequestPayload) => {
+    const data = await getDnsDomainList(params, payload);
+    if (newDomainList.value.length < 1) {
+      return data;
+    }
+    // 置顶行从自然序结果里剔除，避免同一域名出现两次
+    const restResults = data.results.filter((item) => !newDomainList.value.includes(item.domain));
+    if (params.offset) {
+      return {
+        ...data,
+        results: restResults,
+      };
+    }
+    // 首页：带上当前筛选条件逐个精确取回新建域名，不满足筛选的不置顶
+    const pinnedResults = await Promise.all(
+      newDomainList.value
+        .filter((domain) => !params.domain || domain.includes(params.domain))
+        .map((domain) =>
+          getDnsDomainList({ ...params, domain, limit: 20, offset: 0 }, payload).then((result) =>
+            result.results.find((item) => item.domain === domain),
+          ),
+        ),
+    );
+    return {
+      ...data,
+      results: [...pinnedResults.filter((item) => item !== undefined), ...restResults],
+    };
+  };
+
+  const getRowClass = ({ row }: { row: DnsDomainModel }) => (newDomainList.value.includes(row.domain) ? 'is-new' : '');
 
   const fetchData = () => {
     tableRef.value!.fetchData({
@@ -210,7 +268,7 @@
   };
 
   const handleRequestSuccess = (data: ServiceReturnType<typeof getDnsDomainList>) => {
-    canCreate.value = data.can_create;
+    canCreate.value = data.permission.dns_domain_create;
   };
 
   const handleClearSearch = () => {
@@ -221,6 +279,11 @@
 
   const handleCreate = () => {
     isShowCreate.value = true;
+  };
+
+  const handleCreateSuccess = (domain: string) => {
+    newDomainList.value = [domain, ...newDomainList.value.filter((item) => item !== domain)];
+    fetchData();
   };
 
   const handleOpenDetail = (row: DnsDomainModel) => {
@@ -243,6 +306,16 @@
       .dns-domain-list-mine {
         margin-right: 16px;
         margin-left: auto;
+      }
+    }
+
+    tbody {
+      tr {
+        &.is-new {
+          td {
+            background-color: #f3fcf5 !important;
+          }
+        }
       }
     }
   }
