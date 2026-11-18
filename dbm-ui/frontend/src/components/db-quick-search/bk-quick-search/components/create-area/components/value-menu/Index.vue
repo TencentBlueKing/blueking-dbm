@@ -102,12 +102,14 @@
   const isMacOs = /Mac OS X ([\d_]+)/.test(navigator.userAgent);
 
   const renderCom = computed(() => {
-    if (
-      !props.config ||
-      !props.config.type ||
-      props.config.type === comType.INPUT ||
-      props.config.type === comType.MULTIPLE_INPUT
-    ) {
+    if (!props.config) {
+      return null;
+    }
+    // 配置了自定义面板时优先使用（如集群「运行概况」的字段、取值两级面板），type 仍用于值的拆分与回显
+    if (props.config.component) {
+      return Custom;
+    }
+    if (!props.config.type || props.config.type === comType.INPUT || props.config.type === comType.MULTIPLE_INPUT) {
       return null;
     }
 
@@ -122,13 +124,7 @@
       [comType.SINGLE]: Select,
     } as const;
 
-    if (defaultComMap[props.config.type]) {
-      return defaultComMap[props.config.type];
-    }
-    if (props.config.component) {
-      return Custom;
-    }
-    return null;
+    return defaultComMap[props.config.type] || null;
   });
 
   const renderComProps = computed(() => {

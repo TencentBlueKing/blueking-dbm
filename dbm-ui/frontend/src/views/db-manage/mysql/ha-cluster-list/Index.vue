@@ -244,6 +244,11 @@
           :is-filter="isSearching"
           :selected-list="selectedList" />
       </template>
+      <template #status>
+        <ClusterStateColumn
+          :cluster-type="ClusterTypes.TENDBHA"
+          @go-detail="handleToDetails" />
+      </template>
       <template #role>
         <RoleColumn
           :cluster-type="ClusterTypes.TENDBHA"
@@ -332,6 +337,7 @@
   import ClusterEntryPanel from '@views/db-manage/common/cluster-entry-panel/Index.vue';
   import ClusterIpCopy from '@views/db-manage/common/cluster-ip-copy/Index.vue';
   import ClusterTable, {
+    ClusterStateColumn,
     MasterDomainColumn,
     ModuleNameColumn,
     OperationColumn,
@@ -389,7 +395,12 @@
   });
 
   const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.TENDBHA_TABLE_SETTINGS, {
+    appendColumns: ['cluster_state'],
     disabled: ['master_domain'],
+    // 已保存过列顺序的用户，运行概况放在容量使用率前面
+    insertColumnsBefore: {
+      cluster_state: 'cluster_stats',
+    },
   });
 
   const fetchData = () => {

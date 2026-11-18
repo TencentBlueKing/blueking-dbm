@@ -4,7 +4,10 @@ import { useUrlSearch } from '@hooks';
 
 import { useUserProfile } from '@stores';
 
-import { URL_CLUSTER_DETAIL_MEMO_KEY } from '@views/db-manage/common/cluster-details/constants';
+import {
+  URL_CLUSTER_DETAIL_ANCHOR_KEY,
+  URL_CLUSTER_DETAIL_MEMO_KEY,
+} from '@views/db-manage/common/cluster-details/constants';
 
 const TABLE_VIEW_MODE_SETTING_KEY = 'CLUSTER_TABLE_VIEW_MODE';
 
@@ -17,13 +20,24 @@ export default function (clusterDetailRouteName: string) {
   const clusterId = ref(0);
   const isShowDetail = ref(false);
 
-  const goClusterDetail = (id: number, event: MouseEvent, detailPanel?: string) => {
+  /**
+   * @param detailPanel 打开后激活的 Tab
+   * @param anchor 打开后滚动定位的分组（URL_CLUSTER_DETAIL_ANCHOR_KEY 的值）
+   */
+  const goClusterDetail = (id: number, event: MouseEvent, detailPanel?: string, anchor?: string) => {
     if (event.ctrlKey || event.metaKey || userProfileStore.profile[TABLE_VIEW_MODE_SETTING_KEY] === 'jump') {
       const { href } = router.resolve({
         name: clusterDetailRouteName,
         params: {
           clusterId: id,
         },
+        // 只在需要定位时带上 Tab 与锚点，其他入口保持原有新窗口行为
+        query: anchor
+          ? {
+              [URL_CLUSTER_DETAIL_ANCHOR_KEY]: anchor,
+              [URL_CLUSTER_DETAIL_MEMO_KEY]: detailPanel || '',
+            }
+          : undefined,
       });
       window.open(href);
       return true;
@@ -32,6 +46,12 @@ export default function (clusterDetailRouteName: string) {
     const query = getSearchParams();
     if (detailPanel) {
       query[URL_CLUSTER_DETAIL_MEMO_KEY] = detailPanel;
+    }
+    if (anchor) {
+      query[URL_CLUSTER_DETAIL_ANCHOR_KEY] = anchor;
+    } else {
+      // __xx__ 形式的参数会跨搜索保留，未指定定位时清掉上一次残留的锚点
+      delete query[URL_CLUSTER_DETAIL_ANCHOR_KEY];
     }
     clusterId.value = id;
     isShowDetail.value = true;
@@ -46,11 +66,13 @@ export default function (clusterDetailRouteName: string) {
   const clusterDetailClose = () => {
     clusterId.value = 0;
     isShowDetail.value = false;
+    const query = getSearchParams();
+    delete query[URL_CLUSTER_DETAIL_ANCHOR_KEY];
     router.replace({
       params: {
         clusterId: 0,
       },
-      query: getSearchParams(),
+      query,
     });
   };
 

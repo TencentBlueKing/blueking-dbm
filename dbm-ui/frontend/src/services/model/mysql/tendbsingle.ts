@@ -17,6 +17,7 @@ import type {
   ClusterListNode,
   ClusterListOperation,
   ClusterListSpec,
+  ClusterStateValue,
   MachineSpec,
 } from '@services/types';
 
@@ -98,6 +99,8 @@ export default class Tendbsingle extends ClusterBase {
   phase: string;
   phase_name: string;
   slave_domain: string;
+  // 集群状态框架字段取值，key 为字段 key
+  states: Record<string, ClusterStateValue>;
   status: string;
   update_at: string;
   updater: string;
@@ -133,6 +136,7 @@ export default class Tendbsingle extends ClusterBase {
     this.phase = payload.phase || '';
     this.phase_name = payload.phase_name || '';
     this.slave_domain = payload.slave_domain || '';
+    this.states = payload.states || {};
     this.status = payload.status || '';
     this.update_at = payload.update_at;
     this.updater = payload.updater;

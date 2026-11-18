@@ -126,16 +126,20 @@
         :cluster-role-node-group="clusterRoleNodeGroup"
         :cluster-type="ClusterTypes.TENDBSINGLE">
         <template #infoContent>
-          <BaseInfo
+          <ClusterStateInfo
             :cluster-type="ClusterTypes.TENDBSINGLE"
-            :data="data"
-            @refresh="fetchDetailData">
-            <template #moduleName>
-              <ModuleNameInfo
-                :cluster-type="ClusterTypes.TENDBSINGLE"
-                :data="data" />
-            </template>
-          </BaseInfo>
+            :data="data">
+            <BaseInfo
+              :cluster-type="ClusterTypes.TENDBSINGLE"
+              :data="data"
+              @refresh="fetchDetailData">
+              <template #moduleName>
+                <ModuleNameInfo
+                  :cluster-type="ClusterTypes.TENDBSINGLE"
+                  :data="data" />
+              </template>
+            </BaseInfo>
+          </ClusterStateInfo>
         </template>
       </ActionPanel>
       <ClusterAuthorize
@@ -159,7 +163,13 @@
   import MoreActionExtend from '@components/more-action-extend/Index.vue';
 
   import ClusterAuthorize from '@views/db-manage/common/cluster-authorize/Index.vue';
-  import { ActionPanel, BaseInfo, BaseInfoField, DisplayBox } from '@views/db-manage/common/cluster-details';
+  import {
+    ActionPanel,
+    BaseInfo,
+    BaseInfoField,
+    ClusterStateInfo,
+    DisplayBox,
+  } from '@views/db-manage/common/cluster-details';
   import ClusterDomainDnsRelation from '@views/db-manage/common/cluster-domain-dns-relation/Index.vue';
   import { useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';

@@ -2,6 +2,9 @@ import { comType } from '../constants';
 import type { IValue, Props } from '../Index.vue';
 
 export const getValuesText = (values: IValue['values'], config?: Props['data'][number]) => {
+  if (config?.formatValuesText) {
+    return config.formatValuesText(values);
+  }
   if (
     config &&
     config.type &&

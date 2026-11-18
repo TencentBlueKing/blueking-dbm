@@ -88,6 +88,8 @@
       component?: Component;
       default?: boolean;
       description?: string;
+      // 自定义标签回显文本，不配置时按「值1 | 值2」拼接
+      formatValuesText?: (values: IValue['values']) => string;
       id: string;
       list?: {
         children?: {
