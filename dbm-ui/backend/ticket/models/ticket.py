@@ -44,6 +44,7 @@ from backend.ticket.constants import (
     TicketType,
     TodoStatus,
 )
+from backend.ticket.flow_config import expire_days_to_hours
 from backend.utils.excel import ExcelHandler
 from backend.utils.time import calculate_cost_time
 
@@ -273,7 +274,12 @@ class Ticket(AuditedModel):
         flow = self.current_flow()
         # 系统终止
         if flow.err_code == FlowErrCode.SYSTEM_TERMINATED_ERROR:
-            return _("system已处理（备注: 超过{}天未处理自动终止）").format(flow.context[FlowContext.EXPIRE_TIME])
+            expire_hours = flow.context.get(FlowContext.EXPIRE_TIME_HOURS)
+            if expire_hours is None:
+                expire_hours = expire_days_to_hours(flow.context.get(FlowContext.EXPIRE_TIME))
+            if expire_hours is not None and expire_hours > 0:
+                return _("system已处理（备注: 超过{}小时未处理自动终止）").format(expire_hours)
+            return _("system已处理（备注: 系统自动终止）")
         # 用户终止，获取flow的备注
         remark = flow.context.get("remark", "")
         return _("{}已处理（人工终止，备注: {}）").format(self.updater, remark)

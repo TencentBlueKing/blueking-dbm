@@ -98,6 +98,8 @@ class MySQLAuthorizeRulesFlowBuilder(BaseMySQLTicketFlowBuilder):
     inner_flow_builder = MySQLAuthorizeRulesFlowParamBuilder
     inner_flow_name = _("MySQL 授权执行")
     editable = False
+    default_need_itsm = False
+    default_need_manual_confirm = False
 
     @property
     def need_itsm(self):

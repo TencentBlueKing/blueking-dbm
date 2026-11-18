@@ -34,6 +34,7 @@ from backend.ticket.constants import (
     TicketFlowStatus,
     TodoStatus,
 )
+from backend.ticket.flow_config import expire_days_to_hours
 from backend.ticket.models import ClusterOperateRecord, Flow, InstanceOperateRecord, TicketFlowsConfig, Todo
 
 logger = logging.getLogger("root")
@@ -176,7 +177,8 @@ class BaseTicketFlow(ABC):
         # 系统终止认为是超时
         if operator == DEFAULT_SYSTEM_USER:
             self.flow_obj.err_code = FlowErrCode.SYSTEM_TERMINATED_ERROR
-            self.flow_obj.context.update({FlowContext.EXPIRE_TIME: self.get_current_config_expire_time()})
+            expire_days = self.get_current_config_expire_time()
+            self.flow_obj.context[FlowContext.EXPIRE_TIME_HOURS] = expire_days_to_hours(expire_days)
         else:
             self.flow_obj.err_code = FlowErrCode.GENERAL_ERROR
         self.flow_obj.save(update_fields=["status", "err_code", "context", "update_at"])
@@ -190,8 +192,8 @@ class BaseTicketFlow(ABC):
             return -1
         config = TicketFlowsConfig.get_config(ticket_type=self.ticket.ticket_type).configs
         expire_config = config.get(FlowTypeConfig.EXPIRE_CONFIG, TICKET_EXPIRE_DEFAULT_CONFIG)
-        expire_time = expire_config[FLOW_TYPE__EXPIRE_TYPE_CONFIG[self.flow_obj.flow_type]]
-        return expire_time
+        expire_type = FLOW_TYPE__EXPIRE_TYPE_CONFIG[self.flow_obj.flow_type]
+        return expire_config.get(expire_type, TICKET_EXPIRE_DEFAULT_CONFIG[expire_type])
 
     def create_operate_records(self, object_key, record_model, object_ids):
         """

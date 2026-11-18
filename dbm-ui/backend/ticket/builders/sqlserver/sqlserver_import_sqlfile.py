@@ -27,6 +27,7 @@ from backend.ticket.builders.common.field import DBTimezoneField
 from backend.ticket.builders.sqlserver.base import BaseSQLServerTicketFlowBuilder, SQLServerBaseOperateDetailSerializer
 from backend.ticket.constants import FlowRetryType, FlowType, TicketType
 from backend.ticket.exceptions import TicketParamsVerifyException
+from backend.ticket.flow_config import FlowNodeDescription
 from backend.ticket.models import Flow
 
 
@@ -169,5 +170,14 @@ class SQLServerSingleApplyFlowBuilder(BaseSQLServerTicketFlowBuilder):
 
     @classmethod
     def describe_ticket_flows(cls, flow_config_map):
-        flow_desc = [_("单据审批"), _("定时执行(人工确认)"), _("库表备份(可选)"), _("变更SQL执行")]
+        flow_desc = []
+        if flow_config_map[cls.ticket_type]["need_itsm"]:
+            flow_desc.append(FlowNodeDescription(FlowType.BK_ITSM, _("单据审批")))
+        flow_desc.extend(
+            [
+                FlowNodeDescription(FlowType.PAUSE, _("定时执行(人工确认)")),
+                FlowNodeDescription(FlowType.INNER_FLOW, _("库表备份(可选)")),
+                FlowNodeDescription(FlowType.INNER_FLOW, _("变更SQL执行")),
+            ]
+        )
         return flow_desc

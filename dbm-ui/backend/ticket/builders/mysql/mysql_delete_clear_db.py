@@ -22,7 +22,8 @@ from backend.ticket.builders.mysql.mysql_force_import_sqlfile import (
     MysqlForceSqlImportFlowBuilder,
     MysqlForceSqlImportFlowParamBuilder,
 )
-from backend.ticket.constants import TicketType
+from backend.ticket.constants import FlowType, TicketType
+from backend.ticket.flow_config import FlowNodeDescription
 
 logger = logging.getLogger("root")
 
@@ -62,5 +63,9 @@ class MysqlDeleteClearDBFlowBuilder(MysqlForceSqlImportFlowBuilder):
 
     @classmethod
     def describe_ticket_flows(cls, flow_config_map):
-        flow_desc = [_("定时执行/人工执行"), _("删除清档备份库")]
+        need_confirm = flow_config_map[cls.ticket_type].get("need_manual_confirm")
+        flow_desc = [
+            FlowNodeDescription(FlowType.PAUSE if need_confirm else FlowType.TIMER, _("定时执行/人工执行")),
+            FlowNodeDescription(FlowType.INNER_FLOW, _("删除清档备份库")),
+        ]
         return flow_desc

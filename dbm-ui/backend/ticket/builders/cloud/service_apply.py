@@ -18,6 +18,7 @@ from backend.ticket import builders
 from backend.ticket.builders.cloud.base import BaseServiceOperateFlowParamBuilder
 from backend.ticket.builders.common.bigdata import BaseCloudTicketFlowBuilder
 from backend.ticket.constants import FlowType, TicketType
+from backend.ticket.flow_config import FlowNodeDescription
 from backend.ticket.models import Flow
 
 logger = logging.getLogger("root")
@@ -130,6 +131,8 @@ class RedisDtsServiceApplyFlowParamBuilder(CloudServiceApplyFlowParamBuilder):
 class CloudServiceApplyFlowBuilder(BaseCloudTicketFlowBuilder):
     serializer = CloudServiceApplyDetailSerializer
     editable = False
+    default_need_itsm = False
+    default_need_manual_confirm = False
 
     def init_ticket_flows(self):
         flows = [
@@ -174,5 +177,10 @@ class CloudServiceApplyFlowBuilder(BaseCloudTicketFlowBuilder):
 
     @classmethod
     def describe_ticket_flows(cls, flow_config_map):
-        flow_desc = [_("Nginx 服务部署"), _("DNS 服务部署"), _("DRS 服务部署"), _("DBHA 服务部署")]
+        flow_desc = [
+            FlowNodeDescription(FlowType.INNER_FLOW, _("Nginx 服务部署")),
+            FlowNodeDescription(FlowType.INNER_FLOW, _("DNS 服务部署")),
+            FlowNodeDescription(FlowType.INNER_FLOW, _("DRS 服务部署")),
+            FlowNodeDescription(FlowType.INNER_FLOW, _("DBHA 服务部署")),
+        ]
         return flow_desc

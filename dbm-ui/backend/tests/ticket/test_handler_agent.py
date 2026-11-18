@@ -29,6 +29,7 @@ from backend.ticket.constants import (
     TodoType,
 )
 from backend.ticket.exceptions import TicketFlowsConfigException
+from backend.ticket.flow_config import FlowNodeDescription
 from backend.ticket.handler import TicketHandler
 from backend.ticket.models import Flow, Ticket, TicketFlowsConfig, Todo
 from backend.ticket.todos import TodoActionType
@@ -1022,8 +1023,8 @@ class TestTicketHandlerFlowConfig:
 
         mock_flow_class = MagicMock()
         mock_flow_class.describe_ticket_flows.return_value = [
-            "单据审批",
-            "执行",
+            FlowNodeDescription(FlowType.BK_ITSM, "单据审批"),
+            FlowNodeDescription(FlowType.INNER_FLOW, "执行"),
         ]
         mock_builder_factory.registry = {TicketType.MYSQL_SINGLE_APPLY.value: mock_flow_class}
 

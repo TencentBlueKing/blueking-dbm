@@ -825,6 +825,7 @@ class FlowContext(StrStructuredEnum):
 
     ACK = EnumField("ack", _("当前流程是否确认执行"))
     EXPIRE_TIME = EnumField("expire_time", _("超时时间"))
+    EXPIRE_TIME_HOURS = EnumField("expire_time_hours", _("超时小时数"))
     REMARK = EnumField("remark", _("流程备注"))
     MODIFY_SUMMARY = EnumField("modify_summary", _("改单说明摘要"))
     NEXT_FLOW = EnumField("next_flow", _("下一流程ID"))
@@ -1032,9 +1033,9 @@ TICKET_EXPIRE_DEFAULT_CONFIG = {
 FLOW_TYPE__EXPIRE_TYPE_CONFIG = {
     FlowType.BK_ITSM: TicketExpireType.ITSM,
     FlowType.INNER_FLOW: TicketExpireType.INNER_FLOW,
-    FlowType.PAUSE: TicketExpireType.FLOW_TODO,
-    FlowType.RESOURCE_APPLY: TicketExpireType.FLOW_TODO,
-    FlowType.RESOURCE_BATCH_APPLY: TicketExpireType.FLOW_TODO,
+    FlowType.PAUSE: TicketExpireType.PAUSE,
+    FlowType.RESOURCE_APPLY: TicketExpireType.RESOURCE_REPLENISH,
+    FlowType.RESOURCE_BATCH_APPLY: TicketExpireType.RESOURCE_REPLENISH,
     FlowType.CONFIRM_MODIFY: TicketExpireType.CONFIRM_MODIFY,
 }
 

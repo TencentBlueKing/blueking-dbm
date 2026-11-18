@@ -49,7 +49,7 @@ from backend.ticket.exceptions import AppBaseException, TicketFlowsConfigExcepti
 from backend.ticket.flow_config import (
     FLOW_CONFIG_CHECK_ERROR_DISPLAY,
     flow_config_days_to_hours,
-    get_supported_expire_types,
+    get_configurable_expire_types,
     plan_flow_config_update,
 )
 from backend.ticket.flow_manager.manager import TicketFlowManager
@@ -795,7 +795,8 @@ class TicketHandler:
             # 获取当前单据的执行流程描述
             # 子配置只用自身 configs 生成描述；父配置使用同组父配置映射生成完整描述。
             config_map = {flow_config.ticket_type: flow_config.configs} if is_child_config else biz_config_map
-            flow_desc = BuilderFactory.registry[flow_config.ticket_type].describe_ticket_flows(config_map)
+            builder = BuilderFactory.registry[flow_config.ticket_type]
+            flow_nodes = builder.describe_ticket_flows(config_map)
             # 获取配置的基本信息
             flow_config_info = model_to_dict(flow_config)
 
@@ -833,10 +834,10 @@ class TicketHandler:
                 is_child_config=is_child_config,
                 has_child_config=not is_child_config and flow_config.ticket_type in child_config_ticket_types,
                 ticket_type_display=flow_config.get_ticket_type_display(),
-                flow_desc=flow_desc,
+                flow_desc=[node.label for node in flow_nodes],
                 supported_expire_types=[
                     {"value": expire_type, "label": TICKET_EXPIRE_TYPE_DISPLAY[expire_type]}
-                    for expire_type in get_supported_expire_types(flow_desc)
+                    for expire_type in get_configurable_expire_types(builder, flow_config.ticket_type, config_map)
                 ],
                 clusters=cluster_info,
                 update_at=flow_config.update_at,

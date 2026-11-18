@@ -21,6 +21,7 @@ from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, MySQLBaseOperateDetailSerializer
 from backend.ticket.builders.mysql.mysql_import_sqlfile import MysqlSqlImportBackUpFlowParamBuilder
 from backend.ticket.constants import FlowRetryType, FlowType, TicketType
+from backend.ticket.flow_config import FlowNodeDescription
 from backend.ticket.models import Flow
 
 logger = logging.getLogger("root")
@@ -45,6 +46,8 @@ class MysqlForceSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
     backup_builder = MysqlSqlImportBackUpFlowParamBuilder
     inner_flow_builder = MysqlForceSqlImportFlowParamBuilder
     editable = False
+    default_need_itsm = True
+    default_need_manual_confirm = True
 
     def patch_ticket_detail(self):
         upload_sql_path = BKREPO_SQLFILE_PATH.format(biz=self.ticket.bk_biz_id)
@@ -122,5 +125,8 @@ class MysqlForceSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
 
     @classmethod
     def describe_ticket_flows(cls, flow_config_map):
-        flow_desc = [_("库表备份(可选)"), _("变更SQL执行")]
+        flow_desc = [
+            FlowNodeDescription(FlowType.INNER_FLOW, _("库表备份(可选)")),
+            FlowNodeDescription(FlowType.INNER_FLOW, _("变更SQL执行")),
+        ]
         return flow_desc

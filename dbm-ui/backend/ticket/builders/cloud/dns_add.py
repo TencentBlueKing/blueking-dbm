@@ -41,6 +41,8 @@ class CloudDNSReloadFlowBuilder(BaseCloudTicketFlowBuilder):
     inner_flow_builder = CloudDNSAddFlowParamBuilder
     inner_flow_name = _("DNS 服务新增")
     editable = False
+    default_need_itsm = False
+    default_need_manual_confirm = True
 
     @property
     def need_itsm(self):

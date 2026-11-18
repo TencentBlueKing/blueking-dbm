@@ -53,6 +53,7 @@ from backend.ticket.builders.common.base import ParamValidateSerializerMixin
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, DBTableField
 from backend.ticket.constants import FlowType, TicketType
 from backend.ticket.exceptions import TicketResourceApplyException
+from backend.ticket.flow_config import FlowNodeDescription
 from backend.ticket.models import Flow, Ticket
 
 logger = logging.getLogger("root")
@@ -1343,7 +1344,7 @@ class DtsMigrateFlowBuilder(BaseMySQLTicketFlowBuilder):
         flow_desc = super().describe_ticket_flows(flow_config_map)
         if cls.precheck_flow_builder:
             index = int(bool(flow_config_map[cls.ticket_type]["need_itsm"]))
-            flow_desc.insert(index, _("MySQL DTS 迁移预检查"))
+            flow_desc.insert(index, FlowNodeDescription(FlowType.INNER_FLOW, _("MySQL DTS 迁移预检查")))
         return flow_desc
 
     @property

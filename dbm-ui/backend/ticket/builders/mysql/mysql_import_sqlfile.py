@@ -36,6 +36,7 @@ from backend.ticket.constants import (
     TicketType,
 )
 from backend.ticket.exceptions import TicketBaseException
+from backend.ticket.flow_config import FlowNodeDescription
 from backend.ticket.models import Flow
 
 logger = logging.getLogger("root")
@@ -338,5 +339,12 @@ class MysqlSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
     @classmethod
     def describe_ticket_flows(cls, flow_config_map):
         flow_desc = cls._add_itsm_pause_describe(flow_desc=[], flow_config_map=flow_config_map)
-        flow_desc = [_("SQL模拟执行状态查询")] + flow_desc + [_("库表备份(可选)"), _("变更SQL执行")]
+        flow_desc = (
+            [FlowNodeDescription(FlowType.DESCRIBE_TASK, _("SQL模拟执行状态查询"))]
+            + flow_desc
+            + [
+                FlowNodeDescription(FlowType.INNER_FLOW, _("库表备份(可选)")),
+                FlowNodeDescription(FlowType.INNER_FLOW, _("变更SQL执行")),
+            ]
+        )
         return flow_desc

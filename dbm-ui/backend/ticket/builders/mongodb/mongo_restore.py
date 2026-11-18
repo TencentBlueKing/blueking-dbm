@@ -35,6 +35,7 @@ from backend.ticket.builders.mongodb.mongo_replicaset_apply import (
 )
 from backend.ticket.builders.mongodb.mongo_shard_apply import MongoShardedClusterResourceParamBuilder
 from backend.ticket.constants import FlowRetryType, FlowType, TicketType
+from backend.ticket.flow_config import FlowNodeDescription
 from backend.ticket.models import ClusterOperateRecord, Flow
 from backend.utils.time import date2str
 
@@ -278,5 +279,11 @@ class MongoDBRestoreApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
     @classmethod
     def describe_ticket_flows(cls, flow_config_map):
         flow_desc = cls._add_itsm_pause_describe(flow_desc=[], flow_config_map=flow_config_map)
-        flow_desc.extend([_("资源申请"), _("回档临时集群部署"), _("MongoDB 回档执行")])
+        flow_desc.extend(
+            [
+                FlowNodeDescription(FlowType.RESOURCE_APPLY, _("资源申请")),
+                FlowNodeDescription(FlowType.INNER_FLOW, _("回档临时集群部署")),
+                FlowNodeDescription(FlowType.INNER_FLOW, _("MongoDB 回档执行")),
+            ]
+        )
         return flow_desc

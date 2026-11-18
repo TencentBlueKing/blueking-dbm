@@ -59,6 +59,8 @@ class CloudDBHAReduceFlowBuilder(BaseCloudTicketFlowBuilder):
     inner_flow_builder = CloudDBHAReduceFlowParamBuilder
     inner_flow_name = _("DBHA 服务裁撤")
     editable = False
+    default_need_itsm = False
+    default_need_manual_confirm = True
 
     @property
     def need_itsm(self):

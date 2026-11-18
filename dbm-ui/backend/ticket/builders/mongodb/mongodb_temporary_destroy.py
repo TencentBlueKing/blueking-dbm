@@ -18,6 +18,7 @@ from backend.ticket import builders
 from backend.ticket.builders.common.base import CommonValidate
 from backend.ticket.builders.mongodb.base import BaseMongoDBOperateDetailSerializer, BaseMongoDBTicketFlowBuilder
 from backend.ticket.constants import FlowType, TicketType
+from backend.ticket.flow_config import FlowNodeDescription
 from backend.ticket.models import Flow
 
 
@@ -77,5 +78,10 @@ class MongoDBDestroyFlowBuilder(BaseMongoDBTicketFlowBuilder):
     @classmethod
     def describe_ticket_flows(cls, flow_config_map):
         flow_desc = cls._add_itsm_pause_describe(flow_desc=[], flow_config_map=flow_config_map)
-        flow_desc.extend([_("MongoDB 临时集群下架"), _("MongoDB 临时集群销毁")])
+        flow_desc.extend(
+            [
+                FlowNodeDescription(FlowType.INNER_FLOW, _("MongoDB 临时集群下架")),
+                FlowNodeDescription(FlowType.INNER_FLOW, _("MongoDB 临时集群销毁")),
+            ]
+        )
         return flow_desc

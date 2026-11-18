@@ -7,10 +7,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from backend.constants import DEFAULT_SYSTEM_USER
 from backend.ticket.builders import TicketFlowBuilder
+from backend.ticket.constants import FlowContext, FlowErrCode, FlowType, TicketStatus
 from backend.ticket.exceptions import TicketFlowsConfigException
 from backend.ticket.flow_config import flow_config_days_to_hours, flow_config_hours_to_days, plan_flow_config_update
+from backend.ticket.flow_manager.base import BaseTicketFlow
 from backend.ticket.handler import TicketHandler
+from backend.ticket.models import Ticket
 from backend.ticket.serializers import (
     CheckUpdateTicketFlowConfigSerializer,
     TicketFlowConfigCheckResultSerializer,
@@ -20,6 +24,36 @@ from backend.ticket.serializers import (
 
 class ConfigFlowBuilder(TicketFlowBuilder):
     ticket_type = "MYSQL_SINGLE_APPLY"
+
+
+def test_system_termination_records_pause_timeout_in_hours():
+    flow = SimpleNamespace(flow_type=FlowType.PAUSE, context={}, save=MagicMock())
+    ticket = SimpleNamespace(ticket_type="MYSQL_SINGLE_APPLY", save=MagicMock())
+    manager = SimpleNamespace(flow_obj=flow, ticket=ticket)
+    manager.get_current_config_expire_time = lambda: BaseTicketFlow.get_current_config_expire_time(manager)
+    config = SimpleNamespace(configs={"expire_config": {"pause": 2 / 24, "flow_todo_expire": 7}})
+    with patch("backend.ticket.flow_manager.base.TicketFlowsConfig.get_config", return_value=config):
+        BaseTicketFlow.flush_revoke_status_handler(manager, DEFAULT_SYSTEM_USER)
+
+    assert flow.context[FlowContext.EXPIRE_TIME_HOURS] == 2
+
+
+@pytest.mark.parametrize(
+    "context, expected_duration",
+    [
+        ({FlowContext.EXPIRE_TIME_HOURS: 2}, "2小时"),
+        ({FlowContext.EXPIRE_TIME: 3}, "72小时"),
+        ({FlowContext.EXPIRE_TIME: 1 / 12}, "2小时"),
+        ({FlowContext.EXPIRE_TIME: 3, FlowContext.EXPIRE_TIME_HOURS: 2}, "2小时"),
+    ],
+)
+def test_termination_reason_displays_hours(context, expected_duration):
+    from django.utils.translation import override
+
+    flow = SimpleNamespace(err_code=FlowErrCode.SYSTEM_TERMINATED_ERROR, context=context)
+    ticket = SimpleNamespace(status=TicketStatus.TERMINATED, current_flow=lambda: flow)
+    with override("zh-hans"):
+        assert expected_duration in Ticket.get_terminate_reason(ticket)
 
 
 def make_config(config_id=1, *, editable=True, bk_biz_id=0, **configs):
@@ -191,13 +225,23 @@ def test_read_conversion_preserves_legacy_days_and_model_data():
 
 
 @pytest.mark.parametrize("bk_biz_id, expected_pause", [(0, 24), (1, 1)])
-def test_query_description_preserves_business_units(bk_biz_id, expected_pause):
-    cfg = make_config(bk_biz_id=bk_biz_id, expire_config={"pause": 1, "itsm_expire": -1})
+@pytest.mark.parametrize("has_optional_nodes", [False, True])
+def test_query_returns_capabilities_with_switches_off(bk_biz_id, expected_pause, has_optional_nodes):
+    cfg = make_config(
+        bk_biz_id=bk_biz_id,
+        need_itsm=False,
+        need_manual_confirm=False,
+        expire_config={"pause": 1, "itsm_expire": -1},
+    )
     cfg.update_at = None
     cfg.get_ticket_type_display = lambda: "MySQL"
     row = {"configs": cfg.configs, "cluster_tags": []}
-    builder = SimpleNamespace(
-        describe_ticket_flows=lambda configs: [],
+    builder = (
+        ConfigFlowBuilder
+        if has_optional_nodes
+        else SimpleNamespace(
+            describe_ticket_flows=lambda configs: [],
+        )
     )
     with (
         patch("backend.ticket.handler.TicketFlowsConfig.objects.filter", return_value=[cfg]),
@@ -206,12 +250,13 @@ def test_query_description_preserves_business_units(bk_biz_id, expected_pause):
     ):
         result = TicketHandler.query_ticket_flows_describe(bk_biz_id, "mysql", [cfg.ticket_type])
     assert result[0]["configs"]["expire_config"] == {"pause": expected_pause, "itsm_expire": -1}
-    # 即使 configs 中两个开关为 True，描述没有对应节点时也不返回可选类型。
-    assert {item["value"] for item in result[0]["supported_expire_types"]} == {
-        "confirm_modify",
-        "inner_flow_expire",
-        "flow_todo_expire",
-    }
+    assert result[0]["flow_desc"] == []
+    expected_types = {"confirm_modify", "inner_flow_expire", "flow_todo_expire"}
+    if has_optional_nodes:
+        expected_types.update({"itsm_expire", "pause"})
+    assert {item["value"] for item in result[0]["supported_expire_types"]} == expected_types
+    assert cfg.configs["need_itsm"] is False
+    assert cfg.configs["need_manual_confirm"] is False
     assert cfg.configs["expire_config"]["pause"] == 1
 
 

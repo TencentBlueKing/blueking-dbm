@@ -31,6 +31,7 @@ from backend.ticket.builders.mysql.base import (
     MySQLBaseOperateDetailSerializer,
 )
 from backend.ticket.constants import FlowRetryType, FlowType, TicketFlowStatus, TicketType
+from backend.ticket.flow_config import FlowNodeDescription
 from backend.ticket.models import Flow
 from backend.utils.time import str2datetime
 
@@ -254,5 +255,11 @@ class MySQLChecksumFlowBuilder(BaseMySQLHATicketFlowBuilder):
     @classmethod
     def describe_ticket_flows(cls, flow_config_map):
         flow_desc = cls._add_itsm_pause_describe(flow_desc=[], flow_config_map=flow_config_map)
-        flow_desc.extend([_("数据校验执行"), _("人工确认"), _("数据修复执行")])
+        flow_desc.extend(
+            [
+                FlowNodeDescription(FlowType.INNER_FLOW, _("数据校验执行")),
+                FlowNodeDescription(FlowType.PAUSE, _("人工确认")),
+                FlowNodeDescription(FlowType.INNER_FLOW, _("数据修复执行")),
+            ]
+        )
         return flow_desc

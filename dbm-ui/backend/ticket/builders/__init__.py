@@ -29,6 +29,7 @@ from backend.db_services.dbbase.constants import IpSource
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket.constants import TICKET_EXPIRE_DEFAULT_CONFIG, FlowRetryType, FlowType, TicketType
 from backend.ticket.exceptions import TicketResourceApplyException
+from backend.ticket.flow_config import FlowNodeDescription
 from backend.ticket.models import Flow, Ticket, TicketFlowsConfig
 from backend.utils.register import re_import_modules
 
@@ -658,9 +659,9 @@ class TicketFlowBuilder:
     @classmethod
     def _add_itsm_pause_describe(cls, flow_desc, flow_config_map):
         if flow_config_map[cls.ticket_type]["need_itsm"]:
-            flow_desc.append(FlowType.get_choice_label(FlowType.BK_ITSM))
+            flow_desc.append(FlowNodeDescription(FlowType.BK_ITSM, FlowType.get_choice_label(FlowType.BK_ITSM)))
         if flow_config_map[cls.ticket_type].get("need_manual_confirm"):
-            flow_desc.append(FlowType.get_choice_label(FlowType.PAUSE))
+            flow_desc.append(FlowNodeDescription(FlowType.PAUSE, FlowType.get_choice_label(FlowType.PAUSE)))
         return flow_desc
 
     @classmethod
@@ -670,13 +671,16 @@ class TicketFlowBuilder:
         单据构造类的默认流程描述，固定为：
         单据审批(可选, 默认有) --> 人工确认(可选, 默认有) --> 资源申请(由单据参数判断) ---> inner节点
         如果子类覆写了custom_ticket_flows/init_ticket_flows，则同时需要覆写该方法
+        重写时，每个步骤都应返回 FlowNodeDescription，并标注对应的 FlowType。
         """
         need_resource = (cls.resource_apply_builder or cls.resource_batch_apply_builder) is not None
         flow_desc = cls._add_itsm_pause_describe(flow_desc=[], flow_config_map=flow_config_map)
         if need_resource:
-            flow_desc.append(FlowType.get_choice_label(FlowType.RESOURCE_APPLY))
+            flow_desc.append(
+                FlowNodeDescription(FlowType.RESOURCE_APPLY, FlowType.get_choice_label(FlowType.RESOURCE_APPLY))
+            )
         if cls.inner_flow_name:
-            flow_desc.append(cls.inner_flow_name)
+            flow_desc.append(FlowNodeDescription(FlowType.INNER_FLOW, cls.inner_flow_name))
 
         return flow_desc
 

@@ -443,7 +443,7 @@ class TestTicketViewSet:
         assert isinstance(data[0]["supported_expire_types"], list)
         expire_types = {item["value"]: item["label"] for item in data[0]["supported_expire_types"]}
         assert {"confirm_modify", "inner_flow_expire", "flow_todo_expire"} <= expire_types.keys()
-        assert ("itsm_expire" in expire_types) == any("审批" in description for description in data[0]["flow_desc"])
+        assert {"itsm_expire", "pause"} <= expire_types.keys()
         assert "timer" not in expire_types
 
     @patch("backend.ticket.handler.Ticket.create_ticket")

@@ -11,6 +11,7 @@ from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.ticket import builders
 from backend.ticket.builders.sqlserver.base import BaseSQLServerTicketFlowBuilder, SQLServerBaseOperateDetailSerializer
 from backend.ticket.constants import FlowType, TicketFlowStatus, TicketType
+from backend.ticket.flow_config import FlowNodeDescription
 from backend.ticket.models import Flow
 
 
@@ -122,6 +123,8 @@ class SQLServerDataExportFlowBuilder(BaseSQLServerTicketFlowBuilder):
     itsm_flow_maintainer_builder = SQLServerDataExportItsmMaintainerFlowParamsBuilder
     itsm_flow_productor_builder = SQLServerDataExportItsmProductorFlowParamsBuilder
     editable = False
+    default_need_itsm = True
+    default_need_manual_confirm = True
 
     def init_ticket_flows(self):
         flows = []
@@ -172,5 +175,10 @@ class SQLServerDataExportFlowBuilder(BaseSQLServerTicketFlowBuilder):
 
     @classmethod
     def describe_ticket_flows(cls, flow_config_map):
-        flow_desc = [_("运维人员审批"), _("产品人员审批"), _("人工确认"), _("数据导出执行")]
+        flow_desc = [
+            FlowNodeDescription(FlowType.BK_ITSM, _("运维人员审批")),
+            FlowNodeDescription(FlowType.BK_ITSM, _("产品人员审批")),
+            FlowNodeDescription(FlowType.PAUSE, _("人工确认")),
+            FlowNodeDescription(FlowType.INNER_FLOW, _("数据导出执行")),
+        ]
         return flow_desc

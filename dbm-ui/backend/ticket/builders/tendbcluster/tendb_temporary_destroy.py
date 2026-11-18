@@ -19,6 +19,7 @@ from backend.ticket.builders.tendbcluster.base import (
     TendbClustersTakeDownDetailsSerializer,
 )
 from backend.ticket.constants import FlowType, TicketType
+from backend.ticket.flow_config import FlowNodeDescription
 from backend.ticket.models import Flow
 
 
@@ -61,5 +62,10 @@ class TendbDestroyFlowBuilder(BaseTendbTicketFlowBuilder):
     @classmethod
     def describe_ticket_flows(cls, flow_config_map):
         flow_desc = cls._add_itsm_pause_describe(flow_desc=[], flow_config_map=flow_config_map)
-        flow_desc.extend([_("TenDBCluster 临时集群下架"), _("TenDBCluster 临时集群销毁")])
+        flow_desc.extend(
+            [
+                FlowNodeDescription(FlowType.INNER_FLOW, _("TenDBCluster 临时集群下架")),
+                FlowNodeDescription(FlowType.INNER_FLOW, _("TenDBCluster 临时集群销毁")),
+            ]
+        )
         return flow_desc
