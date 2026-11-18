@@ -42,6 +42,8 @@ class CloudDRSReplaceFlowBuilder(BaseCloudTicketFlowBuilder):
     inner_flow_builder = CloudDRSReplaceFlowParamBuilder
     inner_flow_name = _("DRS 服务替换")
     editable = False
+    default_need_itsm = False
+    default_need_manual_confirm = True
 
     @property
     def need_itsm(self):

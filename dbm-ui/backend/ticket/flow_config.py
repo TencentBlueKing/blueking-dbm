@@ -1,7 +1,9 @@
 """单据流程配置的接口单位转换和部分更新校验。数据库中的超时时间单位为天。"""
 
 import copy
+from dataclasses import dataclass
 
+from django.utils.functional import Promise
 from django.utils.translation import gettext_lazy as _
 
 from backend.ticket.constants import FlowType, TicketExpireType
@@ -14,40 +16,48 @@ FLOW_CONFIG_CHECK_ERROR_DISPLAY = {
 }
 
 
-def get_supported_expire_types(flow_desc):
-    """根据接口展示的流程描述判断超时类型，无需在各个 FlowBuilder 维护额外属性。
+@dataclass(frozen=True)
+class FlowNodeDescription:
+    """为流程描述保留稳定的节点类型，使超时配置判断不受翻译或文案修改影响。
 
-    待确认修改、已失败、待继续始终提供；审批、人工确认和待补货跟随描述中的节点。
-    同时兼容运维/产品审批、人工确认执行、定时执行(人工确认)等自定义描述。
+    查询、预检查和更新接口根据 flow_type 判断支持的超时类型，查询接口用 label 生成 flow_desc。
+    重写 describe_ticket_flows() 时，每个步骤都使用本类，并传入对应的 FlowType。
+    审批、人工确认和资源申请节点的类型用于判断相应的超时配置项。
+    例如 FlowNodeDescription(FlowType.PAUSE, _("人工确认执行"))。
     """
+
+    # 超时配置根据节点类型判断，避免受翻译和文案变更影响。
+    flow_type: FlowType
+    # 用于接口的 flow_desc 展示，支持普通字符串和 Django 延迟翻译对象。
+    label: str | Promise
+
+
+def get_supported_expire_types(flow_types):
     supported = {TicketExpireType.CONFIRM_MODIFY, TicketExpireType.INNER_FLOW, TicketExpireType.FLOW_TODO}
-    # 超时类型与 flow_desc 中的节点名称映射；同类节点在不同单据中可能使用不同描述。
-    # 后续通过包含匹配判断描述中是否存在对应节点，任意名称匹配即可提供该超时配置。
-    markers = {
-        # 审批节点：普通单据审批，以及数据导出等单据中的运维/产品人员审批。
-        TicketExpireType.ITSM: [
-            str(FlowType.get_choice_label(FlowType.BK_ITSM)),  # 单据审批
-            str(_("运维人员审批")),
-            str(_("产品人员审批")),
-        ],
-        # 人工确认执行节点：兼容手动执行及定时/人工执行的可选分支描述。
-        TicketExpireType.PAUSE: [
-            str(FlowType.get_choice_label(FlowType.PAUSE)),  # 人工确认
-            str(_("人工执行")),
-            str(_("人工确认执行")),
-            str(_("定时执行(人工确认)")),
-            str(_("定时执行/人工执行")),
-        ],
-        # 资源申请节点：单次或批量申请资源不足时，可能产生待补货状态。
-        TicketExpireType.RESOURCE_REPLENISH: [
-            str(FlowType.get_choice_label(FlowType.RESOURCE_APPLY)),
-            str(FlowType.get_choice_label(FlowType.RESOURCE_BATCH_APPLY)),
-        ],
+    expire_type_by_flow_type = {
+        FlowType.BK_ITSM: TicketExpireType.ITSM,
+        FlowType.PAUSE: TicketExpireType.PAUSE,
+        FlowType.RESOURCE_APPLY: TicketExpireType.RESOURCE_REPLENISH,
+        FlowType.RESOURCE_BATCH_APPLY: TicketExpireType.RESOURCE_REPLENISH,
     }
-    for expire_type, names in markers.items():
-        if any(name.casefold() in str(description).casefold() for description in flow_desc for name in names):
-            supported.add(expire_type)
+    supported.update(
+        expire_type_by_flow_type[flow_type] for flow_type in flow_types if flow_type in expire_type_by_flow_type
+    )
     return [expire_type for expire_type in TicketExpireType.get_values() if expire_type in supported]
+
+
+def get_described_flow_types(nodes):
+    return {node.flow_type for node in nodes}
+
+
+def get_configurable_expire_types(builder, ticket_type, config_map):
+    """计算可配置的超时类型，包含打开开关后可启用的节点。"""
+    capability_map = {
+        **config_map,
+        ticket_type: {**config_map[ticket_type], "need_itsm": True, "need_manual_confirm": True},
+    }
+    nodes = builder.describe_ticket_flows(capability_map)
+    return get_supported_expire_types(get_described_flow_types(nodes))
 
 
 def flow_config_hours_to_days(configs):
@@ -63,6 +73,14 @@ def flow_config_hours_to_days(configs):
     return result
 
 
+def expire_days_to_hours(days):
+    """将天数转为小时，消除浮点尾差，保留 -1 等特殊值。"""
+    if type(days) not in (int, float) or days <= 0:
+        return days
+    hours = round(days * 24, 10)
+    return int(hours) if hours == int(hours) else hours
+
+
 def flow_config_days_to_hours(configs):
     """将平台配置中保存的超时天数转换为接口展示的小时数。
 
@@ -71,10 +89,8 @@ def flow_config_days_to_hours(configs):
     """
     result = copy.deepcopy(configs)
     for key, days in result.get("expire_config", {}).items():
-        if key in TicketExpireType.get_values() and type(days) in (int, float) and days > 0:
-            # 消除小时与天相互换算的浮点尾差，整小时以整数返回。
-            hours = round(days * 24, 10)
-            result["expire_config"][key] = int(hours) if hours == int(hours) else hours
+        if key in TicketExpireType.get_values():
+            result["expire_config"][key] = expire_days_to_hours(days)
     return result
 
 
@@ -106,11 +122,9 @@ def plan_flow_config_update(config, update_configs, builder):
             error(field, "preset", _("单据预设：不允许修改审批或人工确认配置"))
 
     # 能力判断与是否启用分开：免审批/免确认属于当前不生效，而非不支持该节点。
-    capability_config = {**merged, "need_itsm": True, "need_manual_confirm": True}
-    capability_desc = builder.describe_ticket_flows({config.ticket_type: capability_config})
-    supported = get_supported_expire_types(capability_desc)
+    supported = get_configurable_expire_types(builder, config.ticket_type, {config.ticket_type: merged})
     active_desc = builder.describe_ticket_flows({config.ticket_type: merged})
-    active_types = get_supported_expire_types(active_desc)
+    active_types = get_supported_expire_types(get_described_flow_types(active_desc))
     for expire_type, hours in update_configs.get("expire_config", {}).items():
         field = f"expire_config.{expire_type}"
         if expire_type not in supported:

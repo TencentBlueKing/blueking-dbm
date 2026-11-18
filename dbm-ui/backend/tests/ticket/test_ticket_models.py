@@ -417,7 +417,7 @@ class TestTicket:
         )
 
         result = base_ticket.get_terminate_reason()
-        assert "30" in result
+        assert "720" in result
         flow.delete()
 
     def test_get_terminate_reason_user_terminated(self, base_ticket):

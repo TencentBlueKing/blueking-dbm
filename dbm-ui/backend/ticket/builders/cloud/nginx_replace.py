@@ -61,6 +61,8 @@ class CloudNginxReplaceFlowBuilder(BaseCloudTicketFlowBuilder):
     inner_flow_builder = CloudNginxReplaceFlowParamBuilder
     inner_flow_name = _("Nginx 服务替换")
     editable = False
+    default_need_itsm = False
+    default_need_manual_confirm = True
 
     @property
     def need_itsm(self):

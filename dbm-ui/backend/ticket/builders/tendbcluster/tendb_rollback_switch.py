@@ -20,6 +20,7 @@ from backend.ticket import builders
 from backend.ticket.builders.mysql.mysql_cluster_standardize import MySQLClusterStandardizeFlowParamBuilder
 from backend.ticket.builders.tendbcluster.base import BaseTendbTicketFlowBuilder, TendbBaseOperateDetailSerializer
 from backend.ticket.constants import FlowType, TicketType
+from backend.ticket.flow_config import FlowNodeDescription
 from backend.ticket.models import Flow
 
 
@@ -140,5 +141,10 @@ class TendbRollbackSwitchFlowBuilder(BaseTendbTicketFlowBuilder):
     @classmethod
     def describe_ticket_flows(cls, flow_config_map):
         flow_desc = cls._add_itsm_pause_describe(flow_desc=[], flow_config_map=flow_config_map)
-        flow_desc.extend([cls.inner_flow_name, _("MySQL集群标准化")])
+        flow_desc.extend(
+            [
+                FlowNodeDescription(FlowType.INNER_FLOW, cls.inner_flow_name),
+                FlowNodeDescription(FlowType.INNER_FLOW, _("MySQL集群标准化")),
+            ]
+        )
         return flow_desc
