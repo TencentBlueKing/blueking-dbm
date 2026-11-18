@@ -1,5 +1,12 @@
 # DBHA-v2 Change Log
 
+## v2.1.0-beta.3
+- 【新增】bwmgr 支持将 DBM 导出的集群 xlsx 转为白名单导入文件，并自动校验。
+- 【新增】tdbctl flush routing [force] 支持独立设置超时，默认 30s。
+- 【优化】enableWhiteList 拆分为 enableWhiteListForSwitch（默认开启）和 enableWhiteListForScan（默认关闭），探测默认不按白名单过滤，旧配置项不再生效。
+- 【修复】MySQL 切换默认超时调大：建连 3s → 10s，执行 SQL 6s → 30s。
+- 【修复】业务级通用告警 event_name 为空导致 BKMonitor 上报失败，改用事件 dbha_workflow_alarm。
+
 ## v2.1.0-beta.2
 
 - 【新增】Admin 新增 HA Server 列表接口（gRPC ListHaServers、HTTP GET /api/admin/meta/ha-servers），从 etcd 查询 admin、analysis、receiver 各实例的运行信息。
