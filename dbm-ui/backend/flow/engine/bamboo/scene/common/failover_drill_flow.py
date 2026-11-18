@@ -294,3 +294,58 @@ su - mysql -c "cd {PROBE_DIR} && ./stop-probe.sh"
         )
 
         sub_pipeline.add_sub_pipeline(sub_flow=start_probe)
+
+
+def append_dbha_trigger_acts(sub_pipeline, root_id: str, city_data: dict, role: str, ip: str):
+    """按配置版本挂触发节点。v1 只挡 GM/agent，v2 挡服务 IP 并停探针，监测和清理两边一样。"""
+    version = city_data.get("dbha_version") or FailoverDrillVersion.V1.value
+    is_v2 = failover_drill_has_v2(version)
+    if is_v2:
+        trigger_name = _("在目标{}屏蔽DBHA-v2并停止探针").format(ip)
+    else:
+        trigger_name = _("在目标{}添加iptables禁用规则").format(ip)
+    sub_pipeline.add_act(
+        act_name=trigger_name,
+        act_component_code=ExecuteShellScriptComponent.code,
+        kwargs={
+            "bk_cloud_id": city_data["bk_cloud_id"],
+            "exec_ip": ip,
+            "cluster": {"shell_command": city_data["add_iptables"]},
+        },
+        error_ignorable=True,
+    )
+    sub_pipeline.add_act(
+        act_name=_("监测DBHA切换状态"),
+        act_component_code=FailoverStatusCheckComponent.code,
+        kwargs={
+            "trans_data_dataclass": FailoverDrillContext.__name__,
+            "cloud_id": city_data["bk_cloud_id"],
+            "app": str(city_data["bk_biz_id"]),
+            "ip": ip,
+            "main_task_id": city_data["main_task_id"],
+            "instance_role": role,
+            "dbha_version": failover_drill_queue_version(version),
+        },
+        error_ignorable=True,
+    )
+    sub_pipeline.add_act(
+        act_name=_("清理目标{}的iptables禁用规则").format(ip),
+        act_component_code=ExecuteShellScriptComponent.code,
+        kwargs={
+            "bk_cloud_id": city_data["bk_cloud_id"],
+            "exec_ip": ip,
+            "cluster": {"shell_command": city_data["clean_iptables"]},
+        },
+        error_ignorable=True,
+    )
+    if not is_v2:
+        return
+    start_probe = probe_start_sub_flow(
+        root_id=root_id,
+        data=city_data,
+        bk_cloud_id=city_data["bk_cloud_id"],
+        ips=[ip],
+        error_ignorable=True,
+    )
+    if start_probe is not None:
+        sub_pipeline.add_sub_pipeline(sub_flow=start_probe)

@@ -49,6 +49,14 @@ from backend.db_periodic_task.local_tasks.mysql_cluster_skew import calculate_te
 from backend.db_periodic_task.local_tasks.mysql_config_ai_inspect.tasks import periodic_mysql_config_ai_inspect
 from backend.db_periodic_task.local_tasks.mysql_exporter_heartbeat import *
 from backend.db_periodic_task.local_tasks.mysql_failover_drill import *
+from backend.db_periodic_task.local_tasks.mysql_failover_drill_v1 import (  # noqa: F401
+    mysql_failover_drill_v1_alert_task,
+    mysql_failover_drill_v1_retry_task,
+    mysql_failover_drill_v1_sync_task,
+    mysql_failover_drill_v1_task,
+    tendbcluster_failover_drill_v1_retry_task,
+    tendbcluster_failover_drill_v1_task,
+)
 from backend.db_periodic_task.local_tasks.mysql_partition import *
 from backend.db_periodic_task.local_tasks.randomize_password import *
 from backend.db_periodic_task.local_tasks.redis_autofix import *
