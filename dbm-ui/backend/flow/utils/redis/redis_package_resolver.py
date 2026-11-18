@@ -17,10 +17,10 @@ from django.utils.translation import gettext as _
 from backend.configuration.constants import DBType, SystemSettingsEnum
 from backend.configuration.models import SystemSettings
 from backend.db_meta.enums.comm import RedisVerUpdateNodeType
-from backend.db_meta.models.db_version import DBVersion
 from backend.db_package.constants import INIT_DB_PKG_SETTINGS
 from backend.db_package.exceptions import PackageNotExistException
 from backend.db_package.models import Package
+from backend.db_package.models.db_version import DBVersion
 from backend.db_services.ipchooser.constants import BkOsType
 from backend.db_services.redis.util import (
     is_predixy_proxy_type,

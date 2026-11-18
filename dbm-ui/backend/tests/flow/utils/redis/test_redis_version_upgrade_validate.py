@@ -10,8 +10,7 @@ import pytest
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole
-from backend.db_meta.models.db_version import DBVersion
-from backend.db_package.models import Package
+from backend.db_package.models import DBVersion, Package
 from backend.flow.utils.redis import redis_version_upgrade_validate as mod
 from backend.tests.mock_data.db_package.v2 import create_redis_package
 

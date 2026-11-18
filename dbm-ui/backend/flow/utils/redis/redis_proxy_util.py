@@ -26,9 +26,9 @@ from backend.db_meta.api.cluster.apis import query_cluster_by_hosts
 from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus
 from backend.db_meta.exceptions import InstanceNotExistException
 from backend.db_meta.models import Cluster
-from backend.db_meta.models.db_version import DBVersion
 from backend.db_meta.models.instance import StorageInstance
 from backend.db_package.models import Package
+from backend.db_package.models.db_version import DBVersion
 from backend.db_services.redis.util import (
     is_predixy_proxy_type,
     is_redis_cluster_protocal,

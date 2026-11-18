@@ -23,7 +23,7 @@ from backend.db_meta.api.cluster import nosqlcomm
 from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus
 from backend.db_meta.enums.comm import RedisVerUpdateNodeType
 from backend.db_meta.models import Cluster
-from backend.db_meta.models.db_version import DBVersion
+from backend.db_package.models.db_version import DBVersion
 from backend.db_services.redis.redis_modules.models.redis_module_support import ClusterRedisModuleAssociate
 from backend.db_services.redis.util import (
     is_predixy_standalone_type,

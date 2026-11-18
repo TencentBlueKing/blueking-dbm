@@ -20,7 +20,7 @@ from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster, StorageInstance
-from backend.db_meta.models.db_version import DBVersion
+from backend.db_package.models.db_version import DBVersion
 from backend.flow.utils.redis.redis_package_resolver import validate_storage_upgrade
 from backend.flow.utils.redis.redis_proxy_util import get_redis_version_by_ip
 
