@@ -3,9 +3,8 @@ import pytest
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models.db_version import DBVersion
 from backend.db_package.exceptions import PackageNotExistException
-from backend.db_package.models import Package
+from backend.db_package.models import DBVersion, Package
 from backend.flow.consts import MediumEnum
 from backend.flow.utils.redis.redis_package_resolver import (
     RedisUpgradePackageResolver,
