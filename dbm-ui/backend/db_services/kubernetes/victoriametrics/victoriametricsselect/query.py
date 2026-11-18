@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 from backend.components.kubernetes.client import KubernetesApi
 from backend.db_meta.api.cluster.k8s_vm.victoriametricsselect.detail import scan_cluster
-from backend.db_meta.enums import ClusterType, InstanceRole
+from backend.db_meta.enums import ClusterPhase, ClusterType, InstanceRole
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.dbbase.resources.register import register_resource_decorator
 from backend.db_services.kubernetes.victoriametrics.query import VictoriaMetricsBaseListRetrieveResource
@@ -38,6 +38,9 @@ class VictoriaMetricsSelectListRetrieveResource(VictoriaMetricsBaseListRetrieveR
     @classmethod
     def _get_storage_nodes(cls, cluster: Cluster, bcs_cluster_name: str, namespace: str) -> list:
         """从 VMSelect 当前组件配置读取外部 VMStorage 节点，支持同步接入的集群。"""
+        # 禁用集群不再查询组件配置
+        if cluster.phase == ClusterPhase.OFFLINE.value:
+            return []
         component = KubernetesApi.component_config(
             {
                 "k8sClusterName": bcs_cluster_name,
