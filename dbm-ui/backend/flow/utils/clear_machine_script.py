@@ -276,6 +276,9 @@ if [ -e /usr/local/predixy ];then
     unlink /usr/local/predixy
 fi
 
+echo "`date "+%F %T"` : [STEP 1] remove redis shell prompt /etc/profile.d/dbm_redis_prompt.sh"
+rm -f /etc/profile.d/dbm_redis_prompt.sh
+
 if [ -d "/home/mysql/bk-dbmon" ]; then
     echo "`date "+%F %T"` : [STEP 2] stop bk-dbmon and clean logs."
     /home/mysql/bk-dbmon/stop.sh && rm -rf /home/mysql/bk-dbmon/logs/

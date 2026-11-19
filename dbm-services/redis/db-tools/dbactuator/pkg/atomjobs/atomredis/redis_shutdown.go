@@ -423,6 +423,11 @@ func (job *RedisShutdown) ClearWhenAllInstancesShutdown() (err error) {
 		job.runtime.Logger.Error(err.Error())
 		return
 	}
+	// 清理主机 shell 提示符, 失败仅告警, 不阻断下架流程
+	job.runtime.Logger.Info("start clear redis shell prompt")
+	if e := consts.RemoveRedisShellPrompt(); e != nil {
+		job.runtime.Logger.Warn("redis shutdown remove shell prompt failed:%v", e)
+	}
 	// util.CleanRedisExporter()
 	return nil
 }
