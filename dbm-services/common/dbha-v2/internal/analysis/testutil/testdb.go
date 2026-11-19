@@ -62,6 +62,9 @@ func NewTestDbhaData(t *testing.T) *TestDbhaData {
 	if err := gormDB.AutoMigrate(&hamodel.DbBlackWhiteList{}); err != nil {
 		t.Fatalf("failed to auto migrate DbBlackWhiteList: %v", err)
 	}
+	if err := gormDB.AutoMigrate(&hamodel.DbSwitchingSnapshotLog{}); err != nil {
+		t.Fatalf("failed to auto migrate DbSwitchingSnapshotLog: %v", err)
+	}
 
 	t.Cleanup(func() {
 		sqlDB, _ := gormDB.DB()

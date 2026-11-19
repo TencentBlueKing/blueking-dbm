@@ -36,6 +36,7 @@ const (
 	DbSwitchingSnapshotLogTableName            = "t_db_switching_snapshot_log"
 	DbSwitchingSnapshotLogFieldID              = "id"
 	DbSwitchingSnapshotLogFieldSwitchID        = "switch_id"
+	DbSwitchingSnapshotLogFieldDbType          = "db_type"
 	DbSwitchingSnapshotLogFieldActionScope     = "action_scope"
 	DbSwitchingSnapshotLogFieldAction          = "action"
 	DbSwitchingSnapshotLogFieldStrategies      = "strategies"

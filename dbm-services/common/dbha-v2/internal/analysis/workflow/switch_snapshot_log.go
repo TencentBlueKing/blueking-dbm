@@ -325,18 +325,33 @@ func (s *SwitchingSnapshotReport) ReportAfterSwitchingSnapshot(rsp *switcher.Res
 
 // ReportNotifySnapshot writes a successful notify snapshot.
 func (s *SwitchingSnapshotReport) ReportNotifySnapshot() {
+	s.writeFinalSnapshot(hamodel.DbSwitchingSnapshotLogStatusSuccess, "notify completed successfully")
+}
+
+// ReportSkippedSwitchSnapshot writes a snapshot for a skipped switch.
+func (s *SwitchingSnapshotReport) ReportSkippedSwitchSnapshot(result string) {
+	s.writeFinalSnapshot(hamodel.DbSwitchingSnapshotLogStatusFailed, result)
+}
+
+// writeFinalSnapshot writes the final snapshot record through all snapshot loggers.
+// Action is set when the snapshot data is built.
+func (s *SwitchingSnapshotReport) writeFinalSnapshot(
+	status hamodel.DbSwitchingSnapshotLogStatus,
+	result string,
+) {
 	if s.SnapshotData == nil || s.SnapshotData.DbSwitchingSnapshotLog == nil {
 		return
 	}
 
+	log := s.SnapshotData.DbSwitchingSnapshotLog
 	now := time.Now()
-	s.SnapshotData.DbSwitchingSnapshotLog.FinishedTime = &now
-	s.SnapshotData.DbSwitchingSnapshotLog.Status = hamodel.DbSwitchingSnapshotLogStatusSuccess
-	s.SnapshotData.DbSwitchingSnapshotLog.Result = "notify completed successfully"
+	log.FinishedTime = &now
+	log.Status = status
+	log.Result = result
 	for _, snapshotLogger := range s.SnapshotLoggers {
 		if err := snapshotLogger.PreSwitchLog(s.SnapshotData); err != nil {
-			logger.Warn("failed to create notify snapshot record, switchId: %s, errmsg: %s",
-				s.SnapshotData.DbSwitchingSnapshotLog.SwitchID, err)
+			logger.Warn("failed to write final snapshot record, switchId: %s, errmsg: %s",
+				log.SwitchID, err)
 		}
 	}
 }

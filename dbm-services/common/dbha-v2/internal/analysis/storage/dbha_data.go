@@ -343,6 +343,43 @@ func (ha *DbhaData) SaveSwitchingSnapshotLog(ctx context.Context, records ...*ha
 	return nil
 }
 
+// RecentSnapshotLogQuery describes a window query for final snapshot logs.
+type RecentSnapshotLogQuery struct {
+	BkBizID   int
+	BkCloudID int
+	Action    hamodel.SnapshotActionType
+	Status    hamodel.DbSwitchingSnapshotLogStatus
+	Since     time.Time
+}
+
+// ListRecentSnapshotLogs returns final snapshot logs created after Since.
+// Instances of the returned records are used to deduplicate repeated reports.
+func (ha *DbhaData) ListRecentSnapshotLogs(
+	ctx context.Context,
+	q RecentSnapshotLogQuery,
+) ([]*hamodel.DbSwitchingSnapshotLog, error) {
+	var records []*hamodel.DbSwitchingSnapshotLog
+	err := ha.DB.DB().WithContext(ctx).Model(&hamodel.DbSwitchingSnapshotLog{}).
+		Select(
+			hamodel.DbSwitchingSnapshotLogFieldID,
+			hamodel.DbSwitchingSnapshotLogFieldDbType,
+			hamodel.DbSwitchingSnapshotLogFieldInstances,
+			hamodel.DbSwitchingSnapshotLogFieldStartTime,
+		).
+		Where(fmt.Sprintf("%s = ?", hamodel.DbSwitchingSnapshotLogFieldBkBizID), q.BkBizID).
+		Where(fmt.Sprintf("%s = ?", hamodel.DbSwitchingSnapshotLogFieldBkCloudID), q.BkCloudID).
+		Where(fmt.Sprintf("%s = ?", hamodel.DbSwitchingSnapshotLogFieldAction), q.Action).
+		Where(fmt.Sprintf("%s = ?", hamodel.DbSwitchingSnapshotLogFieldStatus), q.Status).
+		Where(fmt.Sprintf("%s > ?", hamodel.DbSwitchingSnapshotLogFieldStartTime), q.Since).
+		Where(fmt.Sprintf("%s IS NOT NULL", hamodel.DbSwitchingSnapshotLogFieldFinishedTime)).
+		Find(&records).Error
+	if err != nil {
+		return nil, gerrors.NewE(gerrors.MysqlFailure, err)
+	}
+
+	return records, nil
+}
+
 // UpdateSwitchingSnapshotLog updates an existing switching snapshot log record in the database.
 func (ha *DbhaData) UpdateSwitchingSnapshotLog(ctx context.Context, record *hamodel.DbSwitchingSnapshotLog) error {
 	err := ha.DB.DB().WithContext(ctx).Model(&hamodel.DbSwitchingSnapshotLog{}).

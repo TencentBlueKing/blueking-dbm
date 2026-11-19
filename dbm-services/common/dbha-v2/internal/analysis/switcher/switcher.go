@@ -243,3 +243,25 @@ func (sr *SwitchReporter) ReportSwitchLog(level switchlogger.SwitchLogLevel, mes
 func (sr *SwitchReporter) ReportSwitchLogf(level switchlogger.SwitchLogLevel, format string, args ...any) bool {
 	return sr.ReportSwitchLog(level, fmt.Sprintf(format, args...))
 }
+
+// SwitchLogContext describes the shared fields for a batch of switching detail logs.
+type SwitchLogContext struct {
+	SwitchID    string
+	ActionScope hamodel.ActionScopeType
+	Level       switchlogger.SwitchLogLevel
+	Message     string
+}
+
+// ReportSwitchLogsForInstances writes one switching detail log per instance through all loggers.
+func ReportSwitchLogsForInstances(
+	loggers []switchlogger.DbSwitchLogger,
+	metas []*dbm.DbInstMetadata,
+	logCtx SwitchLogContext,
+) {
+	instDataMap := make(switchcore.InstMetadataMap, len(metas))
+	for _, meta := range metas {
+		instDataMap[switchcore.GenerateMetadataKey(meta.BkCloudID, meta.IP, meta.Port)] = meta
+	}
+	NewSwitchReporter(loggers, instDataMap, logCtx.SwitchID, logCtx.ActionScope).
+		ReportSwitchLog(logCtx.Level, logCtx.Message)
+}
