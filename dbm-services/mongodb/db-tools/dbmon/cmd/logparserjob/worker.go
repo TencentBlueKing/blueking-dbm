@@ -70,7 +70,7 @@ type Worker struct {
 	LogFilePath, DstDir string
 	Wg                  sync.WaitGroup
 	Logger              *zap.Logger
-	LoopTime            int64 // seconds，每次执行的时间
+	LoopTime            int64 // seconds，检查 mongo.log 是否需要切分的间隔
 	Ctx                 context.Context
 	CancelFunc          context.CancelFunc
 	OsCtx               context.Context
@@ -79,23 +79,49 @@ type Worker struct {
 const sizeG = 1024 * 1024 * 1024
 const secondsDay = 86400
 
-// Run 解析日志文件
+// Run 持续解析日志，直到 Stop 或进程退出。
 func (w *Worker) Run() {
 	w.Logger.Info(
 		fmt.Sprintf("logFilePattern:%s, outputDir:%s", w.LogFilePath, w.DstDir))
 
+	w.Ctx, w.CancelFunc = context.WithCancel(context.Background())
+	defer w.CancelFunc()
+
 	// rotate log file if size exceeds 1G
-	err := w.rotateMongoLog(w.LogFilePath, sizeG*1, int64(float64(w.LoopTime)*1.5))
-	if err != nil {
+	if err := w.rotateMongoLog(w.LogFilePath, sizeG*1, int64(float64(w.LoopTime)*1.5)); err != nil {
 		w.Logger.Error(fmt.Sprintf("rotate log file failed: %v", err))
 	}
+	var rotateWg sync.WaitGroup
+	rotateWg.Add(1)
+	go func() {
+		defer rotateWg.Done()
+		w.rotateLoop()
+	}()
 
-	w.Ctx, w.CancelFunc = context.WithTimeout(context.Background(), time.Duration(w.LoopTime)*time.Second)
-	defer w.CancelFunc()
 	succ, fail, err := ParseFile(
 		w.LogFilePath, w.DstDir, "mongo.log", true, w.Ctx, w.OsCtx,
 		[]byte(w.Server.MetaForLog()), w.Logger)
+	w.CancelFunc()
+	rotateWg.Wait()
 	w.Logger.Info(fmt.Sprintf("succ %d fail %d err %v", succ, fail, err))
+}
+
+// rotateLoop 在解析过程中继续按原策略切 mongo.log，避免为了切分而停掉 tail。
+func (w *Worker) rotateLoop() {
+	ticker := time.NewTicker(time.Duration(w.LoopTime) * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-w.Ctx.Done():
+			return
+		case <-w.OsCtx.Done():
+			return
+		case <-ticker.C:
+			if err := w.rotateMongoLog(w.LogFilePath, sizeG*1, int64(float64(w.LoopTime)*1.5)); err != nil {
+				w.Logger.Error(fmt.Sprintf("rotate log file failed: %v", err))
+			}
+		}
+	}
 }
 
 // Stop 解析日志文件
