@@ -29,9 +29,17 @@ specific language governing permissions and limitations under the License.
   - 空 units -> 返回空字符串 `""`（不 raise，交由上层判断）
   - 未知代号 -> 直接回退为代号原文（不 raise），避免因文案漏映射导致节点失败
 """
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, List
 
 from django.utils.translation import gettext as _
+
+from backend.flow.engine.bamboo.scene.mysql.revoke.base.models import (
+    F2_SUB_KEY_CLB,
+    F2_SUB_KEY_DNS,
+    F2_SUB_KEY_PROXY_BACKENDS,
+    F2_SUB_KEY_TDBCTL,
+)
+from backend.flow.engine.bamboo.scene.mysql.revoke.base.role_consts import F2ABC_ROLES
 
 if TYPE_CHECKING:
     # 仅类型注解使用；运行时不导入以避免循环 import
@@ -41,8 +49,8 @@ if TYPE_CHECKING:
 #: 单机决策代号 → 中文短语映射（面向 DBA / SRE 阅读日志）
 #: 对应 :class:`HostDecision` 的 4 个 value；命中不到时回退代号原文
 HOST_DECISION_ZH: dict = {
-    "skip": _("跳过（不属于本单据）"),
-    "keep": _("保留（仍在服务）"),
+    "skip": _("跳过（脱离单据管控范围）"),
+    "keep": _("保留（疑似已对外提供服务）"),
     "recycle": _("可清理"),
     "manual": _("挂起（需人工确认）"),
 }
@@ -50,10 +58,10 @@ HOST_DECISION_ZH: dict = {
 #: 组决策代号 → 中文短语映射（面向 DBA / SRE 阅读日志）
 #: 对应 :class:`GroupDecision` 的 4 个 value；命中不到时回退代号原文
 GROUP_DECISION_ZH: dict = {
-    "group_skip": _("整组跳过"),
-    "group_keep": _("整组保留"),
-    "group_recycle": _("整组清理"),
-    "group_manual": _("整组挂起"),
+    "group_skip": _("整组跳过（脱离单据管控范围）"),
+    "group_keep": _("整组保留（疑似已对外提供服务）"),
+    "group_recycle": _("整组回收"),
+    "group_manual": _("整组挂起（需人工裁决）"),
 }
 
 
@@ -78,9 +86,9 @@ def format_group_ips(group: "ResourceGroup") -> str:
 
     示例：
       >>> format_group_ips(group_with_1_unit)
-      '1.1.1.1'
+      'x.x.x.x'
       >>> format_group_ips(group_with_4_units)
-      '1.1.1.1,\\n 2.2.2.2,\\n 3.3.3.3,\\n 4.4.4.4'
+      'x.x.x.x,\\n x.x.x.x,\\n x.x.x.x,\\n x.x.x.x'
     """
     if not group.units:
         return ""
@@ -136,11 +144,13 @@ def extract_decision_reason(reason: str) -> str:
         ("F1=YES", _("归属本单据")),
         # F1=NO 的真实成因是广义集合（MachineEvent 缺失 / CC 查不到 / 被别的合法单接管 /
         # CC 模块处于混合状态 / 真·被挪到其他业务），不应断言成"非法移动"这一具象成因
-        ("F1=NO", _("不归属本单据（可能被挪走/被接管/事件缺失）")),
+        ("F1=NO", _("判定机器已脱离本单据管控范围（可能被挪走/被接管/事件缺失）")),
         ("F1=UNKNOWN", _("归属状态未知")),
-        ("F2=YES", _("有 DNS/CLB 绑定")),
-        ("F2=NO", _("无 DNS/CLB 绑定")),
-        ("F2=UNKNOWN", _("DNS/CLB 绑定状态未知")),
+        # F2 是多引用面聚合（DNS / CLB / 中控路由 / proxy 后端），
+        # 不再断言成具象的 "DNS/CLB 绑定"；命中面明细由 describe_f2_hit_sources 输出
+        ("F2=YES", _("有引用命中")),
+        ("F2=NO", _("无引用命中")),
+        ("F2=UNKNOWN", _("引用状态未知")),
         ("F3=YES", _("有元数据残留")),
         ("F3=NO", _("无元数据残留")),
         ("F3=UNKNOWN", _("元数据残留状态未知")),
@@ -156,6 +166,81 @@ def extract_decision_reason(reason: str) -> str:
     for old, new in replacements:
         body = body.replace(old, new)
     return body
+
+
+def format_ctl_address(ctl_primary: Any) -> str:
+    """把 F2.c evidence 中的 ctl_primary 探测入口格式化为 ``ip:port``。
+
+    :param ctl_primary: 判据 evidence 的 ``ctl_primary`` 字段；实际为
+        ``{"ip": ..., "port": ...}`` dict（AccessLayerInstance 的序列化产物），
+        兼容 ``"ip:port"`` 字符串
+    :return: ``"ip:port"``；无法解析时回退占位文案（日志辅助函数 fail-safe，不抛异常）
+    """
+    if isinstance(ctl_primary, dict):
+        ip = str(ctl_primary.get("ip") or "").strip()
+        port = ctl_primary.get("port")
+        if ip and port is not None:
+            return "{}:{}".format(ip, port)
+        if ip:
+            return ip
+    elif isinstance(ctl_primary, str) and ctl_primary.strip():
+        return ctl_primary.strip()
+    return _("地址见该机 ② 检测项 evidence")
+
+
+def describe_f2_hit_sources(f2_evidence: dict) -> str:
+    """从 F2 判据 evidence 提取命中的引用面白话摘要。
+
+    使用场景（三处共用，保证口径一致）：
+      - :meth:`HostRevokeChecker.check_f2_traffic` 各路径 YES reason（单机日志 ② 原因行）
+      - :class:`HostDecisionMatrix` 决策 reason（单机日志【判定结果】说明）
+      - :class:`ResourceGroupJudgeService` 失败块的场景化处置指引（A 块）
+
+    :param f2_evidence: ``facts.f2_traffic.evidence``；子键见 ``models.F2_SUB_KEY_*``，
+        每个子判据 dict 均含 ``state``（"yes"/"no"/"unknown"）
+    :return: 形如 ``"集群中控 primary（x.x.x.x:26000）查询到路由信息：SPT_2"``；
+        多面命中用顿号连接；无命中子键时回退 ``"外部引用（详见 evidence）"``
+    边界：
+      - 非法入参（非 dict）→ 回退占位文案，绝不抛异常（日志辅助函数 fail-safe）
+    """
+    if not isinstance(f2_evidence, dict):
+        return _("外部引用（详见 evidence）")
+
+    parts: List[str] = []
+
+    dns_ev = f2_evidence.get(F2_SUB_KEY_DNS) or {}
+    if dns_ev.get("state") == "yes":
+        # 域名明细由单机日志块的 f2_dns_lines 渲染，此处只报命中面，避免重复
+        parts.append(_("DNS 解析记录"))
+
+    clb_ev = f2_evidence.get(F2_SUB_KEY_CLB) or {}
+    if clb_ev.get("state") == "yes":
+        parts.append(_("CLB 后端注册"))
+
+    ctl_ev = f2_evidence.get(F2_SUB_KEY_TDBCTL) or {}
+    if ctl_ev.get("state") == "yes":
+        ctl_addr: str = format_ctl_address(ctl_ev.get("ctl_primary"))
+        server_names = [str(r.get("Server_name")) for r in (ctl_ev.get("matched_rows") or []) if r.get("Server_name")]
+        if server_names:
+            parts.append(_("集群中控 primary（{addr}）查询到路由信息：{names}").format(addr=ctl_addr, names="、".join(server_names)))
+        else:
+            parts.append(_("集群中控 primary（{addr}）查询到路由信息（明细见 evidence）").format(addr=ctl_addr))
+
+    f2d_ev = f2_evidence.get(F2_SUB_KEY_PROXY_BACKENDS) or {}
+    if f2d_ev.get("state") == "yes":
+        hits = f2d_ev.get("matched_hits") or []
+        proxies = sorted({str(h.get("proxy_address")) for h in hits if h.get("proxy_address")})
+        backends = sorted({str(h.get("backend_address")) for h in hits if h.get("backend_address")})
+        details = []
+        if proxies:
+            details.append("proxy={}".format("、".join(proxies)))
+        if backends:
+            details.append("backend={}".format("、".join(backends)))
+        parts.append(_("proxy 后端引用") + ("（{}）".format(" · ".join(details)) if details else ""))
+
+    if not parts:
+        return _("外部引用（详见 evidence）")
+    return "、".join(parts)
 
 
 # ==========================================================================
@@ -256,14 +341,22 @@ _F2C_ROLES_FOR_LOG: frozenset = frozenset({"remote_master", "remote_slave", "rem
 #: 对应 :class:`InstanceRole` 的 BACKEND_MASTER / BACKEND_REPEATER（slave 走 DNS 不走此路径）
 _F2D_ROLES_FOR_LOG: frozenset = frozenset({"backend_master", "backend_repeater"})
 
+#: F2.a + F2.b + F2.c 聚合路径覆盖的角色集（TenDBCluster SPIDER 接入层全系统一角色）：
+#: 客户端流量入口在 DNS/CLB，同时会被活集群 ctl 的 mysql.servers 路由表引用
+#: 单一来源：role_consts.F2ABC_ROLES（与 host_check.py 的 _F2_SPIDER_CTL_ROLES 共用，
+#: 扩角色只改 role_consts 一处，禁止此处重新声明字面量）
+_F2ABC_ROLES_FOR_LOG: frozenset = F2ABC_ROLES
+
 #: F2 检测项标题 · 按判据路径分类
 #: - F2.c 路径（REMOTE_*）：被 tdbctl 中控 mysql.servers 路由引用
 #: - F2.d 路径（BACKEND_MASTER / BACKEND_REPEATER）：被 proxy 作为后端引用
 #: - F2.a + F2.b 路径（其他）：绑定 DNS / CLB 服务
+#: - F2.a + F2.b + F2.c 路径（SPIDER）：绑定 DNS / CLB 服务 或 被中控路由引用
 F2_TITLE_BY_PATH: dict = {
     "f2c": _("是否被 tdbctl 中控路由引用  "),
     "f2d": _("是否被 proxy 作为后端引用   "),
     "f2ab": _("是否绑定 DNS 或 CLB 服务   "),
+    "f2abc": _("是否绑定 DNS/CLB 或被中控路由引用"),
 }
 
 
@@ -276,7 +369,7 @@ def f2_title_by_role(role: str) -> str:
 
     :param role: :class:`InstanceRole` 的 .value（小写字符串，如 ``backend_master``）
     :return: 中文检测项标题（含尾部对齐空格）；未知 role → 回退 F2.a+F2.b 标题（fail-safe，
-             兼容 PROXY / SPIDER / ORPHAN / BACKEND_SLAVE / SPIDER_SLAVE / SPIDER_MNT 等）
+             兼容 PROXY / ORPHAN / BACKEND_SLAVE / SPIDER_SLAVE / SPIDER_MNT 等）
 
     示例：
       >>> f2_title_by_role("backend_master")
@@ -286,4 +379,6 @@ def f2_title_by_role(role: str) -> str:
         return F2_TITLE_BY_PATH["f2c"]
     if role in _F2D_ROLES_FOR_LOG:
         return F2_TITLE_BY_PATH["f2d"]
+    if role in _F2ABC_ROLES_FOR_LOG:
+        return F2_TITLE_BY_PATH["f2abc"]
     return F2_TITLE_BY_PATH["f2ab"]

@@ -21,10 +21,36 @@ specific language governing permissions and limitations under the License.
   - 字段非法 / 缺失一律抛 :class:`NormalTenDBFlowException`，由上层 revoke_flow 顶层 try/except 兜底
 """
 
+from backend.flow.engine.bamboo.scene.mysql.revoke.extractors.base import HostExtractor
+from backend.flow.engine.bamboo.scene.spider.revoke.extractors.migrate_cluster import SpiderMigrateClusterExtractor
+from backend.flow.engine.bamboo.scene.spider.revoke.extractors.migrate_upgrade import (
+    TenDBClusterMigrateUpgradeExtractor,
+)
+from backend.flow.engine.bamboo.scene.spider.revoke.extractors.node_rebalance import SpiderNodeRebalanceExtractor
+from backend.flow.engine.bamboo.scene.spider.revoke.extractors.restore_slave import SpiderRestoreSlaveExtractor
+from backend.flow.engine.bamboo.scene.spider.revoke.extractors.spider_add_nodes import SpiderAddNodesExtractor
+from backend.flow.engine.bamboo.scene.spider.revoke.extractors.spider_layer_dr import (
+    SpiderLayerDisasterRecoverExtractor,
+)
+from backend.flow.engine.bamboo.scene.spider.revoke.extractors.spider_mnt_apply import SpiderMntApplyExtractor
+from backend.flow.engine.bamboo.scene.spider.revoke.extractors.spider_slave_apply import SpiderSlaveApplyExtractor
+from backend.flow.engine.bamboo.scene.spider.revoke.extractors.spider_switch_nodes import SpiderSwitchNodesExtractor
+from backend.flow.engine.bamboo.scene.spider.revoke.extractors.spider_upgrade import SpiderUpgradeExtractor
 from backend.flow.engine.bamboo.scene.spider.revoke.extractors.tendb_cluster_apply import TenDBClusterApplyExtractor
 
 #: 包公共 API：对外暴露抽象基类 + 单据专属 Extractor；
 #: 子模块内部辅助函数 / 常量（如 _cluster_meta.py）不进入公共 API，调用方必须走子模块全路径
 __all__: list[str] = [
+    "HostExtractor",
     "TenDBClusterApplyExtractor",
+    "SpiderAddNodesExtractor",
+    "SpiderSwitchNodesExtractor",
+    "SpiderMntApplyExtractor",
+    "SpiderSlaveApplyExtractor",
+    "SpiderLayerDisasterRecoverExtractor",
+    "SpiderUpgradeExtractor",
+    "TenDBClusterMigrateUpgradeExtractor",
+    "SpiderMigrateClusterExtractor",
+    "SpiderNodeRebalanceExtractor",
+    "SpiderRestoreSlaveExtractor",
 ]

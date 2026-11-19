@@ -13,7 +13,8 @@ specific language governing permissions and limitations under the License.
 模块职责：
   - F1~F4 单机判据采集（返回 FactCheckOutcome / FactState 三态）：
     1) check_f1_ownership       —— F1 所有权（MachineEvent 最近事件 ticket 归属）
-    2) check_f2_traffic         —— F2 客户端流量红线（按 role 策略路由：REMOTE_* 走 F2.c，BACKEND_* 走 F2.d，其他走 F2.a+F2.b）
+    2) check_f2_traffic         —— F2 客户端流量红线（按 role 策略路由：REMOTE_* 走 F2.c，BACKEND_* 走 F2.d，
+                                   其他走 F2.a+F2.b；其中 SPIDER 角色额外聚合 F2.c ctl 路由检查）
     3) check_f3_dbm_residue     —— F3 DBM 残留（Machine/ProxyInstance/StorageInstance/Tuple 任一命中）
     4) check_f4_process         —— F4 进程存活（解析主机进程检查脚本的 ctx JSON）
   - 外部真相探针（供 F2 子判据内部消费；也可被联调脚本直接调用）：
@@ -44,6 +45,7 @@ from backend.db_meta.enums import ClusterType, ClusterTypeMachineTypeDefine, Ins
 from backend.db_meta.models import Machine, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_meta.models.cluster_monitor import ClusterMonitorTopo
 from backend.db_services.cmdb.biz import get_or_create_resource_module
+from backend.flow.engine.bamboo.scene.mysql.revoke.base.log_utils import describe_f2_hit_sources
 from backend.flow.engine.bamboo.scene.mysql.revoke.base.models import (
     F2_SUB_KEY_CLB,
     F2_SUB_KEY_DNS,
@@ -58,6 +60,7 @@ from backend.flow.engine.bamboo.scene.mysql.revoke.base.models import (
     FactState,
     RevokeUnit,
 )
+from backend.flow.engine.bamboo.scene.mysql.revoke.base.role_consts import F2ABC_ROLES
 from backend.flow.engine.revoke.exception import RevokeFlowBaseException
 from backend.ticket.models import Ticket
 
@@ -157,14 +160,14 @@ class HostRevokeChecker:
             ticket=ticket_obj,
             bk_biz_id=100,
             bk_cloud_id=0,
-            ip="1.2.3.4",
+            ip="x.x.x.x",
             bk_host_id=123456,
         )
         # F 判据（3 态，供 revoke 决策矩阵消费）
         f1 = checker.check_f1_ownership()
         f2 = checker.check_f2_traffic(unit=unit, alive_proxies=..., clb_regions=[...])
         f3 = checker.check_f3_dbm_residue(unit=unit)
-        f4 = HostRevokeChecker.check_f4_process(process_check_ctx_json=..., ip="1.2.3.4")
+        f4 = HostRevokeChecker.check_f4_process(process_check_ctx_json=..., ip="x.x.x.x")
         # 外部真相探针（可单独调用，被 F2 子判据内部复用）
         r_clb = checker.check_clb_mapping(regions=["南京"])
         r_dns = checker.check_dns_mapping()
@@ -877,6 +880,18 @@ class HostRevokeChecker:
         }
     )
 
+    #: 路径 3 聚合中追加 ctl 路由子检查（F2.c 复用）的接入层角色。
+    #: 单一来源：:data:`role_consts.F2ABC_ROLES`（与 log_utils.py 的日志标题路由共用，
+    #: 扩角色只改 role_consts 一处，禁止此处重新声明字面量）。
+    #: 这些角色的客户端流量入口在 DNS/CLB（接入层职责，F2.a/F2.b 保留），
+    #: 但同时会作为**集群内部拓扑成员**被活集群 ctl 的 mysql.servers 路由表引用：
+    #: SPIDER（TenDBCluster 接入层，master/slave/mnt 全系统一角色）——扩容流程
+    #: AddSpiderRoutingService 通过 tdbctl create node 写入 SPIDER/SPIDER_SLAVE/TDBCTL
+    #: wrapper 行；若扩容单据中途终止（路由已写、DNS/CLB 未写），仅查 DNS/CLB 会漏检
+    #: 路由残留导致误回收。三个引用面任一命中即红线，与 F2.c/F2.d 的
+    #: "集群内部拓扑引用 = 红线" 语义对称
+    _F2_SPIDER_CTL_ROLES: frozenset = F2ABC_ROLES
+
     def check_f2_traffic(
         self,
         unit: RevokeUnit,
@@ -903,14 +918,20 @@ class HostRevokeChecker:
               → 直接判 F2.d=NO（proxy 都不在，不可能存在后端引用）；否则对 alive 子集跑
               :meth:`_sub_check_f2d_proxy_backends`
 
-          路径 3 · F2.a + F2.b 聚合（其他 role：PROXY / SPIDER / ORPHAN / BACKEND_SLAVE
-            / SPIDER_SLAVE / SPIDER_MNT / 等）：
+          路径 3 · F2.a + F2.b（+ F2.c · SPIDER）聚合（其他 role：PROXY / SPIDER / ORPHAN
+            / BACKEND_SLAVE / SPIDER_SLAVE / SPIDER_MNT / 等）：
             - 架构语义：这些 role 的流量入口在 DNS / CLB（接入层职责）
             - F2.a · DNS：调 :meth:`check_dns_mapping`；DNS 服务里只要查到本机 IP 的
               **任何**解析记录 → F2.a=YES（红线：出现即视为客户端流量残留 / 跨业务混用）；
               DNS 完全无本机记录 → F2.a=NO；DNS 接口异常 → F2.a=UNKNOWN
             - F2.b · CLB：调 :meth:`check_clb_mapping`；命中 → F2.b=YES；未命中 → F2.b=NO；
               未提供 region 视为 NO；CLB 查询异常 → F2.b=UNKNOWN
+            - F2.c · ctl 路由（**仅 SPIDER 角色**追加）：
+              SPIDER 节点除 DNS/CLB 外，还会作为集群内部拓扑成员被活集群 ctl 的
+              ``mysql.servers`` 路由表引用（扩容流程写入的 SPIDER/SPIDER_SLAVE/TDBCTL
+              wrapper 行）；命中任一行即红线。入口缺失（防御网，装配契约在 Extractor
+              层 fail-fast 强制）→ UNKNOWN 走 MANUAL；接入层存活预判全死 → 证伪判 NO
+              （与路径 1 / 路径 2 的短路口径一致）
             - 聚合：任一 YES → YES；全 NO → NO；无 YES 但有 UNKNOWN → UNKNOWN
 
         设计要点：
@@ -922,8 +943,9 @@ class HostRevokeChecker:
             不存在 ⇒ 不可能存在引用）→ 直接判 F2=NO，避免错误走 UNKNOWN → MANUAL 挂起；
             筛选规则见 :meth:`_filter_alive_access_layer`
           - **evidence 只放跑过的子判据**：短路分支 evidence 只含 ``f2c_tdbctl``
-            （REMOTE_* 分支）或 ``f2d_proxy_backends``（BACKEND_* 分支）；聚合分支只含
-            ``f2a_dns`` + ``f2b_clb``；不再写入 "skipped" 伪记录
+            （REMOTE_* 分支）或 ``f2d_proxy_backends``（BACKEND_* 分支）；聚合分支含
+            ``f2a_dns`` + ``f2b_clb``（SPIDER 角色另含 ``f2c_tdbctl``）；
+            不再写入 "skipped" 伪记录
           - F2.c / F2.d 的数据源**唯一**来自 ``access_layer_proxies`` 入参（由上层 group_judge
             组件透传自 ``ResourceGroup.access_layer_proxies``）；本方法不再临时反查 db_meta
           - 短路分支下 ``access_layer_proxies`` 为空 → 子判据判 UNKNOWN，决策矩阵走 MANUAL
@@ -934,12 +956,12 @@ class HostRevokeChecker:
             仅路径 3 消费，短路分支忽略
         :param access_layer_proxies: 同集群接入层探测入口清单（proxy 实例 / ctl_primary 单实例），
             默认空元组保持向后兼容；由上层调用方从 ``ResourceGroup.access_layer_proxies`` 透传；
-            仅路径 1 / 路径 2 消费，路径 3 忽略
+            路径 1 / 路径 2 / 路径 3 的 SPIDER 角色消费（角色要求探测但入口为空 → UNKNOWN）
         :param group_units: 本组所有 ``RevokeUnit``，用于判断 ``access_layer_proxies[i].ip``
-            是否属于本组（R3 跨组兜底）；仅路径 1 / 路径 2 消费
+            是否属于本组（R3 跨组兜底）；路径 1 / 路径 2 及 SPIDER 的 F2.c 消费
         :param host_process_check_ctx_by_ip: ``{ip: ctx_json}`` 本组所有机器的进程扫描快照
             （来自上游 ``MySQLHostProcessCheckComponent`` 节点写入的 trans_data），
-            用于按 F4 口径判定本组接入层存活性；仅路径 1 / 路径 2 消费
+            用于按 F4 口径判定本组接入层存活性；路径 1 / 路径 2 及 SPIDER 的 F2.c 消费
         :return: :class:`FactCheckOutcome`；evidence 中仅包含实际跑过的子判据的 state 与命中详情
         边界：
           - unit 类型不合法 → 直接返回 UNKNOWN，避免误伤
@@ -984,7 +1006,7 @@ class HostRevokeChecker:
                 return FactCheckOutcome(
                     state=FactState.YES,
                     evidence=evidence,
-                    reason=_("F2=YES：{} 角色命中 tdbctl mysql.servers 路由残留（红线）").format(unit.role),
+                    reason=_("F2=YES：命中 tdbctl 中控路由残留（红线）——{}").format(describe_f2_hit_sources(evidence)),
                 )
             if f2c_state == FactState.UNKNOWN:
                 return FactCheckOutcome(
@@ -1030,7 +1052,7 @@ class HostRevokeChecker:
                 return FactCheckOutcome(
                     state=FactState.YES,
                     evidence=evidence,
-                    reason=_("F2=YES：{} 角色命中 proxy 后端引用残留（红线）").format(unit.role),
+                    reason=_("F2=YES：命中 proxy 后端引用残留（红线）——{}").format(describe_f2_hit_sources(evidence)),
                 )
             if f2d_state == FactState.UNKNOWN:
                 return FactCheckOutcome(
@@ -1045,7 +1067,7 @@ class HostRevokeChecker:
                 reason=_("F2=NO：{} 角色未被任何 proxy 作为后端引用").format(unit.role),
             )
 
-        # ==================== 路径 3 · F2.a + F2.b 聚合（其他 role）====================
+        # ==================== 路径 3 · F2.a + F2.b (+ F2.c · SPIDER) 聚合（其他 role）====================
         f2a_state, f2a_ev = self._sub_check_f2a_dns()
         f2b_state, f2b_ev = self._sub_check_f2b_clb(regions=clb_regions or [])
 
@@ -1053,15 +1075,29 @@ class HostRevokeChecker:
             F2_SUB_KEY_DNS: {"state": f2a_state.value, **f2a_ev},
             F2_SUB_KEY_CLB: {"state": f2b_state.value, **f2b_ev},
         }
-        sub_keys: Tuple[str, str] = (F2_SUB_KEY_DNS, F2_SUB_KEY_CLB)
-        sub_states: Tuple[FactState, FactState] = (f2a_state, f2b_state)
+        sub_keys: List[str] = [F2_SUB_KEY_DNS, F2_SUB_KEY_CLB]
+        sub_states: List[FactState] = [f2a_state, f2b_state]
+
+        # ---- SPIDER 角色：追加 F2.c ctl 路由子检查（第三个引用面，见 _F2_SPIDER_CTL_ROLES）----
+        # 无论是否装配 ctl 入口均纳入聚合：入口缺失仅可能来自未来 Extractor 装配缺陷
+        # （装配契约已在 Extractor 层 fail-fast 强制），此时 F2.c=UNKNOWN → MANUAL 挂起
+        # 等人工，与 REMOTE 角色的"装配缺失绝不默认 NO"口径一致
+        if unit.role in self._F2_SPIDER_CTL_ROLES:
+            f2c_state, f2c_ev = self._check_spider_ctl_routing(
+                unit=unit,
+                access_layer_proxies=access_layer_proxies,
+                group_units=group_units,
+                host_process_check_ctx_by_ip=host_process_check_ctx_by_ip or {},
+            )
+            evidence[F2_SUB_KEY_TDBCTL] = {"state": f2c_state.value, **f2c_ev}
+            sub_keys.append(F2_SUB_KEY_TDBCTL)
+            sub_states.append(f2c_state)
 
         if FactState.YES in sub_states:
-            hits = [name for name, s in zip(sub_keys, sub_states) if s == FactState.YES]
             return FactCheckOutcome(
                 state=FactState.YES,
                 evidence=evidence,
-                reason=_("F2=YES：红线命中，子判据 {} 命中").format(hits),
+                reason=_("F2=YES：红线命中——{}").format(describe_f2_hit_sources(evidence)),
             )
         if FactState.UNKNOWN in sub_states:
             unknowns = [name for name, s in zip(sub_keys, sub_states) if s == FactState.UNKNOWN]
@@ -1071,11 +1107,61 @@ class HostRevokeChecker:
                 error="unknown sub-facts: {}".format(unknowns),
                 reason=_("F2=UNKNOWN：无子判据命中 YES，但子判据 {} 无法确认").format(unknowns),
             )
+        no_reason = _("F2=NO：DNS / CLB 均未命中，无客户端流量残留")
+        if F2_SUB_KEY_TDBCTL in evidence:
+            no_reason = _("F2=NO：DNS / CLB / ctl 路由表均未命中，无客户端流量与集群内部引用残留")
         return FactCheckOutcome(
             state=FactState.NO,
             evidence=evidence,
-            reason=_("F2=NO：DNS / CLB 均未命中，无客户端流量残留"),
+            reason=no_reason,
         )
+
+    def _check_spider_ctl_routing(
+        self,
+        unit: RevokeUnit,
+        access_layer_proxies: Tuple[AccessLayerInstance, ...],
+        group_units: Tuple[RevokeUnit, ...],
+        host_process_check_ctx_by_ip: Dict[str, Any],
+    ) -> Tuple[FactState, Dict[str, Any]]:
+        """SPIDER 角色的 ctl 路由子检查（路径 3 聚合的第三个引用面，含接入层存活预判）。
+
+        怎么做：
+          - 先按 F4 口径筛 ``access_layer_proxies``（ctl_primary 通常是活集群老机器、
+            不在本组候选 → R3 跨组兜底视为活，探测可执行）
+          - 全部不存活 → 直接判 NO（证伪红线：接入层不存在 ⇒ 不可能存在中控路由引用，
+            典型如整集群部署失败场景，路由表随机器一起消亡；与路径 1 / 路径 2 口径一致）
+          - 有存活 → 取 alive 子集复用 :meth:`_sub_check_f2c_tdbctl_routing`
+
+        :param unit: 判定所属机器（SPIDER 角色）
+        :param access_layer_proxies: Extractor 装配的 ctl_primary 探测入口（长度 1）
+        :param group_units: 本组候选机器（R3 跨组兜底判断用）
+        :param host_process_check_ctx_by_ip: 本组进程扫描快照
+        :return: (state, evidence)
+        边界：
+          - ``access_layer_proxies`` 为空 → **UNKNOWN**（防御网：装配契约已在 Extractor 层
+            fail-fast 强制——get_ctl_primary 解析失败即构建报错（单据可重试），空入口
+            仅可能来自未来新增 Extractor 的装配缺陷；走 MANUAL 等人工介入，
+            绝不默认 NO 走 RECYCLE，与 REMOTE 角色的 F2.c 空入口口径一致）
+          - ctl_primary 探测异常（连接失败 / SQL 错误）→ UNKNOWN（由
+            :meth:`_sub_check_f2c_tdbctl_routing` 收敛），聚合后 F2=UNKNOWN → MANUAL 挂起
+        """
+        if not access_layer_proxies:
+            return FactState.UNKNOWN, {
+                "error": "access_layer_proxies is empty, cannot query ctl mysql.servers",
+                "reason": _("F2.c=UNKNOWN：SPIDER 角色要求查 ctl 中控路由但 Extractor 未装配 ctl_primary"),
+            }
+        alive_proxies: Tuple[AccessLayerInstance, ...] = self._filter_alive_access_layer(
+            access_layer_proxies=access_layer_proxies,
+            group_units=group_units,
+            host_process_check_ctx_by_ip=host_process_check_ctx_by_ip,
+        )
+        if not alive_proxies:
+            return FactState.NO, {
+                "short_circuit": "no_alive_access_layer",
+                "checked_proxies": ["{}:{}".format(p.ip, p.port) for p in access_layer_proxies],
+                "reason": _("ctl_primary 对应机器无进程存活（F4=NO），不可能存在中控路由引用"),
+            }
+        return self._sub_check_f2c_tdbctl_routing(unit, alive_proxies)
 
     def _sub_check_f2a_dns(self) -> Tuple[FactState, Dict[str, Any]]:
         """F2.a · DNS 子判据（内部辅助）。
@@ -1175,19 +1261,21 @@ class HostRevokeChecker:
     def _sub_check_f2c_tdbctl_routing(
         self, unit: RevokeUnit, access_layer_proxies: Tuple[AccessLayerInstance, ...]
     ) -> Tuple[FactState, Dict[str, Any]]:
-        """F2.c · tdbctl 中控路由子判据（内部辅助，仅 REMOTE_MASTER / REMOTE_SLAVE 角色调用）。
+        """F2.c · tdbctl 中控路由子判据（内部辅助；REMOTE_MASTER / REMOTE_SLAVE 走路径 1 短路调用，
+        SPIDER 走路径 3 聚合调用）。
 
         怎么做：
           - 取 ``access_layer_proxies[0]`` 作为 ctl_primary 探测入口（Extractor 已保证单实例口径）
-          - 连 ``ctl_primary.ip:ctl_primary.port`` 执行 ``SELECT Host, Port FROM mysql.servers``
-            （WHERE Host 过滤本机 IP，命中任一端口的记录即视为 ctl 路由残留）
+          - 连 ``ctl_primary.ip:ctl_primary.port`` 执行 ``SELECT Host, Port, Server_name FROM mysql.servers``
+            （WHERE Host 过滤本机 IP，命中任一记录即视为 ctl 路由残留；Server_name 一并返回，
+            供 DBA 直接执行 ``TDBCTL DROP NODE {server_name}`` 善后）
           - 命中非空结果集 → YES；空结果集 → NO；连接 / SQL 异常 → UNKNOWN
 
         设计要点：
           - 复用项目既有的 ``DRSApi.rpc`` 单实例 SQL 查询通道，不新建连接池
           - 查询超时、权限不足、SQL 执行失败等异常统一归为 UNKNOWN，并记录 evidence 便于 DBA 排查
 
-        :param unit: 判定所属机器（REMOTE_MASTER / REMOTE_SLAVE 角色）
+        :param unit: 判定所属机器（REMOTE_MASTER / REMOTE_SLAVE / SPIDER 角色）
         :param access_layer_proxies: 同集群接入层探测入口清单；首元素应为 ctl_primary 实例
         :return: (state, evidence)
         边界：
@@ -1210,8 +1298,8 @@ class HostRevokeChecker:
             }
 
         ctl_address: str = "{}:{}".format(ctl_primary.ip, ctl_primary.port)
-        # 走 DRSApi.rpc 单实例查询：参数化 Host 过滤，仅返回本机命中的 Host/Port 对
-        sql: str = "SELECT Host, Port FROM mysql.servers WHERE Host = '{}'".format(unit.ip)
+        # 走 DRSApi.rpc 单实例查询：参数化 Host 过滤，仅返回本机命中的 Host/Port/Server_name
+        sql: str = "SELECT Host, Port, Server_name FROM mysql.servers WHERE Host = '{}'".format(unit.ip)
 
         try:
             resp = DRSApi.rpc(
@@ -1258,8 +1346,9 @@ class HostRevokeChecker:
                     continue
                 row_host: str = str(row.get("Host") or row.get("host") or "").strip()
                 row_port = row.get("Port") if row.get("Port") is not None else row.get("port")
+                row_server: str = str(row.get("Server_name") or row.get("server_name") or "").strip()
                 if row_host == unit.ip:
-                    matched_rows.append({"Host": row_host, "Port": row_port})
+                    matched_rows.append({"Host": row_host, "Port": row_port, "Server_name": row_server})
 
         if matched_rows:
             return FactState.YES, {

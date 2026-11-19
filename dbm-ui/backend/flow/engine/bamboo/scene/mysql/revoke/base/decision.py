@@ -29,6 +29,7 @@ from typing import List, Tuple
 
 from django.utils.translation import gettext as _
 
+from backend.flow.engine.bamboo.scene.mysql.revoke.base.log_utils import describe_f2_hit_sources
 from backend.flow.engine.bamboo.scene.mysql.revoke.base.models import (
     FactCheckOutcome,
     FactState,
@@ -74,12 +75,20 @@ class HostDecisionMatrix:
         """
         # ---- Step 1：F1 短路 ----
         if facts.f1_ownership.state != FactState.YES:
-            reason_suffix = "F1=UNKNOWN" if facts.f1_ownership.state == FactState.UNKNOWN else "F1=NO"
+            # 说明：F1=NO/UNKNOWN 的具象成因（被挪走/被接管/事件缺失等）由日志层的
+            # extract_decision_reason 代号映射展开，此处保持代号 + 一句话结论
+            if facts.f1_ownership.state == FactState.UNKNOWN:
+                return RevokeVerdict(
+                    unit=unit,
+                    decision=HostDecision.SKIP,
+                    facts=facts,
+                    reason=_("决策=SKIP：F1=UNKNOWN，按脱离管控范围处理"),
+                )
             return RevokeVerdict(
                 unit=unit,
                 decision=HostDecision.SKIP,
                 facts=facts,
-                reason=_("决策=SKIP：{}，机器已不属于本单据").format(reason_suffix),
+                reason=_("决策=SKIP：F1=NO"),
             )
 
         # ---- Step 2：F1=YES 后按 F2/F3/F4 组合 ----
@@ -93,39 +102,41 @@ class HostDecisionMatrix:
                 unit=unit,
                 decision=HostDecision.MANUAL,
                 facts=facts,
-                reason=_("决策=MANUAL：F2 红线判据无法确认，为安全起见挂起等 DBA 排查"),
+                reason=_("决策=MANUAL：F2=UNKNOWN 红线判据无法确认（DNS/CLB/中控路由/proxy 探测失败），挂起等 DBA 排查"),
             )
 
         # F2=YES → 红线，永不清理（表 2 第 2~5 行）
         if f2 == FactState.YES:
+            # 命中面白话摘要（DNS 解析记录 / CLB 后端注册 / 集群中控路由 / proxy 后端引用）
+            hit: str = describe_f2_hit_sources(facts.f2_traffic.evidence)
             if f3 == FactState.YES and f4 == FactState.YES:
                 return RevokeVerdict(
                     unit=unit,
                     decision=HostDecision.KEEP,
                     facts=facts,
-                    reason=_("决策=KEEP：F2=YES 红线保留，元数据完整且进程正常，正在服务"),
+                    reason=_("决策=KEEP：判定疑似已对外提供服务——引用命中（{hit}），元数据完整且进程正常").format(hit=hit),
                 )
-            # F2=YES 但 F3/F4 不完整 → 数据异常，MANUAL
+            # F2=YES 但 F3/F4 不完整 → 引用与元数据/进程构成异常，MANUAL
             if f3 == FactState.NO:
                 return RevokeVerdict(
                     unit=unit,
                     decision=HostDecision.MANUAL,
                     facts=facts,
-                    reason=_("决策=MANUAL：F2=YES 在服务但 F3=NO DBM 无残留，数据一致性异常"),
+                    reason=_("决策=MANUAL：引用命中（{hit}）但无 DBM 元数据残留——单据中途终止的半部署形态，需先清理引用再退回").format(hit=hit),
                 )
             if f4 == FactState.NO:
                 return RevokeVerdict(
                     unit=unit,
                     decision=HostDecision.MANUAL,
                     facts=facts,
-                    reason=_("决策=MANUAL：F2=YES 在服务但 F4=NO 进程挂，需 DBA 排查"),
+                    reason=_("决策=MANUAL：引用命中（{hit}）但机器进程已死，需先在引用方（DNS/CLB/中控/proxy）侧处理").format(hit=hit),
                 )
             if f4 == FactState.UNKNOWN:
                 return RevokeVerdict(
                     unit=unit,
                     decision=HostDecision.MANUAL,
                     facts=facts,
-                    reason=_("决策=MANUAL：F2=YES 在服务但 F4=UNKNOWN 进程状态未知"),
+                    reason=_("决策=MANUAL：引用命中（{hit}）但进程状态未知").format(hit=hit),
                 )
             # F3=UNKNOWN 但 F2=YES 且 F4=YES → 保守当 MANUAL（元数据未知不能确认闭合性）
             if f3 == FactState.UNKNOWN:
@@ -133,14 +144,14 @@ class HostDecisionMatrix:
                     unit=unit,
                     decision=HostDecision.MANUAL,
                     facts=facts,
-                    reason=_("决策=MANUAL：F2=YES 在服务但 F3=UNKNOWN 元数据未知"),
+                    reason=_("决策=MANUAL：引用命中（{hit}）但元数据状态未知").format(hit=hit),
                 )
             # 兜底（理论不可达）
             return RevokeVerdict(
                 unit=unit,
                 decision=HostDecision.MANUAL,
                 facts=facts,
-                reason=_("决策=MANUAL：F2=YES 分支未匹配矩阵已定义组合，保守挂起"),
+                reason=_("决策=MANUAL：引用命中（{hit}）但未匹配矩阵已定义组合，保守挂起").format(hit=hit),
             )
 
         # F2=NO 后 → 一律 RECYCLE 或 MANUAL（表 2 第 7~11 行）
@@ -150,7 +161,7 @@ class HostDecisionMatrix:
                 unit=unit,
                 decision=HostDecision.MANUAL,
                 facts=facts,
-                reason=_("决策=MANUAL：F2=NO 但 F4=UNKNOWN 进程状态未知，不敢自动清理"),
+                reason=_("决策=MANUAL：F2=NO 但 F4=UNKNOWN，不敢自动清理"),
             )
 
         # F4 = YES 或 NO 都视为可回收；F3 决定要清多少东西
@@ -208,7 +219,7 @@ class GroupDecisionMatrix:
                 decision=GroupDecision.GROUP_MANUAL,
                 verdicts=verdicts,
                 g1=g1,
-                reason=_("组决策=GROUP_MANUAL：G1=NO 组内单机结论不一致，构成 {}").format(construction),
+                reason=_("组决策=GROUP_MANUAL：G1=NO 组内单机结论不一致，构成 {}，无法自动裁决整组退回").format(construction),
             )
 
         # ---- Step 2: G1=YES → 看组内单机结论 ----
@@ -220,7 +231,7 @@ class GroupDecisionMatrix:
                 decision=GroupDecision.GROUP_SKIP,
                 verdicts=verdicts,
                 g1=g1,
-                reason=_("组决策=GROUP_SKIP：组内全部机器均为 SKIP，本组不属于本单据"),
+                reason=_("组决策=GROUP_SKIP：组内全部机器均判定脱离本单据管控范围"),
             )
 
         if all(d == HostDecision.KEEP for d in decisions):
@@ -229,7 +240,7 @@ class GroupDecisionMatrix:
                 decision=GroupDecision.GROUP_KEEP,
                 verdicts=verdicts,
                 g1=g1,
-                reason=_("组决策=GROUP_KEEP：组内全部机器均为 KEEP，红线保留整组"),
+                reason=_("组决策=GROUP_KEEP：组内全部机器均判定疑似已对外提供服务，整组保留"),
             )
 
         if all(d == HostDecision.RECYCLE for d in decisions):
@@ -241,14 +252,15 @@ class GroupDecisionMatrix:
                 reason=_("组决策=GROUP_RECYCLE：组内全部机器均为 RECYCLE"),
             )
 
-        # 兜底（理论不可达：G1=YES 意味着结论一致，上面三种情况已覆盖）
+        # 兜底（理论不可达：G1=YES 意味着结论一致，上面三种情况已覆盖；
+        # 实际可达路径 = 单机组 G1 恒 YES 且该机为 MANUAL）
         construction = cls._describe_construction(verdicts)
         return GroupVerdict(
             group=group,
             decision=GroupDecision.GROUP_MANUAL,
             verdicts=verdicts,
             g1=g1,
-            reason=_("组决策=GROUP_MANUAL：G1=YES 但组内结论构成异常 {}，兜底挂起").format(construction),
+            reason=_("组决策=GROUP_MANUAL：组内含无法自动裁决的机器（构成 {}），需人工处置后重试或确认放弃退回").format(construction),
         )
 
     @staticmethod

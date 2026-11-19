@@ -66,7 +66,7 @@ class RevokeTransData:
 
     #: 段 1 → 段 2 · 进程扫描结果 dict；结构 ``{ip: <ctx_dict>}``；
     #: 由 MySQLHostProcessCheckService（APPEND 模式）写入
-    #: 最小示例： ``{"1.1.1.1": {"process_list": [...], "ports": [...]}, ...}``
+    #: 最小示例： ``{"x.x.x.x": {"process_list": [...], "ports": [...]}, ...}``
     host_process_check: Dict[str, Any] = field(default_factory=dict)
 
     #: 段 2 → 段 3 / 段 4 · 组级判定结果 dict（asdict(GroupVerdict) + 枚举转 value 后的结构）

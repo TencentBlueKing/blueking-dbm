@@ -17,7 +17,21 @@ from backend.flow.engine.bamboo.scene.spider.full_backup import TenDBClusterFull
 from backend.flow.engine.bamboo.scene.spider.import_sqlfile_flow import ImportSQLFlow
 from backend.flow.engine.bamboo.scene.spider.remote_master_fail_over import RemoteMasterFailOverFlow
 from backend.flow.engine.bamboo.scene.spider.remote_master_slave_swtich import RemoteMasterSlaveSwitchFlow
-from backend.flow.engine.bamboo.scene.spider.revoke.spider_revoke_flows import TenDBClusterApplyRevokeFlow
+from backend.flow.engine.bamboo.scene.spider.revoke.spider_revoke_flows import (
+    SpiderAddNodesRevokeFlow,
+    SpiderConfUpDownRevokeFlow,
+    SpiderLayerDisasterRecoverRevokeFlow,
+    SpiderMigrateClusterRevokeFlow,
+    SpiderMntApplyRevokeFlow,
+    SpiderNodeRebalanceRevokeFlow,
+    SpiderRestoreSlaveRevokeFlow,
+    SpiderSlaveApplyRevokeFlow,
+    SpiderSwitchNodesRevokeFlow,
+    SpiderUpgradeRevokeFlow,
+    TenDBClusterApplyRevokeFlow,
+    TenDBClusterMigrateUpgradeRevokeFlow,
+    TenDBClusterRollbackTempApplyRevokeFlow,
+)
 from backend.flow.engine.bamboo.scene.spider.spider_add_mnt import TenDBClusterAddSpiderMNTFlow
 from backend.flow.engine.bamboo.scene.spider.spider_add_nodes import TenDBClusterAddNodesFlow
 from backend.flow.engine.bamboo.scene.spider.spider_checksum import SpiderChecksumFlow
@@ -93,6 +107,9 @@ class SpiderController(BaseController):
         flow = TenDBClusterApplyFlow(root_id=self.root_id, data=self.ticket_data)
         flow.deploy_cluster()
 
+    # 回档临时集群部署（BUILD_INTO_NEW_CLUSTER 前置 flow）：ticket_data 与 SPIDER_CLUSTER_APPLY
+    # 完全同构，终止时复用部署类 Extractor 退回新申领机器
+    @revoke_with(TenDBClusterRollbackTempApplyRevokeFlow)
     def spider_cluster_apply_no_slave(self):
         """
         部署tenDB cluster(spider cluster) 部署场景，没有remote slave 单节点中控节点
@@ -107,6 +124,7 @@ class SpiderController(BaseController):
         flow = TenDBClusterDestroyFlow(root_id=self.root_id, data=self.ticket_data)
         flow.destroy_cluster()
 
+    @revoke_with(SpiderMntApplyRevokeFlow)
     def add_spider_mnt_scene(self):
         flow = TenDBClusterAddSpiderMNTFlow(root_id=self.root_id, data=self.ticket_data)
         flow.add_spider_mnt()
@@ -160,6 +178,7 @@ class SpiderController(BaseController):
         flow = SpiderClusterEnableFlow(root_id=self.root_id, data=self.ticket_data)
         flow.enable_spider_cluster_flow()
 
+    @revoke_with(SpiderSlaveApplyRevokeFlow)
     def spider_slave_cluster_apply_scene(self):
         """
         调用tenDB slave cluster(spider slave cluster) 部署场景
@@ -196,6 +215,7 @@ class SpiderController(BaseController):
         flow = TenDBClusterDBTableBackupFlow(root_id=self.root_id, data=self.ticket_data)
         flow.backup_flow()
 
+    @revoke_with(SpiderAddNodesRevokeFlow)
     @validates_with(TenDBClusterAddNodesFlowValidator)
     def add_spider_nodes_scene(self):
         """
@@ -244,6 +264,7 @@ class SpiderController(BaseController):
         flow = RemoteMasterFailOverFlow(root_id=self.root_id, data=self.ticket_data)
         flow.remote_fail_over()
 
+    @revoke_with(SpiderNodeRebalanceRevokeFlow)
     def tendb_cluster_remote_rebalance(self):
         """
         remote 节点扩缩容同步数据(重均衡)
@@ -251,6 +272,7 @@ class SpiderController(BaseController):
         flow = TenDBRemoteRebalanceFlow(root_id=self.root_id, ticket_data=self.ticket_data)
         flow.tendb_migrate()
 
+    @revoke_with(SpiderMigrateClusterRevokeFlow)
     def tendb_cluster_remote_migrate(self):
         """
         remote 节点主从成对迁移
@@ -258,6 +280,7 @@ class SpiderController(BaseController):
         flow = TendbClusterMigrateRemoteFlow(root_id=self.root_id, ticket_data=self.ticket_data)
         flow.migrate_master_slave_flow()
 
+    @revoke_with(SpiderRestoreSlaveRevokeFlow)
     def tendb_cluster_remote_slave_recover(self):
         """
         remote 远程slave节点恢复
@@ -308,6 +331,7 @@ class SpiderController(BaseController):
         flow = ClearMysqlMachineFlow(root_id=self.root_id, data=self.ticket_data)
         flow.run_flow()
 
+    @revoke_with(SpiderUpgradeRevokeFlow)
     @validates_with(TenDBClusterSpiderUpgradeValidator)
     def tendbcluster_spider_upgrade(self):
         """
@@ -316,6 +340,7 @@ class SpiderController(BaseController):
         flow = UpgradeSpiderFlow(root_id=self.root_id, data=self.ticket_data)
         flow.run()
 
+    @revoke_with(TenDBClusterMigrateUpgradeRevokeFlow)
     @validates_with(TenDBClusterRemoteUpgradeValidator)
     def tendbcluster_remote_upgrade(self):
         """
@@ -324,6 +349,7 @@ class SpiderController(BaseController):
         flow = UpgradeRemoteFlow(root_id=self.root_id, data=self.ticket_data)
         flow.run()
 
+    @revoke_with(SpiderSwitchNodesRevokeFlow)
     @validates_with(TenDBClusterSwitchNodesFlowValidator)
     def tendbcluster_switch_nodes_scene(self):
         """
@@ -332,6 +358,7 @@ class SpiderController(BaseController):
         flow = TenDBClusterSwitchNodesFlow(root_id=self.root_id, data=self.ticket_data)
         flow.switch_spider_nodes()
 
+    @revoke_with(SpiderLayerDisasterRecoverRevokeFlow)
     @validates_with(TenDBClusterSpiderLayerDisasterRecoverFlowValidator)
     def tendbcluster_spider_layer_disaster_recover_scene(self):
         """
@@ -340,6 +367,7 @@ class SpiderController(BaseController):
         flow = TenDBClusterSpiderLayerDisasterRecoverFlow(root_id=self.root_id, data=self.ticket_data)
         flow.spider_layer_disaster_recover()
 
+    @revoke_with(SpiderConfUpDownRevokeFlow)
     @validates_with(TenDBClusterNodesChangeSpecValidator)
     def tendbcluster_nodes_change_spec_scene(self):
         """

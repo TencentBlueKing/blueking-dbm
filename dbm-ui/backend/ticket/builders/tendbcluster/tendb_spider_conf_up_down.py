@@ -54,8 +54,11 @@ class TendbSpiderConfUpDownResourceParamBuilder(TendbBaseOperateResourceParamBui
         next_flow.save(update_fields=["details"])
 
 
+# is_apply=True：接入层升降配会通过 resource_batch_apply_builder 从资源池申请新机，
+# 标记为部署类单据后，单据异常终止将联动创建 RECYCLE_APPLY_HOST 主机退回单据（行为变更），
+# 使新申领机器由 MysqlRevokeFlowBase 退回流程自动回收
 @builders.BuilderFactory.register(
-    TicketType.TENDBCLUSTER_SPIDER_CONF_UP_DOWN, is_recycle=True, iam=ActionEnum.TENDBCLUSTER_MANAGE
+    TicketType.TENDBCLUSTER_SPIDER_CONF_UP_DOWN, is_apply=True, is_recycle=True, iam=ActionEnum.TENDBCLUSTER_MANAGE
 )
 class SpiderConfUpDownFlowBuilder(BaseTendbTicketFlowBuilder):
     serializer = SpiderConfUpDownDetailSerializer
