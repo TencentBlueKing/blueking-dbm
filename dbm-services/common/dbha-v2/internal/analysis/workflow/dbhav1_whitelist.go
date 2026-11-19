@@ -266,19 +266,63 @@ func (w *Workflow) filterByWhitelistForSwitch(
 		return nil
 	}
 
-	w.reportWhitelistNotifySnapshot(snapshotLoggers, group, remaining, req.SwitchID, strategies)
+	toReport := w.reportSkippedInstances(ctx, group, remaining)
+	w.notifySkippedInstances(snapshotLoggers, group, req, strategies, toReport)
+	return nil
+}
 
-	// send a notification alarm for non-whitelisted instances
-	instanceInfos := make([]string, 0, len(remaining))
-	for _, meta := range remaining {
+// reportSkippedInstances records all remaining instances in the reported cache and
+// returns those still needing a skipped-switch snapshot and alarm.
+func (w *Workflow) reportSkippedInstances(
+	ctx context.Context,
+	group *FailureGroup,
+	remaining []*dbm.DbInstMetadata,
+) []*dbm.DbInstMetadata {
+	now := time.Now()
+
+	// Collect the current event of every instance left out of the whitelist.
+	reportEvents := buildReportEventsForMetas(group.BkBizID, group.DbType, group, remaining)
+
+	// Read instances already reported in recent skipped-switch snapshots (DB fallback).
+	reported := w.readReportedInstancesFromSnapshotLogs(ctx, group, reportLogSkippedSwitch)
+
+	// Keep only changed events or instances never reported.
+	toReport := excludeAlreadyReportedForMetas(group.BkBizID, group.DbType, remaining, reported, reportEvents)
+
+	// Matching events inherit the DB window; the rest start a fresh window from now.
+	reportEntries := buildReportEntries(reportEvents, reported, now)
+
+	// Write the cache first so a later log/alarm failure cannot repeat the report.
+	w.reportedCache.MarkReported(reportEntries)
+
+	logReportedCacheMark(group, reported, reportEntries, now)
+	return toReport
+}
+
+// notifySkippedInstances writes the skipped-switch snapshot and sends the biz alarm.
+func (w *Workflow) notifySkippedInstances(
+	snapshotLoggers []snapshotlogger.SnapshotLogger,
+	group *FailureGroup,
+	req *switcher.Request,
+	strategies []*hamodel.DbSwitchingStrategy,
+	toReport []*dbm.DbInstMetadata,
+) {
+	if len(toReport) == 0 {
+		return
+	}
+
+	// Write the skipped-switch snapshot and per-instance detail logs.
+	w.reportWhitelistSkippedSwitch(snapshotLoggers, group, toReport, req, strategies)
+
+	instanceInfos := make([]string, 0, len(toReport))
+	for _, meta := range toReport {
 		instanceInfos = append(instanceInfos,
 			fmt.Sprintf("%s(%d):%s:%d", meta.Cluster, meta.ClusterID, meta.IP, meta.Port))
 	}
 	log := fmt.Sprintf(
 		"found %d not whitelisted instance(s), execute notification only, bkBizId: %d, "+
 			"bkCloudId: %d, dbType: %s, instances: [%s]",
-		len(remaining), bkBizID, group.BkCloudID, group.DbType, strings.Join(instanceInfos, ", "))
+		len(toReport), group.BkBizID, group.BkCloudID, group.DbType, strings.Join(instanceInfos, ", "))
 	logger.Info("%s", log)
-	w.alarm.TriggerWorkflowAlarm(bkBizID, log)
-	return nil
+	w.alarm.TriggerWorkflowAlarm(group.BkBizID, log)
 }
