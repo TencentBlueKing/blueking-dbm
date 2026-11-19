@@ -8,20 +8,13 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package dts_cutover
+package dtsutil
 
 import (
 	"strconv"
 	"strings"
 	"unicode"
 )
-
-// BinlogCoord DTS sync_status 位点解析结果。
-// 示例输入："(binlog20000.002894, 12105)" → File=binlog20000.002894, Position=12105
-type BinlogCoord struct {
-	File     string
-	Position int64
-}
 
 // ParseBinlogCoord 解析 DTS sync_status 中的 binlog 位点字符串。
 // 期望形态："(binlog20000.002894, 12105)" 或 "binlog20000.002894, 12105"。
@@ -97,7 +90,7 @@ func CompareBinlogCoord(a, b BinlogCoord) int {
 	return 0
 }
 
-// IsCaughtUpToSnapshot cutover 持锁复核用的位点条件。
+// IsCaughtUpToSnapshot 持锁复核用的位点条件。
 //
 // 部分表锁下实时 master 会因未迁移表持续前进，不能用「实时 master≥syncer」。
 // 正确条件：SBM==0 且 syncer >= 加锁瞬间的 master 快照（file/pos）。

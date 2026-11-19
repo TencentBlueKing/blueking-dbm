@@ -11,127 +11,23 @@
 package dts_cutover
 
 import (
-	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"github.com/DATA-DOG/go-sqlmock"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/util/dtsutil"
+
 	"github.com/stretchr/testify/require"
 )
-
-func TestValidateTaskRunning(t *testing.T) {
-	require.Error(t, validateTaskRunning(nil))
-	require.Error(t, validateTaskRunning(&TaskStatusListResponse{}))
-	require.NoError(t, validateTaskRunning(&TaskStatusListResponse{
-		Data: []TaskStatusItem{{Name: "t", Stage: TaskStageRunning}},
-	}))
-	err := validateTaskRunning(&TaskStatusListResponse{
-		Data: []TaskStatusItem{{Name: "t", SourceName: "src1", Stage: TaskStageStopped}},
-	})
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "src1")
-	require.Contains(t, err.Error(), string(TaskStageStopped))
-}
-
-func TestValidateTaskRunningRejectsPausedWithError(t *testing.T) {
-	err := validateTaskRunning(&TaskStatusListResponse{
-		Data: []TaskStatusItem{{
-			SourceName: "src1",
-			Stage:      TaskStagePaused,
-			ErrorMsg:   "syncer boom",
-			SyncStatus: &SyncStatus{BlockingDDLs: []string{"ALTER TABLE t"}},
-		}},
-	})
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "syncer boom")
-}
-
-func TestValidateTaskRunningAllowsBlockingDDLWhileRunning(t *testing.T) {
-	err := validateTaskRunning(&TaskStatusListResponse{
-		Data: []TaskStatusItem{{
-			Name:  "t",
-			Stage: TaskStageRunning,
-			SyncStatus: &SyncStatus{
-				BlockingDDLs: []string{"ALTER TABLE t"},
-			},
-		}},
-	})
-	require.NoError(t, err)
-}
-
-func TestResolveTablesListLockTables(t *testing.T) {
-	db, mock, err := sqlmock.New()
-	require.NoError(t, err)
-	defer db.Close()
-
-	tables, err := resolveTablesList(db, nil, []TableItem{{Schema: "app", Table: "t1"}})
-	require.NoError(t, err)
-	require.Equal(t, []LockedTable{{Schema: "app", Table: "t1"}}, tables)
-	require.NoError(t, mock.ExpectationsWereMet())
-}
-
-func TestResolveTablesListRejectEmptyLockSchema(t *testing.T) {
-	db, mock, err := sqlmock.New()
-	require.NoError(t, err)
-	defer db.Close()
-	_, err = resolveTablesList(db, nil, []TableItem{{Schema: "", Table: "t1"}})
-	require.Error(t, err)
-	require.NoError(t, mock.ExpectationsWereMet())
-}
-
-func TestVerifyBaseTablesExist(t *testing.T) {
-	db, mock, err := sqlmock.New()
-	require.NoError(t, err)
-	defer db.Close()
-
-	mock.ExpectQuery("SELECT 1").
-		WithArgs("app", "t1").
-		WillReturnRows(sqlmock.NewRows([]string{"1"}).AddRow(1))
-
-	require.NoError(t, VerifyBaseTablesExist(db, []LockedTable{{Schema: "app", Table: "t1"}}))
-	require.NoError(t, mock.ExpectationsWereMet())
-}
-
-func TestVerifyBaseTablesExistMissing(t *testing.T) {
-	db, mock, err := sqlmock.New()
-	require.NoError(t, err)
-	defer db.Close()
-
-	mock.ExpectQuery("SELECT 1").
-		WithArgs("app", "missing").
-		WillReturnRows(sqlmock.NewRows([]string{"1"}))
-
-	err = VerifyBaseTablesExist(db, []LockedTable{{Schema: "app", Table: "missing"}})
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "表不存在")
-	require.NoError(t, mock.ExpectationsWereMet())
-}
-
-func TestResolveTablesForPrecheck(t *testing.T) {
-	db, mock, err := sqlmock.New()
-	require.NoError(t, err)
-	defer db.Close()
-
-	mock.ExpectQuery("SELECT 1").
-		WithArgs("app", "t1").
-		WillReturnRows(sqlmock.NewRows([]string{"1"}).AddRow(1))
-
-	tables, err := ResolveTablesForPrecheck(db, nil, []TableItem{{Schema: "app", Table: "t1"}})
-	require.NoError(t, err)
-	require.Len(t, tables, 1)
-	require.NoError(t, mock.ExpectationsWereMet())
-}
 
 func TestPreCheckSourceConnectFailFast(t *testing.T) {
 	c := &Comp{Params: &Params{
 		DtsMasterAddr: "127.0.0.2:18301",
 		TaskName:      "task-a",
-		SourceEndpoints: []SourceEndpoint{
+		SourceEndpoints: []dtsutil.Endpoint{
 			{Host: "127.0.0.1", Port: 1, User: "u", Password: "p", SourceName: "src1"},
 			{Host: "127.0.0.1", Port: 2, User: "u", Password: "p", SourceName: "src2"},
 		},
-		SyncScope:      &SyncScope{DoDBs: []string{"app"}, DoTables: []TableItem{{Schema: "*", Table: "*"}}},
+		SyncScope:      &dtsutil.SyncScope{DoDBs: []string{"app"}, DoTables: []dtsutil.TableItem{{Schema: "*", Table: "*"}}},
 		ChecksumPassed: true,
 	}}
 	err := c.PreCheck()
@@ -139,32 +35,4 @@ func TestPreCheckSourceConnectFailFast(t *testing.T) {
 	require.Contains(t, err.Error(), "预检连接源端")
 	require.Contains(t, err.Error(), "src1")
 	require.False(t, strings.Contains(err.Error(), "src2"), "fail-fast 不应继续到第二源")
-}
-
-func TestFetchTaskStatusAndValidateOK(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Contains(t, r.URL.Path, "/api/v1/tasks/")
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"total":1,"data":[{"name":"task-a","stage":"Running","sync_status":{"blocking_ddls":["x"],"seconds_behind_master":0}}]}`))
-	}))
-	defer srv.Close()
-
-	addr := strings.TrimPrefix(srv.URL, "http://")
-	resp, err := FetchTaskStatus(addr, "task-a", 5)
-	require.NoError(t, err)
-	require.NoError(t, validateTaskRunning(resp))
-	require.Equal(t, TaskStageRunning, resp.Data[0].Stage)
-	require.NotEmpty(t, resp.Data[0].SyncStatus.BlockingDDLs)
-}
-
-func TestFetchTaskStatusEmptyData(t *testing.T) {
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"total":0,"data":[]}`))
-	}))
-	defer srv.Close()
-	addr := strings.TrimPrefix(srv.URL, "http://")
-	resp, err := FetchTaskStatus(addr, "missing", 5)
-	require.NoError(t, err)
-	require.Error(t, validateTaskRunning(resp))
 }
