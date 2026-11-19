@@ -159,7 +159,7 @@ curl -X PUT 'http://{host}/api/v1/dns/oplog' \
 
 | 参数 | 必填 | 说明 |
 |---|---|---|
-| `domain_name` | 是 | 域名，精确匹配；末尾没有 `.` 会自动补全 |
+| `domain_name` | 是 | 域名，模糊匹配（包含即可）；`%`、`_` 按普通字符处理；不会自动补末尾的 `.` |
 | `operator` | 否 | 操作人，精确匹配 |
 | `op_type` | 否 | 操作类型，传了但不在上表内会报错 |
 | `start_time` | 否 | 起始时间（含） |
@@ -168,7 +168,7 @@ curl -X PUT 'http://{host}/api/v1/dns/oplog' \
 
 ```bash
 curl -G 'http://{host}/api/v1/dns/oplog/domain' \
-  --data-urlencode 'domain_name=mysql.test.db.' \
+  --data-urlencode 'domain_name=mysql.test' \
   --data-urlencode 'start_time=2026-11-01 00:00:00' \
   --data-urlencode 'end_time=2026-11-19 23:59:59'
 ```
