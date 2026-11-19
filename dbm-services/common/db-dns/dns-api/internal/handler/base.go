@@ -16,6 +16,7 @@ type Handler struct {
 func (h *Handler) Routes() []*gin.RouteInfo {
 	return []*gin.RouteInfo{
 		{Method: http.MethodPut, Path: "/domain", HandlerFunc: h.AddDns},
+		{Method: http.MethodPut, Path: "/oplog", HandlerFunc: h.AddOpLog},
 
 		{Method: http.MethodDelete, Path: "/domain", HandlerFunc: h.DelDns},
 
@@ -26,6 +27,9 @@ func (h *Handler) Routes() []*gin.RouteInfo {
 
 		{Method: http.MethodGet, Path: "/domain", HandlerFunc: h.GetDns},
 		{Method: http.MethodGet, Path: "/domain/all", HandlerFunc: h.GetAllDns},
+		{Method: http.MethodGet, Path: "/domain/search", HandlerFunc: h.SearchDns},
+		{Method: http.MethodGet, Path: "/oplog/domain", HandlerFunc: h.GetDomainOpLog},
+		{Method: http.MethodGet, Path: "/oplog/all", HandlerFunc: h.GetAllOpLog},
 		{Method: http.MethodGet, Path: "/config/all", HandlerFunc: h.GetAllConfig},
 	}
 }

@@ -55,6 +55,26 @@ class _DnsApi(BaseApi):
             url="/api/v1/dns/domain/app",
             description=_("更新域名所属业务关系"),
         )
+        self.search_domain = self.generate_data_api(
+            method="GET",
+            url="/api/v1/dns/domain/search",
+            description=_("搜索域名记录"),
+        )
+        self.add_op_log = self.generate_data_api(
+            method="PUT",
+            url="/api/v1/dns/oplog",
+            description=_("新增域名操作日志"),
+        )
+        self.get_domain_op_log = self.generate_data_api(
+            method="GET",
+            url="/api/v1/dns/oplog/domain",
+            description=_("获取指定域名的操作日志"),
+        )
+        self.get_all_op_log = self.generate_data_api(
+            method="GET",
+            url="/api/v1/dns/oplog/all",
+            description=_("获取所有域名操作日志"),
+        )
 
 
 DnsApi = _DnsApi()
