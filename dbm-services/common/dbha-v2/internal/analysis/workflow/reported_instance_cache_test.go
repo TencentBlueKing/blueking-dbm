@@ -104,7 +104,7 @@ func TestCheckRecentReportReasons(t *testing.T) {
 		cache := NewReportedInstanceCache()
 		cache.MarkReported(map[string]ReportCacheEntry{
 			key: {EventName: testEventA, SetAt: now, ExpireAt: now.Add(testReportedTTL)},
-		})
+		}, now)
 		skip, info := cache.CheckRecentReport(&inst)
 		if !skip || info.Reason != reportReasonHit || info.Remaining <= 0 {
 			t.Fatalf("skip=%v reason=%s remaining=%s, want true/%s/>0",
@@ -121,9 +121,11 @@ func TestCheckRecentReportReasons(t *testing.T) {
 
 	t.Run("expired_removes_entry", func(t *testing.T) {
 		cache := NewReportedInstanceCache()
-		cache.MarkReported(map[string]ReportCacheEntry{
-			key: {EventName: testEventA, SetAt: now.Add(-2 * testReportedTTL), ExpireAt: now.Add(-time.Second)},
-		})
+		cache.entries[key] = ReportCacheEntry{
+			EventName: testEventA,
+			SetAt:     now.Add(-2 * testReportedTTL),
+			ExpireAt:  now.Add(-time.Second),
+		}
 		skip, info := cache.CheckRecentReport(&inst)
 		if skip || info.Reason != reportReasonExpired {
 			t.Fatalf("skip=%v reason=%s, want false/%s", skip, info.Reason, reportReasonExpired)
@@ -137,7 +139,7 @@ func TestCheckRecentReportReasons(t *testing.T) {
 		cache := NewReportedInstanceCache()
 		cache.MarkReported(map[string]ReportCacheEntry{
 			key: {EventName: testEventA, SetAt: now, ExpireAt: now.Add(testReportedTTL)},
-		})
+		}, now)
 		changed := newReportedTestInstance(testEventB, testPort)
 		skip, info := cache.CheckRecentReport(&changed)
 		if skip || info.Reason != reportReasonEventChanged || info.CachedEvent != testEventA {
@@ -145,6 +147,42 @@ func TestCheckRecentReportReasons(t *testing.T) {
 				skip, info.Reason, info.CachedEvent, reportReasonEventChanged, testEventA)
 		}
 	})
+}
+
+func TestMarkReportedRemovesExpiredEntries(t *testing.T) {
+	now := time.Now()
+	expiredKey := reportedTestKey(testPort, testMysqlDbType)
+	liveKey := reportedTestKey(testPort+1, testMysqlDbType)
+	newKey := reportedTestKey(testPort+2, testMysqlDbType)
+	cache := NewReportedInstanceCache()
+
+	cache.entries[expiredKey] = ReportCacheEntry{
+		EventName: testEventA,
+		SetAt:     now.Add(-2 * testReportedTTL),
+		ExpireAt:  now.Add(-time.Second),
+	}
+	cache.entries[liveKey] = ReportCacheEntry{
+		EventName: testEventA,
+		SetAt:     now,
+		ExpireAt:  now.Add(testReportedTTL),
+	}
+
+	cache.MarkReported(map[string]ReportCacheEntry{
+		newKey: {EventName: testEventB, SetAt: now, ExpireAt: now.Add(testReportedTTL)},
+	}, now)
+
+	if _, ok := cache.entries[expiredKey]; ok {
+		t.Fatal("expired entry was not removed by MarkReported")
+	}
+	if _, ok := cache.entries[liveKey]; !ok {
+		t.Fatal("live entry must be kept")
+	}
+	if cache.entries[newKey].EventName != testEventB {
+		t.Fatal("new entry was not stored")
+	}
+	if len(cache.entries) != 2 {
+		t.Fatalf("expected 2 entries after cleanup, got %d", len(cache.entries))
+	}
 }
 
 func TestMarkReportedEntries(t *testing.T) {
@@ -158,7 +196,7 @@ func TestMarkReportedEntries(t *testing.T) {
 	cache.MarkReported(map[string]ReportCacheEntry{
 		keyA: {EventName: testEventA, SetAt: setA, ExpireAt: setA.Add(testReportedTTL)},
 		keyB: {EventName: testEventB, SetAt: setB, ExpireAt: setB.Add(testReportedTTL)},
-	})
+	}, now)
 	if len(cache.entries) != 2 {
 		t.Fatalf("expected 2 entries, got %d", len(cache.entries))
 	}
@@ -171,7 +209,7 @@ func TestMarkReportedEntries(t *testing.T) {
 
 	cache.MarkReported(map[string]ReportCacheEntry{
 		keyA: {EventName: testEventB, SetAt: now, ExpireAt: now.Add(testReportedTTL)},
-	})
+	}, now)
 	if cache.entries[keyA].EventName != testEventB || !cache.entries[keyA].SetAt.Equal(now) {
 		t.Fatal("MarkReported must overwrite an existing entry")
 	}

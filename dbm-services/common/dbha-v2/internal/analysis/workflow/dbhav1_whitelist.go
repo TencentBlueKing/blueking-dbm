@@ -293,7 +293,7 @@ func (w *Workflow) reportSkippedInstances(
 	reportEntries := buildReportEntries(reportEvents, reported, now)
 
 	// Write the cache first so a later log/alarm failure cannot repeat the report.
-	w.reportedCache.MarkReported(reportEntries)
+	w.reportedCache.MarkReported(reportEntries, now)
 
 	logReportedCacheMark(group, reported, reportEntries, now)
 	return toReport
