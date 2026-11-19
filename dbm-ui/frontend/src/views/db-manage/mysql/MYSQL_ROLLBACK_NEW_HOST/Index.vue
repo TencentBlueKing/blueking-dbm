@@ -183,7 +183,7 @@
   import BackupRecordColumn from '@views/db-manage/mysql/MYSQL_FIXPOINT_EXIST_CLUSTER/components/backup-record-column/Index.vue';
   import TimeBackupRecordColumn from '@views/db-manage/mysql/MYSQL_FIXPOINT_EXIST_CLUSTER/components/time-backup-record-column/Index.vue';
 
-  import { random } from '@utils';
+  import { random, switchSiblingRoute } from '@utils';
 
   /** 目标规格：只读派生，除展示字段外还需要规格 id 用于资源预览 */
   interface TargetSpecData extends TargetSpecItem {
@@ -419,18 +419,21 @@
   );
 
   const handleRollbackTypeChange = (type: string) => {
-    if (type === 'TABLE_FLASHBACK' || type === 'RECORD_FLASHBACK') {
-      router.push({
-        name: TicketTypes.MYSQL_FLASHBACK,
-        query: {
-          type,
-        },
-      });
-    } else if (type === 'BUILD_INTO_METACLUSTER') {
-      router.push({
-        name: TicketTypes.MYSQL_ROLLBACK,
-      });
+    const isFlashback = type === 'TABLE_FLASHBACK' || type === 'RECORD_FLASHBACK';
+    if (!isFlashback && type !== 'BUILD_INTO_METACLUSTER') {
+      return;
     }
+    // 切换选项不算表单修改，取消离开时还原当前类型
+    switchSiblingRoute(
+      () =>
+        router.push({
+          name: isFlashback ? TicketTypes.MYSQL_FLASHBACK : TicketTypes.MYSQL_ROLLBACK,
+          query: isFlashback ? { type } : undefined,
+        }),
+      () => {
+        formData.rollbackType = 'BUILD_INTO_NEW_CLUSTER';
+      },
+    );
   };
 
   const handleClusterBatchEdit = (list: TendbhaModel[]) => {

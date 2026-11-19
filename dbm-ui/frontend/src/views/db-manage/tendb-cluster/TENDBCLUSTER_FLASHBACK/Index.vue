@@ -36,7 +36,7 @@
           </BkRadioButton>
         </BkRadioGroup>
       </BkFormItem>
-      <Component :is="comMap[flashbackType]" />
+      <Component :is="comMap[renderType]" />
     </BkForm>
   </div>
 </template>
@@ -51,6 +51,8 @@
 
   import TimeZonePicker from '@components/time-zone-picker/index.vue';
 
+  import { leaveConfirm, switchSiblingRoute } from '@utils';
+
   import RECORD_FLASHBACK from './RECORD_FLASHBACK/Index.vue';
   import TABLE_FLASHBACK from './TABLE_FLASHBACK/Index.vue';
 
@@ -63,34 +65,53 @@
   const router = useRouter();
   const route = useRoute();
 
-  const flashbackType = ref<'RECORD_FLASHBACK' | 'TABLE_FLASHBACK'>(
-    (route.params.type as keyof typeof comMap) || 'TABLE_FLASHBACK',
+  const renderType = ref<keyof typeof comMap>(
+    route.query.type === 'RECORD_FLASHBACK' ? 'RECORD_FLASHBACK' : 'TABLE_FLASHBACK',
   );
+  const flashbackType = ref<string>(renderType.value);
+
+  // 取消切换时恢复选项，保留当前表单
+  const rollbackFlashbackType = () => {
+    flashbackType.value = renderType.value;
+  };
 
   useTicketDetail<TendbCluster.FlashBack>(TicketTypes.TENDBCLUSTER_FLASHBACK, {
     onSuccess(ticketDetails) {
       const { details } = ticketDetails;
+      renderType.value = details.flashback_type;
       flashbackType.value = details.flashback_type;
     },
   });
 
   const handleFlashbackTypeChange = (type: string) => {
-    if (['RECORD_FLASHBACK', 'TABLE_FLASHBACK'].includes(type)) {
-      router.push({
-        name: TicketTypes.TENDBCLUSTER_FLASHBACK,
-        query: {
-          type,
-        },
-      });
-    } else if (type === 'BUILD_INTO_NEW_CLUSTER') {
-      router.push({
-        name: TicketTypes.TENDBCLUSTER_ROLLBACK_NEW_HOST,
-      });
-    } else if (type === 'ROLLBACK_FLASHBACK') {
-      router.push({
-        name: TicketTypes.TENDBCLUSTER_ROLLBACK,
-      });
+    if (type === 'BUILD_INTO_NEW_CLUSTER' || type === 'ROLLBACK_FLASHBACK') {
+      switchSiblingRoute(
+        () =>
+          router.push({
+            name:
+              type === 'BUILD_INTO_NEW_CLUSTER'
+                ? TicketTypes.TENDBCLUSTER_ROLLBACK_NEW_HOST
+                : TicketTypes.TENDBCLUSTER_ROLLBACK,
+          }),
+        rollbackFlashbackType,
+      );
+      return;
     }
+    if ((type !== 'TABLE_FLASHBACK' && type !== 'RECORD_FLASHBACK') || type === renderType.value) {
+      return;
+    }
+    // 同页切换先确认，取消时保留表单并恢复选项
+    leaveConfirm()
+      .then(() => {
+        renderType.value = type;
+        router.push({
+          name: TicketTypes.TENDBCLUSTER_FLASHBACK,
+          query: {
+            type,
+          },
+        });
+      })
+      .catch(rollbackFlashbackType);
   };
 
   defineExpose({
