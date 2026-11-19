@@ -26,6 +26,8 @@ DEFAULT_USERNAME = get_type_env(key="DEFAULT_USERNAME", default="admin", _type=s
 CORS_ALLOWED_ORIGINS = get_type_env(key="CORS_ALLOWED_ORIGINS", default=[], _type=list)
 
 RUN_VER = get_type_env(key="RUN_VER", default="open", _type=str)
+# 是否社区版。默认关闭；后续判断社区版统一看这个开关，不看 RUN_VER
+IS_COMMUNITY_ENABLE = get_type_env(key="IS_COMMUNITY_ENABLE", _type=bool, default=False)
 RIO_TOKEN = get_type_env(key="RIO_TOKEN", default="", _type=str)
 
 # Redis 配置
@@ -100,7 +102,6 @@ BK_IAM_USE_APIGATEWAY = True
 BK_IAM_APIGATEWAY = get_type_env(key="BK_IAM_APIGATEWAY", _type=str, default="https://iam-apigw.example.com")
 BK_IAM_API_VERSION = get_type_env(key="BK_IAM_API_VERSION", _type=str, default="v1")
 IAM_APP_URL = get_type_env(key="IAM_APP_URL", _type=str, default="https://iam.example.com")
-BK_IAM_RESOURCE_API_HOST = get_type_env(key="BK_IAM_RESOURCE_API_HOST", _type=str, default="https://bkdbm.example.com")
 BK_IAM_GRADE_MANAGER_ID = get_type_env(key="BK_IAM_GRADE_MANAGER_ID", _type=int, default=0)
 
 # IAM V4 相关配置
@@ -164,6 +165,8 @@ CSRF_TRUSTED_ORIGINS = get_type_env(key="CSRF_TRUSTED_ORIGINS", _type=list, defa
 # SaaS访问地址，用于用户访问/第三方应用跳转/Iframe/Grafana 等场景
 BK_SAAS_HOST = get_type_env(key="BK_SAAS_HOST", _type=str, default="http://bk-dbm.example.com")
 BK_SAAS_BACKEND_HOST = get_type_env(key="BK_SAAS_BACKEND_HOST", _type=str, default=BK_SAAS_HOST)
+# 未单独配置时，权限中心资源回调地址与 SaaS 访问地址一致
+BK_IAM_RESOURCE_API_HOST = get_type_env(key="BK_IAM_RESOURCE_API_HOST", _type=str, default=BK_SAAS_HOST)
 # BK_SAAS_CALLBACK_URL 用于 接口回调/权限中心访问 等场景
 # 通常因证书问题，这里需要使用 http
 BK_SAAS_CALLBACK_URL = get_type_env(key="BK_SAAS_CALLBACK_URL", _type=str, default="") or BK_SAAS_HOST.replace(
