@@ -85,11 +85,12 @@
   };
 
   const handleFlashbackTypeChange = (type: string) => {
-    if (type === 'ROLLBACK_FLASHBACK') {
+    if (type === 'BUILD_INTO_NEW_CLUSTER' || type === 'ROLLBACK_FLASHBACK') {
       switchSiblingRoute(
         () =>
           router.push({
-            name: TicketTypes.MYSQL_ROLLBACK,
+            name:
+              type === 'BUILD_INTO_NEW_CLUSTER' ? TicketTypes.MYSQL_ROLLBACK_NEW_HOST : TicketTypes.MYSQL_ROLLBACK,
           }),
         rollbackFlashbackType,
       );
