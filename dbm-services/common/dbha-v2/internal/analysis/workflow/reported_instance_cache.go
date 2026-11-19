@@ -119,10 +119,20 @@ func (c *ReportedInstanceCache) CheckRecentReport(inst *FailureInstanceInfo) (bo
 }
 
 // MarkReported records or refreshes instances that have already been reported, either
-// in this round or by existing snapshot logs.
-func (c *ReportedInstanceCache) MarkReported(entries map[string]ReportCacheEntry) {
+// in this round or by existing snapshot logs. Expired entries are removed using the
+// caller's timestamp so instances whose failure has recovered do not stay forever.
+func (c *ReportedInstanceCache) MarkReported(
+	entries map[string]ReportCacheEntry,
+	now time.Time,
+) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	for key, entry := range c.entries {
+		if !now.Before(entry.ExpireAt) {
+			delete(c.entries, key)
+		}
+	}
 	for key, entry := range entries {
 		c.entries[key] = entry
 	}
