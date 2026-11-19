@@ -3,7 +3,12 @@ import { useI18n } from 'vue-i18n';
 import { useRequest } from 'vue-request';
 
 import { fetchMountPoints, fetchResourceHostDeviceClass, getOsTypeList } from '@services/source/dbresourceResource';
-import { getCommonCities, getInfrasSubzonesByCity } from '@services/source/infras';
+import {
+  getCommonCities,
+  getInfrasCloudRegions,
+  getInfrasCloudZones,
+  getInfrasSubzonesByCity,
+} from '@services/source/infras';
 import { getCloudList, searchDeviceClass } from '@services/source/ipchooser';
 
 import { useGlobalBizs } from '@stores';
@@ -11,11 +16,13 @@ import { useGlobalBizs } from '@stores';
 import {
   DeviceClass,
   deviceClassDisplayMap,
+  getCloudZoneName,
   readResourceDbTypes,
   specialOptionLabelMap,
   SpecialOptions,
 } from '@common/const';
 
+import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
 import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
 
 export default (props: any) => {
@@ -103,6 +110,15 @@ export default (props: any) => {
         type: 'single',
       },
       {
+        id: 'bk_cloud_region',
+        list: regionList.value?.map((item) => ({
+          label: item.display_name,
+          value: item.bk_cloud_region,
+        })),
+        name: t('地域'),
+        type: 'multiple',
+      },
+      {
         id: 'city',
         list: cityList.value?.map((item) => ({
           label: item.city_name,
@@ -112,7 +128,16 @@ export default (props: any) => {
         type: 'multiple',
       },
       {
-        id: 'sub_zone',
+        id: 'bk_cloud_zone',
+        list: zoneList.value?.map((item) => ({
+          label: getCloudZoneName(item.bk_cloud_zone),
+          value: item.bk_cloud_zone,
+        })),
+        name: t('可用区'),
+        type: 'multiple',
+      },
+      {
+        id: 'subzone_ids',
         list: subzoneList.value?.map((item) => ({
           label: item.bk_sub_zone,
           value: `${item.bk_sub_zone_id}`,
@@ -131,7 +156,8 @@ export default (props: any) => {
       },
     ];
 
-    return serachList.filter((item) => props.params[item.id] === undefined);
+    // 数组元素结构差异较大，统一按 DbQuickSearch 的 data 类型断言
+    return serachList.filter((item) => props.params[item.id] === undefined) as unknown as QuickSearchProps['data'];
   });
 
   const { data: cloudList } = useRequest(getCloudList, {
@@ -163,6 +189,17 @@ export default (props: any) => {
     },
   });
 
+  const regionList = shallowRef<ServiceReturnType<typeof getInfrasCloudRegions>>([]);
+  useRequest(getInfrasCloudRegions, {
+    onSuccess(data) {
+      regionList.value = data;
+    },
+  });
+
+  const { data: zoneList } = useRequest(getInfrasCloudZones, {
+    initialData: [],
+  });
+
   const { data: subzoneList } = useRequest(getInfrasSubzonesByCity, {
     initialData: [],
   });
@@ -172,6 +209,28 @@ export default (props: any) => {
   });
 
   const filterOption = computed(() => ({
+    bk_cloud_region: {
+      component: markRaw(MultipleSelect),
+      name: t('地域'),
+      props: {
+        list: (regionList.value || []).map((item) => ({
+          label: item.display_name,
+          value: item.bk_cloud_region,
+        })),
+      },
+      showConfirmAndReset: true,
+    },
+    bk_cloud_zone: {
+      component: markRaw(MultipleSelect),
+      name: t('可用区'),
+      props: {
+        list: (zoneList.value || []).map((item) => ({
+          label: getCloudZoneName(item.bk_cloud_zone),
+          value: item.bk_cloud_zone,
+        })),
+      },
+      showConfirmAndReset: true,
+    },
     city: {
       component: markRaw(MultipleSelect),
       name: t('城市'),

@@ -15,6 +15,7 @@ import { affinityMap, DBTypes, mongodbAffinityMap } from '@common/const';
 
 export default class QuickSearchEntry {
   bk_biz_id: number;
+  bk_cloud_region: string;
   cluster_entry_type: string;
   cluster_id: number;
   cluster_status: string;
@@ -33,6 +34,7 @@ export default class QuickSearchEntry {
 
   constructor(payload = {} as QuickSearchEntry) {
     this.bk_biz_id = payload.bk_biz_id;
+    this.bk_cloud_region = payload.bk_cloud_region;
     this.cluster_entry_type = payload.cluster_entry_type;
     this.cluster_id = payload.cluster_id;
     this.cluster_status = payload.cluster_status;

@@ -172,6 +172,7 @@
 
   import QuickSearchEntryModel from '@services/model/quiker-search/quick-search-entry';
 
+  import { getRegionDisplay } from '@common/const';
   import { batchSplitRegex } from '@common/regex';
 
   import RenderClusterStatus from '@components/cluster-status/Index.vue';
@@ -263,7 +264,7 @@
           { label: t('所属集群'), value: dataItem.immute_domain },
           { label: t('架构类型'), value: dataItem.cluster_type },
           { label: t('版本'), value: dataItem.major_version },
-          { label: t('地域'), value: dataItem.region },
+          { label: t('地域'), value: getRegionDisplay(dataItem.bk_cloud_region) },
           { label: t('所属业务'), value: String(dataItem.bk_biz_id) },
           { label: t('业务名称'), value: props.bizIdNameMap[dataItem.bk_biz_id] },
           { label: t('容灾要求'), value: dataItem.disaster_tolerance_level },

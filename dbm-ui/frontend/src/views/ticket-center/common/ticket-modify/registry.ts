@@ -38,6 +38,8 @@ type ReplicaSetList = { domain: string; name: string }[] | undefined;
  */
 export const RESOURCE_SPEC_DIFF: Required<Pick<DiffOptions, 'formatters' | 'ignorePaths'>> = {
   formatters: {
+    /** 地域标识：default 表示不限地域，展示为「随机」 */
+    bk_cloud_region: (value) => (value === 'default' ? t('随机') : formatValue(value)),
     disaster_tolerance_level: (value) =>
       formatValue(
         affinityMap[value as keyof typeof affinityMap] ||
@@ -70,7 +72,7 @@ const MYSQL_APPLY_DIFF: Required<Pick<DiffOptions, 'formatters' | 'ignorePaths' 
   formatters: {
     ...RESOURCE_SPEC_DIFF.formatters,
     apply_clb: (value) => (value ? 'CLB' : '--'),
-    city_code: (value, snapshot) => formatValue(snapshot.city_name || value),
+    city_code: (value, snapshot) => formatValue(snapshot.bk_cloud_region || value),
     db_module_id: (value, snapshot) => formatValue(snapshot.db_module_name || value),
     domains: (value) => formatValue((value as DomainList)?.map((item) => item.key)),
     'nodes.*': (value) => formatValue((value as HostList)?.map((item) => item.ip)),
@@ -96,8 +98,8 @@ const MYSQL_APPLY_DIFF: Required<Pick<DiffOptions, 'formatters' | 'ignorePaths' 
     disaster_tolerance_level: t('容灾级别'),
     domains: t('域名设置'),
     'resource_spec.*.labels': t('资源标签'),
+    'resource_spec.*.location_spec.bk_cloud_zone_list': t('可用区'),
     'resource_spec.*.location_spec.include_or_exclude': t('园区'),
-    'resource_spec.*.location_spec.sub_zone_ids': t('可用区'),
     'resource_spec.backend_group.spec_id': t('后端存储资源规格'),
     'resource_spec.backend.spec_id': t('后端存储资源规格'),
     'resource_spec.proxy.spec_id': t('Proxy 存储资源规格'),
@@ -115,7 +117,7 @@ const MYSQL_APPLY_DIFF: Required<Pick<DiffOptions, 'formatters' | 'ignorePaths' 
 const SQLSERVER_APPLY_DIFF: DiffOptions = {
   formatters: {
     ...RESOURCE_SPEC_DIFF.formatters,
-    city_code: (value, snapshot) => formatValue(snapshot.city_name || value),
+    city_code: (value, snapshot) => formatValue(snapshot.bk_cloud_region || value),
     db_module_id: (value, snapshot) => formatValue(snapshot.db_module_name || value),
     domains: (value) => formatValue((value as DomainList)?.map((item) => item.key)),
   },
@@ -138,7 +140,7 @@ const SQLSERVER_APPLY_DIFF: DiffOptions = {
     domains: t('域名设置'),
     inst_num: t('每组主机部署集群'),
     'resource_spec.*.labels': t('资源标签'),
-    'resource_spec.*.location_spec.sub_zone_ids': t('可用区'),
+    'resource_spec.*.location_spec.bk_cloud_zone_list': t('可用区'),
     'resource_spec.*.spec_id': t('后端存储资源规格'),
     start_mssql_port: t('SQLServer 起始端口'),
   },
@@ -154,7 +156,7 @@ const TENDBCLUSTER_APPLY_DIFF: DiffOptions = {
   formatters: {
     ...RESOURCE_SPEC_DIFF.formatters,
     apply_clb: (value) => (value ? 'CLB' : '--'),
-    city_code: (value, snapshot) => formatValue(snapshot.city_name || value),
+    city_code: (value, snapshot) => formatValue(snapshot.bk_cloud_region || value),
     db_module_id: (value, snapshot) => formatValue(snapshot.db_module_name || value),
     // backend_group 同层没有 spec_name，规格名在部署方案明细 spec_info 里
     'resource_spec.backend_group.spec_id': (value, snapshot) =>
@@ -185,7 +187,7 @@ const TENDBCLUSTER_APPLY_DIFF: DiffOptions = {
     'resource_spec.backend_group.count': t('需机器组数'),
     'resource_spec.backend_group.future_capacity': t('未来集群容量需求'),
     'resource_spec.backend_group.labels': t('后端存储资源标签'),
-    'resource_spec.backend_group.location_spec.sub_zone_ids': t('可用区'),
+    'resource_spec.backend_group.location_spec.bk_cloud_zone_list': t('可用区'),
     'resource_spec.backend_group.spec_id': t('后端存储资源规格'),
     'resource_spec.spider.count': t('数量'),
     'resource_spec.spider.labels': t('Spider Master 资源标签'),
@@ -219,7 +221,7 @@ const REDIS_CLUSTER_APPLY_DIFF: DiffOptions = {
       }
       return `${totalMemory}(${(Number(maxMemory) / 1024).toFixed(1)} GB x ${shardNum}${t('分片')})`;
     },
-    city_code: (value, snapshot) => formatValue(snapshot.city_name || value),
+    city_code: (value, snapshot) => formatValue(snapshot.bk_cloud_region || value),
     cluster_type: (value) => formatValue(redisClusterTypes[value as keyof typeof redisClusterTypes]?.text || value),
     'nodes.*': (value) => formatValue((value as HostList)?.map((item) => item.ip)),
     // details 里是明文密码，不展示
@@ -257,7 +259,7 @@ const REDIS_CLUSTER_APPLY_DIFF: DiffOptions = {
     'nodes.slave': t('Slave 主机'),
     proxy_port: t('访问端口'),
     proxy_pwd: t('访问密码'),
-    'resource_spec.*.location_spec.sub_zone_ids': t('可用区'),
+    'resource_spec.*.location_spec.bk_cloud_zone_list': t('可用区'),
     'resource_spec.backend_group.count': t('需机器组数'),
     'resource_spec.backend_group.labels': t('资源标签'),
     'resource_spec.backend_group.spec_id': t('后端存储'),
@@ -276,7 +278,7 @@ const REDIS_INS_APPLY_DIFF: DiffOptions = {
   formatters: {
     ...RESOURCE_SPEC_DIFF.formatters,
     append_apply: (value) => (value ? t('已有主从所在主机追加部署') : t('全新主机部署')),
-    city_code: (value, snapshot) => formatValue(snapshot.city_name || value),
+    city_code: (value, snapshot) => formatValue(snapshot.bk_cloud_region || value),
     // 只拼集群标识时，只改 Databases 或追加部署的主库主机，变更前后看起来一样
     infos: (value) =>
       formatValue(
@@ -304,7 +306,7 @@ const REDIS_INS_APPLY_DIFF: DiffOptions = {
     infos: t('域名设置'),
     port: t('Redis 起始端口'),
     redis_pwd: t('访问密码'),
-    'resource_spec.*.location_spec.sub_zone_ids': t('可用区'),
+    'resource_spec.*.location_spec.bk_cloud_zone_list': t('可用区'),
     'resource_spec.backend_group.count': t('需机器组数'),
     'resource_spec.backend_group.labels': t('资源标签'),
     'resource_spec.backend_group.spec_id': t('后端存储规格'),
@@ -319,7 +321,7 @@ const REDIS_INS_APPLY_DIFF: DiffOptions = {
 const MONGODB_REPLICASET_APPLY_DIFF: DiffOptions = {
   formatters: {
     ...RESOURCE_SPEC_DIFF.formatters,
-    city_code: (value, snapshot) => formatValue(snapshot.city_name || value),
+    city_code: (value, snapshot) => formatValue(snapshot.bk_cloud_region || value),
     replica_sets: (value) =>
       formatValue((value as ReplicaSetList)?.map((item) => (item.name ? `${item.domain}(${item.name})` : item.domain))),
   },
@@ -343,7 +345,7 @@ const MONGODB_REPLICASET_APPLY_DIFF: DiffOptions = {
     replica_count: t('部署副本集数量'),
     replica_sets: t('域名设置'),
     'resource_spec.*.labels': t('资源标签'),
-    'resource_spec.*.location_spec.sub_zone_ids': t('可用区'),
+    'resource_spec.*.location_spec.bk_cloud_zone_list': t('可用区'),
     'resource_spec.*.spec_id': t('后端存储规格'),
     start_port: t('访问端口'),
   },
@@ -357,7 +359,7 @@ const MONGODB_REPLICASET_APPLY_DIFF: DiffOptions = {
 const MONGODB_SHARD_APPLY_DIFF: DiffOptions = {
   formatters: {
     ...RESOURCE_SPEC_DIFF.formatters,
-    city_code: (value, snapshot) => formatValue(snapshot.city_name || value),
+    city_code: (value, snapshot) => formatValue(snapshot.bk_cloud_region || value),
   },
   ignorePaths: [
     ...RESOURCE_SPEC_DIFF.ignorePaths,
@@ -378,7 +380,7 @@ const MONGODB_SHARD_APPLY_DIFF: DiffOptions = {
     disaster_tolerance_level: t('容灾级别'),
     oplog_percent: t('每台主机 oplog 容量占比'),
     'resource_spec.mongo_config.labels': t('Config Server 资源标签'),
-    'resource_spec.mongo_config.location_spec.sub_zone_ids': t('可用区'),
+    'resource_spec.mongo_config.location_spec.bk_cloud_zone_list': t('可用区'),
     'resource_spec.mongo_config.spec_id': t('Config Server资源规格'),
     'resource_spec.mongodb.capacity': t('集群容量需求'),
     'resource_spec.mongodb.count': t('总机器数'),
@@ -403,7 +405,7 @@ const MONGODB_SHARD_APPLY_DIFF: DiffOptions = {
 const BIG_DATA_APPLY_DIFF: Required<Pick<DiffOptions, 'formatters' | 'ignorePaths'>> = {
   formatters: {
     ...RESOURCE_SPEC_DIFF.formatters,
-    city_code: (value, snapshot) => formatValue(snapshot.city_name || value),
+    city_code: (value, snapshot) => formatValue(snapshot.bk_cloud_region || value),
     'nodes.*': (value) => formatValue((value as HostList)?.map((item) => item.ip)),
   },
   ignorePaths: [
@@ -445,7 +447,7 @@ const ES_APPLY_DIFF: DiffOptions = {
     'nodes.cold': t('冷节点'),
     'nodes.hot': t('热节点'),
     'nodes.master': t('Master节点'),
-    'resource_spec.*.location_spec.sub_zone_ids': t('可用区'),
+    'resource_spec.*.location_spec.bk_cloud_zone_list': t('可用区'),
     'resource_spec.client.count': t('Client节点'),
     'resource_spec.client.labels': t('Client 节点资源标签'),
     'resource_spec.client.spec_id': t('Client节点规格'),
@@ -479,7 +481,7 @@ const KAFKA_APPLY_DIFF: DiffOptions = {
     partition_num: t('Partition数量'),
     port: t('访问端口'),
     replication_num: t('副本数量'),
-    'resource_spec.*.location_spec.sub_zone_ids': t('可用区'),
+    'resource_spec.*.location_spec.bk_cloud_zone_list': t('可用区'),
     'resource_spec.broker.count': t('Broker节点'),
     'resource_spec.broker.labels': t('Broker 节点资源标签'),
     'resource_spec.broker.spec_id': t('Broker节点规格'),
@@ -511,7 +513,7 @@ const HDFS_APPLY_DIFF: DiffOptions = {
     // NameNode / Zookeeper/JournalNode 是组件名，申请页也未翻译
     'nodes.namenode': 'NameNode',
     'nodes.zookeeper': 'Zookeeper/JournalNode',
-    'resource_spec.*.location_spec.sub_zone_ids': t('可用区'),
+    'resource_spec.*.location_spec.bk_cloud_zone_list': t('可用区'),
     'resource_spec.datanode.count': t('DataNode节点'),
     'resource_spec.datanode.labels': t('DataNodes 资源标签'),
     'resource_spec.datanode.spec_id': t('DataNode节点规格'),
@@ -546,7 +548,7 @@ const PULSAR_APPLY_DIFF: DiffOptions = {
     partition_num: t('Partition数量'),
     port: t('访问端口'),
     replication_num: t('副本数量'),
-    'resource_spec.*.location_spec.sub_zone_ids': t('可用区'),
+    'resource_spec.*.location_spec.bk_cloud_zone_list': t('可用区'),
     'resource_spec.bookkeeper.count': t('Bookkeeper节点'),
     'resource_spec.bookkeeper.labels': t('Bookkeeper 节点资源标签'),
     'resource_spec.bookkeeper.spec_id': t('Bookkeeper节点规格'),
@@ -588,7 +590,7 @@ const DORIS_APPLY_DIFF: DiffOptions = {
     'nodes.observer': t('Observer节点'),
     'nodes.warm': t('温节点'),
     query_port: t('查询端口'),
-    'resource_spec.*.location_spec.sub_zone_ids': t('可用区'),
+    'resource_spec.*.location_spec.bk_cloud_zone_list': t('可用区'),
     'resource_spec.follower.count': t('Follower节点'),
     'resource_spec.follower.labels': t('Follower 节点资源标签'),
     'resource_spec.follower.spec_id': t('Follower节点规格'),
@@ -612,7 +614,7 @@ const DORIS_APPLY_DIFF: DiffOptions = {
 const INFLUXDB_APPLY_DIFF: DiffOptions = {
   formatters: {
     ...RESOURCE_SPEC_DIFF.formatters,
-    city_code: (value, snapshot) => formatValue(snapshot.city_name || value),
+    city_code: (value, snapshot) => formatValue(snapshot.bk_cloud_region || value),
     group_id: (value, snapshot) => formatValue(snapshot.group_name || value),
     'nodes.*': (value) => formatValue((value as HostList)?.map((item) => item.ip)),
   },
@@ -632,7 +634,7 @@ const INFLUXDB_APPLY_DIFF: DiffOptions = {
     'nodes.influxdb': t('InfluxDB实例'),
     port: t('访问端口'),
     'resource_spec.*.labels': t('资源标签'),
-    'resource_spec.*.location_spec.sub_zone_ids': t('可用区'),
+    'resource_spec.*.location_spec.bk_cloud_zone_list': t('可用区'),
     'resource_spec.influxdb.count': t('数量'),
     'resource_spec.influxdb.spec_id': t('规格'),
   },
@@ -645,7 +647,7 @@ const INFLUXDB_APPLY_DIFF: DiffOptions = {
 const RIAK_CLUSTER_APPLY_DIFF: DiffOptions = {
   formatters: {
     ...RESOURCE_SPEC_DIFF.formatters,
-    city_code: (value, snapshot) => formatValue(snapshot.city_name || value),
+    city_code: (value, snapshot) => formatValue(snapshot.bk_cloud_region || value),
     db_module_id: (value, snapshot) => formatValue(snapshot.db_module_name || value),
     'nodes.*': (value) => formatValue((value as HostList)?.map((item) => item.ip)),
   },
@@ -667,7 +669,7 @@ const RIAK_CLUSTER_APPLY_DIFF: DiffOptions = {
     disaster_tolerance_level: t('容灾级别'),
     'nodes.riak': t('服务器'),
     'resource_spec.*.labels': t('资源标签'),
-    'resource_spec.*.location_spec.sub_zone_ids': t('可用区'),
+    'resource_spec.*.location_spec.bk_cloud_zone_list': t('可用区'),
     'resource_spec.riak.count': t('节点数量'),
     'resource_spec.riak.spec_id': t('资源规格'),
   },

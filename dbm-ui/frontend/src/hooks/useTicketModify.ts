@@ -16,7 +16,6 @@ import { useI18n } from 'vue-i18n';
 
 import TicketModifyRecordModel, { type TicketModifyMode } from '@services/model/ticket/modify-record';
 import TicketModel from '@services/model/ticket/ticket';
-import { getInfrasSubzonesByCity } from '@services/source/infras';
 import { getCloudList } from '@services/source/ipchooser';
 import { getRegions } from '@services/source/kubernetesToolbox';
 import { listTag } from '@services/source/tag';
@@ -24,7 +23,7 @@ import { getTicketDetails } from '@services/source/ticket';
 
 import { useUserProfile } from '@stores';
 
-import { cloudZoneNameMap, TicketTypes } from '@common/const';
+import { Affinity, cloudZoneNameMap, TicketTypes } from '@common/const';
 
 import { getTicketModifyDiffOptions, isTicketModifiable } from '@views/ticket-center/common/ticket-modify/registry';
 import { diffDetails, type DiffItem, formatValue } from '@views/ticket-center/common/ticket-modify/utils';
@@ -110,8 +109,13 @@ export const useTicketModify = () => {
 
   const ticketData = shallowRef<TicketModel>();
   // 以下映射只用于变更对比把 id / 代码展示为名称；列表未就绪或数据已下线时展示原值
-  // 园区 id → 名称；不传城市返回全部园区，改前改后可能跨城市
-  const subzoneNameMap = shallowRef<Record<number, string>>({});
+  // 可用区级别（跨可用区含强/弱、指定可用区）；之外的级别（跨机架 / 无）下可用区无概念
+  const zoneLevels: string[] = [
+    Affinity.CROS_SUBZONE,
+    Affinity.CROSS_SUBZONE_STRONG,
+    Affinity.CROSS_SUBZONE_WEAK,
+    Affinity.SAME_SUBZONE_CROSS_SWTICH,
+  ];
   // 管控区域 id → 名称
   const cloudNameMap = shallowRef<Record<number, string>>({});
   // K8s 地域代码 → 名称，共享集群与业务独占集群的地域合并
@@ -229,9 +233,6 @@ export const useTicketModify = () => {
   };
 
   if (isModify) {
-    getInfrasSubzonesByCity().then((list) => {
-      subzoneNameMap.value = Object.fromEntries(list.map((item) => [item.bk_sub_zone_id, item.bk_sub_zone]));
-    });
     getCloudList().then((list) => {
       cloudNameMap.value = Object.fromEntries(list.map((item) => [item.bk_cloud_id, item.bk_cloud_name]));
     });
@@ -287,7 +288,7 @@ export const useTicketModify = () => {
       return [];
     }
     const options = getTicketModifyDiffOptions(data.ticket_type);
-    return diffDetails(data.details, details, {
+    const diffList = diffDetails(data.details, details, {
       ...options,
       formatters: {
         ...options.formatters,
@@ -306,9 +307,25 @@ export const useTicketModify = () => {
           }
           return formatValue((value as string[] | undefined)?.map((id) => labelNameMap.value[String(id)] || id));
         },
-        'resource_spec.*.location_spec.sub_zone_ids': (value) =>
-          formatValue((value as number[] | undefined)?.map((id) => cloudZoneNameMap[id] || id)),
+        'resource_spec.*.location_spec.bk_cloud_zone_list': (value, snapshot, path) => {
+          // 按所属角色的容灾级别判定：非可用区级别（跨机架 / 无）下不区分可用区，统一显示「随机」；
+          // 显示时按更改前或更改后任一侧是可用区级别为准（prev / next 各自用自己的快照）
+          const affinity = _.get(snapshot, path.replace(/location_spec\.bk_cloud_zone_list$/, 'affinity'));
+          if (!zoneLevels.includes(affinity as string)) {
+            return t('随机');
+          }
+          const zoneNames = (value as string[] | undefined)?.map((zoneName) => cloudZoneNameMap[zoneName] || zoneName);
+          return zoneNames?.length ? zoneNames.join('，') : t('随机');
+        },
       },
+    });
+    // 改单后容灾为特定容灾（跨机架 / 无）时可用区已无概念，隐藏可用区变更项
+    return diffList.filter((item) => {
+      if (!item.path.endsWith('location_spec.bk_cloud_zone_list')) {
+        return true;
+      }
+      const nextAffinity = _.get(details, item.path.replace(/location_spec\.bk_cloud_zone_list$/, 'affinity'));
+      return zoneLevels.includes(nextAffinity as string);
     });
   };
 

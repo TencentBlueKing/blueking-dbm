@@ -20,25 +20,16 @@
       v-model="modelValue.bk_cloud_id"
       @change="handleCloudChange" />
     <CityCodeItem v-model="modelValue" />
-    <SubzonesItem
-      v-if="showSubZoneItem"
-      ref="subzoneRef"
-      v-model="modelValue"
-      :city-code="modelValue.city_code"
-      :disaster-tolerance-level="modelValue.disaster_tolerance_level" />
   </DbCard>
 </template>
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { Affinity } from '@common/const';
-
   import CloudItem from '@views/db-manage/common/apply-items/CloudItem.vue';
 
   import CityCodeItem from './components/CityCode.vue';
   import DisasterToleranceLevelItem from './components/DisasterToleranceLevel.vue';
-  import SubzonesItem from './components/subzones/Index.vue';
 
   type Emits = (e: 'cloud-change', value: { id: number | string; name: string }) => void;
 
@@ -46,32 +37,24 @@
     getValue: () => {
       affinity: string;
       location_spec: {
-        city: string;
-        include_or_exclue?: boolean;
-        sub_zone_ids?: number[];
+        /** 地域标识；随机时 default */
+        bk_cloud_region: string;
       };
     };
-    setInitSubzone: (subzoneIds: number[]) => void;
   }
 
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
     bk_cloud_id: number;
-    city_code: string;
-    city_name?: string;
+    /** 地域标识，随机为 default */
+    bk_cloud_region: string;
     disaster_tolerance_level: string;
-    sub_zone_ids: number[];
-    sub_zone_names: string[];
   }>({
     required: true,
   });
 
   const { t } = useI18n();
-
-  const subzoneRef = useTemplateRef('subzoneRef');
-
-  const showSubZoneItem = computed(() => modelValue.value.disaster_tolerance_level && modelValue.value.city_code);
 
   const handleCloudChange = (value: { id: number | string; name: string }) => {
     emits('cloud-change', value);
@@ -79,30 +62,14 @@
 
   defineExpose<Expose>({
     getValue() {
-      const { city_code: city, disaster_tolerance_level: affinity, sub_zone_ids: subZoneIds } = modelValue.value;
-
-      // 无容灾要求-指定地域-指定园区
-      if (affinity === Affinity.NONE && city !== 'default' && subZoneIds.length > 0) {
-        return {
-          affinity,
-          location_spec: {
-            city,
-            // include_or_exclue: true,
-            sub_zone_ids: subZoneIds,
-          },
-        };
-      }
-
-      // 尽量分散 / 无容灾要求-随机地域-随机园区
+      const { bk_cloud_region: region, disaster_tolerance_level: affinity } = modelValue.value;
+      // 大数据级别（尽量分散 / 跨机架 / 无）只填到地域，不选可用区
       return {
         affinity,
         location_spec: {
-          city,
+          bk_cloud_region: region || 'default',
         },
       };
-    },
-    setInitSubzone(subzoneIds: number[]) {
-      subzoneRef.value?.setInitSubzone(subzoneIds);
     },
   });
 </script>

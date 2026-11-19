@@ -34,8 +34,8 @@
         v-model:tag-list="modelValue.labels"
         :biz-id="params.bk_biz_id"
         :params="{
-          city: params.city_name,
-          bk_cloud_zone: params.sub_zone_ids.join(',') || undefined,
+          bk_cloud_region: params.region,
+          bk_cloud_zone: params.zone_list.join(',') || undefined,
           for_bizs: params.bk_biz_id ? [params.bk_biz_id, 0] : [0],
           resource_types: [DBTypes.MONGODB, 'PUBLIC'],
           spec_id: Number(modelValue.spec_id),
@@ -169,20 +169,20 @@
           ref="specSelectorRef"
           v-model="modelValue.spec_id"
           :biz-id="params.bk_biz_id"
-          :city="params.city_code"
           :cloud-id="params.bk_cloud_id"
           :cluster-type="ClusterTypes.MONGODB"
           :disaster-tolerance-level="params.disaster_tolerance_level"
           :machine-type="MachineTypes.MONGODB"
-          :subzone-ids="params.sub_zone_ids"
+          :region="params.region"
+          :zone-list="params.zone_list"
           @update:model-value="handleSpecChange" />
       </BkFormItem>
       <ResourcePreview
         v-model:tag-list="modelValue.labels"
         :biz-id="params.bk_biz_id"
         :params="{
-          city: params.city_name,
-          subzone_ids: params.sub_zone_ids.join(','),
+          bk_cloud_region: params.region,
+          subzone_ids: params.zone_list.join(','),
           for_bizs: params.bk_biz_id ? [params.bk_biz_id, 0] : [0],
           resource_types: [DBTypes.MONGODB, 'PUBLIC'],
           spec_id: Number(modelValue.spec_id),
@@ -287,10 +287,11 @@
     params: {
       bk_biz_id: number | '';
       bk_cloud_id: number;
-      city_code: string;
-      city_name: string;
       disaster_tolerance_level: string;
-      sub_zone_ids: string[] | number[];
+      /** 地域标识 */
+      region: string;
+      /** 可用区名列表 */
+      zone_list: string[] | number[];
     };
   }
 
@@ -345,9 +346,9 @@
       getSpecResourceCountRun({
         bk_biz_id: Number(props.params.bk_biz_id),
         bk_cloud_id: props.params.bk_cloud_id,
-        city: props.params.city_code,
+        bk_cloud_region: props.params.region,
+        bk_cloud_zone: props.params.zone_list.map((item) => `${item}`),
         spec_ids: specList.value.map((item) => item.spec_id),
-        sub_zone_ids: props.params.sub_zone_ids.map((item) => `${item}`),
       });
     },
   });
@@ -355,9 +356,10 @@
   const { run: getSpecResourceCountRun } = useRequest(getSpecResourceCount, {
     manual: true,
     onSuccess(data) {
+      const countMap = 'total' in data ? data.total : data;
       specList.value = specList.value.map((item) =>
         Object.assign(item, {
-          count: data[item.spec_id] ?? 0,
+          count: countMap[item.spec_id] ?? 0,
         }),
       );
     },

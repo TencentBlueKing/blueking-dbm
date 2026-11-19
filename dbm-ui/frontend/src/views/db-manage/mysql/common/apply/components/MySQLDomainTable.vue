@@ -43,8 +43,10 @@
   interface IFormdata {
     bk_biz_id: '' | number;
     details: {
+      bk_cloud_region: string;
+      bk_cloud_zone_list: string[];
       charset: string;
-      city_code: string;
+      city_code?: string;
       cluster_count: number;
       db_app_abbr: string;
       db_module_id: null | number;

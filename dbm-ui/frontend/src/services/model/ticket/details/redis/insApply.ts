@@ -4,6 +4,8 @@ export interface InsApply extends DetailBase {
   append_apply: boolean; // 是否是追加部署
   bk_cloud_id: number;
   bk_cloud_name: string;
+  /** 新协议：地域标识（随机时 default）；存量单据用 city_code */
+  bk_cloud_region?: string;
   city_code?: string; // 追加就非必填
   cluster_type: string;
   db_app_abbr: string;

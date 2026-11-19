@@ -4,6 +4,8 @@ export interface Apply extends DetailBase {
   ack_quorum: number;
   bk_cloud_id: number;
   bk_cloud_name: string;
+  /** 新协议：地域标识（随机时 default）；存量单据用 city_code */
+  bk_cloud_region?: string;
   city_code: string;
   cluster_alias: string;
   cluster_name: string;

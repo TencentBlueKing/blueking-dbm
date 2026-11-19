@@ -187,19 +187,16 @@
                     ref="specMasterRef"
                     v-model="formData.details.resource_spec.master.spec_id"
                     :biz-id="formData.bk_biz_id"
-                    :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="es"
                     machine-type="es_master"
-                    :subzone-ids="formData.details.sub_zone_ids" />
+                    :region="formData.details.bk_cloud_region" />
                 </BkFormItem>
                 <ResourcePreview
                   v-model:tag-list="formData.details.resource_spec.master.labels"
                   :biz-id="formData.bk_biz_id"
                   :params="{
-                    city: formData.details.city_name,
-                    subzones: formData.details.sub_zone_names.join('，'),
-                    bk_cloud_zone: formData.details.sub_zone_ids.join(',') || undefined,
+                    bk_cloud_region: formData.details.bk_cloud_region,
                     for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
                     resource_types: [DBTypes.ES, 'PUBLIC'],
                     spec_id: Number(formData.details.resource_spec.master.spec_id),
@@ -228,19 +225,16 @@
                     ref="specClientRef"
                     v-model="formData.details.resource_spec.client.spec_id"
                     :biz-id="formData.bk_biz_id"
-                    :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="es"
                     machine-type="es_client"
-                    :subzone-ids="formData.details.sub_zone_ids" />
+                    :region="formData.details.bk_cloud_region" />
                 </BkFormItem>
                 <ResourcePreview
                   v-model:tag-list="formData.details.resource_spec.client.labels"
                   :biz-id="formData.bk_biz_id"
                   :params="{
-                    city: formData.details.city_name,
-                    subzones: formData.details.sub_zone_names.join('，'),
-                    bk_cloud_zone: formData.details.sub_zone_ids.join(',') || undefined,
+                    bk_cloud_region: formData.details.bk_cloud_region,
                     for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
                     resource_types: [DBTypes.ES, 'PUBLIC'],
                     spec_id: Number(formData.details.resource_spec.client.spec_id),
@@ -295,19 +289,16 @@
                     ref="specHotRef"
                     v-model="formData.details.resource_spec.hot.spec_id"
                     :biz-id="formData.bk_biz_id"
-                    :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="es"
                     machine-type="es_datanode"
-                    :subzone-ids="formData.details.sub_zone_ids" />
+                    :region="formData.details.bk_cloud_region" />
                 </BkFormItem>
                 <ResourcePreview
                   v-model:tag-list="formData.details.resource_spec.hot.labels"
                   :biz-id="formData.bk_biz_id"
                   :params="{
-                    city: formData.details.city_name,
-                    subzones: formData.details.sub_zone_names.join('，'),
-                    bk_cloud_zone: formData.details.sub_zone_ids.join(',') || undefined,
+                    bk_cloud_region: formData.details.bk_cloud_region,
                     for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
                     resource_types: [DBTypes.ES, 'PUBLIC'],
                     spec_id: Number(formData.details.resource_spec.hot.spec_id),
@@ -335,19 +326,16 @@
                     ref="specColdRef"
                     v-model="formData.details.resource_spec.cold.spec_id"
                     :biz-id="formData.bk_biz_id"
-                    :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="es"
                     machine-type="es_datanode"
-                    :subzone-ids="formData.details.sub_zone_ids" />
+                    :region="formData.details.bk_cloud_region" />
                 </BkFormItem>
                 <ResourcePreview
                   v-model:tag-list="formData.details.resource_spec.cold.labels"
                   :biz-id="formData.bk_biz_id"
                   :params="{
-                    city: formData.details.city_name,
-                    subzones: formData.details.sub_zone_names.join('，'),
-                    bk_cloud_zone: formData.details.sub_zone_ids.join(',') || undefined,
+                    bk_cloud_region: formData.details.bk_cloud_region,
                     for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
                     resource_types: [DBTypes.ES, 'PUBLIC'],
                     spec_id: Number(formData.details.resource_spec.cold.spec_id),
@@ -480,7 +468,7 @@
         apply_clb: details.apply_clb,
         apply_polaris: details.apply_polaris,
         bk_cloud_id: details.bk_cloud_id,
-        city_code: details.city_code,
+        bk_cloud_region: details.bk_cloud_region || 'default',
         cluster_alias: details.cluster_alias,
         cluster_name: details.cluster_name,
         db_version: details.db_version,
@@ -503,18 +491,9 @@
             },
           });
         }, {});
-        const subzoneIds = details.resource_spec!.master.location_spec.sub_zone_ids || [];
-        // 后端会把容灾级别统一改写为尽量分散，而页面只在「无容灾要求」时提交园区；带园区的单据按无容灾回填，否则园区会丢
-        if (subzoneIds.length > 0) {
-          formData.details.disaster_tolerance_level = Affinity.NONE;
-        }
         Object.assign(formData.details, {
           // 改单「重置」也走这段回填；数量为 0 的角色不提交，单据里没有的角色要回到默认值，否则会留着改过的规格与数量
           resource_spec: Object.assign(genDefaultFormData().details.resource_spec, resourceSpec),
-          sub_zone_ids: subzoneIds,
-        });
-        nextTick(() => {
-          regionRequirementsRef.value!.setInitSubzone(subzoneIds);
         });
       }
     },
@@ -542,8 +521,7 @@
       apply_clb: false,
       apply_polaris: false,
       bk_cloud_id: 0,
-      city_code: '',
-      city_name: '',
+      bk_cloud_region: '',
       cluster_alias: '',
       cluster_name: '',
       db_app_abbr: '',
@@ -591,8 +569,6 @@
           spec_id: '',
         },
       },
-      sub_zone_ids: [] as number[],
-      sub_zone_names: [] as string[],
     },
     remark: '',
     ticket_type: TicketTypes.ES_APPLY,

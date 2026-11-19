@@ -127,9 +127,12 @@ export interface ApplySpecInfo {
   label_names: string[]; // 标签名称列表，单据详情回显用
   labels: string[]; // 标签id列表
   location_spec: {
-    city: string;
+    /** 新协议：地域（随机时 default）与可用区名列表（随机时不传） */
+    bk_cloud_region?: string;
+    bk_cloud_zone_list?: string[];
+    /** 存量单据：城市与园区 id / 可用区字符串，仅旧数据回显 */
+    city?: string;
     include_or_exclue?: boolean;
-    /** 可用区名称（随机时不传）；历史单据为园区数字 id */
     sub_zone_ids?: Array<number | string>;
   };
   mem: {

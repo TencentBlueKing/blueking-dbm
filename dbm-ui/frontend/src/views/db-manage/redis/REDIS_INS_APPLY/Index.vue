@@ -168,20 +168,20 @@
               ref="specRef"
               v-model="formData.details.resource_spec.backend_group.spec_id"
               :biz-id="formData.bk_biz_id"
-              :city="formData.details.city_code"
               :cloud-id="formData.details.bk_cloud_id"
               :cluster-type="DBTypes.REDIS"
               :machine-type="MachineTypes.REDIS_TENDIS_CACHE"
+              :region="formData.details.bk_cloud_region"
               style="width: 435px"
-              :subzone-ids="formData.details.sub_zone_ids" />
+              :zone-list="formData.details.bk_cloud_zone_list" />
           </BkFormItem>
           <ResourcePreview
             v-if="!isAppend"
             v-model:tag-list="formData.details.resource_spec.backend_group.labels"
             :biz-id="formData.bk_biz_id"
             :params="{
-              city: formData.details.city_name,
-              bk_cloud_zone: formData.details.sub_zone_ids.join(',') || undefined,
+              bk_cloud_region: formData.details.bk_cloud_region,
+              bk_cloud_zone: formData.details.bk_cloud_zone_list.join(',') || undefined,
               for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
               resource_types: [DBTypes.REDIS, 'PUBLIC'],
               spec_id: Number(formData.details.resource_spec.backend_group.spec_id),
@@ -286,8 +286,8 @@
     details: {
       apply_mode: 'new', // 是否是追加部署
       bk_cloud_id: 0,
-      city_code: '', // 追加就非必填
-      city_name: '', // 非协议
+      bk_cloud_region: '', // 追加就非必填
+      bk_cloud_zone_list: [] as number[],
       cluster_count: 1,
       cluster_type: ClusterTypes.REDIS_INSTANCE,
       db_app_abbr: '',
@@ -308,7 +308,6 @@
           spec_id: '',
         },
       },
-      sub_zone_ids: [] as number[],
     },
     remark: '',
     ticket_type: TicketTypes.REDIS_INS_APPLY,
@@ -341,7 +340,7 @@
       });
       Object.assign(formData.details, {
         bk_cloud_id: details.bk_cloud_id,
-        city_code: details.city_code,
+        bk_cloud_region: details.bk_cloud_region || 'default',
         cluster_count: details.infos.length,
         cluster_type: details.cluster_type,
         db_version: details.db_version,
@@ -366,11 +365,12 @@
             },
           });
         }, {});
-        const subzoneIds = details.resource_spec!.backend_group.location_spec.sub_zone_ids || [];
+        const subzoneIds = details.resource_spec!.backend_group.location_spec.bk_cloud_zone_list || [];
         Object.assign(formData.details, {
           apply_mode: applyMode,
           bk_cloud_id: details.bk_cloud_id,
-          city_code: details.city_code,
+          bk_cloud_region: details.bk_cloud_region || 'default',
+          bk_cloud_zone_list: subzoneIds,
           cluster_count: details.infos.length,
           cluster_type: details.cluster_type,
           db_version: details.db_version,
@@ -379,16 +379,15 @@
           infos: details.infos,
           port: details.port,
           resource_spec: resourceSpec,
-          sub_zone_ids: subzoneIds,
         });
         nextTick(() => {
-          regionRequirementsRef.value!.setInitSubzone(subzoneIds);
+          regionRequirementsRef.value!.setInitZoneList(subzoneIds);
         });
       } else {
         Object.assign(formData.details, {
           apply_mode: applyMode,
           bk_cloud_id: details.bk_cloud_id,
-          city_code: details.city_code,
+          bk_cloud_region: details.bk_cloud_region || 'default',
           cluster_count: details.infos.length,
           cluster_type: details.cluster_type,
           db_version: details.db_version,
@@ -581,7 +580,6 @@
   const handleHostChange = async (filedName: string, value: string, index: number) => {
     await formRef.value!.validate(filedName);
     getRedisMachineList({
-      bk_city_name: formData.details.city_name,
       bk_cloud_id: formData.details.bk_cloud_id,
       cluster_type: ClusterTypes.REDIS_INSTANCE,
       instance_role: 'redis_master',
@@ -671,7 +669,6 @@
     delete details.cluster_count;
     delete details.group_count;
     delete details.apply_mode;
-    delete details.city_name;
 
     return {
       ...details,

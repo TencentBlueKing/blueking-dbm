@@ -74,8 +74,8 @@
         v-model:tag-list="modelValue.labels"
         :biz-id="bizId"
         :params="{
-          city: cityName,
-          subzone_ids: subzoneIds.join(','),
+          bk_cloud_region: region,
+          subzone_ids: zoneList.join(','),
           for_bizs: bizId ? [bizId, 0] : [0],
           resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
           spec_id: Number(modelValue.spec_id),
@@ -122,19 +122,19 @@
           ref="specSelectorRef"
           v-model="modelValue.spec_id"
           :biz-id="bizId"
-          :city="cityCode"
           :cloud-id="cloudId"
           :cluster-type="ClusterTypes.TENDBCLUSTER"
           :disaster-tolerance-level="disasterToleranceLevel"
           machine-type="backend"
-          :subzone-ids="subzoneIds" />
+          :region="region"
+          :zone-list="zoneList" />
       </BkFormItem>
       <ResourcePreview
         v-model:tag-list="modelValue.labels"
         :biz-id="bizId"
         :params="{
-          city: cityName,
-          subzone_ids: subzoneIds.join(','),
+          bk_cloud_region: region,
+          subzone_ids: zoneList.join(','),
           for_bizs: bizId ? [bizId, 0] : [0],
           resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
           spec_id: Number(modelValue.spec_id),
@@ -226,13 +226,14 @@
 
   interface Props {
     bizId: number | '';
-    cityCode: string;
-    cityName: string;
     cloudId: number | string;
     dbType: string;
     disasterToleranceLevel: string;
     machineType: string;
-    subzoneIds: number[] | string[];
+    /** 地域标识 */
+    region: string;
+    /** 可用区名列表 */
+    zoneList: number[] | string[];
   }
 
   const props = defineProps<Props>();
@@ -434,13 +435,14 @@
     getSpecResourceCount({
       bk_biz_id: Number(props.bizId),
       bk_cloud_id: Number(props.cloudId),
-      city: props.cityCode,
+      bk_cloud_region: props.region,
+      bk_cloud_zone: props.zoneList.map((item) => `${item}`),
       spec_ids: specs.value.map((item) => item.spec_id),
-      sub_zone_ids: props.subzoneIds.map((item) => `${item}`),
     }).then((data) => {
+      const countMap = 'total' in data ? data.total : data;
       renderSpecs.value = specs.value.map((item) => ({
         ...item,
-        count: data[item.spec_id] ?? 0,
+        count: countMap[item.spec_id] ?? 0,
       }));
     });
   }, 100);
@@ -472,15 +474,15 @@
   );
 
   watch(
-    () => [props.bizId, props.cloudId, props.cityCode, props.subzoneIds, specs.value],
+    () => [props.bizId, props.cloudId, props.region, props.zoneList, specs.value],
     () => {
       if (
         typeof props.bizId === 'number' &&
         props.bizId > 0 &&
         typeof props.cloudId === 'number' &&
         specs.value.length > 0 &&
-        props.cityCode &&
-        props.subzoneIds.length > 0
+        props.region &&
+        props.zoneList.length > 0
       ) {
         fetchSpecResourceCount();
       }

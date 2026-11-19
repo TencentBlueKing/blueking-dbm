@@ -38,11 +38,30 @@ export interface DiffOptions {
 export type DiffItem = TicketModifyChangeItem;
 
 // 后端在 details 中注入的字段，提交体里没有；以及各申请页 formData 顶层残留的表单状态字段，不参与对比
-const COMMON_IGNORE_PATHS = ['__ticket_detail__', 'clusters', 'specs', 'sub_zone_ids', 'sub_zone_names', 'zone_names'];
+const COMMON_IGNORE_PATHS = [
+  '__ticket_detail__',
+  'clusters',
+  'specs',
+  'sub_zone_ids',
+  'sub_zone_names',
+  'zone_names',
+  'bk_cloud_zone_list',
+  // location_spec 内的地域与顶层 bk_cloud_region 同值冗余，只按顶层计
+  'resource_spec.*.location_spec.bk_cloud_region',
+];
 
-// 只在一侧出现也要对比：location_spec.sub_zone_ids 随机时为空数组（缺失也可比）；
-// disaster_tolerance_level 部分单据 details 顶层未存，改容灾级别要能比出来
-const COMMON_UNION_PATHS = ['resource_spec.*.location_spec.sub_zone_ids', 'disaster_tolerance_level'];
+// 顶层字段公共中文名：各类型 DIFF 未单独登记 label 时兜底
+const COMMON_LABELS: Record<string, string> = {
+  bk_cloud_region: t('地域'),
+};
+
+// 只在一侧出现也要对比：location_spec.bk_cloud_zone_list 随机时不传；
+// disaster_tolerance_level / bk_cloud_region 部分单据 details 顶层未存，改动要能比出来
+const COMMON_UNION_PATHS = [
+  'resource_spec.*.location_spec.bk_cloud_zone_list',
+  'disaster_tolerance_level',
+  'bk_cloud_region',
+];
 
 // 路径与登记项逐段比较，登记项中的 * 匹配任意一段
 const isPathMatch = (path: string, pattern: string) => {
@@ -135,7 +154,7 @@ export const diffDetails = (prev: unknown, next: unknown, options: DiffOptions =
     }
     result.push({
       isList: Array.isArray(prevValue) || Array.isArray(nextValue),
-      label: findByPath(options.labels, path) || path,
+      label: findByPath(options.labels, path) || COMMON_LABELS[path] || path,
       next: nextText,
       path,
       prev: prevText,

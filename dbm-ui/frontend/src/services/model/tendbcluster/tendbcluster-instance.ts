@@ -22,6 +22,7 @@ export default class TendbInstance extends InstanceBase {
   bk_biz_id: number;
   bk_cloud_id: number;
   bk_cloud_name: string;
+  bk_cloud_region: string;
   /** 可用区（后端字段 bk_cloud_zone） */
   bk_cloud_zone: string;
   bk_cpu: number;
@@ -66,6 +67,7 @@ export default class TendbInstance extends InstanceBase {
     this.bk_os_name = payload.bk_os_name || '';
     this.bk_rack_id = payload.bk_rack_id || 0;
     this.bk_sub_zone = payload.bk_sub_zone || '';
+    this.bk_cloud_region = payload.bk_cloud_region || '';
     this.bk_cloud_zone = payload.bk_cloud_zone || '';
     this.bk_sub_zone_id = payload.bk_sub_zone_id;
     this.bk_svr_device_cls_name = payload.bk_svr_device_cls_name;

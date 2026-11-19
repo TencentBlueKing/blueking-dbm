@@ -66,10 +66,32 @@
             </template>
           </TableColumn>
           <TableColumn
+            col-key="bk_cloud_region"
+            :filter="filterOption.bk_cloud_region"
+            :title="t('地域')"
+            width="120">
+            <template #default="{ row }: { row: DbResourceModel }">
+              {{ row.bk_cloud_region || '--' }}
+            </template>
+          </TableColumn>
+          <TableColumn
             col-key="city"
             :filter="filterOption.city"
-            :title="t('地域')"
-            width="120" />
+            :title="t('城市')"
+            width="120">
+            <template #default="{ row }: { row: DbResourceModel }">
+              {{ row.city || '--' }}
+            </template>
+          </TableColumn>
+          <TableColumn
+            col-key="bk_cloud_zone"
+            :filter="filterOption.bk_cloud_zone"
+            :title="t('可用区')"
+            width="120">
+            <template #default="{ row }: { row: DbResourceModel }">
+              {{ getCloudZoneName(row.bk_cloud_zone) || '--' }}
+            </template>
+          </TableColumn>
           <TableColumn
             col-key="subzone_ids"
             :filter="filterOption.subzone_ids"
@@ -82,7 +104,11 @@
           <TableColumn
             col-key="rack_id"
             :title="t('机架')"
-            width="120" />
+            width="120">
+            <template #default="{ row }: { row: DbResourceModel }">
+              {{ row.rack_id || '--' }}
+            </template>
+          </TableColumn>
           <TableColumn
             col-key="os_name"
             :title="t('操作系统名称')"
@@ -95,7 +121,11 @@
             col-key="device_class"
             :filter="filterOption.device_class"
             :title="t('机型')"
-            width="120" />
+            width="120">
+            <template #default="{ row }: { row: DbResourceModel }">
+              {{ row.device_class || '--' }}
+            </template>
+          </TableColumn>
         </PrimaryTable>
         <div class="table-footer">
           <DbPagination
@@ -141,6 +171,8 @@
 
   import DbResourceModel from '@services/model/db-resource/DbResource';
   import type { HostInfo } from '@services/types';
+
+  import { getCloudZoneName } from '@common/const/cloudZone.ts';
 
   import HostAgentStatus from '@components/host-agent-status/Index.vue';
   import ResourceHostOwner from '@components/resource-host-owner/Index.vue';

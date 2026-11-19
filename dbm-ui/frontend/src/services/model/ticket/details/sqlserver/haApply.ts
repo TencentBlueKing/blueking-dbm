@@ -3,6 +3,8 @@ import type { ApplySpecInfo, DetailBase } from '../common';
 export interface HaApply extends DetailBase {
   bk_cloud_id: number;
   bk_cloud_name: string;
+  /** 新协议：地域标识（随机时 default）；存量单据用 city_code */
+  bk_cloud_region?: string;
   charset: string;
   city_code: string;
   city_name: string;

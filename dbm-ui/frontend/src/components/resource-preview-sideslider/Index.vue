@@ -101,8 +101,8 @@
           </template>
         </TableColumn>
         <TableColumn
-          col-key="city"
-          :filter="filterOption['city']"
+          col-key="bk_cloud_region"
+          :filter="filterOption['bk_cloud_region']"
           :min-width="120"
           :title="t('地域')">
           <template #default="{ row }: { row: DbResourceModel }">

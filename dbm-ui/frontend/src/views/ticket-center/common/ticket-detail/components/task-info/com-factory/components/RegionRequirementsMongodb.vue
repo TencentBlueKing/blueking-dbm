@@ -8,7 +8,7 @@
       {{ details.bk_cloud_name || '--' }}
     </InfoItem>
     <InfoItem :label="t('地域')">
-      {{ cityName }}
+      {{ details.bk_cloud_region === 'default' ? t('随机') : details.bk_cloud_region || '--' }}
     </InfoItem>
     <InfoItem
       v-if="showZoneItem"
@@ -20,9 +20,6 @@
 
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
-
-  import { getInfrasCities } from '@services/source/infras';
 
   import { Affinity, getCloudZoneName, mongodbAffinityMap } from '@common/const';
 
@@ -31,15 +28,16 @@
   interface Props {
     details: {
       bk_cloud_name: string;
-      city_code: string;
+      /** 新协议：地域标识（随机时 default）；存量单据用 city_code */
+      bk_cloud_region?: string;
       resource_spec: {
         [key: string]: {
           affinity: string;
           location_spec: {
-            city: string;
+            /** 新协议：地域 + 可用区名列表（随机时不传） */
+            bk_cloud_region?: string;
+            bk_cloud_zone_list?: string[];
             include_or_exclue?: boolean;
-            /** 可用区名称（随机时不传）；历史单据为园区数字 id */
-            sub_zone_ids?: Array<number | string>;
           };
         };
       };
@@ -51,7 +49,7 @@
   const { t } = useI18n();
 
   const { affinity, location_spec: locationSpec } = Object.values(props.details.resource_spec)[0];
-  const { sub_zone_ids: subZoneIds } = locationSpec;
+  const zoneList = locationSpec.bk_cloud_zone_list ?? locationSpec.bk_cloud_zone_list;
 
   const affinityText = mongodbAffinityMap[affinity as Affinity] || '--';
 
@@ -62,22 +60,13 @@
     ),
   );
 
-  const cityName = ref('--');
   const zonesText = ref('--');
 
-  useRequest(getInfrasCities, {
-    onSuccess: (cityList) => {
-      const cityCode = props.details.city_code;
-      const name = cityList.find((item) => item.city_code === cityCode)?.city_name;
-      cityName.value = name ?? '--';
-    },
-  });
-
-  // sub_zone_ids 存可用区名称（历史单据的园区数字 id 无可用区映射，仅新单据展示名称）；为空显示「随机」
-  if (subZoneIds && subZoneIds.length > 0) {
-    const zoneNames = subZoneIds
-      .filter((zoneId) => typeof zoneId === 'string')
-      .map((zoneId) => getCloudZoneName(zoneId));
+  // 可用区名列表（存量单据的园区数字 id 无映射）；为空显示「随机」
+  if (zoneList && zoneList.length > 0) {
+    const zoneNames = zoneList
+      .filter((zoneItem) => typeof zoneItem === 'string')
+      .map((zoneItem) => getCloudZoneName(zoneItem));
     // 历史单据全是园区数字 id 时无可展示的可用区名
     zonesText.value = zoneNames.join('，') || '--';
   } else if (showZoneItem.value) {

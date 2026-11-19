@@ -242,19 +242,16 @@
                     ref="specFollowerRef"
                     v-model="formData.details.resource_spec.follower.spec_id"
                     :biz-id="formData.bk_biz_id"
-                    :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="doris"
                     machine-type="doris_follower"
-                    :subzone-ids="formData.details.sub_zone_ids" />
+                    :region="formData.details.bk_cloud_region" />
                 </BkFormItem>
                 <ResourcePreview
                   v-model:tag-list="formData.details.resource_spec.follower.labels"
                   :biz-id="formData.bk_biz_id"
                   :params="{
-                    city: formData.details.city_name,
-                    subzones: formData.details.sub_zone_names.join('，'),
-                    bk_cloud_zone: formData.details.sub_zone_ids.join(',') || undefined,
+                    bk_cloud_region: formData.details.bk_cloud_region,
                     for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
                     resource_types: [DBTypes.DORIS, 'PUBLIC'],
                     spec_id: Number(formData.details.resource_spec.follower.spec_id),
@@ -281,19 +278,16 @@
                     ref="specObserverRef"
                     v-model="formData.details.resource_spec.observer.spec_id"
                     :biz-id="formData.bk_biz_id"
-                    :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="doris"
                     machine-type="doris_observer"
-                    :subzone-ids="formData.details.sub_zone_ids" />
+                    :region="formData.details.bk_cloud_region" />
                 </BkFormItem>
                 <ResourcePreview
                   v-model:tag-list="formData.details.resource_spec.observer.labels"
                   :biz-id="formData.bk_biz_id"
                   :params="{
-                    city: formData.details.city_name,
-                    subzones: formData.details.sub_zone_names.join('，'),
-                    bk_cloud_zone: formData.details.sub_zone_ids.join(',') || undefined,
+                    bk_cloud_region: formData.details.bk_cloud_region,
                     for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
                     resource_types: [DBTypes.DORIS, 'PUBLIC'],
                     spec_id: Number(formData.details.resource_spec.observer.spec_id),
@@ -326,19 +320,16 @@
                     ref="specHotRef"
                     v-model="formData.details.resource_spec.hot.spec_id"
                     :biz-id="formData.bk_biz_id"
-                    :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="doris"
                     machine-type="doris_backend"
-                    :subzone-ids="formData.details.sub_zone_ids" />
+                    :region="formData.details.bk_cloud_region" />
                 </BkFormItem>
                 <ResourcePreview
                   v-model:tag-list="formData.details.resource_spec.hot.labels"
                   :biz-id="formData.bk_biz_id"
                   :params="{
-                    city: formData.details.city_name,
-                    subzones: formData.details.sub_zone_names.join('，'),
-                    bk_cloud_zone: formData.details.sub_zone_ids.join(',') || undefined,
+                    bk_cloud_region: formData.details.bk_cloud_region,
                     for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
                     resource_types: [DBTypes.DORIS, 'PUBLIC'],
                     spec_id: Number(formData.details.resource_spec.hot.spec_id),
@@ -365,19 +356,16 @@
                     ref="specWarmRef"
                     v-model="formData.details.resource_spec.warm.spec_id"
                     :biz-id="formData.bk_biz_id"
-                    :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="doris"
                     machine-type="doris_backend"
-                    :subzone-ids="formData.details.sub_zone_ids" />
+                    :region="formData.details.bk_cloud_region" />
                 </BkFormItem>
                 <ResourcePreview
                   v-model:tag-list="formData.details.resource_spec.warm.labels"
                   :biz-id="formData.bk_biz_id"
                   :params="{
-                    city: formData.details.city_name,
-                    subzones: formData.details.sub_zone_names.join('，'),
-                    bk_cloud_zone: formData.details.sub_zone_ids.join(',') || undefined,
+                    bk_cloud_region: formData.details.bk_cloud_region,
                     for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
                     resource_types: [DBTypes.DORIS, 'PUBLIC'],
                     spec_id: Number(formData.details.resource_spec.warm.spec_id),
@@ -516,7 +504,7 @@
       });
       Object.assign(formData.details, {
         bk_cloud_id: details.bk_cloud_id,
-        city_code: details.city_code,
+        bk_cloud_region: details.bk_cloud_region || 'default',
         cluster_alias: details.cluster_alias,
         cluster_name: details.cluster_name,
         db_version: details.db_version,
@@ -551,18 +539,9 @@
             },
           });
         }, {});
-        const subzoneIds = details.resource_spec!.follower.location_spec.sub_zone_ids || [];
-        // 后端会把容灾级别统一改写为尽量分散，而页面只在「无容灾要求」时提交园区；带园区的单据按无容灾回填，否则园区会丢
-        if (subzoneIds.length > 0) {
-          formData.details.disaster_tolerance_level = Affinity.NONE;
-        }
         Object.assign(formData.details, {
           // 单据只保存数量大于 0 的角色，以默认值为底，改单「重置」时才能清掉用户新填的角色
           resource_spec: Object.assign(genDefaultFormData().details.resource_spec, resourceSpec),
-          sub_zone_ids: subzoneIds,
-        });
-        nextTick(() => {
-          regionRequirementsRef.value!.setInitSubzone(subzoneIds);
         });
       }
     },
@@ -588,8 +567,7 @@
     },
     details: {
       bk_cloud_id: 0,
-      city_code: '',
-      city_name: '',
+      bk_cloud_region: '',
       cluster_alias: '',
       cluster_name: '',
       db_app_abbr: '',
@@ -639,8 +617,6 @@
           spec_id: '',
         },
       },
-      sub_zone_ids: [] as number[],
-      sub_zone_names: [] as string[],
     },
     remark: '',
     ticket_type: TicketTypes.DORIS_APPLY,

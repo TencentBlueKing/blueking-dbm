@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import { t } from '@locales/index';
+
 /**
  * 可用区 code → 中文名称映射（前端维护）
  * 后端各接口下发的可用区是标识值（如 ap-guangzhou-1），展示时转中文；提交与筛选仍传标识原值
@@ -56,3 +58,17 @@ export const cloudZoneNameMap: Record<string, string> = {
 
 /** 可用区展示名：未登记的标识值回退原值展示 */
 export const getCloudZoneName = (zone?: string) => (zone ? cloudZoneNameMap[zone] || zone : '');
+
+/**
+ * 地域展示名：列表「地域」列与筛选项共用
+ * default 表示不限地域（随机）；空表示未采集（-）；其余展示标识原值
+ */
+export const getRegionDisplay = (region?: string) => {
+  if (!region) {
+    return '--';
+  }
+  if (region === 'default') {
+    return t('随机');
+  }
+  return region;
+};

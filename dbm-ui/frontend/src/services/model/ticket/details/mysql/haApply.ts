@@ -4,6 +4,10 @@ export interface HaApply extends DetailBase {
   apply_clb?: boolean;
   bk_cloud_id: number;
   bk_cloud_name: string;
+  /** 新协议：地域标识（随机时 default）；存量单据用 city_code */
+  bk_cloud_region?: string;
+  /** 表单存储字段（可用区名列表），提交前由 useApplyBase 剔除 */
+  bk_cloud_zone_list?: string[];
   charset: string;
   city_code: string;
   city_name: string;

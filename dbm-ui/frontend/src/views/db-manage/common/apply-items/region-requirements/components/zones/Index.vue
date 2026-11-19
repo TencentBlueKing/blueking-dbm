@@ -16,7 +16,7 @@
     class="apply-zones-item"
     :description="t('可用区下任意园区均可命中；同一可用区的不同园区不算分散')"
     :label="t('可用区')"
-    property="details.zone_ids"
+    property="details.bk_cloud_zone_list"
     required
     :rules="formRules">
     <BkLoading :loading="loading">
@@ -31,7 +31,7 @@
         <ZoneCard
           v-for="zoneItem in zoneList"
           :key="zoneItem.bk_cloud_zone"
-          :selected="modelValue.sub_zone_ids.includes(zoneItem.bk_cloud_zone)"
+          :selected="modelValue.bk_cloud_zone_list.includes(zoneItem.bk_cloud_zone)"
           :subzones="zoneItem.sub_zones"
           :title="getCloudZoneName(zoneItem.bk_cloud_zone)"
           @select="handleSelectZone(zoneItem.bk_cloud_zone)" />
@@ -53,21 +53,21 @@
   type CloudZoneItem = ServiceReturnType<typeof getInfrasCloudZones>[number];
 
   interface Props {
-    /** 当前地域值（作为 city_code 传给可用区查询接口） */
-    cityCode: string;
+    /** 当前地域标识（作为 region 传给可用区查询接口）；随机为 default */
     disasterToleranceLevel: string;
+    region: string;
   }
 
   interface Expose {
-    /** 历史单据的 zone_ids 可能是数字 id，无名称映射，降级为随机 */
-    setInitZones(zoneNames: Array<number | string>): void;
+    /** 历史单据的值可能是园区数字 id，无名称映射，降级为随机 */
+    setInitZoneList(zoneNames: Array<number | string>): void;
   }
 
   const props = defineProps<Props>();
 
   const modelValue = defineModel<{
-    /** 可用区（接口无独立 id，提交体 sub_zone_ids 存可用区名称；历史单据为园区数字 id） */
-    sub_zone_ids: Array<number | string>;
+    /** 可用区（接口无独立 id，提交体 bk_cloud_zone_list 存可用区名称；历史单据为园区数字 id） */
+    bk_cloud_zone_list: Array<number | string>;
   }>({
     required: true,
   });
@@ -90,7 +90,7 @@
     ),
   );
   /** 未选具体可用区时视为随机 */
-  const isRandomSelected = computed(() => modelValue.value.sub_zone_ids.length === 0);
+  const isRandomSelected = computed(() => modelValue.value.bk_cloud_zone_list.length === 0);
 
   const formRules = [
     {
@@ -102,29 +102,29 @@
           if (isRandomSelected.value) {
             return true;
           }
-          return modelValue.value.sub_zone_ids.length >= 2 ? true : t('至少选择n个区', { n: 2 });
+          return modelValue.value.bk_cloud_zone_list.length >= 2 ? true : t('至少选择n个区', { n: 2 });
         }
         // 指定可用区：必选 1 个
-        return modelValue.value.sub_zone_ids.length === 1 ? true : t('园区不能为空');
+        return modelValue.value.bk_cloud_zone_list.length === 1 ? true : t('园区不能为空');
       },
     },
   ];
 
   watch(
-    () => [props.disasterToleranceLevel, props.cityCode],
+    () => [props.disasterToleranceLevel, props.region],
     () => {
       // 切换级别或地域：清空已选可用区并重置为随机
-      modelValue.value.sub_zone_ids = [];
+      modelValue.value.bk_cloud_zone_list = [];
     },
   );
 
   watch(
-    () => props.cityCode,
+    () => props.region,
     () => {
-      if (props.cityCode) {
+      if (props.region && props.region !== 'default') {
         // 清空上一地域的卡片数据，避免新请求返回前闪现旧数据
         zoneList.value = [];
-        run({ city_code: props.cityCode });
+        run({ region: props.region });
       }
     },
     { immediate: true },
@@ -132,27 +132,27 @@
 
   /** 选择随机：清空具体可用区 */
   const handleSelectRandom = () => {
-    modelValue.value.sub_zone_ids = [];
+    modelValue.value.bk_cloud_zone_list = [];
   };
 
   /** 选择具体可用区：跨可用区为多选，指定可用区为单选 */
   const handleSelectZone = (zoneName: string) => {
     if (isCrossSubzone.value) {
-      const zoneIndex = modelValue.value.sub_zone_ids.indexOf(zoneName);
+      const zoneIndex = modelValue.value.bk_cloud_zone_list.indexOf(zoneName);
       if (zoneIndex >= 0) {
-        modelValue.value.sub_zone_ids.splice(zoneIndex, 1);
+        modelValue.value.bk_cloud_zone_list.splice(zoneIndex, 1);
       } else {
-        modelValue.value.sub_zone_ids.push(zoneName);
+        modelValue.value.bk_cloud_zone_list.push(zoneName);
       }
     } else {
-      modelValue.value.sub_zone_ids = [zoneName];
+      modelValue.value.bk_cloud_zone_list = [zoneName];
     }
   };
 
   defineExpose<Expose>({
-    setInitZones(zoneNames: Array<number | string>) {
+    setInitZoneList(zoneNames: Array<number | string>) {
       const validNames = zoneNames.filter((zoneName): zoneName is string => typeof zoneName === 'string');
-      modelValue.value.sub_zone_ids = validNames;
+      modelValue.value.bk_cloud_zone_list = validNames;
     },
   });
 </script>

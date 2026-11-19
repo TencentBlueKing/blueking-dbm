@@ -29,7 +29,7 @@
     :title="t('地域')"
     width="120">
     <template #default="{ row }: { row: IRowData }">
-      {{ row.bk_cloud_region || '--' }}
+      {{ getRegionDisplay(row.bk_cloud_region) }}
     </template>
   </TableColumn>
   <TableColumn
@@ -128,7 +128,7 @@
   import { useI18n } from 'vue-i18n';
 
   import type { ClusterTypes } from '@common/const';
-  import { getCloudZoneName } from '@common/const';
+  import { getCloudZoneName, getRegionDisplay } from '@common/const';
 
   import HostAgentStatus from '@components/host-agent-status/Index.vue';
   import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';

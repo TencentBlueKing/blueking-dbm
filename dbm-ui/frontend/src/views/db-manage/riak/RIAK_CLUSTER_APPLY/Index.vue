@@ -107,20 +107,17 @@
                 ref="specRef"
                 v-model="formData.details.resource_spec.riak.spec_id"
                 :biz-id="formData.bk_biz_id"
-                :city="formData.details.city_code"
                 :cloud-id="formData.details.bk_cloud_id"
                 :cluster-type="ClusterTypes.RIAK"
                 machine-type="riak"
-                style="width: 435px"
-                :subzone-ids="formData.details.sub_zone_ids" />
+                :region="formData.details.bk_cloud_region"
+                style="width: 435px" />
             </BkFormItem>
             <ResourcePreview
               v-model:tag-list="formData.details.resource_spec.riak.labels"
               :biz-id="formData.bk_biz_id"
               :params="{
-                city: formData.details.city_name,
-                subzones: formData.details.sub_zone_names.join('，'),
-                bk_cloud_zone: formData.details.sub_zone_ids.join(',') || undefined,
+                bk_cloud_region: formData.details.bk_cloud_region,
                 for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
                 resource_types: [DBTypes.RIAK, 'PUBLIC'],
                 spec_id: Number(formData.details.resource_spec.riak.spec_id),
@@ -246,8 +243,7 @@
     bk_biz_id: '' as number | '',
     details: {
       bk_cloud_id: 0,
-      city_code: '',
-      city_name: '',
+      bk_cloud_region: '',
       cluster_alias: '',
       cluster_name: '',
       db_app_abbr: '',
@@ -266,8 +262,6 @@
           spec_id: '',
         },
       },
-      sub_zone_ids: [] as number[],
-      sub_zone_names: [] as string[],
       // http_port: 8087,
     },
     remark: '',
@@ -298,7 +292,7 @@
           : details.cluster_name;
       Object.assign(formData.details, {
         bk_cloud_id: details.bk_cloud_id,
-        city_code: details.city_code,
+        bk_cloud_region: details.bk_cloud_region || 'default',
         cluster_alias: details.cluster_alias,
         cluster_name: clusterName,
         db_module_id: details.db_module_id,
@@ -308,7 +302,6 @@
       });
 
       if (details.ip_source === 'resource_pool') {
-        const { riak } = details.resource_spec!;
         const resourceSpec = Object.entries(details.resource_spec!).reduce((prev, [specType, specInfo]) => {
           const labels = (specInfo.labels || []).map((labelItem, labelIndex) => ({
             id: Number(labelItem),
@@ -323,13 +316,8 @@
             },
           });
         }, {});
-        const subzoneIds = riak.location_spec?.sub_zone_ids || [];
         Object.assign(formData.details, {
           resource_spec: Object.assign(formData.details.resource_spec, resourceSpec),
-          sub_zone_ids: subzoneIds,
-        });
-        nextTick(() => {
-          regionRequirementsRef.value!.setInitSubzone(subzoneIds);
         });
       }
     },

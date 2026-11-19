@@ -56,7 +56,6 @@
 
   interface Props {
     bizId: number | string;
-    city?: string;
     clearable?: boolean;
     cloudId: number | string;
     clusterType: string;
@@ -64,9 +63,13 @@
     disasterToleranceLevel?: string;
     machineType: string;
     modelValue: number | string;
-    showRefresh?: boolean;
+    /** 地域标识 */
     // eslint-disable-next-line vue/require-default-prop
-    subzoneIds?: string[] | number[];
+    region?: string;
+    showRefresh?: boolean;
+    /** 可用区名列表（bk_cloud_zone_list 提交值）；改单回填存量单据时可能是园区数字 id */
+    // eslint-disable-next-line vue/require-default-prop
+    zoneList?: Array<string | number>;
   }
 
   type Emits = (e: 'update:modelValue', value: number | string) => void;
@@ -149,7 +152,7 @@
   };
 
   const fetchSpecResourceCount = _.debounce(() => {
-    const zoneNames = props.subzoneIds?.map((item) => `${item}`) ?? [];
+    const zoneNames = props.zoneList?.map((item) => `${item}`) ?? [];
     // 跨可用区（含强/弱）与指定可用区按可用区分组：选项外侧展示总数，popover 内按可用区展示各分得的主机数
     const isGroupByCloudZone = [
       Affinity.CROS_SUBZONE,
@@ -157,31 +160,33 @@
       Affinity.CROSS_SUBZONE_WEAK,
       Affinity.SAME_SUBZONE_CROSS_SWTICH,
     ].includes(props.disasterToleranceLevel as Affinity);
-    const params: Omit<ServiceParameters<typeof getSpecResourceCount>, 'group_by_cloud_zone'> = {
+    const params: ServiceParameters<typeof getSpecResourceCount> = {
       bk_biz_id: Number(props.bizId),
       bk_cloud_id: Number(props.cloudId),
       spec_ids: list.value.map((item) => item.spec_id),
     };
-    if (props.city) {
-      params.city = props.city;
+    if (props.region) {
+      params.bk_cloud_region = props.region;
     }
-    // sub_zone_ids 存可用区名称，后端自行做「可用区 → 园区」展开；跨可用区随机时为空（不限可用区）
+    // bk_cloud_zone 存可用区名称，后端自行做「可用区 → 园区」展开；跨可用区随机时为空（不限可用区）
     if (zoneNames.length) {
-      params.sub_zone_ids = zoneNames;
+      params.bk_cloud_zone = zoneNames;
     }
     if (isGroupByCloudZone) {
       getSpecResourceCount({ ...params, group_by_cloud_zone: true }).then((data) => {
-        applySpecCount(data.total, data.by_cloud_zone);
+        if ('total' in data) {
+          applySpecCount(data.total, data.by_cloud_zone);
+        }
       });
     } else {
       getSpecResourceCount(params).then((data) => {
-        applySpecCount(data, null);
+        applySpecCount('total' in data ? data.total : data, null);
       });
     }
   }, 100);
 
   watch(
-    () => [props.bizId, props.cloudId, props.city, props.subzoneIds, props.disasterToleranceLevel, data.value],
+    () => [props.bizId, props.cloudId, props.region, props.zoneList, props.disasterToleranceLevel, data.value],
     () => {
       if (
         typeof props.bizId === 'number' &&

@@ -223,9 +223,16 @@ export const useApplyBase = () => {
 
   function handleCreateTicket(formdata: any) {
     const params = { ...formdata };
-    delete params.sub_zone_ids;
-    delete params.sub_zone_names; // 字段已经废弃，可能历史的提单数据中会存在，暂时先保留
-    delete params.city_name;
+    const details = (params.details ?? {}) as Record<string, any>;
+    // 顶层 bk_cloud_region 由容灾组件写入 location_spec，此处统一提升到 details 顶层（随机为 default）
+    const firstLocationSpec = (Object.values(details.resource_spec ?? {})[0] as Record<string, any> | undefined)
+      ?.location_spec;
+    details.bk_cloud_region = firstLocationSpec?.bk_cloud_region || 'default';
+    // 城市口径字段已废弃（存量单据兼容由后端处理），提交体不再携带；
+    // bk_cloud_zone_list 是容灾组件的表单存储字段，只应出现在 location_spec 内，顶层剔除
+    delete details.city_code;
+    delete details.city_name;
+    delete details.bk_cloud_zone_list;
 
     if (modifyState.isModify) {
       handleModifyTicket(params.details, params.config, params.remark ?? '');
