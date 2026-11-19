@@ -424,42 +424,25 @@ func (s *SpiderClusterBackendMigrateCutoverComp) CutOver() (err error) {
 		logger.Error("get file lock failed %s", err.Error())
 		return err
 	}
-	defer func() {
-		if uerr := s.fdLock.Unlock(); uerr != nil {
-			logger.Error("unlock file lock failed %s", uerr.Error())
-			return
-		}
-	}()
-	// 切换前从中控查询路由快照，切换成功后做真实对比
-	svrNamesToTrack := make([]string, 0, len(s.cutOverPairs)*2)
-	for _, pair := range s.cutOverPairs {
-		svrNamesToTrack = append(svrNamesToTrack, pair.MasterSvr.ServerName)
-		if s.existRemoteSlave {
-			svrNamesToTrack = append(svrNamesToTrack, pair.SlaveSvr.ServerName)
-		}
-	}
-	beforeSnapshot, snapErr := s.selectServersByNames(svrNamesToTrack)
-	if snapErr != nil {
-		logger.Warn("切换前路由快照查询失败，切换完成后将无法输出对比信息: %v", snapErr)
-	}
 
 	var tdbctlNotFlushed bool
 	var flushRoutingFailed bool
 	// change the central control route
 	// release the lock until after performing the rollback routing
 	defer func() {
+		// 文件锁统一在此释放：内层 defer 保证回滚完成后、函数返回前执行，覆盖所有分支
+		defer func() {
+			if uerr := s.fdLock.Unlock(); uerr != nil {
+				logger.Error("unlock file lock failed %s", uerr.Error())
+			}
+		}()
 		if flushRoutingFailed {
 			logger.Error("[不可重试] FLUSH ROUTING 执行失败，部分节点内存路由状态不确定，" +
 				"自动回滚已跳过，请人工确认各节点路由状态后执行 TDBCTL CHECK ROUTING 并手动处理")
 			return
 		}
 		rollbackSqls := slices.Concat(s.primaryShardrollbackSqls, s.slaveShardrollbackSqls)
-		if err == nil {
-			if uerr := s.fdLock.Unlock(); uerr != nil {
-				logger.Error("switch success but unlock file lock failed %s", uerr.Error())
-				return
-			}
-		} else if err != nil && len(rollbackSqls) > 0 {
+		if err != nil && len(rollbackSqls) > 0 {
 			for _, sql := range rollbackSqls {
 				logger.Info("执行路由回滚SQL(WITH SYNC): %s", mysqlcomm.CleanSvrPassword(sql))
 			}
@@ -490,6 +473,19 @@ func (s *SpiderClusterBackendMigrateCutoverComp) CutOver() (err error) {
 			}
 		}
 	}()
+
+	// 切换前从中控查询路由快照，切换成功后做真实对比
+	svrNamesToTrack := make([]string, 0, len(s.cutOverPairs)*2)
+	for _, pair := range s.cutOverPairs {
+		svrNamesToTrack = append(svrNamesToTrack, pair.MasterSvr.ServerName)
+		if s.existRemoteSlave {
+			svrNamesToTrack = append(svrNamesToTrack, pair.SlaveSvr.ServerName)
+		}
+	}
+	beforeSnapshot, snapErr := s.selectServersByNames(svrNamesToTrack)
+	if snapErr != nil {
+		logger.Warn("切换前路由快照查询失败，切换完成后将无法输出对比信息: %v", snapErr)
+	}
 
 	tdbctlNotFlushed = true
 
@@ -557,7 +553,7 @@ func (s *SpiderClusterBackendMigrateCutoverComp) RecordBinlogPos() (err error) {
 		pos, err := destMasterConn.ShowMasterStatus()
 		if err != nil {
 			logger.Warn("%s show master status failed %s", hostPort, err.Error())
-			return nil
+			continue
 		}
 		logger.Info("%s,current pos is  binlog_file:%s,binlog_pos:%d,gtid_executed:%s", hostPort, pos.File,
 			pos.Position,
