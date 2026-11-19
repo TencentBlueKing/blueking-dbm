@@ -13,7 +13,7 @@ import logging
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
-from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_clusters
+from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_bizs, auth_parse_clusters
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.kafka.impl.kafka_metrics import (
@@ -21,6 +21,7 @@ from backend.dbm_aiagent.mcp_tools.kafka.impl.kafka_metrics import (
     query_kafka_detail_metrics,
     query_kafka_metrics,
 )
+from backend.dbm_aiagent.mcp_tools.kafka.impl.kafka_rightsize import RightsizeParams, kafka_cluster_rightsize
 from backend.dbm_aiagent.mcp_tools.kafka.serializers.kafka_metrics import (
     KafkaDetailMetricsInputSerializer,
     KafkaDetailMetricsOutputSerializer,
@@ -29,9 +30,13 @@ from backend.dbm_aiagent.mcp_tools.kafka.serializers.kafka_metrics import (
     KafkaPerformanceSummaryInputSerializer,
     KafkaPerformanceSummaryOutputSerializer,
 )
+from backend.dbm_aiagent.mcp_tools.kafka.serializers.kafka_rightsize import (
+    KafkaClusterRightsizeInputSerializer,
+    KafkaClusterRightsizeOutputSerializer,
+)
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import RejectPermission
-from backend.iam_app.handlers.drf_perm.mcp import McpClusterDetailPermission
+from backend.iam_app.handlers.drf_perm.mcp import McpBizManageOrDbaPermission, McpClusterDetailPermission
 
 logger = logging.getLogger("flow")
 
@@ -39,6 +44,7 @@ logger = logging.getLogger("flow")
 Kafka 监控指标查询相关的 MCP
 - 查询集群监控指标
 - 获取集群性能摘要
+- 评估集群下线/缩容空间
 """
 
 
@@ -154,5 +160,58 @@ class KafkaMetricsMcpToolsViewSet(McpToolsViewSet):
             top_n=top_n,
             start_time=start_time,
             end_time=end_time,
+        )
+        return Response(result)
+
+    @mcp_tools_api_decorator(
+        description=str(
+            _(
+                "评估Kafka集群的下线/缩容空间，一次调用覆盖多个集群。"
+                "用途：1. 某个业务想知道名下集群有没有缩容/下架空间；2. DBA想知道某个城市能从现有集群里腾出多少机器资源。"
+                "参数说明：bk_biz_id 传了则只评估该业务（需要该业务的管理权限）；不传则评估所有业务的Kafka集群（仅DBA可用）；city 传城市名（如 上海）则只看该城市的集群；"
+                "days 为峰值统计窗口，默认30天。"
+                "判定规则（verdict）："
+                "decommission=窗口内生产流量严格为0，可整集群下线（consumer_active标记表示生产为0但仍有消费，下线前需确认）；"
+                "rightsize=非空且当前峰值CPU不超过门槛，按 max(磁盘需要的台数, 网络需要的台数, 最少台数) 反推出目标台数，"
+                "目标台数小于现有台数；"
+                "keep=不建议缩容，reasons 为 cpu_guard(当前峰值CPU超过门槛) 或 already_right_sized(已是合理规模)；"
+                "unclear=缺少判定所需的指标/规格/带宽数据，需要人工查看，reasons 说明缺什么。"
+                "磁盘按所有broker数据盘已用字节数之和计算（含日志以外的残留数据）；"
+                "网络按所有broker主机网卡 出+入 流量之和的峰值计算，已包含副本同步和多份消费；"
+                "单机带宽取自broker主机的带宽指标（与均衡自动调速同一来源），任一台broker取不到有效带宽时该集群为unclear。"
+                "决策指标（生产流量/CPU/网络/磁盘）必须每台broker都在上报，否则判unclear(metrics_incomplete)，不会用部分数据下结论。"
+                "不会推算缩容后的CPU利用率。"
+                "注意：给出的目标台数只是容量层面的建议，没有校验topic副本数，也没有校验分区迁移的可行性。"
+                "返回：summary 汇总可回收的broker数/CPU核数/内存/磁盘及按业务分布；"
+                "clusters 为集群明细，可下线/可缩容的排在前面，按可回收broker数降序，默认不返回keep的集群。"
+                "该工具只做评估，不会创建任何单据；缩容或下线前仍需与业务方确认并分批执行。"
+            )
+        ),
+        request_slz=KafkaClusterRightsizeInputSerializer,
+        response_slz=KafkaClusterRightsizeOutputSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.KAFKA_METRICS],
+        permission_classes=[McpBizManageOrDbaPermission],
+        mcp_auth_parser=auth_parse_bizs,
+        name_prefix="kafka_metrics",
+    )
+    def cluster_rightsize(self, request, *args, **kwargs):
+        validated_params = self.params_validate(self.get_serializer_class())
+        # 传了业务就只评估该业务（装饰器已校验业务管理权限）；没传则是 DBA 跨业务评估（装饰器已校验 DBA 身份）
+        bk_biz_id = validated_params.get("bk_biz_id")
+        bk_biz_ids = None if bk_biz_id in (None, "") else [bk_biz_id]
+        params = RightsizeParams(
+            disk_target_pct=validated_params["disk_target_percent"],
+            net_watermark_pct=validated_params["net_watermark_percent"],
+            cpu_guard_pct=validated_params["cpu_guard_percent"],
+            min_nodes=validated_params["min_nodes"],
+        )
+        result = kafka_cluster_rightsize(
+            bk_biz_ids=bk_biz_ids,
+            city=validated_params.get("city") or None,
+            days=validated_params["days"],
+            params=params,
+            limit=validated_params["limit"],
+            include_keep=validated_params["include_keep"],
         )
         return Response(result)
