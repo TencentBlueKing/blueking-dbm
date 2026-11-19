@@ -85,11 +85,14 @@
   };
 
   const handleFlashbackTypeChange = (type: string) => {
-    if (type === 'ROLLBACK_FLASHBACK') {
+    if (type === 'BUILD_INTO_NEW_CLUSTER' || type === 'ROLLBACK_FLASHBACK') {
       switchSiblingRoute(
         () =>
           router.push({
-            name: TicketTypes.TENDBCLUSTER_ROLLBACK,
+            name:
+              type === 'BUILD_INTO_NEW_CLUSTER'
+                ? TicketTypes.TENDBCLUSTER_ROLLBACK_NEW_HOST
+                : TicketTypes.TENDBCLUSTER_ROLLBACK,
           }),
         rollbackFlashbackType,
       );
