@@ -17,26 +17,26 @@ import http from '../http';
 
 const path = '/apis/infras';
 
-interface CityItem {
-  city_code: string;
-  city_name: string;
+interface CloudRegionItem {
+  bk_cloud_region: string;
+  display_name: string;
   inventory: number;
   inventory_tag: string;
 }
 
 /**
- * 查询服务器资源的城市信息
+ * 查询全量云地域列表
  */
-export const getInfrasCities = () => http.get<CityItem[]>('/apis/infras/cities/');
+export const getInfrasCloudRegions = () => http.get<CloudRegionItem[]>(`${path}/cities/list_cloud_regions/`);
 
 /**
- * 查询服务器资源的常用和非常用城市信息
+ * 查询常用和非常用云地域列表
  */
-export const getCommonCities = () =>
+export const getInfrasCommonCloudRegions = () =>
   http.get<{
-    common: CityItem[];
-    internal: CityItem[];
-  }>('/apis/infras/cities/list_common_cities/');
+    common: CloudRegionItem[];
+    uncommon: CloudRegionItem[];
+  }>(`${path}/cities/list_common_cloud_regions/`);
 
 /**
  * 查询服务器资源的城市信息
@@ -50,6 +50,30 @@ export function listLogicCities() {
       logical_city_name: string;
     }[]
   >(`${path}/cities/list_logic_cities/`);
+}
+
+interface CityItem {
+  city_code: string;
+  city_name: string;
+  inventory: number;
+  inventory_tag: string;
+}
+
+/**
+ * 查询全量城市信息（城市口径：与地域接口并存，主机维度仍按城市归属）
+ */
+export function getInfrasCities() {
+  return http.get<CityItem[]>(`${path}/cities/`);
+}
+
+/**
+ * 查询常用城市信息（常用 + 非常用分组）
+ */
+export function getCommonCities() {
+  return http.get<{
+    common: CityItem[];
+    internal: CityItem[];
+  }>(`${path}/cities/list_common_cities/`);
 }
 
 /**

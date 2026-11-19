@@ -71,6 +71,11 @@
         return;
       }
 
+      // 已保存筛选迁移：city 键是旧「城市」口径（中文城市名），地域切 bk_cloud_region 后无映射关系，直接废弃
+      if (fieldName === 'city') {
+        return;
+      }
+
       if (value === '') {
         delete searchParams.value[fieldName];
         return;

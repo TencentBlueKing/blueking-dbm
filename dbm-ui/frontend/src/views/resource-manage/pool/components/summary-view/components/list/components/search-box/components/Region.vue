@@ -1,20 +1,20 @@
 <template>
   <BkComposeFormItem class="search-box-select-region">
     <DbSelect
-      v-model="cityCode"
+      v-model="region"
       clearable
       style="width: 100px"
-      @change="handleChangeCity">
+      @change="handleChangeRegion">
       <DbOption
-        v-for="item in citiyList"
-        :key="item.city_code"
-        :label="item.city_name"
-        :value="item.city_code" />
+        v-for="item in regionList"
+        :key="item.value"
+        :label="item.label"
+        :value="item.value" />
     </DbSelect>
     <DbSelect
       v-model="subzoneIds"
       collapse-tags
-      :disabled="!cityCode"
+      :disabled="!region"
       filterable
       multiple
       multiple-mode="tag"
@@ -32,11 +32,9 @@
 <script setup lang="ts">
   import { useRequest } from 'vue-request';
 
-  import { getCommonCities, getInfrasSubzonesByCity } from '@services/source/infras';
+  import { getInfrasCloudRegions, getInfrasSubzonesByCity } from '@services/source/infras';
 
   import { specialOptionLabelMap, SpecialOptions } from '@common/const';
-
-  type CityItem = ServiceReturnType<typeof getCommonCities>['common'][number];
 
   interface Props {
     model: Record<string, string>;
@@ -54,8 +52,7 @@
 
   const emits = defineEmits<Emits>();
 
-  const citiyList = ref<CityItem[]>([]);
-  const cityCode = ref('');
+  const region = ref('');
   const subzoneIds = ref<string[]>([]);
 
   const renderSubzoneList = computed(() => {
@@ -64,12 +61,12 @@
       value: SpecialOptions.EMPTY,
     };
 
-    if (cityCode.value === SpecialOptions.EMPTY) {
+    if (region.value === SpecialOptions.EMPTY) {
       return [emptyItem];
     }
 
     return (subzoneList.value || [])
-      .filter((item) => item.bk_city_code === cityCode.value)
+      .filter((item) => item.bk_cloud_region === region.value)
       .map((item) => ({
         label: item.bk_sub_zone,
         value: `${item.bk_sub_zone_id}`,
@@ -77,16 +74,19 @@
       .concat(emptyItem);
   });
 
-  useRequest(getCommonCities, {
+  const regionList = ref<{ label: string; value: string }[]>([]);
+
+  // 地域候选：全量地域 + 筛空值项
+  useRequest(getInfrasCloudRegions, {
     onSuccess(data) {
-      citiyList.value = data.common
-        .concat(data.internal)
-        .filter((item) => item.city_code !== 'default')
+      regionList.value = data
+        .map((item) => ({
+          label: item.display_name,
+          value: item.bk_cloud_region,
+        }))
         .concat({
-          city_code: SpecialOptions.EMPTY,
-          city_name: specialOptionLabelMap[SpecialOptions.EMPTY],
-          inventory: 0,
-          inventory_tag: '',
+          label: specialOptionLabelMap[SpecialOptions.EMPTY],
+          value: SpecialOptions.EMPTY,
         });
     },
   });
@@ -96,7 +96,7 @@
     () => props.model,
     () => {
       if (props.model.city) {
-        cityCode.value = props.model.city;
+        region.value = props.model.city;
       }
       if (props.model.subzone_ids) {
         subzoneIds.value = props.model.subzone_ids.split(',');
@@ -108,11 +108,11 @@
   );
 
   const getLocalValue = () => ({
-    city: cityCode.value,
+    city: region.value,
     subzone_ids: subzoneIds.value.join(','),
   });
 
-  const handleChangeCity = () => {
+  const handleChangeRegion = () => {
     subzoneIds.value = [];
     emits('change', getLocalValue());
   };

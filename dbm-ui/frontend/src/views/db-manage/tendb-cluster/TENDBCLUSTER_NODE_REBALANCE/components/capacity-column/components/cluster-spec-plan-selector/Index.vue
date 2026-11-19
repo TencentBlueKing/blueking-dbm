@@ -346,11 +346,11 @@
     },
   });
 
-  // 可用主机数
+  // 可用主机数（扁平结构，不带分组）
   const { loading: isCountLoading, run: fetchSpecCount } = useRequest(getSpecResourceCount, {
     manual: true,
     onSuccess(data) {
-      specCountMap.value = data;
+      specCountMap.value = 'total' in data ? data.total : data;
     },
   });
 

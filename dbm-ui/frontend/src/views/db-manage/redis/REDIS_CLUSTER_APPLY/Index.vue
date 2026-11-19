@@ -124,7 +124,7 @@
               v-model="formData.details.ip_source"
               :disabled="modifyState.isAdjustApply"
               class="item-input"
-              @change="fetchCapSpecs(formData.details.city_code)">
+              @change="fetchCapSpecs(formData.details.bk_cloud_region)">
               <BkRadioButton
                 :key="redisIpSources.resource_pool.id"
                 :label="redisIpSources.resource_pool.id">
@@ -289,20 +289,20 @@
                       ref="specProxyRef"
                       v-model="formData.details.resource_spec.proxy.spec_id"
                       :biz-id="formData.bk_biz_id"
-                      :city="formData.details.city_code"
                       :cloud-id="formData.details.bk_cloud_id"
                       :cluster-type="DBTypes.REDIS"
                       :disaster-tolerance-level="formData.details.disaster_tolerance_level"
                       machine-type="proxy"
+                      :region="formData.details.bk_cloud_region"
                       style="width: 314px"
-                      :subzone-ids="formData.details.sub_zone_ids" />
+                      :zone-list="formData.details.bk_cloud_zone_list" />
                   </BkFormItem>
                   <ResourcePreview
                     v-model:tag-list="formData.details.resource_spec.proxy.labels"
                     :biz-id="formData.bk_biz_id"
                     :params="{
-                      city: formData.details.city_name,
-                      bk_cloud_zone: formData.details.sub_zone_ids.join(',') || undefined,
+                      bk_cloud_region: formData.details.bk_cloud_region,
+                      bk_cloud_zone: formData.details.bk_cloud_zone_list.join(',') || undefined,
                       for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
                       resource_types: [DBTypes.REDIS, 'PUBLIC'],
                       spec_id: Number(formData.details.resource_spec.proxy.spec_id),
@@ -345,13 +345,12 @@
                   v-model="formData.details.resource_spec.backend_group"
                   v-model:apply-schema="applySchema"
                   :biz-id="formData.bk_biz_id"
-                  :city-code="formData.details.city_code"
-                  :city-name="formData.details.city_name"
                   :cloud-id="formData.details.bk_cloud_id"
                   :cluster-type="typeInfos.cluster_type"
                   :disaster-tolerance-level="formData.details.disaster_tolerance_level"
                   :machine-type="backendMachineType"
-                  :subzone-ids="formData.details.sub_zone_ids" />
+                  :region="formData.details.bk_cloud_region"
+                  :zone-list="formData.details.bk_cloud_zone_list" />
               </BkFormItem>
             </div>
           </Transition>
@@ -499,7 +498,7 @@
         apply_clb: details.apply_clb,
         apply_polaris: details.apply_polaris,
         bk_cloud_id: details.bk_cloud_id,
-        city_code: details.city_code,
+        bk_cloud_region: details.bk_cloud_region || 'default',
         cluster_alias: details.cluster_alias,
         cluster_name: details.cluster_name,
         cluster_type: details.cluster_type,
@@ -537,15 +536,15 @@
             spec_id: proxy.spec_id,
           },
         };
-        const subzoneIds = details.resource_spec!.backend_group.location_spec.sub_zone_ids || [];
+        const subzoneIds = details.resource_spec!.backend_group.location_spec.bk_cloud_zone_list || [];
         Object.assign(formData.details, {
+          bk_cloud_zone_list: subzoneIds,
           resource_spec: resourceSpec,
-          sub_zone_ids: subzoneIds,
         });
         // 集群容量需求不保存，后端存储无法按自动推荐方案还原，统一按自定义方案还原；缺少方案明细时单机分片数留空待填
         specBackendRef.value?.setInitCustom((backendGroup.spec_info?.cluster_shard_num ?? 0) / backendGroup.count);
         nextTick(() => {
-          regionRequirementsRef.value!.setInitSubzone(subzoneIds);
+          regionRequirementsRef.value!.setInitZoneList(subzoneIds);
         });
       }
     },
@@ -572,9 +571,9 @@
       apply_clb: false,
       apply_polaris: false,
       bk_cloud_id: 0,
+      bk_cloud_region: '',
+      bk_cloud_zone_list: [] as string[],
       cap_key: '',
-      city_code: '',
-      city_name: '',
       cluster_alias: '',
       cluster_name: '',
       cluster_type: renderRedisClusterTypes.value[0].id,
@@ -600,8 +599,8 @@
             value: string;
           }[],
           location_spec: {
-            city: '',
-            sub_zone_ids: [] as string[],
+            bk_cloud_region: '',
+            bk_cloud_zone_list: [] as string[],
           },
           spec_id: '' as number | '',
         },
@@ -614,7 +613,6 @@
           spec_id: '' as number | '',
         },
       },
-      sub_zone_ids: [] as string[],
     },
     remark: '',
     ticket_type: TicketTypes.REDIS_CLUSTER_APPLY,
@@ -936,7 +934,7 @@
    */
   const handleMasterIpChange = (data: HostInfo[]) => {
     formData.details.nodes.master = [...data];
-    fetchCapSpecs(formData.details.city_code);
+    fetchCapSpecs(formData.details.bk_cloud_region);
     masterRef.value?.validate?.();
     slaveRef.value?.validate?.();
     capSpecsKey.value = generateId('CLUSTER_APPLAY_CAP_');
@@ -947,7 +945,7 @@
    */
   const handleSlaveIpChange = (data: HostInfo[]) => {
     formData.details.nodes.slave = [...data];
-    fetchCapSpecs(formData.details.city_code);
+    fetchCapSpecs(formData.details.bk_cloud_region);
     masterRef.value?.validate?.();
     slaveRef.value?.validate?.();
     capSpecsKey.value = generateId('CLUSTER_APPLAY_CAP_');

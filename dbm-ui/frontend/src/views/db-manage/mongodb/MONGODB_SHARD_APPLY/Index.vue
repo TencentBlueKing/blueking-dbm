@@ -84,19 +84,19 @@
                   ref="mongoCofigSpecRef"
                   v-model="formData.details.resource_spec.mongo_config.spec_id"
                   :biz-id="formData.bk_biz_id"
-                  :city="formData.details.city_code"
                   :cloud-id="formData.details.bk_cloud_id"
                   :cluster-type="DBTypes.MONGODB"
                   :disaster-tolerance-level="formData.details.disaster_tolerance_level"
                   :machine-type="MachineTypes.MONGO_CONFIG"
-                  :subzone-ids="formData.details.sub_zone_ids" />
+                  :region="formData.details.bk_cloud_region"
+                  :zone-list="formData.details.bk_cloud_zone_list" />
               </BkFormItem>
               <ResourcePreview
                 v-model:tag-list="formData.details.resource_spec.mongo_config.labels"
                 :biz-id="formData.bk_biz_id"
                 :params="{
-                  city: formData.details.city_name,
-                  bk_cloud_zone: formData.details.sub_zone_ids.join(',') || undefined,
+                  bk_cloud_region: formData.details.bk_cloud_region,
+                  bk_cloud_zone: formData.details.bk_cloud_zone_list.join(',') || undefined,
                   for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
                   resource_types: [DBTypes.MONGODB, 'PUBLIC'],
                   spec_id: Number(formData.details.resource_spec.mongo_config.spec_id),
@@ -127,19 +127,19 @@
                   ref="mongosSpecRef"
                   v-model="formData.details.resource_spec.mongos.spec_id"
                   :biz-id="formData.bk_biz_id"
-                  :city="formData.details.city_code"
                   :cloud-id="formData.details.bk_cloud_id"
                   :cluster-type="DBTypes.MONGODB"
                   :disaster-tolerance-level="formData.details.disaster_tolerance_level"
                   :machine-type="MachineTypes.MONGOS"
-                  :subzone-ids="formData.details.sub_zone_ids" />
+                  :region="formData.details.bk_cloud_region"
+                  :zone-list="formData.details.bk_cloud_zone_list" />
               </BkFormItem>
               <ResourcePreview
                 v-model:tag-list="formData.details.resource_spec.mongos.labels"
                 :biz-id="formData.bk_biz_id"
                 :params="{
-                  city: formData.details.city_name,
-                  bk_cloud_zone: formData.details.sub_zone_ids.join(',') || undefined,
+                  bk_cloud_region: formData.details.bk_cloud_region,
+                  bk_cloud_zone: formData.details.bk_cloud_zone_list.join(',') || undefined,
                   for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
                   resource_types: [DBTypes.MONGODB, 'PUBLIC'],
                   spec_id: Number(formData.details.resource_spec.mongos.spec_id),
@@ -167,10 +167,9 @@
               v-model:apply-schema="applySchema"
               v-model:spec-data="mongoConfigSpecData"
               :params="{
-                city_name: formData.details.city_name,
-                city_code: formData.details.city_code,
+                region: formData.details.bk_cloud_region,
                 bk_biz_id: formData.bk_biz_id,
-                sub_zone_ids: formData.details.sub_zone_ids,
+                zone_list: formData.details.bk_cloud_zone_list,
                 disaster_tolerance_level: formData.details.disaster_tolerance_level,
                 bk_cloud_id: formData.details.bk_cloud_id,
               }" />
@@ -284,8 +283,8 @@
     },
     details: {
       bk_cloud_id: 0,
-      city_code: '',
-      city_name: '',
+      bk_cloud_region: '',
+      bk_cloud_zone_list: [] as string[],
       cluster_alias: '',
       cluster_name: '',
       cluster_type: ClusterTypes.MONGO_SHARED_CLUSTER,
@@ -326,7 +325,6 @@
         },
       },
       start_port: 27021,
-      sub_zone_ids: [] as string[],
     },
     remark: '',
     ticket_type: TicketTypes.MONGODB_SHARD_APPLY,
@@ -357,7 +355,7 @@
       });
       Object.assign(formData.details, {
         bk_cloud_id: details.bk_cloud_id,
-        city_code: details.city_code,
+        bk_cloud_region: details.bk_cloud_region || 'default',
         cluster_alias: details.cluster_alias,
         cluster_name: details.cluster_name,
         cluster_type: details.cluster_type,
@@ -386,10 +384,10 @@
             },
           });
         }, {});
-        const subzoneIds = details.resource_spec!.mongo_config.location_spec?.sub_zone_ids || [];
+        const subzoneIds = details.resource_spec!.mongo_config.location_spec?.bk_cloud_zone_list || [];
         Object.assign(formData.details, {
+          bk_cloud_zone_list: subzoneIds,
           resource_spec: resourceSpec,
-          sub_zone_ids: subzoneIds,
         });
         // ShardSvr 的机器组数、集群 Shard 数存在 details 顶层；每个 Shard 节点数未单独保存，按总机器数 / 机器组数反推（后端校验整除）
         // details 类型未声明 capacity，后端按提交原样保存 resource_spec，带用户填写的集群容量需求
@@ -409,7 +407,7 @@
         // 提交时 ShardSvr 的规格详情取自 specData，原本只在选择部署方案时写入
         mongoConfigSpecData.value = mongodbSpec;
         nextTick(() => {
-          regionRequirementsRef.value!.setInitSubzone(subzoneIds);
+          regionRequirementsRef.value!.setInitZoneList(subzoneIds);
         });
       }
     },

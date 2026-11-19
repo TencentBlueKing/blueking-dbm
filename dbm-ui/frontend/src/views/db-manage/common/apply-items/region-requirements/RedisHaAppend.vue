@@ -33,9 +33,8 @@
     getValue: () => {
       affinity: string;
       location_spec: {
-        city: string;
-        include_or_exclue?: boolean;
-        sub_zone_ids?: number[];
+        /** 地域标识；随机时 default */
+        bk_cloud_region: string;
       };
     };
   }
@@ -44,8 +43,8 @@
 
   const modelValue = defineModel<{
     bk_cloud_id: number;
-    city_code: string;
-    city_name?: string;
+    /** 地域标识，随机为 default */
+    bk_cloud_region: string;
     disaster_tolerance_level: string;
   }>({
     required: true,
@@ -59,11 +58,11 @@
 
   defineExpose<Expose>({
     getValue() {
-      const { city_code: city, disaster_tolerance_level: affinity } = modelValue.value;
+      const { bk_cloud_region: region, disaster_tolerance_level: affinity } = modelValue.value;
       return {
         affinity,
         location_spec: {
-          city,
+          bk_cloud_region: region || 'default',
         },
       };
     },

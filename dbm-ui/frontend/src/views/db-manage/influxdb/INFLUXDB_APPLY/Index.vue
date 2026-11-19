@@ -99,20 +99,17 @@
                   ref="specRef"
                   v-model="formData.details.resource_spec.influxdb.spec_id"
                   :biz-id="formData.bk_biz_id"
-                  :city="formData.details.city_code"
                   :cloud-id="formData.details.bk_cloud_id"
                   cluster-type="influxdb"
                   machine-type="influxdb"
-                  style="width: 314px"
-                  :subzone-ids="formData.details.sub_zone_ids" />
+                  :region="formData.details.bk_cloud_region"
+                  style="width: 314px" />
               </BkFormItem>
               <ResourcePreview
                 v-model:tag-list="formData.details.resource_spec.influxdb.labels"
                 :biz-id="formData.bk_biz_id"
                 :params="{
-                  city: formData.details.city_name,
-                  subzones: formData.details.sub_zone_names.join('，'),
-                  bk_cloud_zone: formData.details.sub_zone_ids.join(',') || undefined,
+                  bk_cloud_region: formData.details.bk_cloud_region,
                   for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
                   resource_types: [DBTypes.INFLUXDB, 'PUBLIC'],
                   spec_id: Number(formData.details.resource_spec.influxdb.spec_id),
@@ -219,8 +216,7 @@
     bk_biz_id: '' as number | '',
     details: {
       bk_cloud_id: 0,
-      city_code: '',
-      city_name: '',
+      bk_cloud_region: '',
       db_app_abbr: '',
       db_version: '',
       disaster_tolerance_level: Affinity.MAX_EACH_ZONE_EQUAL, // 同 affinity
@@ -240,8 +236,6 @@
           spec_id: '',
         },
       },
-      sub_zone_ids: [] as number[],
-      sub_zone_names: [] as string[],
     },
     remark: '',
     ticket_type: TicketTypes.INFLUXDB_APPLY,
@@ -265,7 +259,7 @@
       });
       Object.assign(formData.details, {
         bk_cloud_id: details.bk_cloud_id,
-        city_code: details.city_code,
+        bk_cloud_region: details.bk_cloud_region || 'default',
         db_version: details.db_version,
         disaster_tolerance_level: details.disaster_tolerance_level,
         group_id: details.group_id,
@@ -291,11 +285,6 @@
           });
         }, {});
         Object.assign(formData.details.resource_spec, resourceSpec);
-        const subzoneIds = details.resource_spec!.influxdb.location_spec.sub_zone_ids || [];
-        formData.details.sub_zone_ids = subzoneIds;
-        nextTick(() => {
-          regionRequirementsRef.value!.setInitSubzone(subzoneIds);
-        });
       }
     },
   });

@@ -22,8 +22,8 @@
       v-if="showZoneItem"
       ref="zonesRef"
       v-model="modelValue"
-      :city-code="modelValue.city_code"
-      :disaster-tolerance-level="modelValue.disaster_tolerance_level" />
+      :disaster-tolerance-level="modelValue.disaster_tolerance_level"
+      :region="modelValue.bk_cloud_region" />
   </DbCard>
 </template>
 
@@ -45,25 +45,25 @@
     getValue: () => {
       affinity: string;
       location_spec: {
-        city: string;
-        include_or_exclue?: boolean;
-        /** 可用区级别时存可用区名称；指定园区兼容链路存园区 id；随机时为空数组 */
-        sub_zone_ids: Array<number | string>;
+        /** 地域标识；随机时 default */
+        bk_cloud_region: string;
+        /** 可用区名列表，随机（跨可用区随机 / 跨机架 / 无）时为空数组 */
+        bk_cloud_zone_list: string[];
       };
     };
-    /** 历史单据 sub_zone_ids 可能是园区数字 id，zones 组件内部降级为随机 */
-    setInitSubzone: (zoneIds: Array<number | string>) => void;
+    /** 历史单据的值可能是园区数字 id，zones 组件内部降级为随机 */
+    setInitZoneList: (zoneIds: Array<number | string>) => void;
   }
 
   const emits = defineEmits<Emits>();
 
   const modelValue = defineModel<{
     bk_cloud_id: number;
-    city_code: string;
-    city_name?: string;
+    /** 地域标识，随机为 default */
+    bk_cloud_region: string;
+    /** 可用区名称；历史单据为园区数字 id */
+    bk_cloud_zone_list: Array<number | string>;
     disaster_tolerance_level: string;
-    /** 可用区级别存可用区名称；指定园区兼容链路存园区 id */
-    sub_zone_ids: Array<number | string>;
   }>({
     required: true,
   });
@@ -72,19 +72,20 @@
 
   const zonesRef = useTemplateRef('zonesRef');
 
-  // 跨可用区（强/弱等同纯跨可用区）与「指定可用区」需要选择可用区，跨机架、无只填到地域
+  // 跨可用区（强/弱等同纯跨可用区）与「指定可用区」需要选择可用区，跨机架、无只填到地域；地域随机时也不填
   const showZoneItem = computed(
     () =>
       [Affinity.CROSS_SUBZONE_STRONG, Affinity.CROSS_SUBZONE_WEAK, Affinity.SAME_SUBZONE_CROSS_SWTICH].includes(
         modelValue.value.disaster_tolerance_level as Affinity,
-      ) && modelValue.value.city_code,
+      ) &&
+      Boolean(modelValue.value.bk_cloud_region) &&
+      modelValue.value.bk_cloud_region !== 'default',
   );
 
-  // 容灾级别 / 地域变化导致可用区隐藏时，zones 组件已卸载、内部清空 watch 不再执行，这里兜底重置，
-  // 避免残留的可用区值被 getValue 的「指定园区兼容链路」误提交
+  // 容灾级别 / 地域变化导致可用区隐藏时，zones 组件已卸载、内部清空 watch 不再执行，这里兜底重置
   watch(showZoneItem, (visible) => {
     if (!visible) {
-      modelValue.value.sub_zone_ids = [];
+      modelValue.value.bk_cloud_zone_list = [];
     }
   });
 
@@ -94,20 +95,29 @@
 
   defineExpose<Expose>({
     getValue() {
-      const { city_code: city, disaster_tolerance_level: affinity, sub_zone_ids: subZoneIds } = modelValue.value;
-      // sub_zone_ids 必传：随机 / 未选时为空数组；值为可用区名称（指定园区兼容链路为园区 id）
+      const {
+        bk_cloud_region: region,
+        bk_cloud_zone_list: subZoneIds,
+        disaster_tolerance_level: affinity,
+      } = modelValue.value;
+      // bk_cloud_zone_list 必传：未选 / 随机时为空数组；值为可用区名称
+      const locationSpec: {
+        bk_cloud_region: string;
+        bk_cloud_zone_list: string[];
+      } = {
+        bk_cloud_region: region || 'default',
+        bk_cloud_zone_list:
+          subZoneIds.length > 0 && subZoneIds.every((item) => typeof item === 'string') ? (subZoneIds as string[]) : [],
+      };
       return {
         affinity,
-        location_spec: {
-          city,
-          sub_zone_ids: subZoneIds,
-        },
+        location_spec: locationSpec,
       };
     },
     // 历史单据的园区数字 id 会在 zones 组件内降级为随机
-    setInitSubzone(zoneIds: Array<number | string>) {
-      modelValue.value.sub_zone_ids = zoneIds;
-      zonesRef.value?.setInitZones(zoneIds);
+    setInitZoneList(zoneIds: Array<number | string>) {
+      modelValue.value.bk_cloud_zone_list = zoneIds;
+      zonesRef.value?.setInitZoneList(zoneIds);
     },
   });
 </script>

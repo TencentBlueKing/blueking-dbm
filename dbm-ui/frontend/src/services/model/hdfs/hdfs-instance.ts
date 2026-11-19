@@ -32,6 +32,7 @@ export default class HdfsInstance extends InstanceBase {
 
   bk_cloud_id: number;
   bk_cloud_name: string;
+  bk_cloud_region: string;
   /** 可用区（后端字段 bk_cloud_zone） */
   bk_cloud_zone: string;
   bk_host_id: number;
@@ -68,6 +69,7 @@ export default class HdfsInstance extends InstanceBase {
 
   constructor(payload = {} as HdfsInstance) {
     super(payload);
+    this.bk_cloud_region = payload.bk_cloud_region || '';
     this.bk_cloud_zone = payload.bk_cloud_zone;
     this.bk_cloud_id = payload.bk_cloud_id;
     this.bk_cloud_name = payload.bk_cloud_name;

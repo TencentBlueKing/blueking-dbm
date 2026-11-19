@@ -1,7 +1,7 @@
 import { useI18n } from 'vue-i18n';
 
 import { fetchResourceHostDeviceClass, getResourceOsName } from '@services/source/dbresourceResource';
-import { getCommonCities, getInfrasCloudZones } from '@services/source/infras';
+import { getCommonCities, getInfrasCloudRegions, getInfrasCloudZones } from '@services/source/infras';
 
 import { getCloudZoneName } from '@common/const';
 
@@ -11,6 +11,21 @@ export default () => {
   const { t } = useI18n();
 
   return {
+    bk_cloud_region: {
+      component: markRaw(MultipleSelect),
+      name: t('地域'),
+      props: {
+        remoteMethod: () => {
+          return getInfrasCloudRegions().then((data) =>
+            data.map((item) => ({
+              label: item.display_name,
+              value: item.bk_cloud_region,
+            })),
+          );
+        },
+      },
+      showConfirmAndReset: true,
+    },
     bk_cloud_zone: {
       component: markRaw(MultipleSelect),
       name: t('可用区'),

@@ -203,19 +203,16 @@
                     ref="specNamenodeRef"
                     v-model="formData.details.resource_spec.namenode.spec_id"
                     :biz-id="formData.bk_biz_id"
-                    :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="hdfs"
                     machine-type="hdfs_master"
-                    :subzone-ids="formData.details.sub_zone_ids" />
+                    :region="formData.details.bk_cloud_region" />
                 </BkFormItem>
                 <ResourcePreview
                   v-model:tag-list="formData.details.resource_spec.namenode.labels"
                   :biz-id="formData.bk_biz_id"
                   :params="{
-                    city: formData.details.city_name,
-                    subzones: formData.details.sub_zone_names.join('，'),
-                    bk_cloud_zone: formData.details.sub_zone_ids.join(',') || undefined,
+                    bk_cloud_region: formData.details.bk_cloud_region,
                     for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
                     resource_types: [DBTypes.HDFS, 'PUBLIC'],
                     spec_id: Number(formData.details.resource_spec.namenode.spec_id),
@@ -246,19 +243,16 @@
                     ref="specZookeeperRef"
                     v-model="formData.details.resource_spec.zookeeper.spec_id"
                     :biz-id="formData.bk_biz_id"
-                    :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="hdfs"
                     machine-type="hdfs_master"
-                    :subzone-ids="formData.details.sub_zone_ids" />
+                    :region="formData.details.bk_cloud_region" />
                 </BkFormItem>
                 <ResourcePreview
                   v-model:tag-list="formData.details.resource_spec.zookeeper.labels"
                   :biz-id="formData.bk_biz_id"
                   :params="{
-                    city: formData.details.city_name,
-                    subzones: formData.details.sub_zone_names.join('，'),
-                    bk_cloud_zone: formData.details.sub_zone_ids.join(',') || undefined,
+                    bk_cloud_region: formData.details.bk_cloud_region,
                     for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
                     resource_types: [DBTypes.HDFS, 'PUBLIC'],
                     spec_id: Number(formData.details.resource_spec.zookeeper.spec_id),
@@ -299,19 +293,16 @@
                     ref="specDatanodeRef"
                     v-model="formData.details.resource_spec.datanode.spec_id"
                     :biz-id="formData.bk_biz_id"
-                    :city="formData.details.city_code"
                     :cloud-id="formData.details.bk_cloud_id"
                     cluster-type="hdfs"
                     machine-type="hdfs_datanode"
-                    :subzone-ids="formData.details.sub_zone_ids" />
+                    :region="formData.details.bk_cloud_region" />
                 </BkFormItem>
                 <ResourcePreview
                   v-model:tag-list="formData.details.resource_spec.datanode.labels"
                   :biz-id="formData.bk_biz_id"
                   :params="{
-                    city: formData.details.city_name,
-                    subzones: formData.details.sub_zone_names.join('，'),
-                    bk_cloud_zone: formData.details.sub_zone_ids.join(',') || undefined,
+                    bk_cloud_region: formData.details.bk_cloud_region,
                     for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
                     resource_types: [DBTypes.HDFS, 'PUBLIC'],
                     spec_id: Number(formData.details.resource_spec.datanode.spec_id),
@@ -446,7 +437,7 @@
       });
       Object.assign(formData.details, {
         bk_cloud_id: details.bk_cloud_id,
-        city_code: details.city_code,
+        bk_cloud_region: details.bk_cloud_region || 'default',
         cluster_alias: details.cluster_alias,
         cluster_name: details.cluster_name,
         db_version: details.db_version,
@@ -469,17 +460,8 @@
             },
           });
         }, {});
-        const subzoneIds = details.resource_spec!.namenode.location_spec.sub_zone_ids || [];
-        // 后端会把容灾级别统一改写为尽量分散，而页面只在「无容灾要求」时提交园区；带园区的单据按无容灾回填，否则园区会丢
-        if (subzoneIds.length > 0) {
-          formData.details.disaster_tolerance_level = Affinity.NONE;
-        }
         Object.assign(formData.details, {
           resource_spec: Object.assign(formData.details.resource_spec, resourceSpec),
-          sub_zone_ids: subzoneIds,
-        });
-        nextTick(() => {
-          regionRequirementsRef.value!.setInitSubzone(subzoneIds);
         });
       }
     },
@@ -496,8 +478,7 @@
     },
     details: {
       bk_cloud_id: 0,
-      city_code: '',
-      city_name: '',
+      bk_cloud_region: '',
       cluster_alias: '',
       cluster_name: '',
       db_app_abbr: '',
@@ -540,8 +521,6 @@
         },
       },
       rpc_port: 9000,
-      sub_zone_ids: [] as number[],
-      sub_zone_names: [] as string[],
     },
     remark: '',
     ticket_type: TicketTypes.HDFS_APPLY,

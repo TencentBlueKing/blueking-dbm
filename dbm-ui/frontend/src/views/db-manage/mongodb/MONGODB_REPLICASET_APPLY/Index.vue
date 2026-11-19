@@ -122,13 +122,13 @@
               ref="specRef"
               v-model="formData.details.resource_spec.mongo_machine_set.spec_id"
               :biz-id="formData.bk_biz_id"
-              :city="formData.details.city_code"
               :cloud-id="formData.details.bk_cloud_id"
               :cluster-type="DBTypes.MONGODB"
               :disaster-tolerance-level="formData.details.disaster_tolerance_level"
               :machine-type="MachineTypes.MONGODB"
+              :region="formData.details.bk_cloud_region"
               style="width: 435px"
-              :subzone-ids="formData.details.sub_zone_ids" />
+              :zone-list="formData.details.bk_cloud_zone_list" />
             <span class="input-desc ml-32">
               {{ t('共需n台', [hostNumber]) }} ,
               <BkPopover
@@ -153,8 +153,8 @@
             v-model:tag-list="formData.details.resource_spec.mongo_machine_set.labels"
             :biz-id="formData.bk_biz_id"
             :params="{
-              city: formData.details.city_name,
-              bk_cloud_zone: formData.details.sub_zone_ids.join(',') || undefined,
+              bk_cloud_region: formData.details.bk_cloud_region,
+              bk_cloud_zone: formData.details.bk_cloud_zone_list.join(',') || undefined,
               for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
               resource_types: [DBTypes.MONGODB, 'PUBLIC'],
               spec_id: Number(formData.details.resource_spec.mongo_machine_set.spec_id),
@@ -264,8 +264,8 @@
     },
     details: {
       bk_cloud_id: 0,
-      city_code: '',
-      city_name: '',
+      bk_cloud_region: '',
+      bk_cloud_zone_list: [] as string[],
       cluster_type: ClusterTypes.MONGO_REPLICA_SET,
       db_app_abbr: '',
       db_version: '',
@@ -291,7 +291,6 @@
         },
       },
       start_port: 27001,
-      sub_zone_ids: [] as string[],
     },
     remark: '',
     ticket_type: TicketTypes.MONGODB_REPLICASET_APPLY,
@@ -322,7 +321,7 @@
       });
       Object.assign(formData.details, {
         bk_cloud_id: details.bk_cloud_id,
-        city_code: details.city_code,
+        bk_cloud_region: details.bk_cloud_region || 'default',
         cluster_type: details.cluster_type,
         db_version: details.db_version,
         disaster_tolerance_level: details.disaster_tolerance_level,
@@ -349,13 +348,13 @@
             spec_id: mongoMachineSet.spec_id,
           },
         };
-        const subzoneIds = mongoMachineSet.location_spec?.sub_zone_ids || [];
+        const subzoneIds = mongoMachineSet.location_spec?.bk_cloud_zone_list || [];
         Object.assign(formData.details, {
+          bk_cloud_zone_list: subzoneIds,
           resource_spec: resourceSpec,
-          sub_zone_ids: subzoneIds,
         });
         nextTick(() => {
-          regionRequirementsRef.value!.setInitSubzone(subzoneIds);
+          regionRequirementsRef.value!.setInitZoneList(subzoneIds);
         });
       }
     },

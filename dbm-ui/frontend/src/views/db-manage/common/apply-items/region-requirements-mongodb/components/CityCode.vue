@@ -16,20 +16,20 @@
     <BkFormItem
       class="city_code_item"
       :label="t('地域')"
-      property="details.city_code"
+      property="details.bk_cloud_region"
       required>
       <BkRadioGroup
-        v-model="modelValue.city_code"
+        v-model="modelValue.bk_cloud_region"
         class="region-group"
         :class="{ 'region-group-flex-direction': commonList?.length }"
         :disabled="isAdjustApply">
         <div class="region-group-item-box">
           <div
             v-for="info of commonList"
-            :key="info.city_code"
+            :key="info.bk_cloud_region"
             class="region-group-item">
-            <BkRadioButton :label="info.city_code">
-              {{ info.city_name }}
+            <BkRadioButton :label="info.bk_cloud_region">
+              {{ info.display_name }}
             </BkRadioButton>
           </div>
           <BkButton
@@ -52,11 +52,11 @@
           v-if="showInternalList"
           class="region-group-item-box">
           <div
-            v-for="info of internalList"
-            :key="info.city_code"
+            v-for="info of uncommonList"
+            :key="info.bk_cloud_region"
             class="region-group-item">
-            <BkRadioButton :label="info.city_code">
-              {{ info.city_name }}
+            <BkRadioButton :label="info.bk_cloud_region">
+              {{ info.display_name }}
             </BkRadioButton>
           </div>
         </div>
@@ -71,73 +71,62 @@
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { getCommonCities } from '@services/source/infras';
+  import { getInfrasCommonCloudRegions } from '@services/source/infras';
 
   import { useTicketModifyState } from '@hooks';
 
   import { Affinity } from '@common/const';
 
   const modelValue = defineModel<{
-    city_code: string;
-    city_name?: string;
+    bk_cloud_region: string;
     disaster_tolerance_level: string;
   }>({
     required: true,
   });
 
-  // 调整申请只能改规格与资源标签，容灾级别、地域、园区只读
+  // 调整申请只能改规格与资源标签，容灾级别、地域、可用区只读
   const isAdjustApply = Boolean(useTicketModifyState()?.isAdjustApply);
 
   const { t } = useI18n();
 
   const showInternalList = ref(false);
 
-  const commonList = shallowRef<NonNullable<UnwrapRef<typeof cityData>>['common']>();
-  const internalList = shallowRef<NonNullable<UnwrapRef<typeof cityData>>['internal']>();
+  const commonList = shallowRef<NonNullable<UnwrapRef<typeof regionData>>['common']>();
+  const uncommonList = shallowRef<NonNullable<UnwrapRef<typeof regionData>>['uncommon']>();
 
-  const allList = computed(() => {
-    if (cityData.value) {
-      const { common, internal } = cityData.value;
-      return common.concat(internal);
-    }
-    return [];
-  });
-
-  const { data: cityData, loading } = useRequest(getCommonCities);
-
-  watch([cityData, () => modelValue.value.disaster_tolerance_level], () => {
-    if (cityData.value) {
-      const showCityDefault = [Affinity.CROSS_RACK, Affinity.MAX_EACH_ZONE_EQUAL, Affinity.NONE].includes(
-        modelValue.value.disaster_tolerance_level as Affinity,
-      );
-      if (showCityDefault) {
-        commonList.value = cityData.value.common;
-        internalList.value = cityData.value.internal;
-      } else {
-        commonList.value = cityData.value.common.filter((cityItem) => cityItem.city_code !== 'default');
-        internalList.value = cityData.value.internal.filter((cityItem) => cityItem.city_code !== 'default');
-        if (modelValue.value.city_code === 'default') {
-          modelValue.value.city_code = '';
-        }
-      }
-
-      showInternalList.value = commonList.value.length === 0;
-    }
-  });
+  const { data: regionData, loading } = useRequest(getInfrasCommonCloudRegions);
 
   watch(
-    () => modelValue.value.city_code,
+    [regionData, () => modelValue.value.disaster_tolerance_level],
     () => {
-      modelValue.value.city_name = allList.value.find(
-        (cityItem) => cityItem.city_code === modelValue.value.city_code,
-      )?.city_name;
+      if (regionData.value) {
+        const { common, uncommon } = regionData.value;
+        // 随机（default）只在跨机架 / 尽量分散 / 无容灾级别下可选
+        const showRandomRegion = [Affinity.CROSS_RACK, Affinity.MAX_EACH_ZONE_EQUAL, Affinity.NONE].includes(
+          modelValue.value.disaster_tolerance_level as Affinity,
+        );
+        const randomItem = { bk_cloud_region: 'default', display_name: t('随机'), inventory: 0, inventory_tag: '' };
+        if (showRandomRegion) {
+          commonList.value = [randomItem, ...common];
+          uncommonList.value = uncommon;
+        } else {
+          commonList.value = common;
+          uncommonList.value = uncommon;
+          if (modelValue.value.bk_cloud_region === 'default') {
+            modelValue.value.bk_cloud_region = '';
+          }
+        }
+
+        showInternalList.value = commonList.value?.length === 0;
+      }
     },
+    { immediate: true },
   );
 
   const handleShowInternalListClick = () => {
     showInternalList.value = !showInternalList.value;
     if (!showInternalList.value) {
-      modelValue.value.city_code = '';
+      modelValue.value.bk_cloud_region = '';
     }
   };
 </script>
@@ -152,7 +141,11 @@
       width: 100% !important;
 
       :deep(.bk-radio-button-label) {
-        min-width: 100px;
+        display: block;
+        width: 130px !important;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
         border-radius: 0;
       }
 

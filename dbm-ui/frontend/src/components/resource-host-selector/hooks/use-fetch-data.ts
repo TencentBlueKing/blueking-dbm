@@ -38,14 +38,15 @@ export default (defaultParams?: {
     },
   });
 
-  const fetchData = (params?: ServiceParameters<typeof fetchList>) =>
+  // 列筛选与快筛的键超集（agent_status / bk_cloud_region / city 等）均为 fetchList 支持的查询参数，放宽为宽类型透传
+  const fetchData = (params?: Record<string, any>) =>
     run({
       ...(defaultParams ? defaultParams.params : {}),
       ...params,
       bk_biz_id: undefined, // 资源池参数用for_biz,把db-table内置的bk_biz_id去掉
       limit: pagination.limit,
       offset: pagination.current - 1,
-    });
+    } as Parameters<typeof fetchList>[0]);
 
   // 切换每页条数
   const handlePageLimitChange = (pageLimit: number) => {

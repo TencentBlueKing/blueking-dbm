@@ -8,20 +8,20 @@
         ref="specSelectorRef"
         v-model="modelValue.spec_id"
         :biz-id="bizId"
-        :city="cityCode"
         :cloud-id="cloudId"
         cluster-type="redis"
         :disaster-tolerance-level="disasterToleranceLevel"
         :machine-type="machineType"
+        :region="region"
         style="width: 314px"
-        :subzone-ids="subzoneIds" />
+        :zone-list="zoneList" />
     </DbFormItem>
     <ResourcePreview
       v-model:tag-list="modelValue.labels"
       :biz-id="bizId"
       :params="{
-        city: cityName,
-        bk_cloud_zone: subzoneIds.join(',') || undefined,
+        bk_cloud_region: region,
+        bk_cloud_zone: zoneList.join(',') || undefined,
         for_bizs: bizId ? [bizId, 0] : [0],
         resource_types: [DBTypes.REDIS, 'PUBLIC'],
         spec_id: Number(modelValue.spec_id),
@@ -94,14 +94,15 @@
 
   interface Props {
     bizId: number | '';
-    cityCode: string;
-    cityName: string;
     cloudId: number | string;
     clusterType: string;
     disasterToleranceLevel: string;
     machineType: string;
+    /** 地域标识 */
+    region: string;
     shardNumDisabled?: boolean;
-    subzoneIds: number[] | string[];
+    /** 可用区名列表 */
+    zoneList: number[] | string[];
   }
 
   interface ModelValue {
