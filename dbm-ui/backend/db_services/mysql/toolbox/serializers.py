@@ -350,22 +350,33 @@ class TdbctlUpgradeFlowParamBuilder(builders.FlowParamBuilder):
             "bk_biz_id": 100,
             "bk_cloud_id": 0,
             "uid": "admin",
+            "update_all": False,
             "infos": [
                 {"cluster_id": 1, "pkg_id": 123},
                 {"cluster_id": 2, "pkg_id": 123},
                 {"cluster_id": 3, "pkg_id": 123}
             ]
         }
+
+        upgrade_all=True 时 update_all=True，infos 只有 [{"pkg_id": 123}]，集群由流程查询。
         """
         from backend.db_meta.models import Cluster
 
-        # 2. 转换参数结构：cluster_ids + pkg_id -> infos 列表
+        # upgrade_all 只在单据边界翻译一次，流程内只认 update_all
         cluster_ids = self.ticket_data.pop("cluster_ids", [])
         pkg_id = self.ticket_data.get("pkg_id")
+        update_all = bool(self.ticket_data.pop("upgrade_all", False))
+        self.ticket_data["update_all"] = update_all
+
+        if update_all:
+            # 全量升级只传统一 pkg_id，集群列表由流程内查询
+            self.ticket_data["infos"] = [{"pkg_id": pkg_id}]
+            self.ticket_data["bk_cloud_id"] = 0
+            return
+
         # 指定集群升级，构建 infos 列表
         self.ticket_data["infos"] = [{"cluster_id": cluster_id, "pkg_id": pkg_id} for cluster_id in cluster_ids]
 
-        # 3. 添加 bk_cloud_id 字段
         # 从第一个集群获取 bk_cloud_id（同一业务下的 spider 集群通常在同一云区域）
         if cluster_ids:
             first_cluster = Cluster.objects.filter(id=cluster_ids[0]).first()
@@ -374,7 +385,6 @@ class TdbctlUpgradeFlowParamBuilder(builders.FlowParamBuilder):
             else:
                 self.ticket_data["bk_cloud_id"] = 0
         else:
-            # 全量升级时，使用默认云区域
             self.ticket_data["bk_cloud_id"] = 0
 
 

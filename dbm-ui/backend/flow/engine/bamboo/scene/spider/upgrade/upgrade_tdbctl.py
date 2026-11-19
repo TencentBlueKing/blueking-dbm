@@ -1027,10 +1027,10 @@ class UpgradeTdbctlFlow(object):
             logger.error(_("update_all=True 时，必须指定 pkg_id"))
             raise ValueError(_("update_all=True 时，必须指定 pkg_id"))
 
-        # 查询业务下所有的 spider (TenDBCluster) 集群
+        # 查询业务下所有的 spider (TenDBCluster) 集群，每个集群带自己的云区域
         spider_clusters = Cluster.objects.filter(
             bk_biz_id=self.bk_biz_id, cluster_type=ClusterType.TenDBCluster
-        ).values_list("id", flat=True)
+        ).values("id", "bk_cloud_id")
 
         if not spider_clusters:
             logger.warning(_("业务 {} 下没有找到 spider 集群").format(self.bk_biz_id))
@@ -1038,8 +1038,11 @@ class UpgradeTdbctlFlow(object):
 
         logger.info(_("业务 {} 下找到 {} 个 spider 集群，将进行全量 tdbctl 升级").format(self.bk_biz_id, len(spider_clusters)))
 
-        # 构建升级信息列表
-        upgrade_infos = [{"cluster_id": cluster_id, "pkg_id": pkg_id} for cluster_id in spider_clusters]
+        # 构建升级信息列表。bk_cloud_id 按集群传递，避免全量升级都用单据上的 0
+        upgrade_infos = [
+            {"cluster_id": cluster["id"], "pkg_id": pkg_id, "bk_cloud_id": cluster["bk_cloud_id"]}
+            for cluster in spider_clusters
+        ]
         return upgrade_infos
 
     def run(self):
@@ -1056,8 +1059,7 @@ class UpgradeTdbctlFlow(object):
         upgrade_infos = self._get_upgrade_infos()
 
         if not upgrade_infos:
-            logger.warning(_("没有需要升级的集群"))
-            return
+            raise ValueError(_("没有需要升级的集群"))
 
         cluster_ids = [info["cluster_id"] for info in upgrade_infos]
         # 创建主流程
@@ -1076,7 +1078,7 @@ class UpgradeTdbctlFlow(object):
                 uid=self.uid,
                 root_id=self.root_id,
                 parent_global_data=self.data,
-                bk_cloud_id=self.bk_cloud_id,
+                bk_cloud_id=upgrade_info["bk_cloud_id"] if "bk_cloud_id" in upgrade_info else self.bk_cloud_id,
                 cluster_id=cluster_id,
                 pkg_id=pkg_id,
                 sub_flow_name=_("集群{} tdbctl升级").format(cluster_id),
