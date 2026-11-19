@@ -85,7 +85,7 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { createDnsDomain } from '@services/source/dnsDomain';
+  import { checkDnsDomainDuplicate, createDnsDomain } from '@services/source/dnsDomain';
 
   import { useUserProfile } from '@stores';
 
@@ -160,6 +160,16 @@
         message: t('每段首尾须为字母或数字，单段不超过 63 字符，总长不超过 253 字符'),
         trigger: 'blur',
         validator: (value: string) => isValidDomain(`${value.trim()}${DOMAIN_SUFFIX}`),
+      },
+      // 格式规则全部通过才会执行到这里（表单项按顺序校验、遇失败即停），避免触发后端参数校验错误；
+      // 接口失败不弹提示、视为通过，由创建接口的「域名已存在」兜底
+      {
+        message: t('域名已存在'),
+        trigger: 'blur',
+        validator: (value: string) =>
+          checkDnsDomainDuplicate({
+            domain: `${value.trim()}${DOMAIN_SUFFIX}`,
+          }).then((data) => !data.duplicated),
       },
     ],
   };

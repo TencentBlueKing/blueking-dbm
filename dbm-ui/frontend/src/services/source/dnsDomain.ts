@@ -78,6 +78,14 @@ export const getDnsDomainDetail = (params: { domain: string }) =>
   http.get<DnsDomainDetail>(`${path}/domains/detail/`, params);
 
 /**
+ * 校验域名是否已被占用，占用判断与创建一致；bk_cloud_id 默认 0，只影响 DNS 解析是否已占用
+ */
+export const checkDnsDomainDuplicate = (
+  params: { bk_cloud_id?: number; domain: string },
+  payload = {} as IRequestPayload,
+) => http.get<{ domain: string; duplicated: boolean }>(`${path}/domains/check_duplicate/`, params, payload);
+
+/**
  * 新建自主维护域名
  */
 export const createDnsDomain = (params: { domain: string; ips: string[]; owners: string[]; remark?: string }) =>

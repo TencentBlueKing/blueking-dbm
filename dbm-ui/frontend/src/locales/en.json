@@ -6925,5 +6925,6 @@
   "这行勿动！新增翻译请在上一行添加！": "",
   "后自动终止": "before automatic termination",
   "已选 n 项": "{n} items selected",
-  "清空选择": "Clear selection"
+  "清空选择": "Clear selection",
+  "域名已存在": "Domain already exists"
 }
