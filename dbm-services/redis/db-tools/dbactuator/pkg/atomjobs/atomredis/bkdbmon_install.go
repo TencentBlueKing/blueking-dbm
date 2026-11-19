@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 
@@ -131,6 +132,8 @@ func (job *BkDbmonInstall) Run() (err error) {
 	if err != nil {
 		return
 	}
+	// 刷新或清理主机 shell 提示符(失败仅告警, 不阻断监控安装)
+	job.syncShellPrompt()
 	err = job.UntarMedia()
 	if err != nil {
 		return
@@ -193,6 +196,61 @@ func (job *BkDbmonInstall) stopDbmonWhenNoServers() (err error) {
 		return
 	}
 	return
+}
+
+// shellPromptTarget 汇总本机活跃实例(端口非空)的 IP 与 meta_role 集合
+func (job *BkDbmonInstall) shellPromptTarget() (ip string, metaRoles []string, err error) {
+	ipSet := make(map[string]struct{})
+	for _, svr := range job.params.Servers {
+		if len(svr.ServerPorts) == 0 || svr.ServerIP == "" {
+			continue
+		}
+		ipSet[svr.ServerIP] = struct{}{}
+		metaRoles = append(metaRoles, svr.MetaRole)
+	}
+	if len(ipSet) == 0 {
+		return "", nil, fmt.Errorf("no active server found")
+	}
+	if len(ipSet) > 1 {
+		ips := make([]string, 0, len(ipSet))
+		for oneIP := range ipSet {
+			ips = append(ips, oneIP)
+		}
+		sort.Strings(ips)
+		return "", nil, fmt.Errorf("multiple server ip found: %v", ips)
+	}
+	for oneIP := range ipSet {
+		ip = oneIP
+	}
+	return ip, metaRoles, nil
+}
+
+// syncShellPrompt 刷新或清理主机 shell 提示符, 失败仅告警, 不阻断监控安装
+// 有活跃实例: 按 instance role 强制刷新(master/slave/mixed, proxy 按类型); 无活跃实例: 清理提示符
+func (job *BkDbmonInstall) syncShellPrompt() {
+	if job.isStopped {
+		if err := consts.RemoveRedisShellPrompt(); err != nil {
+			job.runtime.Logger.Warn("%s: remove shell prompt failed:%v", job.Name(), err)
+			return
+		}
+		job.runtime.Logger.Info("%s: remove shell prompt success", job.Name())
+		return
+	}
+	ip, metaRoles, err := job.shellPromptTarget()
+	if err != nil {
+		job.runtime.Logger.Warn("%s: skip set shell prompt, %v", job.Name(), err)
+		return
+	}
+	label, err := consts.StorageRoleShellPromptLabel(metaRoles, ip)
+	if err != nil {
+		job.runtime.Logger.Warn("%s: skip set shell prompt, %v", job.Name(), err)
+		return
+	}
+	if err = consts.SetRedisShellPrompt(label, true); err != nil {
+		job.runtime.Logger.Warn("%s: set shell prompt(%s) failed:%v", job.Name(), label, err)
+		return
+	}
+	job.runtime.Logger.Info("%s: set shell prompt(%s) success", job.Name(), label)
 }
 
 func (job *BkDbmonInstall) getOldDbmonTar() string {

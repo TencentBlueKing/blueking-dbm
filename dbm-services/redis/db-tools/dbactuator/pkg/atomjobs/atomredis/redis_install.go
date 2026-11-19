@@ -208,7 +208,27 @@ func (job *RedisInstall) Run() (err error) {
 	if err != nil {
 		return
 	}
-	return job.newExporterConfig()
+	if err = job.newExporterConfig(); err != nil {
+		return
+	}
+	// 写入主机 shell 提示符(引擎兜底, 不覆盖已有的同 IP 角色提示符)
+	job.syncShellPrompt()
+	return nil
+}
+
+// syncShellPrompt 按存储引擎写入主机提示符, 失败仅告警, 不阻断安装
+// force=false: 安装参数不含实例角色, 若机器上已有登记了角色的提示符则保留, 防止降级为引擎名
+func (job *RedisInstall) syncShellPrompt() {
+	label, err := consts.StorageEngineShellPromptLabel(job.params.DbType, job.params.IP)
+	if err != nil {
+		job.runtime.Logger.Warn("%s: skip set shell prompt, %v", job.Name(), err)
+		return
+	}
+	if err = consts.SetRedisShellPrompt(label, false); err != nil {
+		job.runtime.Logger.Warn("%s: set shell prompt(%s) failed:%v", job.Name(), label, err)
+		return
+	}
+	job.runtime.Logger.Info("%s: set shell prompt(%s) success", job.Name(), label)
 }
 
 func (job *RedisInstall) DelShutdownFiles() error {
