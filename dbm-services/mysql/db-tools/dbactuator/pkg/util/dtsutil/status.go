@@ -8,7 +8,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package dts_cutover
+package dtsutil
 
 import (
 	"encoding/json"
@@ -21,89 +21,12 @@ import (
 	"dbm-services/common/go-pubpkg/logger"
 )
 
-// SyncStatus DTS 任务增量同步状态（HTTP status 子集）。
-type SyncStatus struct {
-	MasterBinlog        string   `json:"master_binlog"`
-	MasterBinlogGtid    string   `json:"master_binlog_gtid"`
-	SyncerBinlog        string   `json:"syncer_binlog"`
-	SyncerBinlogGtid    string   `json:"syncer_binlog_gtid"`
-	BlockingDDLs        []string `json:"blocking_ddls"`
-	SecondsBehindMaster int      `json:"seconds_behind_master"`
-	Synced              bool     `json:"synced"`
-}
-
-// TaskStage worker 子任务阶段。出错时为 Paused，错误原文在 error_msg。
-type TaskStage string
-
-const (
-	TaskStageNew          TaskStage = "New"
-	TaskStageRunning      TaskStage = "Running"
-	TaskStagePausing      TaskStage = "Pausing"
-	TaskStagePaused       TaskStage = "Paused"
-	TaskStageResuming     TaskStage = "Resuming"
-	TaskStageStopping     TaskStage = "Stopping"
-	TaskStageStopped      TaskStage = "Stopped"
-	TaskStageFinished     TaskStage = "Finished"
-	TaskStageInvalidStage TaskStage = "InvalidStage"
-)
-
-// TaskStatusItem GET /api/v1/tasks/{task}/status 单条。
-type TaskStatusItem struct {
-	Name       string      `json:"name"`
-	SourceName string      `json:"source_name"`
-	Stage      TaskStage   `json:"stage"`
-	Unit       string      `json:"unit"`
-	ErrorMsg   string      `json:"error_msg"`
-	SyncStatus *SyncStatus `json:"sync_status"`
-}
-
-// TaskStatusListResponse 任务状态列表响应。
-type TaskStatusListResponse struct {
-	Total int              `json:"total"`
-	Data  []TaskStatusItem `json:"data"`
-}
-
-// CutoverPositionOutput 供 Flow 落库的位点输出。
-type CutoverPositionOutput struct {
-	TaskName  string                   `json:"task_name"`
-	Sources   []SourcePositionSnapshot `json:"sources"`
-	StoppedAt string                   `json:"stopped_at"`
-}
-
-// SourcePositionSnapshot 单个 source 的位点快照。
-type SourcePositionSnapshot struct {
-	SourceName       string `json:"source_name"`
-	MasterBinlog     string `json:"master_binlog"`
-	MasterBinlogGtid string `json:"master_binlog_gtid"`
-	SyncerBinlog     string `json:"syncer_binlog"`
-	SyncerBinlogGtid string `json:"syncer_binlog_gtid"`
-	SecondsBehind    int    `json:"seconds_behind_master"`
-}
-
-// buildMasterAPIURL 拼装 Master OpenAPI URL（本机直连 dts_master_addr）。
-func buildMasterAPIURL(dtsMasterAddr, apiPath string) (string, error) {
-	addr := strings.TrimSpace(dtsMasterAddr)
-	if addr == "" {
-		return "", fmt.Errorf("dts_master_addr 为空")
-	}
-	if !strings.Contains(addr, "://") {
-		addr = "http://" + addr
-	}
-	u, err := url.Parse(addr)
-	if err != nil {
-		return "", fmt.Errorf("解析 dts_master_addr 失败: %w", err)
-	}
-	u.Path = apiPath
-	u.RawQuery = ""
-	return u.String(), nil
-}
-
 // FetchTaskStatus HTTP GET http://{dts_master_addr}/api/v1/tasks/{task_name}/status
 func FetchTaskStatus(dtsMasterAddr, taskName string, timeoutSec int) (*TaskStatusListResponse, error) {
 	if timeoutSec <= 0 {
 		timeoutSec = 30
 	}
-	u, err := buildMasterAPIURL(dtsMasterAddr, fmt.Sprintf("/api/v1/tasks/%s/status", url.PathEscape(taskName)))
+	u, err := BuildMasterAPIURL(dtsMasterAddr, fmt.Sprintf("/api/v1/tasks/%s/status", url.PathEscape(taskName)))
 	if err != nil {
 		return nil, err
 	}
@@ -129,14 +52,6 @@ func FetchTaskStatus(dtsMasterAddr, taskName string, timeoutSec int) (*TaskStatu
 	return &out, nil
 }
 
-// statusSourceKey 取 status item 的 source 键（优先 source_name）。
-func statusSourceKey(item TaskStatusItem) string {
-	if item.SourceName != "" {
-		return item.SourceName
-	}
-	return item.Name
-}
-
 // BuildLockMasterSnapshots 加锁后从 taskStatus 按 source 记录当时的 master 位点快照。
 func BuildLockMasterSnapshots(items []TaskStatusItem) (map[string]BinlogCoord, error) {
 	if len(items) == 0 {
@@ -144,7 +59,7 @@ func BuildLockMasterSnapshots(items []TaskStatusItem) (map[string]BinlogCoord, e
 	}
 	out := make(map[string]BinlogCoord, len(items))
 	for _, item := range items {
-		src := statusSourceKey(item)
+		src := StatusSourceKey(item)
 		if item.SyncStatus == nil {
 			return nil, fmt.Errorf("source %s 缺少 sync_status，无法建立加锁位点快照", src)
 		}
@@ -169,7 +84,7 @@ func CheckSnapshotCatchup(items []TaskStatusItem, snapshots map[string]BinlogCoo
 	}
 	seen := make(map[string]struct{}, len(items))
 	for _, item := range items {
-		src := statusSourceKey(item)
+		src := StatusSourceKey(item)
 		seen[src] = struct{}{}
 		if item.SyncStatus == nil {
 			return fmt.Errorf("source %s 缺少 sync_status", src)
@@ -216,4 +131,72 @@ func BuildPositionOutput(taskName string, items []TaskStatusItem) CutoverPositio
 		out.Sources = append(out.Sources, snap)
 	}
 	return out
+}
+
+// ValidateTaskRunning 要求能查到任务，且每个子任务 stage 为 Running。不看 blocking_ddls。
+func ValidateTaskRunning(resp *TaskStatusListResponse) error {
+	if resp == nil {
+		return fmt.Errorf("预检任务 status 响应为空")
+	}
+	if len(resp.Data) == 0 {
+		return fmt.Errorf("预检任务 status 无数据（task 可能不存在）")
+	}
+	for _, item := range resp.Data {
+		stage := TaskStage(strings.TrimSpace(string(item.Stage)))
+		if stage == TaskStageRunning {
+			continue
+		}
+		src := StatusSourceKey(item)
+		msg := strings.TrimSpace(item.ErrorMsg)
+		if msg != "" {
+			return fmt.Errorf("预检任务不在运行中: source %s stage=%s error_msg=%s", src, stage, msg)
+		}
+		return fmt.Errorf("预检任务不在运行中: source %s stage=%s", src, stage)
+	}
+	return nil
+}
+
+// TaskReportError 单元失败时 worker 把 stage 写成 Paused，并把错误放进 error_msg。
+// 人工暂停也是 Paused，但 error_msg 为空，继续等追平。
+// InvalidStage 是占位，正常状态不会出现，见到就退出。
+func TaskReportError(items []TaskStatusItem) error {
+	for _, item := range items {
+		stage := TaskStage(strings.TrimSpace(string(item.Stage)))
+		src := StatusSourceKey(item)
+		msg := strings.TrimSpace(item.ErrorMsg)
+		switch stage {
+		case TaskStageInvalidStage:
+			if msg != "" {
+				return fmt.Errorf("source %s 任务错误: %s", src, msg)
+			}
+			return fmt.Errorf("source %s 任务阶段异常: stage=%s", src, stage)
+		case TaskStagePaused:
+			if msg == "" {
+				continue
+			}
+			return fmt.Errorf("source %s 任务错误: %s", src, msg)
+		}
+	}
+	return nil
+}
+
+// SourcesQuietEnoughToLock 加锁前只看延迟和 blocking_ddls，不拿实时 master 跟 syncer 比。
+func SourcesQuietEnoughToLock(items []TaskStatusItem) error {
+	if len(items) == 0 {
+		return fmt.Errorf("任务状态为空")
+	}
+	for _, item := range items {
+		src := StatusSourceKey(item)
+		if item.SyncStatus == nil {
+			return fmt.Errorf("source %s 缺少 sync_status", src)
+		}
+		ss := item.SyncStatus
+		if len(ss.BlockingDDLs) > 0 {
+			return fmt.Errorf("source %s 存在 blocking_ddls: %v", src, ss.BlockingDDLs)
+		}
+		if ss.SecondsBehindMaster != 0 {
+			return fmt.Errorf("source %s 未追平: sbm=%d", src, ss.SecondsBehindMaster)
+		}
+	}
+	return nil
 }

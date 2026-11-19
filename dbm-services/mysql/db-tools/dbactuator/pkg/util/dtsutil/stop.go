@@ -8,7 +8,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package dts_cutover
+package dtsutil
 
 import (
 	"bytes"
@@ -21,19 +21,6 @@ import (
 
 	"dbm-services/common/go-pubpkg/logger"
 )
-
-const (
-	// stopWhileLockedServerTimeout 持锁窗口内让 Master 放弃停止的上限。
-	stopWhileLockedServerTimeout = 15 * time.Second
-	// stopWhileLockedHTTPTimeout 略长于服务端，避免套接字比 Master 更晚放弃。
-	stopWhileLockedHTTPTimeout = 20 * time.Second
-)
-
-// StopTaskRequest POST /api/v1/tasks/{task}/stop 请求体（与 OpenAPI 对齐）。
-type StopTaskRequest struct {
-	SourceNameList  []string `json:"source_name_list,omitempty"`
-	TimeoutDuration string   `json:"timeout_duration,omitempty"`
-}
 
 // StopTaskWhileLocked 在源表读锁仍被持有时停止任务。
 // 服务端 timeout_duration=15s，HTTP 客户端 20s。失败由调用方立即返回并 unlock，不在持锁状态下重试。
@@ -57,7 +44,7 @@ func doStopTask(dtsMasterAddr, taskName string, httpTimeout time.Duration, reqBo
 	if httpTimeout <= 0 {
 		httpTimeout = stopWhileLockedHTTPTimeout
 	}
-	u, err := buildMasterAPIURL(dtsMasterAddr, fmt.Sprintf("/api/v1/tasks/%s/stop", url.PathEscape(taskName)))
+	u, err := BuildMasterAPIURL(dtsMasterAddr, fmt.Sprintf("/api/v1/tasks/%s/stop", url.PathEscape(taskName)))
 	if err != nil {
 		return err
 	}
@@ -97,12 +84,4 @@ func doStopTask(dtsMasterAddr, taskName string, httpTimeout time.Duration, reqBo
 	}
 	logger.Info("停止任务 API 成功: HTTP %d body=%s", resp.StatusCode, truncateOut(string(respBody)))
 	return nil
-}
-
-func truncateOut(s string) string {
-	const max = 2048
-	if len(s) <= max {
-		return s
-	}
-	return s[:max] + "...(truncated)"
 }
