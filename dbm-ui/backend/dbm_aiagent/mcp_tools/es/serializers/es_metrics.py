@@ -19,7 +19,7 @@ class EsMetricsInputSerializer(serializers.Serializer):
         child=serializers.CharField(),
         help_text=_(
             "指标类型列表，可选值：\n"
-            "健康状态: cluster_health_status(0=green,1=yellow,2=red)\n"
+            "健康状态: cluster_health_status(按 color 标签区分 green/yellow/red，value 为 0/1；value=1 表示当前命中该颜色)\n"
             "数据规模: indices_docs_primary, indices_store_size\n"
             "写入检索: indexing_rate, search_rate, indexing_latency, search_latency\n"
             "线程池: thread_pool_queue_max, thread_pool_rejected_max(5分钟窗口拒绝增量峰值)\n"
@@ -204,7 +204,10 @@ class EsPerformanceSummaryOutputSerializer(serializers.Serializer):
     error = serializers.CharField(help_text=_("错误信息；前置校验失败时返回"), required=False)
     cluster_domain = serializers.CharField(help_text=_("集群域名"), required=False)
     time_range = serializers.CharField(help_text=_("查询时间范围描述"), required=False)
-    health_summary = serializers.DictField(help_text=_("集群健康摘要(latest_status/worst_status/状态码)"), required=False)
+    health_summary = serializers.DictField(
+        help_text=_("集群健康摘要(latest_status/worst_status，状态来自 color 标签，value=1 表示命中该颜色)"),
+        required=False,
+    )
     data_summary = serializers.DictField(help_text=_("数据规模摘要(文档数/存储大小)"), required=False)
     request_summary = serializers.DictField(help_text=_("请求速率与延迟摘要(indexing/search)"), required=False)
     thread_pool_summary = serializers.DictField(
