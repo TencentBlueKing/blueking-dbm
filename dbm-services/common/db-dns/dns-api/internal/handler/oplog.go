@@ -126,7 +126,7 @@ func parseOpLogQuery(c *gin.Context) (domain.DnsOpLogQuery, error) {
 	return q, err
 }
 
-// GetDomainOpLog 查询域名级别的操作日志
+// GetDomainOpLog 查询域名级别的操作日志，域名为模糊匹配
 func (h *Handler) GetDomainOpLog(c *gin.Context) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -139,9 +139,6 @@ func (h *Handler) GetDomainOpLog(c *gin.Context) {
 	if domainName == "" {
 		SendResponse(c, fmt.Errorf("param domain_name must not be empty"), Data{})
 		return
-	}
-	if !strings.HasSuffix(domainName, ".") {
-		domainName += "."
 	}
 	q, err := parseOpLogQuery(c)
 	if err != nil {

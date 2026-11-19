@@ -24,7 +24,7 @@ type DnsBasePutReqParam struct {
 		Instances  []string `json:"instances,required"`
 		Manager    string   `json:"manager"`
 		Remark     string   `json:"remark"`
-		DomainType string   `json:"domain_type"`
+		DomainType int64    `json:"domain_type"`
 	} `json:"domains"`
 }
 
@@ -84,6 +84,7 @@ func (h *Handler) AddDns(c *gin.Context) {
 				LastChangeTime: time.Now(),
 				Manager:        domains.Manager,
 				Remark:         domains.Remark,
+				DomainType:     domains.DomainType,
 				Status:         "1",
 				BkCloudId:      addParam.BkCloudId,
 			}
