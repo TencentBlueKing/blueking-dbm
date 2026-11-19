@@ -18,10 +18,23 @@ type DnsDomainBaseRepo interface {
 	Update(d *entity.TbDnsBase, newIP string, newPort int) (rowsAffected int64, err error)
 	UpdateDomainBatch(bs []UpdateBatchDnsBase) (rowsAffected int64, err error)
 	UpdateFieldsByDomain(app string, bkCloudId int64, value map[string]interface{}) (rowsAffected int64, err error)
+	Search(q DomainSearchQuery) (rs []entity.TbDnsBase, total int64, err error)
 }
 
 // DnsDomainBaseImpl dns_base方法实现
 type DnsDomainBaseImpl struct {
+}
+
+// DomainSearchQuery 域名检索条件
+type DomainSearchQuery struct {
+	// DomainName 域名，模糊匹配
+	DomainName string
+	// DomainType 维护方式，nil表示不过滤。0:集群托管 1:自主维护
+	DomainType *int64
+	// Manager 负责人，精确匹配
+	Manager string
+	Limit   int
+	Offset  int
 }
 
 // UpdateBatchDnsBase 批量update参数
@@ -185,6 +198,33 @@ func (base *DnsDomainBaseImpl) UpdateDomainBatch(bs []UpdateBatchDnsBase) (rowsA
 		return 0, err
 	}
 	return
+}
+
+// escapeLike 转义 LIKE 通配符，使用户输入按字面值匹配
+func escapeLike(s string) string {
+	return strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`).Replace(s)
+}
+
+// Search 按域名(模糊)、维护方式、负责人检索域名记录。total 为满足条件的总条数
+func (base *DnsDomainBaseImpl) Search(q DomainSearchQuery) (rs []entity.TbDnsBase, total int64, err error) {
+	db := dao.DnsDB.Model(&entity.TbDnsBase{})
+	if q.DomainName != "" {
+		db = db.Where("domain_name like ?", "%"+escapeLike(q.DomainName)+"%")
+	}
+	if q.DomainType != nil {
+		db = db.Where("domain_type = ?", *q.DomainType)
+	}
+	if q.Manager != "" {
+		db = db.Where("manager = ?", q.Manager)
+	}
+	logger.Info(fmt.Sprintf("search domain. params[%+v]", q))
+
+	rs = []entity.TbDnsBase{}
+	if err = db.Count(&total).Error; err != nil {
+		return rs, 0, err
+	}
+	err = db.Order("uid asc").Limit(q.Limit).Offset(q.Offset).Find(&rs).Error
+	return rs, total, err
 }
 
 // UpdateFieldsByDomain 根据域名和bkID更新对应字段
