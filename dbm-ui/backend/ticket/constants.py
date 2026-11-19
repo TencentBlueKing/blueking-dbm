@@ -828,6 +828,7 @@ class FlowContext(StrStructuredEnum):
     REMARK = EnumField("remark", _("流程备注"))
     MODIFY_SUMMARY = EnumField("modify_summary", _("改单说明摘要"))
     NEXT_FLOW = EnumField("next_flow", _("下一流程ID"))
+    BUILD_TASK_ID = EnumField("build_task_id", _("异步编排任务ID"))
 
 
 class FlowTypeConfig(StrStructuredEnum):

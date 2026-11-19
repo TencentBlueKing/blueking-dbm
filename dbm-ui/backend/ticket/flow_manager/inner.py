@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import importlib
 import logging
 import signal
+import uuid
 from datetime import datetime
 from typing import Any, Dict, Union
 
@@ -34,6 +35,7 @@ from backend.ticket.constants import (
     BAMBOO_STATE__TICKET_STATE_MAP,
     INNER_FLOW_TODO_STATUS_MAP,
     FlowCallbackType,
+    FlowContext,
     FlowErrCode,
     TicketFlowStatus,
     TicketType,
@@ -226,8 +228,10 @@ class InnerFlow(BaseTicketFlow):
             self.callback(callback_type=FlowCallbackType.PRE_CALLBACK.value)
             # 根据单据类型决定：同步编排/异步编排
             if BuilderFactory.is_async_build_ticket(self.ticket.ticket_type):
-                task = async_run_flow.apply_async(args=(self.flow_obj.id,))
-                self.flow_obj.update_details(build_task_id=task.id)
+                task_id = uuid.uuid4().hex
+                self.flow_obj.refresh_from_db(fields=["context"])
+                self.flow_obj.update_context(**{FlowContext.BUILD_TASK_ID.value: task_id})
+                async_run_flow.apply_async(args=(self.flow_obj.id,), task_id=task_id)
             else:
                 self._run()
         except (Exception, ClusterExclusiveOperateException) as err:  # pylint: disable=broad-except
@@ -265,6 +269,9 @@ class InnerFlow(BaseTicketFlow):
     def _revoke(self, operator, remark="") -> Any:
         from backend.db_services.taskflow.handlers import TaskFlowHandler
 
+        # 编排任务ID在 flow 的 context 中
+        # 需在刷新 context 之前取出来，否则会被 flush_revoke_status_handler 覆盖掉。
+        build_task_id = self.flow_obj.context.get(FlowContext.BUILD_TASK_ID.value)
         # 没有 FlowTree 或树还在待创建时，不会发出 REVOKED，ToDo 占坑要在这里收掉。
         self._release_mysql_dts_todo()
         # 刷新flow和单据状态 --> 终止
@@ -277,7 +284,6 @@ class InnerFlow(BaseTicketFlow):
             TaskFlowHandler(self.flow_obj.flow_obj_id).revoke_pipeline(operator, remark)
             return
         # 如果不存在flow tree，说明流程还在编排，则终止编排任务
-        build_task_id = self.flow_obj.details.get("build_task_id")
         if build_task_id:
             current_app.control.revoke(build_task_id, terminate=True, signal=signal.SIGTERM)
             return
