@@ -327,20 +327,6 @@
   });
 
   const tableSetting = {
-    checked: [
-      'alert_name',
-      'description',
-      'status',
-      'stage',
-      'cluster',
-      'instance',
-      'strategy_name',
-      'firstAnomalyTimeDisplay',
-      'createTimeDisplay',
-      'bk_biz_id',
-      'appointee',
-      'dbm_policy',
-    ],
     disabled: ['alert_name'],
   };
 

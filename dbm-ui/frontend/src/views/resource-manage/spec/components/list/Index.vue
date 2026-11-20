@@ -484,21 +484,6 @@
   );
 
   const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.SPECIFICATION_TABLE_SETTINGS, {
-    checked: [
-      'spec_id',
-      'spec_name',
-      'model',
-      'desc',
-      'instance_num',
-      'qpsText',
-      'enable',
-      'update_at',
-      'updater',
-      'biz_scope',
-      'row-operation',
-      'replensish',
-      'ratio',
-    ],
     disabled: ['model', 'spec_name'],
   });
 

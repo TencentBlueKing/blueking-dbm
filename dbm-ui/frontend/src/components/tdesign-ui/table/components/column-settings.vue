@@ -224,6 +224,9 @@
         .filter((column) => draftChecked.value.includes(column.field) || column.disabled)
         .map((column) => column.field),
       fontSize: draftFontSize.value,
+      hidden: draftColumns.value
+        .filter((column) => !draftChecked.value.includes(column.field) && !column.disabled)
+        .map((column) => column.field),
       order: draftColumns.value.map((column) => column.field),
       rowSize: draftRowSize.value,
     };

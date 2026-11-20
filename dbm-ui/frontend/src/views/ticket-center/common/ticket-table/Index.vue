@@ -392,16 +392,29 @@
   const ticketInnerFlowInfo = shallowRef<ServiceReturnType<typeof getInnerFlowInfo>>({});
   const viewMode = ref<'drawer' | 'jump'>(userProfileStore.profile[TABLE_SETTING_KEY]?.view_mode || 'drawer');
 
-  const tableSettings = computed(() => ({
-    checked: userProfileStore.profile[TABLE_SETTING_KEY]?.checked,
-    disabled: ['ids', 'ticket_type__in'],
-    fontSize: userProfileStore.profile[TABLE_SETTING_KEY]?.fontSize || 'medium',
-    order: userProfileStore.profile[TABLE_SETTING_KEY]?.order,
-    rowSize:
-      userProfileStore.profile[TABLE_SETTING_KEY]?.rowSize ||
-      userProfileStore.profile[TABLE_SETTING_KEY]?.size ||
-      'small',
-  }));
+  const tableSettings = computed(() => {
+    const profileSettings = userProfileStore.profile[TABLE_SETTING_KEY];
+    let hidden: string[] | undefined = profileSettings?.hidden;
+    let checked: string[] | undefined;
+    if (!hidden && profileSettings?.checked) {
+      if (profileSettings.order) {
+        // 旧数据转换：旧方案每次保存的 order 即当时的全部列，未选中的就是隐藏列
+        const checkedSet = new Set<string>(profileSettings.checked);
+        hidden = (profileSettings.order as string[]).filter((column) => !checkedSet.has(column));
+      } else {
+        // 更早的旧数据没有 order，交给表格按列定义计算
+        checked = profileSettings.checked;
+      }
+    }
+    return {
+      checked,
+      disabled: ['ids', 'ticket_type__in'],
+      fontSize: profileSettings?.fontSize || 'medium',
+      hidden,
+      order: profileSettings?.order,
+      rowSize: profileSettings?.rowSize || profileSettings?.size || 'small',
+    };
+  });
 
   const isSearching = computed(() => Object.keys(quickSearchValue.value).length > 0);
   const selectedCount = computed(() => Object.keys(rowSelectMemo.value).length);
@@ -465,8 +478,8 @@
     userProfileStore.updateProfile({
       label: TABLE_SETTING_KEY,
       values: {
-        checked: payload.columns,
         fontSize: payload.fontSize,
+        hidden: payload.hidden,
         order: payload.order,
         rowSize: payload.rowSize,
         size: payload.rowSize,

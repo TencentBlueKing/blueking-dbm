@@ -300,8 +300,8 @@
   });
   // ip 选择器预览表格默认展示的列
   const tableSettings = {
-    checked: ['ip', 'host_name', 'alive', 'operation'],
     disabled: ['ip', 'operation'],
+    hidden: ['cloud_area', 'os_name', 'cloud_vendor', 'os_type', 'host_id', 'agent_id', 'ipv6'],
   };
 
   const buttonTips = computed(() => {

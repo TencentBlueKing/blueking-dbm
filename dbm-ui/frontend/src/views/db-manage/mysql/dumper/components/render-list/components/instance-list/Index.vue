@@ -405,7 +405,6 @@
   } as Record<string, string>;
 
   const settings = {
-    checked: ['instance', 'dumper_id', 'source_cluster', 'protocol_type', 'receiver', 'add_type'],
     disabled: ['instance'],
   };
 

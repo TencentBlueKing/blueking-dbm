@@ -151,17 +151,6 @@
   const searchTimer = ref();
 
   const settings = {
-    checked: [
-      'src_cluster',
-      'dst_cluster',
-      'dts_copy_type',
-      'key_white_regex',
-      'key_black_regex',
-      'bill_id',
-      'update_time',
-      'status',
-      'create_time',
-    ],
     fields: [
       {
         field: 'src_cluster',

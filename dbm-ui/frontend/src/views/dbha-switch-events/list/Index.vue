@@ -236,7 +236,6 @@
 
   // 设置用户个人表头信息
   const defaultSettings = {
-    checked: columns.map((item) => item.colKey).filter((key) => !!key && key !== 'row-operation') as string[],
     fields: columns
       .filter((item) => item.colKey && item.colKey !== 'row-operation')
       .map((item) => ({
@@ -297,10 +296,15 @@
   fetchTableData();
 
   const handleExport = () => {
-    const checkedKeys = (settings.value.checked ??
-      columns.map((item) => item.colKey).filter((key) => !!key && key !== 'row-operation')) as string[];
+    // 导出未隐藏的列，checked 仅兼容没有 order 的更早旧数据
+    const hiddenKeys = new Set(settings.value.hidden);
+    const checkedKeys = settings.value.checked ? new Set(settings.value.checked) : undefined;
     const exportColumns = columns.filter(
-      (item) => item.colKey && checkedKeys.includes(item.colKey as string) && item.colKey !== 'row-operation',
+      (item) =>
+        item.colKey &&
+        item.colKey !== 'row-operation' &&
+        !hiddenKeys.has(item.colKey as string) &&
+        (!checkedKeys || checkedKeys.has(item.colKey as string)),
     );
     const formatData = tableData.value.map((row) => {
       const record: Record<string, string> = {};

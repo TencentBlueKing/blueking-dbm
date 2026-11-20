@@ -136,12 +136,12 @@
     },
   ];
   const settings = {
-    checked: ['ip', 'host_name', 'alive'],
     fields: columns.map((item) => ({
       disabled: ['ip'].includes(item.colKey as string),
       field: item.colKey as string,
       label: item.title as string,
     })),
+    hidden: ['ipv6', 'bk_cloud_name', 'os_name', 'cloud_vendor', 'os_type', 'host_id', 'agent_id'],
   };
 
   const {

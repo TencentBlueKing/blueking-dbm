@@ -443,15 +443,14 @@
     { id: 'operator', name: t('转入人') },
   ]);
 
-  // 导出表头（合并 order + checked，id 对齐后端；无自定义设置时不传，用后端默认）
+  // 导出表头（order 去掉 hidden，id 对齐后端；无自定义设置时不传，用后端默认）
   const exportHeaders = computed(() => {
-    const order = settings.value.order;
-    const checked = settings.value.checked;
-    if (!order || !checked) return undefined;
-    const checkedIds = new Set(checked.flatMap((key) => colKeyToExportIds[key] ?? []));
+    const { hidden, order } = settings.value;
+    if (!order || !hidden) return undefined;
+    const hiddenIds = new Set(hidden.flatMap((key) => colKeyToExportIds[key] ?? []));
     return order
       .flatMap((key) => colKeyToExportIds[key] ?? [])
-      .filter((id) => checkedIds.has(id))
+      .filter((id) => !hiddenIds.has(id))
       .map((id) => {
         const col = exportColumnList.value.find((item) => item.id === id);
         return { id, name: col?.name };
