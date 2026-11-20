@@ -99,6 +99,58 @@ class TestSQLImportViewSet:
         result = response.json()["data"]
         assert isinstance(result, dict)
 
+    @patch("backend.db_services.mysql.sql_import.handlers.get_storage", get_storage_mock)
+    @patch("backend.db_services.mysql.sql_import.handlers.SQLSimulationApi", SQLSimulationApiMock)
+    @patch("backend.db_services.mysql.sql_import.handlers.BizSettings.get_setting_value")
+    def test_grammar_check_with_placeholder_sql_files(self, mock_get_setting):
+        """测试SQL语法检查 - execute_objects中的sql_files为页面占位符"/"时应放行"""
+        import json
+
+        mock_get_setting.return_value = False
+
+        url = f"/apis/mysql/bizs/{constant.BK_BIZ_ID}/sql_import/grammar_check/"
+        execute_objects_str = json.dumps([{"dbnames": ["*"], "ignore_dbnames": [], "line_id": 1, "sql_files": ["/"]}])
+        data = {
+            "cluster_type": DBType.MySQL.value,
+            "sql_content": "INSERT INTO user (name) VALUES ('test');",
+            "versions": ["MySQL-5.7"],
+            "execute_objects": execute_objects_str,
+        }
+        response = client.post(url, data=data, content_type="application/json")
+
+        # 接口层校验失败会被统一包装成 HTTP 200 + result=false，不能只看状态码
+        body = response.json()
+        assert response.status_code == status.HTTP_200_OK
+        assert body["result"] is True
+        assert isinstance(body["data"], dict)
+
+    @patch("backend.db_services.mysql.sql_import.handlers.get_storage", get_storage_mock)
+    @patch("backend.db_services.mysql.sql_import.handlers.SQLSimulationApi", SQLSimulationApiMock)
+    @patch("backend.db_services.mysql.sql_import.handlers.BizSettings.get_setting_value")
+    def test_grammar_check_reject_illegal_sql_files(self, mock_get_setting):
+        """测试SQL语法检查 - execute_objects中的sql_files非法时仍需拦截"""
+        import json
+
+        mock_get_setting.return_value = False
+
+        url = f"/apis/mysql/bizs/{constant.BK_BIZ_ID}/sql_import/grammar_check/"
+        execute_objects_str = json.dumps(
+            [{"dbnames": ["*"], "ignore_dbnames": [], "line_id": 1, "sql_files": ["../../etc/passwd"]}]
+        )
+        data = {
+            "cluster_type": DBType.MySQL.value,
+            "sql_content": "INSERT INTO user (name) VALUES ('test');",
+            "versions": ["MySQL-5.7"],
+            "execute_objects": execute_objects_str,
+        }
+        response = client.post(url, data=data, content_type="application/json")
+
+        # 校验失败同样返回 HTTP 200，通过 result/code/message 判断
+        body = response.json()
+        assert response.status_code == status.HTTP_200_OK
+        assert body["result"] is False
+        assert "../../etc/passwd" in body["message"]
+
     @patch("backend.db_services.mysql.sql_import.handlers.SQLSimulationApi", SQLSimulationApiMock)
     def test_common_grammar_check(self):
         """测试公共语法检查 - 不依赖集群和版本"""

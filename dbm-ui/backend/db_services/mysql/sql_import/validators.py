@@ -26,6 +26,10 @@ MAX_SQL_FILE_PATH_LENGTH = 255
 # 错误信息中展示的文件名最大长度，避免超长或含特殊字符的内容直接回显到前端
 MAX_ERROR_DISPLAY_LENGTH = 50
 
+# 语法检查接口的 execute_objects 中 sql_files 只是页面占位符，后端会用实际上传的文件名覆盖它，
+# 前端固定传 "/"，这里放行该占位值，其余取值仍按真实文件名收敛
+SQL_FILE_NAME_PLACEHOLDERS = {"/"}
+
 
 def _display(value: str) -> str:
     """截断用于错误提示的原始值"""
@@ -75,7 +79,15 @@ def validate_sql_file_name(file_name: str, suffix: str = None) -> str:
 
 
 def validate_sql_file_name_field(value: str) -> None:
-    """Serializer 字段级校验器，仅做通用规则，后缀由上层按集群类型决定"""
+    """
+    Serializer 字段级校验器，仅做通用规则，后缀由上层按集群类型决定
+
+    语法检查的 execute_objects 里 sql_files 是页面占位符（固定 "/"），随后会被实际的
+    上传文件名整体覆盖，不会拼进制品库路径，因此这里单独放行，避免占位符被文件名规则误拒。
+    """
+    if (value or "").strip() in SQL_FILE_NAME_PLACEHOLDERS:
+        return
+
     validate_sql_file_name(value)
 
 
