@@ -3035,7 +3035,7 @@ class ActionEnum:
         type="view",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.K8S_VICTORIAMETRICS],
-        group=_("集群管理"),
+        group=_("VictoriaMetrics"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_READ_ONLY, CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
     )
@@ -3046,7 +3046,7 @@ class ActionEnum:
         type="edit",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.K8S_VICTORIAMETRICS],
-        group=_("集群管理"),
+        group=_("VictoriaMetrics"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN, CommonActionLabel.DEVELOPER],
     )
@@ -3057,7 +3057,7 @@ class ActionEnum:
         type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.BUSINESS],
-        group=_("集群管理"),
+        group=_("VictoriaMetrics"),
         subgroup=_("集群管理"),
     )
     K8S_VICTORIAMETRICS_DESTROY = ActionMeta(
@@ -3067,7 +3067,7 @@ class ActionEnum:
         type="execute",
         related_actions=[DB_MANAGE.id],
         related_resource_types=[ResourceEnum.K8S_VICTORIAMETRICS],
-        group=_("集群管理"),
+        group=_("VictoriaMetrics"),
         subgroup=_("集群管理"),
     )
     K8S_VICTORIAMETRICS_ENABLE_DISABLE = ActionMeta(
@@ -3077,7 +3077,7 @@ class ActionEnum:
         type="execute",
         related_actions=[K8S_VICTORIAMETRICS_VIEW.id],
         related_resource_types=[ResourceEnum.K8S_VICTORIAMETRICS],
-        group=_("集群管理"),
+        group=_("VictoriaMetrics"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
@@ -3089,7 +3089,7 @@ class ActionEnum:
         type="manage",
         related_actions=[K8S_VICTORIAMETRICS_VIEW.id],
         related_resource_types=[ResourceEnum.K8S_VICTORIAMETRICS],
-        group=_("集群管理"),
+        group=_("VictoriaMetrics"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
