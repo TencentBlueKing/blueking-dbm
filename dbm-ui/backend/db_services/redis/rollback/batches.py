@@ -18,15 +18,23 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 from django.utils.translation import gettext as _
 
 from backend.db_meta.models import Cluster
-from backend.db_services.redis.rollback.constants import BACKUP_BATCH_DEFAULT_WINDOW_DAYS
+from backend.db_services.redis.rollback.constants import (
+    BACKUP_BATCH_DEFAULT_WINDOW_DAYS,
+    CLUSTER_SLOT_TOTAL,
+    TWEMPROXY_SHARD_MIN,
+    TWEMPROXY_SHARD_TOTAL,
+)
 from backend.db_services.redis.rollback.exceptions import RollbackPlanError
 from backend.db_services.redis.rollback.locator import BackupLocator
 from backend.db_services.redis.rollback.shards import (
     ShardResolver,
+    coverage_gaps,
     extract_identify_prefix,
+    format_gap_slots,
     ip_port,
     source_is_current,
 )
+from backend.db_services.redis.util import is_redis_cluster_protocal, is_twemproxy_proxy_type
 
 logger = logging.getLogger("flow")
 
@@ -177,6 +185,17 @@ class BackupBatchService:
         wanted = set(shard_values)
         return [r for r in records if (r.get("shard_value") or "") in wanted]
 
+    def _missing_slots(self, shard_values: Sequence[str]) -> str:
+        """Uncovered routing ranges of this batch; empty when complete or the type has no route space."""
+        cluster_type = self.cluster.cluster_type
+        if is_redis_cluster_protocal(cluster_type):
+            gaps = coverage_gaps(shard_values, total=CLUSTER_SLOT_TOTAL, start=0)
+        elif is_twemproxy_proxy_type(cluster_type):
+            gaps = coverage_gaps(shard_values, total=TWEMPROXY_SHARD_TOTAL, start=TWEMPROXY_SHARD_MIN)
+        else:
+            return ""
+        return format_gap_slots(gaps)
+
     def _summaries(self, records: Sequence[dict], current_by_shard: dict) -> List[Dict[str, Any]]:
         """One row per ``backup_identify``, no nested shards or files."""
         batches = []
@@ -199,6 +218,7 @@ class BackupBatchService:
                         source_is_current(round_files[0], current_by_shard.get(shard))
                         for shard, round_files in latest.items()
                     ),
+                    "missing_slots": self._missing_slots(latest.keys()),
                 }
             )
         batches.sort(key=lambda b: b["start_time"], reverse=True)

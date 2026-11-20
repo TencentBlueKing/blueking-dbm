@@ -393,6 +393,7 @@
         resource_spec: {
           redis: {
             count: rowItem.hostCount,
+            spec_id: rowItem.specId,
           },
         },
         shard_values: record.scope === 'pick' ? record.shard_values : [],
@@ -427,7 +428,7 @@
       });
   };
 
-  // 备份记录 / 构造范围 / 构造到 / binlog 勾选 / 构造主机数量任一变更后重新预校验；集群解析完成（拿到 id）后同样重跑。
+  // 备份记录 / 构造范围 / 构造到 / binlog 勾选 / 构造主机数量 / 目标规格任一变更后重新预校验；集群解析完成（拿到 id）后同样重跑。
   // 加防抖：分片变化会联动下调构造主机数量，等联动完成后再用最终参数发起校验
   const pendingPrecheckIndexes = new Set<number>();
   const schedulePrecheck = _.debounce(() => {
@@ -437,7 +438,10 @@
   }, 300);
 
   watch(
-    () => formData.tableData.map((item) => `${item.cluster.id}_${item.hostCount}_${JSON.stringify(item.backupRecord)}`),
+    () =>
+      formData.tableData.map(
+        (item) => `${item.cluster.id}_${item.hostCount}_${item.specId}_${JSON.stringify(item.backupRecord)}`,
+      ),
     (newList, oldList) => {
       newList.forEach((snapshot, index) => {
         if (snapshot !== oldList?.[index]) {

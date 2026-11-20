@@ -51,6 +51,8 @@ from backend.db_services.redis.rollback.constants import (
     SELECT_MODE_BY_TIME,
     SSD_CLUSTER_TYPES,
     TENDISPLUS_TYPES,
+    TWEMPROXY_SHARD_MIN,
+    TWEMPROXY_SHARD_TOTAL,
     infer_select_mode,
 )
 from backend.db_services.redis.rollback.exceptions import RollbackPlanError
@@ -67,10 +69,13 @@ from backend.db_services.redis.rollback.shards import (
     ShardRef,
     ShardResolver,
     coverage_gaps,
+    format_gap_slots,
+    gap_ranges,
     overlapping_shards,
     parse_shard_value,
     source_is_current,
 )
+from backend.db_services.redis.util import is_twemproxy_proxy_type
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, DEFAULT_REDIS_START_PORT, ConfigTypeEnum
 from backend.flow.engine.bamboo.scene.redis.redis_rollback.plan import (
     BinlogRef,
@@ -81,7 +86,6 @@ from backend.flow.engine.bamboo.scene.redis.redis_rollback.plan import (
     load_memory,
     memory_budget,
 )
-from backend.flow.utils.redis.redis_cluster_nodes import convert_slot_to_str
 from backend.utils.string import format_size
 from backend.utils.time import datetime2str, str2datetime
 
@@ -469,7 +473,9 @@ class RollbackPlanner:
         ref_by_shard = {ref.shard_value: ref for ref in self.resolver.from_backup_records(evaluation.batch_records)}
         current_by_shard = {ref.shard_value: ref for ref in self.resolver.from_db_meta() if ref.shard_value}
         # Proxy segments and cluster slots are both built from shard_value, so it has to parse.
-        needs_routing = self.cluster.cluster_type == ClusterType.TendisTwemproxyRedisInstance.value or self._slotted
+        needs_routing = is_twemproxy_proxy_type(self.cluster.cluster_type) or self._slotted
+        # Empty shard_values means whole-batch restore; a non-empty list is an explicit pick.
+        pick_mode = bool(self.info.get("shard_values"))
         locked = self._locked_rounds()
 
         for shard_value in shard_values:
@@ -483,13 +489,20 @@ class RollbackPlanner:
                     str(shard.ref.warning or _("分片 {} 无法按 shard_value 解析，降级为 ip:port 匹配").format(shard.shard_value))
                 )
 
-        evaluation.placeholders = self._evaluate_placeholders(evaluation, ref_by_shard, current_by_shard)
-        if evaluation.placeholders:
+        batch_placeholders, gap_placeholders = self._evaluate_placeholders(
+            evaluation, ref_by_shard, current_by_shard, needs_routing, pick_mode
+        )
+        evaluation.placeholders = batch_placeholders + gap_placeholders
+        if batch_placeholders:
             if self._slotted:
                 message = _("未勾选的分片 {} 将只拉起空实例，保证临时集群 slot 覆盖完整")
             else:
                 message = _("未勾选的分片 {} 将只拉起空实例，保证临时 Proxy 路由完整")
-            evaluation.warnings.append(str(message.format([shard.shard_value for shard in evaluation.placeholders])))
+            evaluation.warnings.append(str(message.format([shard.shard_value for shard in batch_placeholders])))
+        if gap_placeholders:
+            evaluation.warnings.append(
+                str(_("批次缺失分片 {} 将只拉起空实例占位，临时集群不含该区间数据").format([shard.shard_value for shard in gap_placeholders]))
+            )
 
         if evaluation.select_mode != SELECT_MODE_BY_TIME:
             self._resolve_recover_at(evaluation, explicit_recover_at)
@@ -497,7 +510,7 @@ class RollbackPlanner:
         if self._replays_binlog and explicit_recover_at:
             self._check_binlog_chains(evaluation)
         self._confirm_backup_presence(evaluation)
-        self._check_layout(evaluation, needs_routing)
+        self._check_layout(evaluation, needs_routing, pick_mode)
         self._check_host_count(evaluation)
         self._check_memory(evaluation)
         return evaluation
@@ -564,14 +577,28 @@ class RollbackPlanner:
         shard.source_is_current = source_is_current(round_files[0], current)
         return shard
 
+    def _route_space(self) -> tuple:
+        """``(total, start)`` of the routing space placeholders and layout checks must cover."""
+        if self._slotted:
+            return CLUSTER_SLOT_TOTAL, 0
+        return TWEMPROXY_SHARD_TOTAL, TWEMPROXY_SHARD_MIN
+
     def _evaluate_placeholders(
-        self, evaluation: PlanEval, ref_by_shard: Dict[str, ShardRef], current_by_shard: dict
-    ) -> List[ShardEval]:
-        """Unselected shards of the batch still get an empty instance.
+        self,
+        evaluation: PlanEval,
+        ref_by_shard: Dict[str, ShardRef],
+        current_by_shard: dict,
+        needs_routing: bool,
+        pick_mode: bool,
+    ) -> tuple:
+        """Unselected batch shards, plus gap ranges when the batch itself is incomplete.
 
         Partial rollback would otherwise leave the temp Proxy with segments pointing nowhere,
         making the product unreachable for keys hashing into those slots. A cluster-protocol
-        temp cluster needs them to own their slots, or it never covers all 16384.
+        temp cluster needs them to own their slots, or it never covers all 16384. Twemproxy
+        likewise needs every segment so the temp Proxy can start. Gap synthesis only runs in
+        pick mode when every selected shard passed: whole-batch restores must fail on gaps, and
+        a failed selected shard must not be silently replaced by an empty placeholder.
         """
         selected = {shard.shard_value for shard in evaluation.shards}
         missing: Dict[str, dict] = OrderedDict()
@@ -580,7 +607,7 @@ class RollbackPlanner:
             if not shard_value or shard_value in selected or shard_value in missing:
                 continue
             missing[shard_value] = record
-        return [
+        batch_placeholders = [
             ShardEval(
                 shard_value=shard_value,
                 ref=ref_by_shard.get(shard_value) or ShardRef(shard_value=shard_value, resolvable=False),
@@ -591,6 +618,28 @@ class RollbackPlanner:
             )
             for shard_value, record in missing.items()
         ]
+        gap_placeholders: List[ShardEval] = []
+        if pick_mode and needs_routing and not evaluation.any_shard_failed:
+            layout = [shard.shard_value for shard in evaluation.shards if shard.ok]
+            layout.extend(shard.shard_value for shard in batch_placeholders)
+            total, start = self._route_space()
+            for gap_start, gap_end in gap_ranges(coverage_gaps(layout, total=total, start=start)):
+                # Always ``start-end`` so Twemproxy's ``a-b`` server line and Cluster slots both parse.
+                shard_value = "{}-{}".format(gap_start, gap_end)
+                current = current_by_shard.get(shard_value)
+                gap_placeholders.append(
+                    ShardEval(
+                        shard_value=shard_value,
+                        ref=ref_by_shard.get(shard_value)
+                        or current
+                        or ShardRef(shard_value=shard_value, resolvable=True),
+                        source_ip="",
+                        source_port=0,
+                        in_current_topology=current is not None,
+                        is_placeholder=True,
+                    )
+                )
+        return batch_placeholders, gap_placeholders
 
     def _check_binlog_chains(self, evaluation: PlanEval) -> None:
         """Each restored shard needs an unbroken binlog chain from its own source instance.
@@ -699,13 +748,14 @@ class RollbackPlanner:
         for shard in evaluation.shards:
             shard.issues.extend(problems.get(shard.shard_value) or [])
 
-    def _check_layout(self, evaluation: PlanEval, needs_routing: bool) -> None:
-        """Overlap is fatal; partial coverage only warns, except for cluster protocol.
+    def _check_layout(self, evaluation: PlanEval, needs_routing: bool, pick_mode: bool) -> None:
+        """Overlap is fatal; uncovered routing space fails whole-batch restores.
 
-        Placeholders count towards coverage: they hold their slot range with an empty
-        instance, so a partial selection still routes completely. A cluster serves no request
-        until every slot is owned, so there the selected and placeholder shards, both taken
-        from the batch's layout, must cover all slots.
+        Placeholders (unselected batch shards and synthesized gap ranges) count towards
+        coverage so a pick-mode restore can still form a temp cluster / Proxy. Whole-batch
+        restores must cover every slot or segment; remaining gaps there are an error that
+        points the caller at pick mode. Pick mode with a failed selected shard skips gap
+        checks so a missing backup is not restated as a layout hole.
         """
         covered = [shard.shard_value for shard in evaluation.shards if shard.ok]
         covered.extend(shard.shard_value for shard in evaluation.placeholders)
@@ -714,24 +764,26 @@ class RollbackPlanner:
             pairs = ", ".join("{} / {}".format(left, right) for left, right in conflicts)
             evaluation.errors.append(str(_("所选分片存在重叠: {}").format(pairs)))
             return
-        if self._slotted:
-            layout = [shard.shard_value for shard in evaluation.shards + evaluation.placeholders]
-            gaps = coverage_gaps(layout, total=CLUSTER_SLOT_TOTAL, start=0)
-            if gaps:
-                evaluation.errors.append(
-                    str(
-                        _("批次 {} 的分片布局未覆盖全部 {} 个 slot，临时集群无法组建，缺失: {}").format(
-                            evaluation.backup_identify or "-", CLUSTER_SLOT_TOTAL, convert_slot_to_str(gaps)
-                        )
-                    )
+        if not needs_routing:
+            return
+        if pick_mode and evaluation.any_shard_failed:
+            return
+        total, start = self._route_space()
+        layout = [shard.shard_value for shard in evaluation.shards + evaluation.placeholders]
+        gaps = coverage_gaps(layout, total=total, start=start)
+        if not gaps:
+            return
+        if pick_mode:
+            # Placeholders should already have closed every hole; leftover gaps are unexpected.
+            evaluation.errors.append(str(_("指定分片构造后仍未覆盖全部路由区间，缺失: {}").format(format_gap_slots(gaps))))
+            return
+        evaluation.errors.append(
+            str(
+                _("批次 {} 的分片布局未覆盖全部 {} 个 slot，临时集群无法组建，缺失: {}。" "若只需恢复已有分片，请切换为指定分片构造").format(
+                    evaluation.backup_identify or "-", total, format_gap_slots(gaps)
                 )
-            return
-        # Coverage of the remaining shards says nothing once a selected one failed.
-        if not needs_routing or evaluation.any_shard_failed:
-            return
-        gaps = coverage_gaps(covered)
-        if gaps:
-            evaluation.warnings.append(str(_("本次构造未覆盖全部 slot，产物只含所选分片，缺失: {}").format(convert_slot_to_str(gaps))))
+            )
+        )
 
     def _check_host_count(self, evaluation: PlanEval) -> None:
         host_count = self._host_count([])
@@ -1019,7 +1071,7 @@ class RollbackPlanner:
         items: List[RollbackItem] = []
         dest_hosts: List[DestHost] = []
         for ip, chunk in zip(dest_ips, buckets):
-            chunk.sort(key=lambda it: (it.is_placeholder, it.source_ip, it.source_port))
+            chunk.sort(key=lambda it: (it.is_placeholder, it.source_ip, it.source_port, it.shard.shard_value))
             ports = [DEFAULT_REDIS_START_PORT + offset for offset in range(len(chunk))]
             task_ids: List[str] = []
             for item, port in zip(chunk, ports):

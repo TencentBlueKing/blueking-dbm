@@ -30,9 +30,10 @@ def _record(
     }
 
 
-def _service(records, refs=None, by_identify=False):
+def _service(records, refs=None, by_identify=False, cluster_type=ClusterType.TendisTwemproxyRedisInstance.value):
     cluster = MagicMock()
     cluster.immute_domain = "cache.example.db"
+    cluster.cluster_type = cluster_type
     service = BackupBatchService(cluster)
     if by_identify:
         service.locator.locate_full_by_identify = MagicMock(return_value=records)
@@ -63,6 +64,7 @@ def test_list_batches_returns_summary_without_shard_tree():
         "is_complete",
         "is_all_shards_covered",
         "source_is_all_current",
+        "missing_slots",
     }
 
 
@@ -194,6 +196,77 @@ def test_source_is_current_follows_role_at_backup_time():
     assert failed_over.list_batches()["batches"][0]["source_is_all_current"] is False
     assert unchanged.list_batches()["batches"][0]["source_is_all_current"] is True
     assert unknown.list_batches()["batches"][0]["source_is_all_current"] is False
+
+
+def test_list_batches_missing_slots_for_incomplete_cluster_batch():
+    service = _service(
+        [_record("0-5460", "a.tar"), _record("10923-16383", "c.tar", server_port=30002)],
+        cluster_type=ClusterType.TendisPredixyTendisplusCluster.value,
+    )
+
+    batch = service.list_batches()["batches"][0]
+
+    assert batch["missing_slots"] == "5461-10922"
+
+
+def test_list_batches_missing_slots_empty_when_cluster_batch_covers():
+    shards = ["0-5460", "5461-10922", "10923-16383"]
+    service = _service(
+        [_record(shard, "f{}.tar".format(i), server_port=30000 + i) for i, shard in enumerate(shards)],
+        cluster_type=ClusterType.TendisPredixyRedisCluster.value,
+    )
+
+    assert service.list_batches()["batches"][0]["missing_slots"] == ""
+
+
+def test_list_batches_missing_slots_for_incomplete_twemproxy_batch():
+    service = _service(
+        [
+            _record("0-104999", "a.aof.zst"),
+            _record("105000-209999", "b.aof.zst", server_port=30001),
+            _record("210000-314999", "c.aof.zst", server_port=30002),
+        ],
+        cluster_type=ClusterType.TwemproxyTendisSSDInstance.value,
+    )
+
+    batch = service.list_batches()["batches"][0]
+
+    assert batch["missing_slots"] == "315000-419999"
+
+
+def test_list_batches_missing_slots_empty_for_master_slave():
+    assert _master_slave_service().list_batches()["batches"][0]["missing_slots"] == ""
+
+
+def test_list_batches_missing_slots_unaffected_by_drs_fallback_topology():
+    """DRS fallback empties topology shards; missing_slots still comes from backup records alone."""
+    service = _service(
+        [_record("0-5460", "a.tar"), _record("5461-10922", "b.tar", server_port=30001)],
+        refs=[ShardRef("", current_master="1.1.1.1:30000", resolvable=False, warning="DRS down")],
+        cluster_type=ClusterType.TendisPredixyTendisplusCluster.value,
+    )
+
+    batch = service.list_batches()["batches"][0]
+
+    assert batch["is_all_shards_covered"] is False
+    assert batch["missing_slots"] == "10923-16383"
+
+
+def test_list_batches_missing_slots_follows_filtered_shard_values():
+    service = _service(
+        [
+            _record("0-5460", "a.tar"),
+            _record("5461-10922", "b.tar", server_port=30001),
+            _record("10923-16383", "c.tar", server_port=30002),
+            _record("10923-16383", "c1.tar", server_port=30002),
+        ],
+        cluster_type=ClusterType.TendisPredixyRedisCluster.value,
+    )
+
+    batch = service.list_batches(shard_values=["0-5460", "10923-16383"])["batches"][0]
+
+    assert batch["shard_count"] == 2
+    assert batch["missing_slots"] == "5461-10922"
 
 
 # --- batch_details: each shard's selected full backup -----------------------------------------

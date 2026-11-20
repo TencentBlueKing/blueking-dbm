@@ -6822,5 +6822,6 @@
   "文件名长度不能超过n个字符": "File name cannot exceed {n} characters",
   "SQL 文件【name】校验不通过：reason": "SQL file [{name}] failed validation: {reason}",
   "单次最多上传n个文件": "Up to {n} files can be uploaded at a time",
+  "该批次缺失部分分片备份（slot: n），仅支持指定分片构造": "Missing shard backups in this batch (slot: {n}); only specific-shard rollback is supported",
   "这行勿动！新增翻译请在上一行添加！": ""
 }

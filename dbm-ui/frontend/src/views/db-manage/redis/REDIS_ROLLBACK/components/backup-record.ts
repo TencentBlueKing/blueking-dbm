@@ -30,6 +30,8 @@ export interface IBackupRecord {
   current_shard_count: number;
   // 批次最晚一个分片全备完成时间（UTC），作为「构造到」的下限
   end_time: string;
+  // 批次未覆盖的连续 slot/segment；空串表示完整或无需路由
+  missing_slots: string;
   // 构造到的时间点（本地时区显示格式），空串表示仅用全备
   recovery_time_point: string;
   scope: 'all' | 'pick';
@@ -55,6 +57,7 @@ export const createBackupRecord = (values = {} as Partial<IBackupRecord>): IBack
   backup_type: BackupType.SCHEDULED,
   current_shard_count: 0,
   end_time: '',
+  missing_slots: '',
   recovery_time_point: '',
   scope: 'all',
   shard_count: 0,
@@ -63,6 +66,12 @@ export const createBackupRecord = (values = {} as Partial<IBackupRecord>): IBack
   start_time: '',
   ...values,
 });
+
+/** 批次缺失分片备份提示（与扩缩容拓扑变更区分） */
+export const getMissingSlotsWarning = (missingSlots: string) =>
+  missingSlots
+    ? t('该批次缺失部分分片备份（slot: n），仅支持指定分片构造', { n: missingSlots })
+    : '';
 
 // 备份方式文案：标识前缀 BILL 为单据备份，其余为例行备份
 export const getBackupTypeText = (identify: string) => (identify.startsWith('BILL') ? t('单据备份') : t('例行备份'));
