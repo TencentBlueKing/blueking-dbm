@@ -56,13 +56,21 @@
           :width="130" />
         <TableColumn
           col-key="bk_cloud_region"
-          :title="t('地域')" />
+          :title="t('地域')">
+          <template #default="{ row }: { row: FaultOrRecycleMachineModel }">
+            {{ getCloudRegionNameDisplay(row.bk_cloud_region) || '--' }}
+          </template>
+        </TableColumn>
         <TableColumn
           col-key="city"
           :title="t('城市')" />
         <TableColumn
           col-key="bk_cloud_zone"
-          :title="t('可用区')" />
+          :title="t('可用区')">
+          <template #default="{ row }: { row: FaultOrRecycleMachineModel }">
+            {{ getCloudZoneName(row.bk_cloud_region) || '--' }}
+          </template>
+        </TableColumn>
         <TableColumn
           col-key="sub_zone"
           :title="t('园区')" />
@@ -102,6 +110,7 @@
 
   import { useLocation } from '@hooks';
 
+  import { getCloudRegionNameDisplay, getCloudZoneName } from '@common/const';
   import { batchSplitRegex } from '@common/regex';
 
   import DbIcon from '@components/db-icon/';

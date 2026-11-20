@@ -2,7 +2,13 @@ import { useI18n } from 'vue-i18n';
 
 import { queryBizMachineAttrs } from '@services/source/dbbase';
 
-import { ClusterTypes, getCloudZoneName, specialOptionLabelMap, SpecialOptions } from '@common/const';
+import {
+  ClusterTypes,
+  getCloudRegionNameDisplay,
+  getCloudZoneName,
+  specialOptionLabelMap,
+  SpecialOptions,
+} from '@common/const';
 
 import MultipleInput from '@components/db-table/components/MultipleInput.vue';
 import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
@@ -31,6 +37,9 @@ export const useHostListTableFilter = (clusterType: ClusterTypes, clusterId: num
       const getLabel = (item: { text: string; value: string }) => {
         if (attr === 'spec_id') {
           return `${item.text} [${item.value}]`;
+        }
+        if (attr === 'bk_cloud_region') {
+          return getCloudRegionNameDisplay(item.value) || item.text;
         }
         if (attr === 'bk_cloud_zone') {
           return getCloudZoneName(item.value) || item.text;

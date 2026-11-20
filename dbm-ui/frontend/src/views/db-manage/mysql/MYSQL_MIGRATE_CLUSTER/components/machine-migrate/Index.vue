@@ -42,7 +42,7 @@
         <AvailableResourceColumn
           :params="{
             city: item.master.city,
-            bk_cloud_zone: item.master.bk_cloud_zone,
+            bk_cloud_zone_list: item.master.bk_cloud_zone ? [item.master.bk_cloud_zone] : [],
             for_bizs: [currentBizId, 0],
             resource_types: [DBTypes.MYSQL, 'PUBLIC'],
             spec_id: item.specId,

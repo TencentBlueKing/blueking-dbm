@@ -77,7 +77,7 @@
 
   import DbResourceModel from '@services/model/db-resource/DbResource';
 
-  import { getCloudZoneName, specialOptionLabelMap, SpecialOptions } from '@common/const';
+  import { getCloudRegionNameDisplay, getCloudZoneName, specialOptionLabelMap, SpecialOptions } from '@common/const';
 
   import ComFactory from '../com-factory/Index.vue';
   import fieldConfig from '../field-config';
@@ -135,14 +135,18 @@
         parts.push(
           props.value.bk_cloud_region === SpecialOptions.EMPTY
             ? specialOptionLabelMap[SpecialOptions.EMPTY]
-            : props.value.bk_cloud_region,
+            : getCloudRegionNameDisplay(props.value.bk_cloud_region),
         );
       }
-      if (props.value.bk_cloud_zone) {
+      // bk_cloud_zone_list 界面单选、值按数组存储，回显取首项
+      const zoneValue = Array.isArray(props.value.bk_cloud_zone_list)
+        ? props.value.bk_cloud_zone_list[0]
+        : props.value.bk_cloud_zone_list;
+      if (zoneValue) {
         parts.push(
-          props.value.bk_cloud_zone === SpecialOptions.EMPTY
+          zoneValue === SpecialOptions.EMPTY
             ? specialOptionLabelMap[SpecialOptions.EMPTY]
-            : getCloudZoneName(props.value.bk_cloud_zone),
+            : getCloudZoneName(zoneValue),
         );
       }
       if (props.value.subzone_ids?.length > 0) {
@@ -214,16 +218,24 @@
     };
   };
 
-  // 地域/可用区/园区组合项内部会同时变更多个字段，提交时整组同步
-  const zoneFamilyFields = ['city', 'bk_cloud_region', 'bk_cloud_zone', 'subzone_ids'];
+  // 聚合 tag 的 name（标记走整组同步分支）
+  const zoneFamilyTagName = 'city';
+  // 组合项对应的 searchParams 实际存储键
+  const zoneFamilyFields = ['bk_cloud_region', 'bk_cloud_zone_list', 'subzone_ids'];
 
   // 提交编辑状态
   const handleSubmit = () => {
     inputRef.value.getValue().then(() => {
-      if (zoneFamilyFields.includes(props.name)) {
+      if (props.name === zoneFamilyTagName) {
+        // 整组一次性提交：field-tag 按 key 逐一落库，避免逐字段 emit 任何一环丢失
+        const groupValue: Record<string, any> = {};
         zoneFamilyFields.forEach((fieldName) => {
-          emits('change', fieldName, localModel.value[fieldName]);
+          const fieldValue = localModel.value[fieldName];
+          if (!isValueEmpty(fieldValue)) {
+            groupValue[fieldName] = fieldValue;
+          }
         });
+        emits('change', props.name, groupValue);
       } else if (valueMemo !== undefined) {
         emits('change', props.name, valueMemo);
       }

@@ -47,7 +47,7 @@
           <ResourceTagColumn v-model="item.labels" />
           <AvailableResourceColumn
             :params="{
-              bk_cloud_zone: item.cluster.cloud_zone,
+              bk_cloud_zone_list: item.cluster.cloud_zone ? [item.cluster.cloud_zone] : [],
               city: item.cluster.city,
               for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],

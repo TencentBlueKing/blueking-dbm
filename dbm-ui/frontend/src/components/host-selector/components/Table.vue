@@ -90,7 +90,7 @@
         :title="t('地域')"
         :width="120">
         <template #default="{ row }: { row: IRowData }">
-          {{ row.bk_cloud_region || '--' }}
+          {{ getCloudRegionNameDisplay(row.bk_cloud_region) || t('未知') }}
         </template>
       </TableColumn>
       <TableColumn
@@ -197,7 +197,13 @@
 
   import { queryBizMachineAttrs } from '@services/source/dbbase';
 
-  import { ClusterTypes, getCloudZoneName, specialOptionLabelMap, SpecialOptions } from '@common/const';
+  import {
+    ClusterTypes,
+    getCloudRegionNameDisplay,
+    getCloudZoneName,
+    specialOptionLabelMap,
+    SpecialOptions,
+  } from '@common/const';
   import { batchSplitRegex, ipPort, ipv4 } from '@common/regex';
 
   import MultipleInput from '@components/db-table/components/MultipleInput.vue';
@@ -268,6 +274,9 @@
       const getLabel = (item: { text: string; value: string }) => {
         if (attr === 'spec_id') {
           return `${item.text} [${item.value}]`;
+        }
+        if (attr === 'bk_cloud_region') {
+          return getCloudRegionNameDisplay(item.value) || item.text;
         }
         if (attr === 'bk_cloud_zone') {
           return getCloudZoneName(item.value) || item.text;

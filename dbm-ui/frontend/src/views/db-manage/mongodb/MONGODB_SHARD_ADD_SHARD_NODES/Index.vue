@@ -98,7 +98,7 @@
             <AvailableResourceColumn
               :params="{
                 city: item.cluster.region,
-                bk_cloud_zone: item.cluster.cluster_cloud_zones.join(',') || undefined,
+                bk_cloud_zone_list: item.cluster.cluster_cloud_zones || undefined,
                 for_bizs: [currentBizId, 0],
                 resource_types: [DBTypes.MONGODB, 'PUBLIC'],
                 spec_id: item.cluster.mongodb?.[0]?.spec_config.id,

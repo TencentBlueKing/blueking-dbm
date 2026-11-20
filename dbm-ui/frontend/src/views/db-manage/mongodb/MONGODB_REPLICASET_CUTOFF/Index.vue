@@ -104,7 +104,7 @@
             @batch-edit="handleBatchEdit" />
           <AvailableResourceColumn
             :params="{
-              bk_cloud_zone: item.host.bk_cloud_zone || undefined,
+              bk_cloud_zone_list: item.host.bk_cloud_zone ? [item.host.bk_cloud_zone] : undefined,
               city: item.host.related_clusters?.[0]?.region,
               for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.MONGODB, 'PUBLIC'],

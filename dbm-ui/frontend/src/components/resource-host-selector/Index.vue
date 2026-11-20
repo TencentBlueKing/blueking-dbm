@@ -71,7 +71,7 @@
             :title="t('地域')"
             width="120">
             <template #default="{ row }: { row: DbResourceModel }">
-              {{ row.bk_cloud_region || '--' }}
+              {{ getCloudRegionNameDisplay(row.bk_cloud_region) || '--' }}
             </template>
           </TableColumn>
           <TableColumn
@@ -172,7 +172,7 @@
   import DbResourceModel from '@services/model/db-resource/DbResource';
   import type { HostInfo } from '@services/types';
 
-  import { getCloudZoneName } from '@common/const/cloudZone.ts';
+  import { getCloudRegionNameDisplay, getCloudZoneName } from '@common/const/cloudZone.ts';
 
   import HostAgentStatus from '@components/host-agent-status/Index.vue';
   import ResourceHostOwner from '@components/resource-host-owner/Index.vue';

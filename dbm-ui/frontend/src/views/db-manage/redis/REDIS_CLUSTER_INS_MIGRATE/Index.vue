@@ -71,7 +71,7 @@
               @batch-edit="handleBatchEdit" />
             <AvailableResourceColumn
               :params="{
-                bk_cloud_zone: item.batchInstance.bk_cloud_zone || undefined,
+                bk_cloud_zone_list: item.batchInstance.bk_cloud_zone ? [item.batchInstance.bk_cloud_zone] : [],
                 city: item.batchInstance.region,
                 for_bizs: [currentBizId, 0],
                 resource_types: [DBTypes.REDIS, 'PUBLIC'],

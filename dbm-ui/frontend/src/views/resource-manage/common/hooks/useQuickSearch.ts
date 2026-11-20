@@ -7,7 +7,7 @@ import FaultOrRecycleMachineModel from '@services/model/db-resource/FaultOrRecyc
 import { queryDirtyMachineAttrs } from '@services/source/dbbase';
 import { getUserList } from '@services/source/user';
 
-import { getCloudZoneName, specialOptionLabelMap, SpecialOptions } from '@common/const';
+import { getCloudRegionNameDisplay, getCloudZoneName, specialOptionLabelMap, SpecialOptions } from '@common/const';
 import { ipPort, ipv4 } from '@common/regex';
 
 import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
@@ -25,8 +25,19 @@ export const useQuickSearch = (pool?: ServiceParameters<typeof queryDirtyMachine
       machine_attrs: dirtyMachineAttrs.join(','),
       pool,
     }).then((data) => {
+      const getLabel = (item: { text: string; value: string }) => {
+        if (attr === 'bk_cloud_region') {
+          return getCloudRegionNameDisplay(item.value) || item.text;
+        }
+        if (attr === 'bk_cloud_zone') {
+          return getCloudZoneName(item.value) || item.text;
+        }
+
+        return item.text;
+      };
+
       const formatList = data[attr].map((item) => ({
-        label: attr === 'bk_cloud_zone' ? getCloudZoneName(item.value) : item.text,
+        label: getLabel(item),
         value: item.value,
       }));
 

@@ -42,7 +42,7 @@
             @batch-edit="handleBatchEditColumn" />
           <AvailableResourceColumn
             :params="{
-              bk_cloud_zone: item.multipleCluster.cloud_zone,
+              bk_cloud_zone_list: item.multipleCluster.cloud_zone ? [item.multipleCluster.cloud_zone] : [],
               city: item.multipleCluster.city,
               for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.MYSQL, 'PUBLIC'],

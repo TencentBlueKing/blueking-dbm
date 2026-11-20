@@ -99,7 +99,7 @@
         :title="t('地域')"
         :width="80">
         <template #default="{ row }: { row: FaultOrRecycleMachineModel }">
-          {{ row.bk_cloud_region || '--' }}
+          {{ getCloudRegionNameDisplay(row.bk_cloud_region) || t('未知') }}
         </template>
       </TableColumn>
       <TableColumn
@@ -232,7 +232,7 @@
 
   import { useTableSettings } from '@hooks';
 
-  import { getCloudZoneName } from '@common/const';
+  import { getCloudRegionNameDisplay, getCloudZoneName } from '@common/const';
   import { UserPersonalSettings } from '@common/const/userPersonalSettings';
 
   import DbStatus from '@components/db-status/index.vue';

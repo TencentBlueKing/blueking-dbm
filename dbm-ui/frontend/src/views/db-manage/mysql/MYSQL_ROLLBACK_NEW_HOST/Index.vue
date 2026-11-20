@@ -319,9 +319,7 @@
         return acc;
       }
       const count =
-        roleConfig.machineType === MachineTypes.MYSQL_PROXY
-          ? 2
-          : specs.reduce((total, item) => total + item.count, 0);
+        roleConfig.machineType === MachineTypes.MYSQL_PROXY ? 2 : specs.reduce((total, item) => total + item.count, 0);
       const boundSpecs = specs.filter((item) => !isUnbound(item));
       let specId = boundSpecs[0]?.spec_ids[0] || 0;
       let specName = boundSpecs[0] ? boundSpecs[0].spec_name : '';

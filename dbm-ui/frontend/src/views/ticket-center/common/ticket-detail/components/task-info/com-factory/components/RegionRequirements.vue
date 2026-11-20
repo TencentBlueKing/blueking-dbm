@@ -8,7 +8,7 @@
       {{ details.bk_cloud_name || '--' }}
     </InfoItem>
     <InfoItem :label="t('地域')">
-      {{ details.bk_cloud_region === 'default' ? t('随机') : details.bk_cloud_region || '--' }}
+      {{ getCloudRegionNameDisplay(details.bk_cloud_region) || '--' }}
     </InfoItem>
     <InfoItem
       v-if="showZoneItem"
@@ -21,7 +21,7 @@
 <script lang="ts" setup>
   import { useI18n } from 'vue-i18n';
 
-  import { Affinity, affinityMap, getCloudZoneName } from '@common/const';
+  import { Affinity, affinityMap, getCloudRegionNameDisplay, getCloudZoneName } from '@common/const';
 
   import InfoList, { Item as InfoItem } from './info-list/Index.vue';
 

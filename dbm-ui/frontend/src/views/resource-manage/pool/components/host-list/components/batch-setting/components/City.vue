@@ -16,21 +16,26 @@
     v-model="modelValue"
     filterable
     :loading="isLoading"
-    :placeholder="t('请选择地域')">
+    :placeholder="t('请选择城市')">
     <DbOption
       v-for="item in cityList"
-      :key="item.bk_idc_city_id"
-      :label="item.bk_idc_city_name"
-      :value="item.bk_idc_city_id">
-    </DbOption>
+      :key="item.city_code"
+      :label="item.city_name"
+      :value="item.city_code" />
   </DbSelect>
 </template>
+
 <script setup lang="ts">
-  import _ from 'lodash';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
-  import { listLogicCities } from '@services/source/infras';
+  import { getInfrasCities, getInfrasSubzonesByCity } from '@services/source/infras';
+
+  interface Props {
+    formData: {
+      bk_cloud_region: string;
+    };
+  }
 
   interface Expose {
     getValue: () =>
@@ -43,26 +48,50 @@
       | undefined;
   }
 
+  const props = defineProps<Props>();
+
   const modelValue = defineModel<string>({
     required: true,
   });
 
   const { t } = useI18n();
 
-  const { data: cityData, loading: isLoading } = useRequest(listLogicCities);
+  const { data: cityData, loading: isLoading } = useRequest(getInfrasCities);
 
-  const cityList = computed(() => cityData.value?.filter((item) => item.bk_idc_city_name !== 'default'));
+  // 层级限制：城市候选按已选云区域过滤（该云区域下园区登记过的城市代码集合）
+  const { data: subzoneList } = useRequest(getInfrasSubzonesByCity);
+
+  const cityList = computed(() => {
+    const list = cityData.value || [];
+    if (!props.formData.bk_cloud_region) {
+      return list.filter((item) => item.city_name !== 'default');
+    }
+    const regionCityCodes = new Set(
+      (subzoneList.value || [])
+        .filter((item) => item.bk_cloud_region === props.formData.bk_cloud_region)
+        .map((item) => item.bk_city_code),
+    );
+    return list.filter((item) => regionCityCodes.has(item.city_code));
+  });
+
+  watch(
+    () => props.formData.bk_cloud_region,
+    () => {
+      modelValue.value = '';
+    },
+  );
 
   defineExpose<Expose>({
     getValue() {
-      if (!_.isNumber(modelValue.value)) {
+      if (!modelValue.value) {
         return;
       }
+      const matched = (cityList.value || []).find((item) => item.city_code === modelValue.value)!;
       return {
         city_meta: {
-          city: (cityList.value || []).find((item) => item.bk_idc_city_id === Number(modelValue.value))!
-            .bk_idc_city_name,
-          city_id: String(modelValue.value),
+          city: matched.city_name,
+          // cities 接口无独立城市 id，city_id 用城市代码
+          city_id: matched.city_code,
         },
       };
     },

@@ -208,7 +208,7 @@
 
   import { useTicketModifyState } from '@hooks';
 
-  import { ClusterTypes, DBTypes } from '@common/const';
+  import { Affinity, ClusterTypes, DBTypes } from '@common/const';
 
   import ResourcePreview from '@views/db-manage/common/apply-items/ResourcePreview.vue';
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
@@ -432,13 +432,23 @@
   };
 
   const fetchSpecResourceCount = _.debounce(() => {
-    getSpecResourceCount({
+    const zoneNames = props.zoneList.map((item) => `${item}`);
+    const params: ServiceParameters<typeof getSpecResourceCount> = {
       bk_biz_id: Number(props.bizId),
       bk_cloud_id: Number(props.cloudId),
       bk_cloud_region: props.region,
-      bk_cloud_zone: props.zoneList.map((item) => `${item}`),
       spec_ids: specs.value.map((item) => item.spec_id),
-    }).then((data) => {
+    };
+    if (zoneNames.length) {
+      // 指定可用区为单选：按单可用区查询；跨可用区（含强/弱）为多选：按多可用区查询并按可用区分组
+      if (props.disasterToleranceLevel === Affinity.SAME_SUBZONE_CROSS_SWTICH) {
+        params.bk_cloud_zone = zoneNames[0];
+      } else {
+        params.sub_zone_ids = zoneNames;
+        params.group_by_cloud_zone = true;
+      }
+    }
+    getSpecResourceCount(params).then((data) => {
       const countMap = 'total' in data ? data.total : data;
       renderSpecs.value = specs.value.map((item) => ({
         ...item,

@@ -16,6 +16,7 @@ import { useGlobalBizs } from '@stores';
 import {
   DeviceClass,
   deviceClassDisplayMap,
+  getCloudRegionNameDisplay,
   getCloudZoneName,
   readResourceDbTypes,
   specialOptionLabelMap,
@@ -112,7 +113,7 @@ export default (props: any) => {
       {
         id: 'bk_cloud_region',
         list: regionList.value?.map((item) => ({
-          label: item.display_name,
+          label: getCloudRegionNameDisplay(item.bk_cloud_region),
           value: item.bk_cloud_region,
         })),
         name: t('地域'),
@@ -214,7 +215,7 @@ export default (props: any) => {
       name: t('地域'),
       props: {
         list: (regionList.value || []).map((item) => ({
-          label: item.display_name,
+          label: getCloudRegionNameDisplay(item.bk_cloud_region),
           value: item.bk_cloud_region,
         })),
       },

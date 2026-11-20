@@ -28,7 +28,7 @@
         <div class="sub-title">
           <template v-if="params?.bk_cloud_region">
             <div class="sub-title-label">{{ t('地域') }}:</div>
-            <div class="sub-title-value">{{ getCloudZoneName(params.bk_cloud_zone) }}</div>
+            <div class="sub-title-value">{{ getCloudRegionNameDisplay(params.bk_cloud_region) }}</div>
           </template>
           <template v-if="params?.city">
             <div class="sub-title-label">{{ t('城市') }}:</div>
@@ -106,12 +106,12 @@
           :min-width="120"
           :title="t('地域')">
           <template #default="{ row }: { row: DbResourceModel }">
-            {{ row.bk_cloud_region || '--' }}
+            {{ getCloudRegionNameDisplay(row.bk_cloud_region) || '--' }}
           </template>
         </TableColumn>
         <TableColumn
-          col-key="bk_cloud_zone"
-          :filter="filterOption['bk_cloud_zone']"
+          col-key="bk_cloud_zone_list"
+          :filter="filterOption['bk_cloud_zone_list']"
           :min-width="120"
           :title="t('可用区')">
           <template #default="{ row }: { row: DbResourceModel }">
@@ -158,7 +158,7 @@
   import { listTag } from '@services/source/tag';
   import type { HostInfo } from '@services/types';
 
-  import { getCloudZoneName } from '@common/const';
+  import { getCloudRegionNameDisplay, getCloudZoneName } from '@common/const';
 
   import DbTable from '@components/db-table/IndexNew.vue';
   import HostAgentStatus from '@components/host-agent-status/Index.vue';
@@ -171,7 +171,7 @@
     params: {
       bk_cloud_ids?: string;
       bk_cloud_region?: string;
-      bk_cloud_zone?: string;
+      bk_cloud_zone_list?: string[];
       city?: string;
       for_biz?: number;
       for_bizs?: number[];
@@ -215,9 +215,12 @@
   });
 
   // 头部「可用区」展示：bk_cloud_zone 为逗号分隔的可用区标识，拆分逐个转展示名
-  const zoneNameDisplay = computed(() =>
-    (props.params.bk_cloud_zone || '').split(',').filter(Boolean).map(getCloudZoneName).join('、'),
-  );
+  const zoneNameDisplay = computed(() => {
+    if (props.params.bk_cloud_zone_list && props.params.bk_cloud_zone_list.length > 0) {
+      return (props.params.bk_cloud_zone_list || []).filter(Boolean).map(getCloudZoneName).join('、');
+    }
+    return '';
+  });
 
   const { data: specInfo, run: queryResourceSpec } = useRequest(getResourceSpec, {
     manual: true,
@@ -242,7 +245,7 @@
       ...props.params,
       bk_biz_id: undefined, // 资源池参数用for_biz,把db-table内置的bk_biz_id去掉
       bk_cloud_region: props.params.bk_cloud_region || undefined,
-      bk_cloud_zone: props.params.bk_cloud_zone || undefined,
+      bk_cloud_zone_list: props.params.bk_cloud_zone_list || undefined,
       city: props.params.city || undefined,
       labels: labels || undefined, // 不传即为不限制（即通用无标签）
       spec_id: props.params.spec_id ? String(props.params.spec_id) : undefined,

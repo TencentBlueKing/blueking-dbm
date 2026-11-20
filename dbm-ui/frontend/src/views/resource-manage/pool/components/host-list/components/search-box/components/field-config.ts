@@ -29,6 +29,8 @@ type Config = {
   flex?: number;
   getNameByKey?: (value: string | number, item: any) => string | undefined;
   label?: string;
+  /** array 类型提交时的形态：默认逗号分隔字符串；true 时数组原样透传 */
+  rawArray?: boolean;
   service?: (params?: any) => Promise<Array<any>> | Promise<any>;
   type: 'number' | 'string' | 'array' | 'rang';
   validator?: (value: any) => boolean | string;
@@ -52,10 +54,22 @@ export default {
     service: getCloudList,
     type: 'array',
   },
+  bk_cloud_region: {
+    // 「地域 - 可用区 - 园区」级联第 1 层：CitySubzones 选到哪层就搜到哪层，各级参数独立入参
+    label: t('地域'),
+    type: 'string',
+  },
+  bk_cloud_zone_list: {
+    // 级联第 2 层：搜可用区时同时带上已选地域；界面单选，提交按数组传（如 ["ap-guangzhou-3"]）
+    label: t('可用区'),
+    rawArray: true,
+    type: 'array',
+  },
   city: {
     component: 'city',
     label: t('地域 - 可用区 - 园区'),
-    service: getInfrasSubzonesByCity,
+    // 回显用：返回园区原始数组（bk_sub_zone_id / bk_sub_zone），供聚合 tag 把园区 id 映射为名称
+    service: (params?: any) => getInfrasSubzonesByCity(params),
     type: 'string',
   },
   cpu: {

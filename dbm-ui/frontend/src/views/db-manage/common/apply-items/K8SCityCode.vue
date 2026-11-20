@@ -25,10 +25,10 @@
         <div class="region-group-item-box">
           <div
             v-for="info of cityData"
-            :key="info.regionCode"
+            :key="info.bkCloudRegion"
             class="region-group-item">
-            <BkRadioButton :label="info.regionCode">
-              {{ info.regionName }}
+            <BkRadioButton :label="info.bkCloudRegion">
+              {{ getCloudRegionNameDisplay(info.bkCloudRegion) }}
             </BkRadioButton>
           </div>
         </div>
@@ -46,16 +46,28 @@
 
   import { useTicketModifyState } from '@hooks';
 
+  import { getCloudRegionNameDisplay } from '@common/const';
+
   interface Props {
     applyMode: string;
     bkBizId?: number | string;
   }
 
+  type Emits = (e: 'change', value: string) => void;
+
   const props = withDefaults(defineProps<Props>(), {
     bkBizId: '',
   });
+
+  const emits = defineEmits<Emits>();
+
   const modelValue = defineModel<string>({
     required: true,
+  });
+
+  // 选中地域（bkCloudRegion）变化时通知外层同步 bk_cloud_region / city_code 等字段
+  watch(modelValue, (value) => {
+    emits('change', value);
   });
 
   const { t } = useI18n();
@@ -74,7 +86,7 @@
     manual: true,
     onSuccess(data) {
       // 部署类型/业务变化后已选地域可能不在新列表中，清空避免提交失效数据
-      if (modelValue.value && !data.some((item) => item.regionCode === modelValue.value)) {
+      if (modelValue.value && !data.some((item) => item.bkCloudRegion === modelValue.value)) {
         modelValue.value = '';
       }
     },

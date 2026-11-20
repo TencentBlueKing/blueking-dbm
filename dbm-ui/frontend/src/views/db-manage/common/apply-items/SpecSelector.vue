@@ -153,13 +153,6 @@
 
   const fetchSpecResourceCount = _.debounce(() => {
     const zoneNames = props.zoneList?.map((item) => `${item}`) ?? [];
-    // 跨可用区（含强/弱）与指定可用区按可用区分组：选项外侧展示总数，popover 内按可用区展示各分得的主机数
-    const isGroupByCloudZone = [
-      Affinity.CROS_SUBZONE,
-      Affinity.CROSS_SUBZONE_STRONG,
-      Affinity.CROSS_SUBZONE_WEAK,
-      Affinity.SAME_SUBZONE_CROSS_SWTICH,
-    ].includes(props.disasterToleranceLevel as Affinity);
     const params: ServiceParameters<typeof getSpecResourceCount> = {
       bk_biz_id: Number(props.bizId),
       bk_cloud_id: Number(props.cloudId),
@@ -168,21 +161,22 @@
     if (props.region) {
       params.bk_cloud_region = props.region;
     }
-    // bk_cloud_zone 存可用区名称，后端自行做「可用区 → 园区」展开；跨可用区随机时为空（不限可用区）
     if (zoneNames.length) {
-      params.bk_cloud_zone = zoneNames;
+      // 指定可用区为单选：按单可用区查询；跨可用区（含强/弱）为多选：按多可用区查询并按可用区分组
+      if (props.disasterToleranceLevel === Affinity.SAME_SUBZONE_CROSS_SWTICH) {
+        params.bk_cloud_zone = zoneNames[0];
+      } else {
+        params.sub_zone_ids = zoneNames;
+        params.group_by_cloud_zone = true;
+      }
     }
-    if (isGroupByCloudZone) {
-      getSpecResourceCount({ ...params, group_by_cloud_zone: true }).then((data) => {
-        if ('total' in data) {
-          applySpecCount(data.total, data.by_cloud_zone);
-        }
-      });
-    } else {
-      getSpecResourceCount(params).then((data) => {
-        applySpecCount('total' in data ? data.total : data, null);
-      });
-    }
+    getSpecResourceCount(params).then((data) => {
+      if ('total' in data) {
+        applySpecCount(data.total, data.by_cloud_zone);
+      } else {
+        applySpecCount(data, null);
+      }
+    });
   }, 100);
 
   watch(

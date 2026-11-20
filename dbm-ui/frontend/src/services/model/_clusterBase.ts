@@ -3,7 +3,7 @@ import _ from 'lodash';
 import type { ClusterListNode } from '@services/types';
 
 import type { DBTypeOf, GroupedClusterTypes } from '@common/const';
-import { getCloudZoneName } from '@common/const';
+import { getCloudRegionNameDisplay, getCloudZoneName } from '@common/const';
 
 import { isRecentDays, utcDisplayTime } from '@utils';
 
@@ -81,7 +81,7 @@ export default class ClusterBase<T extends GroupedClusterTypes = GroupedClusterT
     if (!this.bk_cloud_region || this.bk_cloud_region === 'default') {
       return t('随机');
     }
-    return this.bk_cloud_region;
+    return getCloudRegionNameDisplay(this.bk_cloud_region);
   }
 
   get updateAtDisplay() {

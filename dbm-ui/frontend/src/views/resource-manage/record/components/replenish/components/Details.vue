@@ -225,7 +225,7 @@
             :title="t('地域')"
             :width="100">
             <template #default="{ row }: { row: RowData }">
-              {{ row.bk_cloud_region || row.city || '--' }}
+              {{ getCloudRegionNameDisplay(row.bk_cloud_region) || '--' }}
             </template>
           </TableColumn>
           <!-- 可用区 -->
@@ -340,7 +340,7 @@
 
   import { useSystemEnviron } from '@stores';
 
-  import { DBTypeInfos, getCloudZoneName, TicketTypes } from '@common/const';
+  import { DBTypeInfos, getCloudRegionNameDisplay, getCloudZoneName, TicketTypes } from '@common/const';
 
   import TicketStatusTag from '@components/ticket-status-tag/Index.vue';
 

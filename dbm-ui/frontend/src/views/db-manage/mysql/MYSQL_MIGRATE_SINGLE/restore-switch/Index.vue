@@ -55,7 +55,7 @@
       <AvailableResourceColumn
         :params="{
           city: item.host.city,
-          bk_cloud_zone: item.host.bk_cloud_zone,
+          bk_cloud_zone_list: item.host.bk_cloud_zone ? [item.host.bk_cloud_zone] : [],
           for_bizs: [currentBizId, 0],
           resource_types: [DBTypes.MYSQL, 'PUBLIC'],
           spec_id: item.specId,

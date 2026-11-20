@@ -34,6 +34,8 @@
 
   interface Props {
     formData: {
+      bk_cloud_region: string;
+      bk_cloud_zone: string;
       city_meta: string;
     };
   }
@@ -59,17 +61,24 @@
 
   const { data: subzoneList, loading: isLoading } = useRequest(getInfrasSubzonesByCity);
 
+  // 层级限制：园区候选按已选 云区域 → 城市 → 云可用区 逐层过滤（园区归属数据自带各层字段）
   const optionList = computed(() => {
-    if (props.formData.city_meta) {
-      return (subzoneList.value || []).filter(
-        (subzoneItem) => subzoneItem.bk_city === Number(props.formData.city_meta),
-      );
+    let list = subzoneList.value || [];
+    if (props.formData.bk_cloud_region) {
+      list = list.filter((item) => item.bk_cloud_region === props.formData.bk_cloud_region);
     }
-    return subzoneList.value;
+    if (props.formData.city_meta) {
+      // city_meta 存城市代码（City 组件的选中值），与园区归属数据的 bk_city_code 同域
+      list = list.filter((item) => item.bk_city_code === props.formData.city_meta);
+    }
+    if (props.formData.bk_cloud_zone) {
+      list = list.filter((item) => item.bk_cloud_zone === props.formData.bk_cloud_zone);
+    }
+    return list;
   });
 
   watch(
-    () => props.formData.city_meta,
+    () => [props.formData.bk_cloud_region, props.formData.city_meta, props.formData.bk_cloud_zone],
     () => {
       modelValue.value = '';
     },

@@ -26,10 +26,10 @@
         <div class="region-group-item-box">
           <div
             v-for="info of commonList"
-            :key="info.bk_cloud_region"
+            :key="info"
             class="region-group-item">
-            <BkRadioButton :label="info.bk_cloud_region">
-              {{ info.display_name }}
+            <BkRadioButton :label="info">
+              {{ getCloudRegionNameDisplay(info) }}
             </BkRadioButton>
           </div>
           <BkButton
@@ -53,10 +53,10 @@
           class="region-group-item-box">
           <div
             v-for="info of uncommonList"
-            :key="info.bk_cloud_region"
+            :key="info"
             class="region-group-item">
-            <BkRadioButton :label="info.bk_cloud_region">
-              {{ info.display_name }}
+            <BkRadioButton :label="info">
+              {{ getCloudRegionNameDisplay(info) }}
             </BkRadioButton>
           </div>
         </div>
@@ -67,7 +67,6 @@
 </template>
 
 <script setup lang="ts">
-  import type { UnwrapRef } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
 
@@ -75,7 +74,7 @@
 
   import { useTicketModifyState } from '@hooks';
 
-  import { Affinity } from '@common/const';
+  import { Affinity, getCloudRegionNameDisplay } from '@common/const';
 
   const modelValue = defineModel<{
     bk_cloud_region: string;
@@ -91,8 +90,8 @@
 
   const showInternalList = ref(false);
 
-  const commonList = shallowRef<NonNullable<UnwrapRef<typeof regionData>>['common']>();
-  const uncommonList = shallowRef<NonNullable<UnwrapRef<typeof regionData>>['uncommon']>();
+  const commonList = shallowRef<string[]>();
+  const uncommonList = shallowRef<string[]>();
 
   const { data: regionData, loading } = useRequest(getInfrasCommonCloudRegions);
 
@@ -100,14 +99,14 @@
     [regionData, () => modelValue.value.disaster_tolerance_level],
     () => {
       if (regionData.value) {
-        const { common, uncommon } = regionData.value;
+        const common = regionData.value.common.map((item) => item.bk_cloud_region);
+        const uncommon = regionData.value.uncommon.map((item) => item.bk_cloud_region);
         // 随机（default）只在跨机架 / 尽量分散 / 无容灾级别下可选
         const showRandomRegion = [Affinity.CROSS_RACK, Affinity.MAX_EACH_ZONE_EQUAL, Affinity.NONE].includes(
           modelValue.value.disaster_tolerance_level as Affinity,
         );
-        const randomItem = { bk_cloud_region: 'default', display_name: t('随机') };
         if (showRandomRegion) {
-          commonList.value = [randomItem, ...common];
+          commonList.value = ['default', ...common];
           uncommonList.value = uncommon;
         } else {
           commonList.value = common;
@@ -142,7 +141,7 @@
 
       :deep(.bk-radio-button-label) {
         display: block;
-        width: 130px !important;
+        width: 100px !important;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
