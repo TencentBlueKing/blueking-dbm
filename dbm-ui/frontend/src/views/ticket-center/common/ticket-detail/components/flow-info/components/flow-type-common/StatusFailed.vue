@@ -63,10 +63,10 @@
         </ProcessRetry>
       </div>
       <!-- 系统自动终止 -->
-      <template v-if="data.err_code === 3 && data.context.expire_time && renderTodoList.length === 0">
+      <template v-if="data.err_code === 3 && data.context.expire_time_hours && renderTodoList.length === 0">
         <div style="margin-top: 8px; color: #ea3636">
           <span>{{ t('system已处理') }}</span>
-          <span> ({{ t('超过n天未处理，自动终止', { n: data.context.expire_time }) }}) </span>
+          <span> ({{ t('超过n小时未处理，自动终止', { n: data.context.expire_time_hours }) }}) </span>
         </div>
         <div class="flow-time">
           {{ utcDisplayTime(data.update_at) }}
