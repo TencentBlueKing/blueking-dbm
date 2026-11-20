@@ -70,16 +70,17 @@ func (f *GoFlashback) Init() error {
 		SourceBinlogFormat: "ROW", // 这里只代表 flashback 要求 ROW 模式，源实例 binlog_format 在 PreCheck 里会判断
 		ParseOnly:          true,
 		BinlogOpt: &restore.GoMySQLBinlogUtil{
-			Flashback:             true, // --flashback 模式
-			DisableLogBin:         false,
-			Idempotent:            true,
-			Autocommit:            true,
-			SkipGtids:             true,
-			Databases:             f.FlashbackOpt.Databases,
-			Tables:                f.FlashbackOpt.Tables,
-			ExcludeDatabases:      f.FlashbackOpt.DatabasesIgnore,
-			ExcludeTables:         f.FlashbackOpt.TablesIgnore,
-			ConvRowsUpdateToWrite: f.FlashbackOpt.ConvRowsUpdateToWrite,
+			Flashback:               true, // --flashback 模式
+			DisableLogBin:           false,
+			Idempotent:              true,
+			Autocommit:              true,
+			SkipGtids:               true,
+			Databases:               f.FlashbackOpt.Databases,
+			Tables:                  f.FlashbackOpt.Tables,
+			ExcludeDatabases:        f.FlashbackOpt.DatabasesIgnore,
+			ExcludeTables:           f.FlashbackOpt.TablesIgnore,
+			ConvRowsUpdateToWrite:   f.FlashbackOpt.ConvRowsUpdateToWrite,
+			SkipRowsEventTimeUpdate: false,
 		},
 		MySQLClientOpt: &restore.MySQLClientOpt{
 			BinaryMode:       true,
@@ -316,18 +317,6 @@ func (f *GoFlashback) PhaseExecute() error {
 	defer f.dbWorker.Close()
 
 	if err := restore.BinlogImport(taskDir, scriptName, f.dbWorker); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Start 检查版本、实例角色、 binlog 格式
-// run parse and import binlog
-func (f *GoFlashback) Start() error {
-	if err := f.flashback.Start(); err != nil {
-		return err
-	}
-	if err := f.flashback.Import(); err != nil {
 		return err
 	}
 	return nil

@@ -44,7 +44,7 @@ func NewMysqlCommand() *cobra.Command {
 				CleanMysqlCommand(),
 				PtTableSyncCommand(),
 				ParseBinlogTimeCommand(),
-				FlashbackBinlogCommand(),
+				// FlashbackBinlogCommand(),
 				NewPtTableChecksumCommand(),
 				NewInstallNewDbBackupCommand(), // 回档备份在用
 				ClearInstanceConfigCommand(),
@@ -102,6 +102,7 @@ func NewMysqlCommand() *cobra.Command {
 				RestoreDRCommand(),
 				RestoreDRAfterCommand(),
 				RecoverBinlogCommand(),
+				GoApplyBinlogCommand(),
 			},
 		},
 		{

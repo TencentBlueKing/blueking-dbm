@@ -138,10 +138,19 @@ type ExtraFields struct {
 	// 正常不关注这个备份目录，因为文件上传的到远程之后，都是用相对目录
 	// 但如果从本地获取备份文件，需要这个目录来定位
 	OriginalBackupDir string `json:"original_backup_dir" db:"original_backup_dir"`
-	// BackupFilter backup object filter db.table
+	// BackupFilter backup object filter, json string of BackupObjectFilter
 	BackupFilter string `json:"backup_filter" db:"backup_filter"`
 	// DatabaseList database list that this backup contains. we do not care about table name
 	DatabaseList []string `json:"database_list" db:"database_list"`
+}
+
+// BackupObjectFilter 本次备份的库表过滤条件，以 json 字符串存入 ExtraFields.BackupFilter
+type BackupObjectFilter struct {
+	Databases        string `json:"databases"`
+	ExcludeDatabases string `json:"exclude_databases"`
+	Tables           string `json:"tables"`
+	ExcludeTables    string `json:"exclude_tables"`
+	Regex            string `json:"regex"`
 }
 
 func (i *IndexContent) JudgeBackupMethod(cnf *config.BackupConfig) {
@@ -171,11 +180,18 @@ func (i *IndexContent) JudgeLogicalFilter(cnf *config.BackupConfig) string {
 	if cnf.Public.BackupType == cst.BackupPhysical {
 		return ""
 	}
-	if i.IsFullBackup {
-		i.BackupFilter = cnf.LogicalBackup.Regex
-		//i.BackupFilter = "*.*"
+	objFilter := BackupObjectFilter{
+		Databases:        cnf.LogicalBackup.Databases,
+		ExcludeDatabases: cnf.LogicalBackup.ExcludeDatabases,
+		Tables:           cnf.LogicalBackup.Tables,
+		ExcludeTables:    cnf.LogicalBackup.ExcludeTables,
+		Regex:            cnf.LogicalBackup.Regex,
+	}
+	if filterBytes, err := json.Marshal(objFilter); err != nil {
+		logger.Log.Warnf("marshal backup object filter failed: %s", err.Error())
+		i.BackupFilter = ""
 	} else {
-		i.BackupFilter = cnf.LogicalBackup.Regex
+		i.BackupFilter = string(filterBytes)
 	}
 	return i.BackupFilter
 }

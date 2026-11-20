@@ -1,6 +1,7 @@
 package restore
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -23,11 +24,13 @@ import (
 	"dbm-services/common/go-pubpkg/reportlog"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/common"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/dbbackup"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	binlogParser "dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/binlog-parser"
 
 	"github.com/pkg/errors"
@@ -93,6 +96,10 @@ type RecoverBinlog struct {
 	// 指定要开始应用的第 1 个 binlog。如果指定，一般要设置 start_pos，如果不指定则使用 start_time
 	// BinlogStartFile 只能由外部传入，不要内部修改
 	BinlogStartFile string `json:"binlog_start_file"`
+	// BackupIndexFile 本次恢复所使用的全备 .index 文件路径。
+	// 如果 index 里的 backup_filter 表明全备只备份了部分库，这里会直接报错，
+	// 因为 mysqlbinlog 的库表过滤语法不完整，这种场景必须改用 gomysqlbinlog(goapply-binlog)
+	BackupIndexFile string `json:"backup_index_file"`
 
 	// 如果启用 quick_mode，解析 binlog 时根据 filter databases 等选项过滤 row event，对 query event 会全部保留 。需要 mysqlbinlog 工具支持 --tables 选项，可以指定参数的 tools
 	// 当 quick_mode=false 时，recover_opt 里的 databases 等选项无效，会应用全部 binlog
@@ -277,6 +284,11 @@ func (r *RecoverBinlog) Init() error {
 		return err
 	}
 
+	// 校验全备的库过滤条件，有库过滤时不允许用 mysqlbinlog 前滚
+	if err = r.buildFilterFromBackupIndex(); err != nil {
+		return err
+	}
+
 	// quick_mode is only allowed when binlog_format=row
 	if r.SourceBinlogFormat != "ROW" && r.QuickMode {
 		r.QuickMode = false
@@ -449,7 +461,7 @@ func (r *RecoverBinlog) buildBinlogOptions() error {
 	// 逻辑导入的库表过滤规则，跟 mysqlbinlog_rollback 的库表过滤规则不一样，这里先不处理 @todo
 	// 如果 mysqlbinlog 没有 --tables 选项，也不能启用 quick_mode
 	if r.QuickMode {
-		if err := r.buildFilterOpts(); err != nil {
+		if err := r.buildFilterOpts(true); err != nil {
 			return err
 		}
 	}
@@ -475,8 +487,67 @@ func (r *RecoverBinlog) buildBinlogOptions() error {
 	return nil
 }
 
-func (r *RecoverBinlog) buildFilterOpts() error {
+// buildFilterFromBackupIndex 校验全备的库过滤条件。
+// 官方 mysqlbinlog 的库表过滤语法不完整(只有 --databases，没有 --exclude-databases/--exclude-tables)，
+// 所以全备只备份了部分库表时，不允许用 mysqlbinlog 前滚，必须改用 gomysqlbinlog(goapply-binlog)。
+// 上层无条件传入 index 路径，所以 index 缺失、backup_filter 为旧的 regex 格式等情况都只告警、按无过滤处理
+func (r *RecoverBinlog) buildFilterFromBackupIndex() error {
+	if r.BackupIndexFile == "" {
+		logger.Warn("backup_index_file is empty, binlog will apply without object filter")
+		return nil
+	}
+	indexObj := &dbbackup.BackupIndexFile{}
+	if err := dbbackup.ParseBackupIndexFile(r.BackupIndexFile, indexObj, false); err != nil {
+		logger.Warn("parse backup index file %s failed, binlog will apply without object filter: %s",
+			r.BackupIndexFile, err.Error())
+		return nil
+	}
+	if indexObj.BackupFilter == "" {
+		return nil
+	}
+	var objFilter dbareport.BackupObjectFilter
+	if err := json.Unmarshal([]byte(indexObj.BackupFilter), &objFilter); err != nil {
+		// 旧版本备份的 backup_filter 存的是 regex 而不是 json，按无过滤处理
+		logger.Warn("backup_filter is not a json string, ignore it: %s", indexObj.BackupFilter)
+		return nil
+	}
+	databases := trimSplitNonEmpty(objFilter.Databases)
+	excludeDatabases := trimSplitNonEmpty(objFilter.ExcludeDatabases)
+	isAllDatabases := len(databases) == 0 || (len(databases) == 1 && databases[0] == "*")
+	if isAllDatabases && len(excludeDatabases) == 0 {
+		// 全库备份，binlog 不需要按库过滤
+		return nil
+	}
+	return errors.Errorf(
+		"backup has db filter(databases=%v exclude_databases=%v) from %s, "+
+			"binlog should be applied by gomysqlbinlog(goapply-binlog) instead of mysqlbinlog",
+		databases, excludeDatabases, r.BackupIndexFile)
+}
+
+func trimSplitNonEmpty(s string) []string {
+	var items []string
+	for _, item := range strings.Split(s, ",") {
+		if item = strings.TrimSpace(item); item != "" {
+			items = append(items, item)
+		}
+	}
+	return items
+}
+
+// buildFilterOpts simpleFilter=true means only --databases support
+// Flashback flag will ignore simpleFilter var
+func (r *RecoverBinlog) buildFilterOpts(simpleFilter bool) error {
 	b := r.RecoverOpt
+	if simpleFilter && !b.Flashback {
+		if len(b.Tables)+len(b.DatabasesIgnore)+len(b.TablesIgnore) > 0 {
+			return errors.Errorf("simpleFilter=true only support --databases")
+		} else if len(b.Databases) > 0 {
+			r.filterOpts += fmt.Sprintf(" --databases='%s'", strings.Join(b.Databases, ","))
+		}
+		b.options += " " + r.filterOpts
+		return nil
+	}
+
 	r.filterOpts = ""
 	if b.Flashback {
 		r.filterOpts += " --flashback"
@@ -528,6 +599,7 @@ func (r *RecoverBinlog) buildFilterOpts() error {
 		r.filterOpts += fmt.Sprintf(" --filter-statement-match-ignore=\"flush ,FLUSH ,create table,CREATE TABLE\"")
 	}
 	r.filterOpts += fmt.Sprintf(" --filter-statement-match-ignore-force=\"%s\"", native.INFODBA_SCHEMA)
+
 	b.options += " " + r.filterOpts
 	return nil
 }
