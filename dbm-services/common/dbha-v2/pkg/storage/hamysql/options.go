@@ -52,6 +52,7 @@ var defaultOptions = options{
 	skipInitializeWithVersion: false,
 	disableAutomaticPing:      true,
 	logSlowThreshold:          5 * time.Second,
+	logSlowConnect:            3 * time.Second,
 }
 
 type options struct {
@@ -94,6 +95,7 @@ type options struct {
 	// The slow query threshold for SQL.
 	logger                       logger.Logger
 	logSlowThreshold             time.Duration
+	logSlowConnect               time.Duration
 	logIgnoreRecordNotFoundError bool
 	logParameterizedQueries      bool
 	disableAutomaticPing         bool
@@ -299,6 +301,17 @@ func OptionSkipInitializeWithVersion(val bool) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
 			opt.skipInitializeWithVersion = val
+			return nil
+		},
+	}
+}
+
+// OptionLogSlowConnect sets the duration at which connection establishment is logged.
+// Zero or negative disables the log.
+func OptionLogSlowConnect(val time.Duration) *funcOptions {
+	return &funcOptions{
+		f: func(opt *options) error {
+			opt.logSlowConnect = val
 			return nil
 		},
 	}
