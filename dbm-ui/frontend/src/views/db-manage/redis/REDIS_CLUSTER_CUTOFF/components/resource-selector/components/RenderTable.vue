@@ -44,7 +44,7 @@
       <TableColumn
         col-key="bk_cloud_name"
         :min-width="100"
-        :title="t('云区域')" />
+        :title="t('地域')" />
       <TableColumn
         col-key="agent_status"
         :min-width="120"

@@ -16,7 +16,7 @@
     v-model="modelValue"
     filterable
     :loading="isLoading"
-    :placeholder="t('请选择云可用区')">
+    :placeholder="t('请选择可用区')">
     <DbOption
       v-for="item in zoneList"
       :key="item"
@@ -52,7 +52,7 @@
 
   const { t } = useI18n();
 
-  // 层级限制：云可用区候选按已选 云区域 + 城市 过滤（city_meta 存城市代码，与接口 city_code 同域）
+  // 层级限制：云可用区候选按已选 地域 + 城市 过滤（city_meta 存城市代码，与接口 city_code 同域）
   const {
     data: zoneData,
     loading: isLoading,
