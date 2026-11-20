@@ -27,6 +27,11 @@ from backend.db_meta.enums.spec import SpecMachineType
 from backend.db_meta.models import AppCache, Cluster, Spec, StorageInstanceTuple
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ClusterRoleEnum, ConfigTypeEnum, RedisCapacityUpdateType
 from backend.flow.utils.base.payload_handler import PayloadHandler
+from backend.flow.utils.redis.redis_package_resolver import (
+    REDIS_PROXY_PKG_TYPES,
+    REDIS_STORAGE_PKG_TYPES,
+    RedisUpgradePackageResolver,
+)
 from backend.ticket.builders.common.base import IpSource
 from backend.ticket.builders.common.constants import REDIS_PROXY_MIN
 from backend.ticket.constants import SwitchConfirmType, TicketType
@@ -1041,6 +1046,8 @@ def redis_reinstall_dbmon(request, bk_biz_id, cluster_domain):
 
 
 def redis_version_update_online(request, bk_biz_id, cluster_domain, node_type, target_version):
+    pkg_types = REDIS_STORAGE_PKG_TYPES if node_type == ClusterRoleEnum.BACKEND else REDIS_PROXY_PKG_TYPES
+    db_version_id = RedisUpgradePackageResolver(pkg_types).resolve_target(target_version).db_version_id
     cluster_obj = Cluster.objects.get(bk_biz_id=bk_biz_id, immute_domain=cluster_domain)
     # 为了前端展示获取
     current_versions = set()
@@ -1055,7 +1062,7 @@ def redis_version_update_online(request, bk_biz_id, cluster_domain, node_type, t
         ips.add(ins.machine.ip)
     current_versions = list(current_versions)
 
-    target_versions = [{"ip": ip, "version": target_version} for ip in ips]
+    target_versions = [{"ip": ip, "db_version_id": db_version_id} for ip in ips]
 
     ticket_param = {
         "bk_biz_id": bk_biz_id,

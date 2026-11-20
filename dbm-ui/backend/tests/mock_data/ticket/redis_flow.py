@@ -243,7 +243,8 @@ REDIS_VERSION_UPDATE_DATA = {
             {
                 "node_type": "Backend",
                 "cluster_id": CLUSTER_ID,
-                "target_versions": ["redis-6.2.14"],
+                # db_version_id 由用例按造出的 V2 介质填入
+                "target_versions": [{"ip": "5.5.5.3", "db_version_id": None}],
                 "current_versions": ["redis-4.0.11-t-v1"],
             }
         ]

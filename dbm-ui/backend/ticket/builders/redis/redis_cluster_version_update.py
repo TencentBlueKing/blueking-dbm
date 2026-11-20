@@ -13,7 +13,12 @@ from rest_framework import serializers
 
 from backend.db_meta.enums.comm import RedisVerUpdateNodeType
 from backend.flow.engine.controller.redis import RedisController
-from backend.flow.utils.redis.redis_util import get_redis_engine_family
+from backend.flow.utils.redis.redis_package_resolver import (
+    RedisUpgradeTargetError,
+    compare_db_version,
+    is_cross_engine,
+    resolve_ticket_upgrade_targets,
+)
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import ParamValidateSerializerMixin, TicketBaseValidateSerializerMixin
@@ -31,7 +36,10 @@ class RedisVersionUpdateDetailSerializer(
         )
         node_type = serializers.ChoiceField(help_text=_("节点类型"), choices=RedisVerUpdateNodeType.get_choices())
         current_versions = serializers.ListField(help_text=_("当前版本列表"), child=serializers.CharField())
-        target_versions = serializers.ListField(help_text=_("目标版本信息"), child=serializers.JSONField())
+        target_versions = serializers.ListField(
+            help_text=_("目标版本信息: [{ip, db_version_id}], version_name 由后台按 db_version_id 写回"),
+            child=serializers.JSONField(),
+        )
 
     infos = serializers.ListField(help_text=_("版本升级信息"), child=UpdateInfoSerializer())
     update_type = serializers.CharField(help_text=_("更新类型"), required=False)
@@ -45,27 +53,39 @@ class RedisVersionUpdateDetailSerializer(
             if info["target_version"] in info["current_versions"]:
                 raise serializers.ValidationError(_("当前版本不能和目标版本{}一致").format(info["current_versions"]))
 
-    def validate_engine_family(self, attrs):
+    @staticmethod
+    def validate_backend_targets(attrs, db_versions):
+        """
+        Backend 目标版本与 current_versions 同引擎, 且不能低于全部当前版本;
+        按 IP 的不降级校验在 Flow 预检中做(混合版本集群里部分 IP 可能本就落后)
+        """
         for info in attrs["infos"]:
             if info["node_type"] != RedisVerUpdateNodeType.Backend.value:
                 continue
             current_versions = info["current_versions"]
             if not current_versions:
                 raise serializers.ValidationError(_("当前版本列表不能为空"))
-            current_families = {get_redis_engine_family(v) for v in current_versions}
-            target_version_names = [t["version"] if isinstance(t, dict) else t for t in info["target_versions"]]
-            target_families = {get_redis_engine_family(v) for v in target_version_names}
-            if current_families != target_families:
-                raise serializers.ValidationError(
-                    _("当前版本 {} 与目标版本 {} 引擎不同(Redis/Valkey), 不支持跨引擎版本升级, 请使用 DTS 数据迁移").format(
-                        sorted(current_versions), sorted(target_version_names)
+            for db_version_id in {t["db_version_id"] for t in info["target_versions"]}:
+                db_version = db_versions[db_version_id]
+                if any(is_cross_engine(db_version, v) for v in current_versions):
+                    raise serializers.ValidationError(
+                        _("当前版本 {} 与目标版本 {} 引擎不同(Redis/Valkey), 不支持跨引擎版本升级, 请使用 DTS 数据迁移").format(
+                            sorted(current_versions), db_version.name
+                        )
                     )
-                )
+                if all(compare_db_version(db_version, v) == -1 for v in current_versions):
+                    raise serializers.ValidationError(
+                        _("目标版本 {} 低于当前版本 {}, 不支持降级").format(db_version.name, sorted(current_versions))
+                    )
 
     def validate(self, attrs):
         # 暂时去掉对版本校验，允许同版本升级
         # self.validate_version_update(attrs)
-        self.validate_engine_family(attrs)
+        try:
+            db_versions = resolve_ticket_upgrade_targets(attrs["infos"], require_enabled=True)
+        except RedisUpgradeTargetError as e:
+            raise serializers.ValidationError(str(e))
+        self.validate_backend_targets(attrs, db_versions)
         attrs = super().validate(attrs)
         attrs = super().validated_params(attrs=attrs)
         return attrs

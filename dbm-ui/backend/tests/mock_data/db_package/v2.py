@@ -106,6 +106,56 @@ def seed_redis_v2_release_packages(pkg_specs: Iterable = REDIS_V2_RELEASE_PKG_SP
     ]
 
 
+def create_redis_package(
+    name: str,
+    pkg_type: str = PackageType.Redis.value,
+    series: str = "Redis-6",
+    *,
+    full_version: str = None,
+    phase: str = None,
+    version_name: str = None,
+    enable: bool = True,
+    version_enable: bool = True,
+    recommend: bool = False,
+    priority: int = 0,
+    pkg_version: str = None,
+    distribution: str = None,
+) -> Package:
+    """phase 为空时写入未关联 db_version 的存量 V1 介质; distribution 需以 test- 开头以便清理"""
+    db_version = None
+    if phase:
+        dist, _ = Distribution.objects.get_or_create(
+            db_type=DBType.Redis.value,
+            pkg_type=pkg_type,
+            name=distribution or f"test-{pkg_type}",
+            defaults={"engine": "", **_AUDIT},
+        )
+        series_obj, _ = VersionSeries.objects.get_or_create(distribution=dist, name=series, defaults=_AUDIT)
+        db_version = DBVersion.objects.create(
+            full_version=full_version,
+            name=version_name or name,
+            version_series=series_obj,
+            phase=phase,
+            enable=version_enable,
+            recommend=recommend,
+            **_AUDIT,
+        )
+    return Package.objects.create(
+        name=name,
+        version=pkg_version or series,
+        pkg_type=pkg_type,
+        db_type=DBType.Redis.value,
+        path=f"/tmp/{name}",
+        size=0,
+        md5="",
+        enable=enable,
+        priority=priority,
+        db_version=db_version,
+        permit_os_type=BkOsType.LINUX.value,
+        **_AUDIT,
+    )
+
+
 def clear_mysql_v2_release_packages() -> None:
     """先删 Package，再拆 V2 版本链路（外键 on_delete=PROTECT）。test- 前缀发行版统一清理。"""
     Package.objects.filter(db_version__isnull=False).delete()
