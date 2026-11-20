@@ -29,6 +29,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/analysis/apm"
@@ -95,7 +96,13 @@ func (e *SwitchExecutor) CreateRequestWithGroup(ctx context.Context, group *Fail
 
 	req := &switcher.Request{DbType: group.DbType}
 	skippedCount := 0
+	metadataInfos := make([]string, 0, len(metadatas))
 	for _, meta := range metadatas {
+		metadataInfos = append(metadataInfos, fmt.Sprintf(
+			"%s:%d,cluster:%s(%d),clusterType:%s,status:%s,role:%s,machineType:%s,bizId:%d,cloudId:%d",
+			meta.IP, meta.Port, meta.Cluster, meta.ClusterID, meta.ClusterType,
+			meta.Status, meta.InstanceRole, meta.MachineType, meta.BkBizID, meta.BkCloudID))
+
 		if meta.Status == dbm.Unavailable {
 			logger.Info("the database instance is unavailable, skipping, inst: %s",
 				instanceKey(meta.BkCloudID, meta.IP, meta.Port))
@@ -105,6 +112,9 @@ func (e *SwitchExecutor) CreateRequestWithGroup(ctx context.Context, group *Fail
 
 		req.AddDbInstMetadata(meta)
 	}
+
+	logger.Info("DBM metadata query result, requestedIps: [%s], metadatas: [%s]",
+		strings.Join(ips, ", "), strings.Join(metadataInfos, " | "))
 
 	if skippedCount > 0 {
 		logger.Debug("skipped %d unavailable instances, cloudId: %d, dbType: %s",
@@ -221,7 +231,8 @@ func excludeUnavailableInstances(groupInsts []FailureInstanceInfo, req *switcher
 		if _, ok := reqKeys[instanceKey(inst.BkCloudID, inst.IP, inst.Port)]; ok {
 			out = append(out, inst)
 		} else {
-			logger.Debug("exclude unavailable instance, cloudId: %d, dbType: %s, ip: %s, port: %d",
+			logger.Warn("exclude failure instance that cannot match strategy, no consistent metadata found, "+
+				"cloudId: %d, dbType: %s, ip: %s, port: %d",
 				inst.BkCloudID, req.DbType, inst.IP, inst.Port)
 		}
 	}
