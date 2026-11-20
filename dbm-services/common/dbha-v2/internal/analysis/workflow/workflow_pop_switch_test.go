@@ -82,10 +82,11 @@ func newWorkflowForHandleFailureGroupTests(t *testing.T, dbmClient *dbm.Client) 
 	t.Helper()
 	td := testutil.NewTestDbhaData(t)
 	return &Workflow{
-		hadata:    td.DbhaData,
-		alarm:     NewAlarmNotifier(),
-		dbmSync:   &Synchronizer{cli: dbmClient},
-		windowMgr: NewBizWindowManager(10*time.Second, 30*time.Second, "test-service"),
+		hadata:        td.DbhaData,
+		alarm:         NewAlarmNotifier(),
+		dbmSync:       &Synchronizer{cli: dbmClient},
+		windowMgr:     NewBizWindowManager(10*time.Second, 30*time.Second, "test-service"),
+		reportedCache: NewReportedInstanceCache(),
 		switchExecutor: &SwitchExecutor{
 			hadata: td.DbhaData,
 			dbmSync: &Synchronizer{

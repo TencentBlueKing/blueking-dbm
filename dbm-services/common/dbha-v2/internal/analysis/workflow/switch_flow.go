@@ -28,7 +28,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
+	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"dbm-services/common/dbha-v2/internal/analysis/apm"
@@ -95,7 +98,14 @@ func (e *SwitchExecutor) CreateRequestWithGroup(ctx context.Context, group *Fail
 
 	req := &switcher.Request{DbType: group.DbType}
 	skippedCount := 0
+	metadataIPSet := make(map[string]struct{}, len(ips))
+	returnedIPs := make([]string, 0, len(ips))
 	for _, meta := range metadatas {
+		if _, ok := metadataIPSet[meta.IP]; !ok {
+			metadataIPSet[meta.IP] = struct{}{}
+			returnedIPs = append(returnedIPs, meta.IP)
+		}
+
 		if meta.Status == dbm.Unavailable {
 			logger.Info("the database instance is unavailable, skipping, inst: %s",
 				instanceKey(meta.BkCloudID, meta.IP, meta.Port))
@@ -104,6 +114,20 @@ func (e *SwitchExecutor) CreateRequestWithGroup(ctx context.Context, group *Fail
 		}
 
 		req.AddDbInstMetadata(meta)
+	}
+
+	sort.Strings(ips)
+	sort.Strings(returnedIPs)
+	if !slices.Equal(ips, returnedIPs) {
+		var metadataInfos []string
+		for _, meta := range metadatas {
+			metadataInfos = append(metadataInfos, fmt.Sprintf(
+				"%s:%d,cluster:%s(%d),clusterType:%s,status:%s,role:%s,machineType:%s,bizId:%d,cloudId:%d",
+				meta.IP, meta.Port, meta.Cluster, meta.ClusterID, meta.ClusterType,
+				meta.Status, meta.InstanceRole, meta.MachineType, meta.BkBizID, meta.BkCloudID))
+		}
+		logger.Warn("DBM metadata IP mismatch, requestedIps: [%s], metadatas: [%s]",
+			strings.Join(ips, ", "), strings.Join(metadataInfos, " | "))
 	}
 
 	if skippedCount > 0 {
@@ -221,7 +245,10 @@ func excludeUnavailableInstances(groupInsts []FailureInstanceInfo, req *switcher
 		if _, ok := reqKeys[instanceKey(inst.BkCloudID, inst.IP, inst.Port)]; ok {
 			out = append(out, inst)
 		} else {
-			logger.Debug("exclude unavailable instance, cloudId: %d, dbType: %s, ip: %s, port: %d",
+			logger.Warn("exclude failure instance not present in DBM metadata result, "+
+				"possibleReasons: (1) metadata is unavailable and was filtered in CreateRequestWithGroup; "+
+				"(2) DBM returned no metadata for this instance; "+
+				"cloudId: %d, dbType: %s, ip: %s, port: %d",
 				inst.BkCloudID, req.DbType, inst.IP, inst.Port)
 		}
 	}

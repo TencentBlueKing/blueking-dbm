@@ -40,6 +40,7 @@ import (
 	"dbm-services/common/dbha-v2/internal/analysis/storage"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/snapshotlogger"
+	"dbm-services/common/dbha-v2/internal/analysis/switcher/switchlogger"
 	"dbm-services/common/dbha-v2/pkg/discovery"
 	"dbm-services/common/dbha-v2/pkg/gerrors"
 	"dbm-services/common/dbha-v2/pkg/haapm"
@@ -93,6 +94,7 @@ type Workflow struct {
 	detectorHandler   *DetectorHandler
 	businessChecker   *BusinessChecker
 	windowMgr         *BizWindowManager
+	reportedCache     *ReportedInstanceCache
 	popSwitchSem      chan struct{}
 	lockTracker       *InProcessLockTracker // makes the per-biz etcd switch lock reentrant within this AM
 	swSnapshotLogger  logger.Logger         // switching-snapshot-* log file; nil disables file snapshots
@@ -129,9 +131,10 @@ func New(cli *discovery.Client, db *hamysql.GormDB, disc *discovery.Discovery,
 		wflow.myServiceID, wflow.quit)
 
 	wflow.windowMgr = NewBizWindowManager(config.Cfg.Workflow.WindowDuration, config.Cfg.Workflow.InflightTTL, myServiceID)
+	wflow.reportedCache = NewReportedInstanceCache()
 	wflow.metadataReader = NewMetadataReader(wflow.hadata, wflow.discoveryCli, myServiceID)
 	wflow.switchExecutor = NewSwitchExecutor(wflow.hadata, wflow.dbmSync, wflow.switchers, myServiceID)
-	wflow.detectorHandler = NewDetectorHandler(wflow.alarm, wflow.windowMgr, myServiceID)
+	wflow.detectorHandler = NewDetectorHandler(wflow.alarm, wflow.windowMgr, wflow.reportedCache, myServiceID)
 	wflow.businessChecker = NewBusinessChecker(&wflow.StatusParser, wflow.detectorHandler)
 
 	semSize := config.Cfg.Workflow.PopSwitchSemSize
@@ -603,7 +606,7 @@ func (w *Workflow) executeSwitchAndNotifyTask(
 	case hamodel.ActionTypeSwitch:
 		w.handleStrategySwitch(ctx, snapshotLoggers, task.group, task.req, strategies)
 	case hamodel.ActionTypeNotify:
-		w.handleNotifyGroup(snapshotLoggers, task.group, strategies)
+		w.handleNotifyGroup(ctx, snapshotLoggers, task.group, strategies)
 	}
 }
 
@@ -654,41 +657,64 @@ func (w *Workflow) reportNotifySnapshot(
 	NewSwitchingSnapshotReport(snapshotLoggers, snapshotData, time.Now()).ReportNotifySnapshot()
 }
 
-func (w *Workflow) reportWhitelistNotifySnapshot(
+// reportWhitelistSkippedSwitch writes a skipped-switch snapshot and its detail logs.
+func (w *Workflow) reportWhitelistSkippedSwitch(
 	snapshotLoggers []snapshotlogger.SnapshotLogger,
 	group *FailureGroup,
 	metas []*dbm.DbInstMetadata,
-	switchRequestID string,
+	req *switcher.Request,
 	strategies []*hamodel.DbSwitchingStrategy,
 ) {
 	if w.swSnapshotLogger == nil {
 		return
 	}
 
-	notifyReq := &switcher.Request{
-		SwitchID:    generateSwitchID(),
-		ActionScope: hamodel.ActionScopeTypeNone,
-		DbType:      group.DbType,
-		InstData:    metas,
+	// req.InstData holds only whitelisted instances after filtering. An empty request
+	// means no real switch snapshot will use req.SwitchID, so reuse it here.
+	switchID := req.SwitchID
+	if req.HasDbInstMetadata() {
+		switchID = generateSwitchID()
 	}
+
 	snapshotData := NewSwitchingSnapshotData(
 		group.Strategy,
 		strategies,
 		group,
-		notifyReq,
-		hamodel.SnapshotActionTypeNotify,
+		&switcher.Request{
+			SwitchID:    switchID,
+			ActionScope: req.ActionScope,
+			DbType:      group.DbType,
+			InstData:    metas,
+		},
+		hamodel.SnapshotActionTypePreSwitch,
 		w.swSnapshotLogger,
 	)
 	if snapshotData == nil {
 		return
 	}
+	report := NewSwitchingSnapshotReport(snapshotLoggers, snapshotData, time.Now())
 
-	snapshotData.DbSwitchingSnapshotLog.Reason = fmt.Sprintf(
-		"whitelist filtered, notify only, switch request id: %s", switchRequestID)
-	NewSwitchingSnapshotReport(snapshotLoggers, snapshotData, time.Now()).ReportNotifySnapshot()
+	loggers, release, err := switchlogger.NewSwitchLoggers()
+	if err != nil {
+		logger.Error("failed to create switch logger for whitelist skipped switch, errmsg: %s", err)
+	}
+	defer release()
+
+	message := "cluster not in dbha-v2 whitelist, handed over to dbha-v1 for switching, skip switch"
+
+	switcher.ReportSwitchLogsForInstances(loggers, metas, switcher.SwitchLogContext{
+		SwitchID:    switchID,
+		ActionScope: req.ActionScope,
+		Level:       switchlogger.SwitchFail,
+		// req.SwitchID correlates this record with the whitelisted switch of the same request.
+		Message: fmt.Sprintf("[BlackWhiteList] %s; switch_id: %s", message, req.SwitchID),
+	})
+
+	report.ReportSkippedSwitchSnapshot(message)
 }
 
 func (w *Workflow) handleNotifyGroup(
+	ctx context.Context,
 	snapshotLoggers []snapshotlogger.SnapshotLogger,
 	group *FailureGroup,
 	strategies []*hamodel.DbSwitchingStrategy,
@@ -698,21 +724,43 @@ func (w *Workflow) handleNotifyGroup(
 		return
 	}
 
-	w.reportNotifySnapshot(snapshotLoggers, strategy, strategies, group)
+	now := time.Now()
 
-	var log string
-	if strategy == nil {
-		log = fmt.Sprintf(
-			"no matching strategy, execute notification only, cloudId: %d, dbType: %s, instances: [%s]",
-			group.BkCloudID, group.DbType, FormatInstanceNotifySummary(group.Instances))
-	} else {
-		log = fmt.Sprintf(
-			"strategy action is %s, execute notification, strategyId: %d, cloudId: %d, dbType: %s, instances: [%s]",
-			strategy.Action, strategy.ID, group.BkCloudID, group.DbType,
-			FormatInstanceNotifySummary(group.Instances))
+	// Collect the current event of every instance in this notify group.
+	reportEvents := buildReportEventsForInstances(group.BkBizID, group.DbType, group.Instances)
+
+	// Read instances already reported in recent notify snapshots (DB fallback).
+	reported := w.readReportedInstancesFromSnapshotLogs(ctx, group, reportLogNotifyOnly)
+
+	// Keep only changed events or instances never reported.
+	toReport := excludeAlreadyReportedForInstances(group.BkBizID, group.DbType, group.Instances, reported, reportEvents)
+
+	// Matching events inherit the DB window; the rest start a fresh window from now.
+	reportEntries := buildReportEntries(reportEvents, reported, now)
+
+	// Write the cache first so a later log/alarm failure cannot repeat the report.
+	w.reportedCache.MarkReported(reportEntries, now)
+
+	logReportedCacheMark(group, reported, reportEntries, now)
+
+	if len(toReport) > 0 {
+		group = notifyGroupWithInstances(group, toReport)
+		w.reportNotifySnapshot(snapshotLoggers, strategy, strategies, group)
+
+		var log string
+		if strategy == nil {
+			log = fmt.Sprintf(
+				"no matching strategy, execute notification only, cloudId: %d, dbType: %s, instances: [%s]",
+				group.BkCloudID, group.DbType, FormatInstanceNotifySummary(group.Instances))
+		} else {
+			log = fmt.Sprintf(
+				"strategy action is %s, execute notification, strategyId: %d, cloudId: %d, dbType: %s, instances: [%s]",
+				strategy.Action, strategy.ID, group.BkCloudID, group.DbType,
+				FormatInstanceNotifySummary(group.Instances))
+		}
+		logger.Info("%s", log)
+		w.alarm.TriggerWorkflowAlarm(group.BkBizID, log)
 	}
-	logger.Info("%s", log)
-	w.alarm.TriggerWorkflowAlarm(group.BkBizID, log)
 }
 
 func (w *Workflow) handleStrategySwitch(

@@ -57,6 +57,7 @@ var Cfg = Configuration{
 		PopSwitchSemSize:           10,
 		WindowDuration:             0,
 		InflightTTL:                30 * time.Second,
+		ReportedInstanceTTL:        10 * time.Minute,
 		SwitchTimeout:              10 * time.Minute,
 		DbmApiMetadataHashCnt:      minDbmApiMetadataHashCnt,
 		EnableWhiteListForSwitch:   true,
@@ -171,6 +172,7 @@ type WorkflowConfig struct {
 	PopInterval                time.Duration    `yaml:"popInterval"                mapstructure:"popInterval"`
 	PopSwitchSemSize           int              `yaml:"popSwitchSemSize"           mapstructure:"popSwitchSemSize"`
 	InflightTTL                time.Duration    `yaml:"inflightTTL"                mapstructure:"inflightTTL"`
+	ReportedInstanceTTL        time.Duration    `yaml:"reportedInstanceTTL"         mapstructure:"reportedInstanceTTL"`
 	SwitchTimeout              time.Duration    `yaml:"switchTimeout"              mapstructure:"switchTimeout"`
 	DbmApiMetadataHashCnt      int              `yaml:"dbmApiMetadataHashCnt"      mapstructure:"dbmApiMetadataHashCnt"`
 	SwitchFlow                 SwitchFlowConfig `yaml:"switchflow"                 mapstructure:"switchflow"`

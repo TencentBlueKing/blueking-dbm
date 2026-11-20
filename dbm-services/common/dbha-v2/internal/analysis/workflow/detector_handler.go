@@ -42,14 +42,25 @@ import (
 // DetectorHandler processes detector responses and runs liveness double-check,
 // then pushes confirmed failure instances into the sliding window for subsequent pop-switch.
 type DetectorHandler struct {
-	alarm       *AlarmNotifier
-	windowMgr   *BizWindowManager
-	myServiceID string
+	alarm         *AlarmNotifier
+	windowMgr     *BizWindowManager
+	reportedCache *ReportedInstanceCache
+	myServiceID   string
 }
 
 // NewDetectorHandler creates a DetectorHandler.
-func NewDetectorHandler(alarm *AlarmNotifier, windowMgr *BizWindowManager, serviceID string) *DetectorHandler {
-	return &DetectorHandler{alarm: alarm, windowMgr: windowMgr, myServiceID: serviceID}
+func NewDetectorHandler(
+	alarm *AlarmNotifier,
+	windowMgr *BizWindowManager,
+	reportedCache *ReportedInstanceCache,
+	serviceID string,
+) *DetectorHandler {
+	return &DetectorHandler{
+		alarm:         alarm,
+		windowMgr:     windowMgr,
+		reportedCache: reportedCache,
+		myServiceID:   serviceID,
+	}
 }
 
 // NotifyEvent sends a notification for the event before liveness double-check.
@@ -228,6 +239,13 @@ func (h *DetectorHandler) LivenessDoubleCheck(bizId int, missedInsts []detector.
 				"inst: %s, dbType: %s, clusterType: %s, machineType: %s, event: %s",
 				instanceKey(inst.BkCloudID, inst.IP, inst.Port),
 				inst.DbType, inst.ClusterType, inst.MachineType, inst.EventName)
+			continue
+		}
+
+		// Check whether this instance was already reported recently.
+		skip, info := h.reportedCache.CheckRecentReport(inst)
+		logReportedInstanceCheck(info, bizId, inst.DbType)
+		if skip {
 			continue
 		}
 
