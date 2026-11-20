@@ -6600,7 +6600,37 @@
         {
             "operation": "upsert_action",
             "data": {
+                "id": "mongodb_data_migrate",
+                "name": "MongoDB 数据迁移",
+                "name_en": "MONGODB_DATA_MIGRATE",
+                "description": "MongoDB 数据迁移",
+                "description_en": "MONGODB_DATA_MIGRATE",
+                "type": "execute",
+                "related_resource_types": [
+                    {
+                        "system_id": "bk_dbm",
+                        "id": "mongodb",
+                        "selection_mode": "all",
+                        "related_instance_selections": [
+                            {
+                                "system_id": "bk_dbm",
+                                "id": "mongodb_list"
+                            }
+                        ]
+                    }
+                ],
+                "related_actions": [],
+                "version": 1,
+                "hidden": false,
+                "group": "MongoDB",
+                "subgroup": "数据处理"
+            }
+        },
+        {
+            "operation": "upsert_action",
+            "data": {
                 "id": "mongodb_import",
+
                 "name": "MongoDB 数据导入",
                 "name_en": "MONGODB_IMPORT",
                 "description": "MongoDB 数据导入",
@@ -17591,10 +17621,14 @@
                                     "id": "mongodb_data_export"
                                 },
                                 {
+                                    "id": "mongodb_data_migrate"
+                                },
+                                {
                                     "id": "mongodb_remove_ns"
                                 }
                             ]
                         },
+
                         {
                             "name": "集群维护",
                             "name_en": "集群维护",
@@ -19094,6 +19128,9 @@
                             "id": "mongodb_data_export"
                         },
                         {
+                            "id": "mongodb_data_migrate"
+                        },
+                        {
                             "id": "mongodb_import"
                         },
                         {
@@ -20132,6 +20169,9 @@
                             "id": "mongodb_data_export"
                         },
                         {
+                            "id": "mongodb_data_migrate"
+                        },
+                        {
                             "id": "mongodb_import"
                         },
                         {
@@ -21116,6 +21156,10 @@
                             },
                             {
                                 "id": "mongodb_data_export",
+                                "required": true
+                            },
+                            {
+                                "id": "mongodb_data_migrate",
                                 "required": true
                             },
                             {

@@ -23,6 +23,8 @@ class MachineType(StrStructuredEnum):
     MYSQL_DTS_WORKER = EnumField("mysql_dts_worker", _("mysql_dts_worker"))
     # Master 与 Worker 同机部署时 Machine 表使用该类型；实例层仍分别记 master/worker
     MYSQL_DTS_COLOCATED = EnumField("mysql_dts_colocated", _("mysql_dts_colocated"))
+    # 跨 DB 临时作业机
+    JOB_HOST = EnumField("job_host", _("job_host"))
 
     PREDIXY = EnumField("predixy", _("predixy"))
     TWEMPROXY = EnumField("twemproxy", _("twemproxy"))
