@@ -277,6 +277,31 @@ class ParamValidateSerializerMixin(object):
         return attrs
 
 
+class DeployClusterTagsField(serializers.ListField):
+    """部署标签采用与集群标签接口相同的单键字典列表格式。"""
+
+    def __init__(self):
+        super().__init__(
+            child=serializers.DictField(child=serializers.CharField(max_length=255, allow_blank=True)),
+            required=False,
+            help_text=_("集群标签，例如 [{'env': 'test'}]"),
+        )
+
+    def to_internal_value(self, data):
+        tags = super().to_internal_value(data)
+        keys = set()
+        for tag in tags:
+            if len(tag) != 1:
+                raise serializers.ValidationError(_("每个标签必须包含一个键值对"))
+            key = next(iter(tag))
+            if not key.strip() or len(key) > 64:
+                raise serializers.ValidationError(_("标签键不能为空且不能超过64个字符"))
+            if key in keys:
+                raise serializers.ValidationError(_("同一集群的标签键不能重复"))
+            keys.add(key)
+        return tags
+
+
 class CommonValidate(object):
     """存放单据的公共校验逻辑"""
 

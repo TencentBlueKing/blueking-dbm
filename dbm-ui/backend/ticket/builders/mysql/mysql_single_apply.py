@@ -28,7 +28,12 @@ from backend.exceptions import ValidationError
 from backend.flow.engine.controller.mysql import MySQLController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.common.base import CommonValidate, TicketBaseValidateSerializerMixin, get_ticket_zone_list
+from backend.ticket.builders.common.base import (
+    CommonValidate,
+    DeployClusterTagsField,
+    TicketBaseValidateSerializerMixin,
+    get_ticket_zone_list,
+)
 from backend.ticket.builders.mysql.base import BaseMySQLSingleTicketFlowBuilder
 from backend.ticket.constants import TicketType
 from backend.ticket.exceptions import TicketParamsVerifyException
@@ -41,6 +46,7 @@ class DomainSerializer(serializers.Serializer):
 
     # 此字段是集群名，可考虑跟前端一起调整为 cluster_name
     key = serializers.CharField(help_text=_("域名关键字"), max_length=LEN_MIDDLE)
+    tags = DeployClusterTagsField()
 
 
 class MysqlSingleApplyDetailSerializer(TicketBaseValidateSerializerMixin, serializers.Serializer):
@@ -173,6 +179,9 @@ class MysqlSingleApplyFlowParamBuilder(builders.FlowParamBuilder):
 
     def format_ticket_data(self):
         clusters = self.format_cluster_domains()
+        for cluster, domain in zip(clusters, self.ticket_data["domains"]):
+            if "tags" in domain:
+                cluster["tags"] = domain["tags"]
         inst_num = self.ticket.details["inst_num"]
         cluster_count = len(clusters)
         # 按需求的实例数量自动给集群分组

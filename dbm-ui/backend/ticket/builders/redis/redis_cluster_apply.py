@@ -20,6 +20,7 @@ from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import (
     CommonValidate,
+    DeployClusterTagsField,
     SkipToRepresentationMixin,
     TicketBaseValidateSerializerMixin,
     get_ticket_zone_list,
@@ -49,6 +50,7 @@ class RedisClusterApplyDetailSerializer(
 
     cluster_name = serializers.CharField(help_text=_("集群ID（英文数字及下划线）"))
     cluster_alias = serializers.CharField(help_text=_("集群别名（一般为中文别名）"), required=False, allow_blank=True)
+    tags = DeployClusterTagsField()
     proxy_pwd = serializers.CharField(help_text=_("proxy访问密码"), required=False)
 
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())
@@ -82,6 +84,8 @@ class RedisClusterApplyDetailSerializer(
         """
         # 判断主机角色是否互斥
         attrs = super().validate(attrs)
+        if attrs.get("tags") and attrs["cluster_type"] != ClusterType.TendisPredixyTendisplusInstance:
+            raise serializers.ValidationError({"tags": _("当前仅支持 TendisPlus 标准版部署时设置标签")})
 
         # predixyRedisCluster， tendisplus集群分片数至少>=3
         if attrs["cluster_shard_num"] < 3 and attrs["cluster_type"] in [
