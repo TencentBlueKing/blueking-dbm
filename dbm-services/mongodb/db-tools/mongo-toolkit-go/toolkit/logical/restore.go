@@ -3,6 +3,7 @@ package logical
 import (
 	"bufio"
 	"dbm-services/common/go-pubpkg/mycmd"
+	dbmonconsts "dbm-services/mongodb/db-tools/dbmon/pkg/consts"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/pkg/mymongo"
 	"dbm-services/mongodb/db-tools/mongo-toolkit-go/toolkit/pitr"
 	"fmt"
@@ -274,6 +275,14 @@ func UntarFile(resultFile string) (dstDir string, err error) {
 		untarCmd.Append("tar", "zxf", resultFile, "-C", tmpPath)
 		resultFileNoSuffix = strings.TrimSuffix(resultFileBase, ".tgz")
 		resultFileNoSuffix = strings.TrimSuffix(resultFileBase, ".tar.gz")
+	} else if strings.HasSuffix(resultFile, ".tar.zstd") {
+		zstdBin, zerr := dbmonconsts.FindBinPath("zstd", dbmonconsts.GetDbTool("mongotools"))
+		if zerr != nil {
+			err = errors.Wrap(zerr, "zstd bin")
+			return
+		}
+		untarCmd.Append("tar", "-I", zstdBin, "-xf", resultFile, "-C", tmpPath)
+		resultFileNoSuffix = strings.TrimSuffix(resultFileBase, ".tar.zstd")
 	} else if strings.HasSuffix(resultFile, ".tar") {
 		untarCmd.Append("tar", "xf", resultFile, "-C", tmpPath)
 		resultFileNoSuffix = strings.TrimSuffix(resultFileBase, ".tar")

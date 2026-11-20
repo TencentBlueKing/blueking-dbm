@@ -642,7 +642,11 @@ class TicketType(StrStructuredEnum):
     MONGODB_FULL_BACKUP = TicketEnumField("MONGODB_FULL_BACKUP", _("MongoDB 全库备份"), _("备份"), register_iam=True)
     MONGODB_BACKUP = TicketEnumField("MONGODB_BACKUP", _("MongoDB 库表备份"), _("备份"), register_iam=True)
     MONGODB_DATA_EXPORT = TicketEnumField("MONGODB_DATA_EXPORT", _("MongoDB 数据导出"), _("数据处理"))
+    MONGODB_DATA_MIGRATE = TicketEnumField("MONGODB_DATA_MIGRATE", _("MongoDB 数据迁移"), _("数据处理"))
+    MONGODB_DTS = TicketEnumField("MONGODB_DTS", _("MongoDB DTS 同步"), _("数据处理"))
+    MONGODB_DTS_CLEANUP = TicketEnumField("MONGODB_DTS_CLEANUP", _("MongoDB DTS 清理"), _("数据处理"))
     MONGODB_ADD_MONGOS = TicketEnumField("MONGODB_ADD_MONGOS", _("MongoDB 扩容接入层"), _("集群维护"))
+
     MONGODB_REDUCE_MONGOS = TicketEnumField("MONGODB_REDUCE_MONGOS", _("MongoDB 缩容接入层"), _("集群维护"))
     MONGODB_ADD_SHARD = TicketEnumField("MONGODB_ADD_SHARD", _("MongoDB 分片集群增加分片"), _("集群维护"))
     MONGODB_REDUCE_SHARD = TicketEnumField("MONGODB_REDUCE_SHARD", _("MongoDB 分片集群减少分片"), _("集群维护"))

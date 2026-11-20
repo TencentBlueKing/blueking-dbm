@@ -14,6 +14,46 @@ import (
 func TestIsTlinux12(t *testing.T) {
 	t.Logf("is tlinux1.2: %v", isTlinux12())
 }
+
+func TestValidateArchiveBaseName(t *testing.T) {
+	cases := []struct {
+		name    string
+		wantErr bool
+	}{
+		{"migrate-root-1-seta", false},
+		{"", true},
+		{".", true},
+		{"..", true},
+		{"a/b", true},
+		{`a\b`, true},
+	}
+	for _, tc := range cases {
+		err := validateArchiveBaseName(tc.name)
+		if tc.wantErr && err == nil {
+			t.Fatalf("validateArchiveBaseName(%q) want error", tc.name)
+		}
+		if !tc.wantErr && err != nil {
+			t.Fatalf("validateArchiveBaseName(%q) unexpected err: %v", tc.name, err)
+		}
+	}
+}
+
+func TestUnderBackupDir(t *testing.T) {
+	backupDir := "/data/dbbak/billdump"
+	if err := underBackupDir(backupDir, "/data/dbbak/billdump/ok"); err != nil {
+		t.Fatalf("ok child: %v", err)
+	}
+	if err := underBackupDir(backupDir, "/data/dbbak/billdump"); err == nil {
+		t.Fatal("equal backup dir should fail")
+	}
+	if err := underBackupDir(backupDir, "/data/dbbak"); err == nil {
+		t.Fatal("parent dir should fail")
+	}
+	if err := underBackupDir(backupDir, "/tmp/other"); err == nil {
+		t.Fatal("outside dir should fail")
+	}
+}
+
 func TestBackupJob(t *testing.T) {
 	if os.Getenv("TestDump_PORT") == "" {
 		t.Skip("integration test; set TestDump_PORT, TestDump_HOST, TestDump_USER, TestDump_PASS, TestDump_FILE_TAG")
