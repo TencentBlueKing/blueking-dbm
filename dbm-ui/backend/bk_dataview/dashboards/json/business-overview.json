@@ -408,6 +408,7 @@
                                         "TwemproxyRedisInstance",
                                         "PredixyRedisCluster",
                                         "PredixyTendisplusCluster",
+                                        "PredixyTendisplusInstance",
                                         "TwemproxyTendisSSDInstance"
                                     ]
                                 }
@@ -416,7 +417,7 @@
                     ],
                     "refId": "A",
                     "showLastPoint": false,
-                    "source": "max by (cluster_domain, cluster_type) (max_over_time(bkmonitor:dbm_system:cpu_summary:usage{app=\"$app\",cluster_type=~\"tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|TwemproxyTendisSSDInstance\"}[1m]))",
+                    "source": "max by (cluster_domain, cluster_type) (max_over_time(bkmonitor:dbm_system:cpu_summary:usage{app=\"$app\",cluster_type=~\"tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|PredixyTendisplusInstance|TwemproxyTendisSSDInstance\"}[1m]))",
                     "step": "",
                     "type": "instant"
                 },
@@ -498,6 +499,7 @@
                                         "TwemproxyRedisInstance",
                                         "PredixyRedisCluster",
                                         "PredixyTendisplusCluster",
+                                        "PredixyTendisplusInstance",
                                         "TwemproxyTendisSSDInstance"
                                     ]
                                 }
@@ -559,6 +561,7 @@
                                         "TwemproxyRedisInstance",
                                         "PredixyRedisCluster",
                                         "PredixyTendisplusCluster",
+                                        "PredixyTendisplusInstance",
                                         "TwemproxyTendisSSDInstance"
                                     ]
                                 }
@@ -620,6 +623,7 @@
                                         "TwemproxyRedisInstance",
                                         "PredixyRedisCluster",
                                         "PredixyTendisplusCluster",
+                                        "PredixyTendisplusInstance",
                                         "TwemproxyTendisSSDInstance"
                                     ]
                                 }
@@ -681,6 +685,7 @@
                                         "TwemproxyRedisInstance",
                                         "PredixyRedisCluster",
                                         "PredixyTendisplusCluster",
+                                        "PredixyTendisplusInstance",
                                         "TwemproxyTendisSSDInstance"
                                     ]
                                 }
@@ -742,6 +747,7 @@
                                         "TwemproxyRedisInstance",
                                         "PredixyRedisCluster",
                                         "PredixyTendisplusCluster",
+                                        "PredixyTendisplusInstance",
                                         "TwemproxyTendisSSDInstance"
                                     ]
                                 }
@@ -803,6 +809,7 @@
                                         "TwemproxyRedisInstance",
                                         "PredixyRedisCluster",
                                         "PredixyTendisplusCluster",
+                                        "PredixyTendisplusInstance",
                                         "TwemproxyTendisSSDInstance"
                                     ]
                                 }
@@ -864,6 +871,7 @@
                                         "TwemproxyRedisInstance",
                                         "PredixyRedisCluster",
                                         "PredixyTendisplusCluster",
+                                        "PredixyTendisplusInstance",
                                         "TwemproxyTendisSSDInstance"
                                     ]
                                 },
@@ -923,6 +931,7 @@
                                         "TwemproxyRedisInstance",
                                         "PredixyRedisCluster",
                                         "PredixyTendisplusCluster",
+                                        "PredixyTendisplusInstance",
                                         "TwemproxyTendisSSDInstance"
                                     ]
                                 }
@@ -974,6 +983,7 @@
                                         "TwemproxyRedisInstance",
                                         "PredixyRedisCluster",
                                         "PredixyTendisplusCluster",
+                                        "PredixyTendisplusInstance",
                                         "TwemproxyTendisSSDInstance"
                                     ]
                                 }
@@ -1035,6 +1045,7 @@
                                         "TwemproxyRedisInstance",
                                         "PredixyRedisCluster",
                                         "PredixyTendisplusCluster",
+                                        "PredixyTendisplusInstance",
                                         "TwemproxyTendisSSDInstance"
                                     ]
                                 }
@@ -1096,6 +1107,7 @@
                                         "TwemproxyRedisInstance",
                                         "PredixyRedisCluster",
                                         "PredixyTendisplusCluster",
+                                        "PredixyTendisplusInstance",
                                         "TwemproxyTendisSSDInstance"
                                     ]
                                 }
@@ -1168,6 +1180,7 @@
                                         "TwemproxyRedisInstance",
                                         "PredixyRedisCluster",
                                         "PredixyTendisplusCluster",
+                                        "PredixyTendisplusInstance",
                                         "TwemproxyTendisSSDInstance"
                                     ]
                                 }
@@ -1240,6 +1253,7 @@
                                         "TwemproxyRedisInstance",
                                         "PredixyRedisCluster",
                                         "PredixyTendisplusCluster",
+                                        "PredixyTendisplusInstance",
                                         "TwemproxyTendisSSDInstance"
                                     ]
                                 }
@@ -1320,6 +1334,7 @@
                                         "TwemproxyRedisInstance",
                                         "PredixyRedisCluster",
                                         "PredixyTendisplusCluster",
+                                        "PredixyTendisplusInstance",
                                         "TwemproxyTendisSSDInstance"
                                     ]
                                 }
@@ -1371,6 +1386,7 @@
                                         "TwemproxyRedisInstance",
                                         "PredixyRedisCluster",
                                         "PredixyTendisplusCluster",
+                                        "PredixyTendisplusInstance",
                                         "TwemproxyTendisSSDInstance"
                                     ]
                                 }
@@ -1451,6 +1467,7 @@
                                         "TwemproxyRedisInstance",
                                         "PredixyRedisCluster",
                                         "PredixyTendisplusCluster",
+                                        "PredixyTendisplusInstance",
                                         "TwemproxyTendisSSDInstance"
                                     ]
                                 }
@@ -1512,6 +1529,7 @@
                                         "TwemproxyRedisInstance",
                                         "PredixyRedisCluster",
                                         "PredixyTendisplusCluster",
+                                        "PredixyTendisplusInstance",
                                         "TwemproxyTendisSSDInstance"
                                     ]
                                 }
@@ -1598,7 +1616,7 @@
                                     "key": "cluster_type",
                                     "method": "reg",
                                     "value": [
-                                        "tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|TwemproxyTendisSSDInstance"
+                                        "tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|PredixyTendisplusInstance|TwemproxyTendisSSDInstance"
                                     ]
                                 }
                             ]
@@ -1645,7 +1663,7 @@
                                     "key": "cluster_type",
                                     "method": "reg",
                                     "value": [
-                                        "tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|TwemproxyTendisSSDInstance"
+                                        "tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|PredixyTendisplusInstance|TwemproxyTendisSSDInstance"
                                     ]
                                 }
                             ]
@@ -1692,7 +1710,7 @@
                                     "key": "cluster_type",
                                     "method": "reg",
                                     "value": [
-                                        "tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|TwemproxyTendisSSDInstance"
+                                        "tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|PredixyTendisplusInstance|TwemproxyTendisSSDInstance"
                                     ]
                                 }
                             ]
@@ -1739,7 +1757,7 @@
                                     "key": "cluster_type",
                                     "method": "reg",
                                     "value": [
-                                        "tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|TwemproxyTendisSSDInstance"
+                                        "tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|PredixyTendisplusInstance|TwemproxyTendisSSDInstance"
                                     ]
                                 }
                             ]
@@ -1786,7 +1804,7 @@
                                     "key": "cluster_type",
                                     "method": "reg",
                                     "value": [
-                                        "tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|TwemproxyTendisSSDInstance"
+                                        "tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|PredixyTendisplusInstance|TwemproxyTendisSSDInstance"
                                     ]
                                 }
                             ]
@@ -1833,7 +1851,7 @@
                                     "key": "cluster_type",
                                     "method": "reg",
                                     "value": [
-                                        "tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|TwemproxyTendisSSDInstance"
+                                        "tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|PredixyTendisplusInstance|TwemproxyTendisSSDInstance"
                                     ]
                                 }
                             ]
@@ -1880,7 +1898,7 @@
                                     "key": "cluster_type",
                                     "method": "reg",
                                     "value": [
-                                        "tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|TwemproxyTendisSSDInstance"
+                                        "tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|PredixyTendisplusInstance|TwemproxyTendisSSDInstance"
                                     ]
                                 }
                             ]
@@ -1927,7 +1945,7 @@
                                     "key": "cluster_type",
                                     "method": "reg",
                                     "value": [
-                                        "tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|TwemproxyTendisSSDInstance"
+                                        "tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|PredixyTendisplusInstance|TwemproxyTendisSSDInstance"
                                     ]
                                 }
                             ]
@@ -1974,7 +1992,7 @@
                                     "key": "cluster_type",
                                     "method": "reg",
                                     "value": [
-                                        "tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|TwemproxyTendisSSDInstance"
+                                        "tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|PredixyTendisplusInstance|TwemproxyTendisSSDInstance"
                                     ]
                                 }
                             ]
@@ -2021,7 +2039,7 @@
                                     "key": "cluster_type",
                                     "method": "reg",
                                     "value": [
-                                        "tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|TwemproxyTendisSSDInstance"
+                                        "tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|PredixyTendisplusInstance|TwemproxyTendisSSDInstance"
                                     ]
                                 }
                             ]
@@ -2068,7 +2086,7 @@
                                     "key": "cluster_type",
                                     "method": "reg",
                                     "value": [
-                                        "tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|TwemproxyTendisSSDInstance"
+                                        "tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|PredixyTendisplusInstance|TwemproxyTendisSSDInstance"
                                     ]
                                 }
                             ]
@@ -2115,7 +2133,7 @@
                                     "key": "cluster_type",
                                     "method": "reg",
                                     "value": [
-                                        "tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|TwemproxyTendisSSDInstance"
+                                        "tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|PredixyTendisplusInstance|TwemproxyTendisSSDInstance"
                                     ]
                                 }
                             ]
@@ -2162,7 +2180,7 @@
                                     "key": "cluster_type",
                                     "method": "reg",
                                     "value": [
-                                        "tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|TwemproxyTendisSSDInstance"
+                                        "tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|PredixyTendisplusInstance|TwemproxyTendisSSDInstance"
                                     ]
                                 }
                             ]
@@ -2199,7 +2217,7 @@
                                     "key": "cluster_type",
                                     "method": "reg",
                                     "value": [
-                                        "tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|TwemproxyTendisSSDInstance"
+                                        "tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|PredixyTendisplusInstance|TwemproxyTendisSSDInstance"
                                     ]
                                 },
                                 {
@@ -2252,7 +2270,7 @@
                                     "key": "cluster_type",
                                     "method": "reg",
                                     "value": [
-                                        "tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|TwemproxyTendisSSDInstance"
+                                        "tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|PredixyTendisplusInstance|TwemproxyTendisSSDInstance"
                                     ]
                                 },
                                 {
@@ -2276,7 +2294,7 @@
                     ],
                     "refId": "G",
                     "showLastPoint": false,
-                    "source": "((((histogram_quantile(0.99, max by (le, cluster_domain) (rate(bkmonitor:exporter_dbm_mysqld_exporter:mysql_info_schema_query_response_time_seconds_bucket{app=\"$app\",cluster_type=~\"tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|TwemproxyTendisSSDInstance\"}[2m]))) * 1000 + ((avg by (cluster_domain) (irate(bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_cmdstat_usec_total{app=\"$app\",cluster_type=~\"tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|TwemproxyTendisSSDInstance\"}[2m])) / avg by (cluster_domain) (irate(bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_cmdstat_calls_total{app=\"$app\",cluster_type=~\"tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|TwemproxyTendisSSDInstance\"}[2m]))) or vector(0))) or (avg by (cluster_domain) (irate(bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_cmdstat_usec_total{app=\"$app\",cluster_type=~\"tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|TwemproxyTendisSSDInstance\"}[2m])) / avg by (cluster_domain) (irate(bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_cmdstat_calls_total{app=\"$app\",cluster_type=~\"tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|TwemproxyTendisSSDInstance\"}[2m]))) + (avg by (cluster_domain) (irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_usec_total{app=\"$app\",cluster_type=~\"tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|TwemproxyTendisSSDInstance\"}[2m])) / avg by (cluster_domain) (irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_calls_total{app=\"$app\",cluster_type=~\"tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|TwemproxyTendisSSDInstance\"}[2m])) or vector(0))) or avg by (cluster_domain) (irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_usec_total{app=\"$app\",cluster_type=~\"tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|TwemproxyTendisSSDInstance\"}[2m])) / avg by (cluster_domain) (irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_calls_total{app=\"$app\",cluster_type=~\"tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|TwemproxyTendisSSDInstance\"}[2m])) + (max by (cluster_domain) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_commands_duration_seconds_total{app=\"$app\",cluster_type=~\"tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|TwemproxyTendisSSDInstance\"}[2m])) / max by (cluster_domain) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_commands_total{app=\"$app\",cluster_type=~\"tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|TwemproxyTendisSSDInstance\"}[2m])) or vector(0))) or max by (cluster_domain) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_commands_duration_seconds_total{app=\"$app\",cluster_type=~\"tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|TwemproxyTendisSSDInstance\"}[2m])) / max by (cluster_domain) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_commands_total{app=\"$app\",cluster_type=~\"tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|TwemproxyTendisSSDInstance\"}[2m])) + (avg by (cluster_domain) (bkmonitor:pushgateway_dbm_kafka_bkpull:kafka_network_requestmetrics_remotetimems{app=\"$app\",cluster_type=~\"tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|TwemproxyTendisSSDInstance\",quantile=\"0.95\",request=~\"Produce|FetchConsumer|FetchFollower\"}) or vector(0))) or avg by (cluster_domain) (bkmonitor:pushgateway_dbm_kafka_bkpull:kafka_network_requestmetrics_remotetimems{app=\"$app\",cluster_type=~\"tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|TwemproxyTendisSSDInstance\",quantile=\"0.95\",request=~\"Produce|FetchConsumer|FetchFollower\"})",
+                    "source": "((((histogram_quantile(0.99, max by (le, cluster_domain) (rate(bkmonitor:exporter_dbm_mysqld_exporter:mysql_info_schema_query_response_time_seconds_bucket{app=\"$app\",cluster_type=~\"tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|PredixyTendisplusInstance|TwemproxyTendisSSDInstance\"}[2m]))) * 1000 + ((avg by (cluster_domain) (irate(bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_cmdstat_usec_total{app=\"$app\",cluster_type=~\"tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|PredixyTendisplusInstance|TwemproxyTendisSSDInstance\"}[2m])) / avg by (cluster_domain) (irate(bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_cmdstat_calls_total{app=\"$app\",cluster_type=~\"tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|PredixyTendisplusInstance|TwemproxyTendisSSDInstance\"}[2m]))) or vector(0))) or (avg by (cluster_domain) (irate(bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_cmdstat_usec_total{app=\"$app\",cluster_type=~\"tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|PredixyTendisplusInstance|TwemproxyTendisSSDInstance\"}[2m])) / avg by (cluster_domain) (irate(bkmonitor:exporter_dbm_twemproxy_exporter:twemproxy_cmdstat_calls_total{app=\"$app\",cluster_type=~\"tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|PredixyTendisplusInstance|TwemproxyTendisSSDInstance\"}[2m]))) + (avg by (cluster_domain) (irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_usec_total{app=\"$app\",cluster_type=~\"tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|PredixyTendisplusInstance|TwemproxyTendisSSDInstance\"}[2m])) / avg by (cluster_domain) (irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_calls_total{app=\"$app\",cluster_type=~\"tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|PredixyTendisplusInstance|TwemproxyTendisSSDInstance\"}[2m])) or vector(0))) or avg by (cluster_domain) (irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_usec_total{app=\"$app\",cluster_type=~\"tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|PredixyTendisplusInstance|TwemproxyTendisSSDInstance\"}[2m])) / avg by (cluster_domain) (irate(bkmonitor:exporter_dbm_predixy_exporter:predixy_cmdstat_calls_total{app=\"$app\",cluster_type=~\"tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|PredixyTendisplusInstance|TwemproxyTendisSSDInstance\"}[2m])) + (max by (cluster_domain) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_commands_duration_seconds_total{app=\"$app\",cluster_type=~\"tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|PredixyTendisplusInstance|TwemproxyTendisSSDInstance\"}[2m])) / max by (cluster_domain) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_commands_total{app=\"$app\",cluster_type=~\"tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|PredixyTendisplusInstance|TwemproxyTendisSSDInstance\"}[2m])) or vector(0))) or max by (cluster_domain) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_commands_duration_seconds_total{app=\"$app\",cluster_type=~\"tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|PredixyTendisplusInstance|TwemproxyTendisSSDInstance\"}[2m])) / max by (cluster_domain) (irate(bkmonitor:exporter_dbm_redis_exporter:redis_commands_total{app=\"$app\",cluster_type=~\"tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|PredixyTendisplusInstance|TwemproxyTendisSSDInstance\"}[2m])) + (avg by (cluster_domain) (bkmonitor:pushgateway_dbm_kafka_bkpull:kafka_network_requestmetrics_remotetimems{app=\"$app\",cluster_type=~\"tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|PredixyTendisplusInstance|TwemproxyTendisSSDInstance\",quantile=\"0.95\",request=~\"Produce|FetchConsumer|FetchFollower\"}) or vector(0))) or avg by (cluster_domain) (bkmonitor:pushgateway_dbm_kafka_bkpull:kafka_network_requestmetrics_remotetimems{app=\"$app\",cluster_type=~\"tendbcluster|tendbha|tendbsingle|es|kafka|hdfs|sqlserver_ha|sqlserver_single|MongoReplicaSet|MongoShardedCluster|RedisInstance|TwemproxyRedisInstance|PredixyRedisCluster|PredixyTendisplusCluster|PredixyTendisplusInstance|TwemproxyTendisSSDInstance\",quantile=\"0.95\",request=~\"Produce|FetchConsumer|FetchFollower\"})",
                     "step": "",
                     "type": "range"
                 }

@@ -1592,6 +1592,7 @@
     "Redis",
     "TwemproxyRedisInstance",
     "PredixyTendisplusCluster",
+    "PredixyTendisplusInstance",
     "TwemproxyTendisSSDInstance",
     "PredixyRedisCluster",
     "PredixyTendisplusCluster",
