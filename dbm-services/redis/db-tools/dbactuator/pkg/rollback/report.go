@@ -493,8 +493,12 @@ func (h *hostReport) logPlan(limits Limits, plans map[int]portPlan, unpackDir, r
 		if plan.binlogs > 0 {
 			binlogs = fmt.Sprintf("%d (%s)", plan.binlogs, shortBytes(plan.binlogBytes))
 		}
+		source := "-"
+		if p.inst.SourceIP != "" {
+			source = fmt.Sprintf("%s:%d", p.inst.SourceIP, p.inst.SourcePort)
+		}
 		rows = append(rows, fmt.Sprintf("%5d  %-13s  %-21s %6s %-12s %7s", p.inst.DestPort,
-			clip(p.inst.ShardValue, 13), clip(fmt.Sprintf("%s:%d", p.inst.SourceIP, p.inst.SourcePort), 21),
+			clip(p.inst.ShardValue, 13), clip(source, 21),
 			shortBytes(plan.fullBytes), binlogs, shortBytes(plan.memory)))
 	}
 	h.workload = binlogBytes

@@ -54,8 +54,8 @@ def _record(shard_value, file_name, source_ip="1.1.1.9", server_port=30000, hour
 
 def _two_rounds_same_identify():
     return [
-        _record("0-104999", "old.aof.zst", hour="01"),
-        _record("0-104999", "new.aof.zst", hour="02"),
+        _record(SINGLE_INSTANCE_SHARD_VALUE, "old.aof.zst", hour="01"),
+        _record(SINGLE_INSTANCE_SHARD_VALUE, "new.aof.zst", hour="02"),
     ]
 
 
@@ -78,16 +78,20 @@ def _planner_with(records, shard_values=None, cluster_type=ClusterType.TendisTwe
     return planner
 
 
-def test_partial_coverage_only_warns_and_precheck_agrees():
-    """Coverage gaps exist only when the batch itself does not cover all slots; both endpoints must agree."""
+def test_whole_batch_incomplete_coverage_fails_and_precheck_agrees():
+    """Whole-batch restores require full routing coverage; Twemproxy and Cluster agree on the gate."""
     planner = _planner_with([_record("0-104999", "a.aof.zst")])
 
     result = planner.precheck()
-    plan = planner.build(pack=False)
 
-    assert result["exist"] is True
-    assert any("未覆盖全部 slot" in w for w in result["warnings"])
-    assert any("未覆盖全部 slot" in w for w in plan.warnings)
+    assert result["exist"] is False
+    assert any("指定分片" in err and "105000-419999" in err for err in result["errors"])
+    try:
+        planner.build(pack=False)
+        assert False, "expected incomplete batch layout error"
+    except RollbackPlanError as exc:
+        assert "指定分片" in str(exc.message)
+        assert "105000-419999" in str(exc.message)
 
 
 def test_partial_selection_coverage_verdict_is_identical_in_precheck_and_build():
@@ -140,15 +144,17 @@ def test_unroutable_shard_allowed_for_single_instance():
 
 def test_whole_batch_ignores_unsharded_records_with_warning():
     """A temp host's dbmon reporting under the source domain must not sink the whole batch."""
-    planner = _planner_with([_record("0-104999", "a.aof.zst"), _record("", "temp.rdb", source_ip="2.2.2.2")])
+    planner = _planner_with(
+        [_record(SINGLE_INSTANCE_SHARD_VALUE, "a.aof.zst"), _record("", "temp.rdb", source_ip="2.2.2.2")]
+    )
 
     result = planner.precheck()
     plan = planner.build(pack=False)
 
     assert result["exist"] is True
-    assert [s["shard_value"] for s in result["shards"]] == ["0-104999"]
+    assert [s["shard_value"] for s in result["shards"]] == [SINGLE_INSTANCE_SHARD_VALUE]
     assert any("2.2.2.2:30000 temp.rdb" in w for w in result["warnings"])
-    assert [item.shard.shard_value for item in plan.items] == ["0-104999"]
+    assert [item.shard.shard_value for item in plan.items] == [SINGLE_INSTANCE_SHARD_VALUE]
     assert plan.shard_keyed is True
     assert plan.scope == "cluster"
 
@@ -189,7 +195,7 @@ def test_batch_with_only_unsharded_records_fails_listing_them():
 
 
 def test_explicit_empty_shard_value_is_rejected():
-    planner = _planner_with([_record("0-104999", "a.aof.zst")], shard_values=[""])
+    planner = _planner_with([_record(SINGLE_INSTANCE_SHARD_VALUE, "a.aof.zst")], shard_values=[""])
     try:
         planner.build(pack=False)
         assert False, "expected missing shard_value error"
@@ -199,7 +205,7 @@ def test_explicit_empty_shard_value_is_rejected():
 
 def test_host_count_rule_lives_only_in_the_planner():
     """Host count constraints are evaluated once by planner rather than recount by serializer."""
-    planner = _planner_with([_record("0-104999", "a.aof.zst")])
+    planner = _planner_with([_record(SINGLE_INSTANCE_SHARD_VALUE, "a.aof.zst")])
     planner.info["resource_spec"] = {"redis": {"count": 3}}
 
     result = planner.precheck()
@@ -216,10 +222,10 @@ def test_build_reports_every_problem_at_once():
     """build combines all validation errors instead of stopping at the first failure."""
     planner = _planner_with(
         [
-            _record("0-104999", "a.aof.zst.split.000"),
-            _record("0-104999", "a.aof.zst.split.002"),
-            _record("105000-209999", "b.aof.zst", identify="OTHER-1"),
-            _record("105000-209999", "b.aof.zst", identify="SCHEDULED-1"),
+            _record("0-209999", "a.aof.zst.split.000"),
+            _record("0-209999", "a.aof.zst.split.002"),
+            _record("210000-419999", "b.aof.zst", identify="OTHER-1"),
+            _record("210000-419999", "b.aof.zst", identify="SCHEDULED-1"),
         ]
     )
     try:
@@ -234,17 +240,20 @@ def test_historical_shard_absent_from_topology_still_builds():
     """After resharding, historical shards outside current topology are still restored based on batch shards."""
     planner = _planner()
     planner.resolver.from_db_meta = MagicMock(return_value=[])
-    planner.locator.locate_full_by_identify = MagicMock(return_value=[_record("0-104999", "a.aof.zst")])
+    planner.locator.locate_full_by_identify = MagicMock(
+        return_value=[_record(SINGLE_INSTANCE_SHARD_VALUE, "a.aof.zst")]
+    )
 
     plan = planner.build(pack=False)
 
-    assert [item.shard.shard_value for item in plan.items] == ["0-104999"]
+    assert [item.shard.shard_value for item in plan.items] == [SINGLE_INSTANCE_SHARD_VALUE]
     assert plan.items[0].shard.current_master is None
     assert plan.topology_changed is True
     assert any("不在当前拓扑" in w for w in plan.warnings)
 
 
 def _partial_selection_planner():
+    """Incomplete batch: pick mode synthesizes the uncovered tail as an empty placeholder."""
     planner = _planner(shard_values=["0-104999"], backup_identify="SCHEDULED-1")
     planner.resolver.from_db_meta = MagicMock(return_value=[])
     planner.locator.locate_full_by_identify = MagicMock(
@@ -266,11 +275,35 @@ def test_unselected_shard_gets_empty_instance():
     plan = _partial_selection_planner().build(pack=False)
 
     placeholders = [item for item in plan.items if item.is_placeholder]
-    assert [item.shard.shard_value for item in placeholders] == ["105000-209999"]
-    assert placeholders[0].full_files == []
-    assert placeholders[0].task_ids == []
-    assert placeholders[0].download_bytes == 0
+    assert [item.shard.shard_value for item in placeholders] == ["105000-209999", "210000-419999"]
+    assert all(item.full_files == [] and item.task_ids == [] and item.download_bytes == 0 for item in placeholders)
     assert any("空实例" in w for w in plan.warnings)
+    assert any("批次缺失分片" in w and "210000-419999" in w for w in plan.warnings)
+
+
+def test_pick_mode_synthesizes_multiple_gap_placeholders():
+    """Pick mode fills every discontinuous uncovered range; whole-batch still fails the same layout."""
+    records = [
+        _record("0-99999", "a.aof.zst", server_port=30000),
+        _record("200000-299999", "b.aof.zst", server_port=30001),
+    ]
+    whole = _planner_with(records)
+    whole_result = whole.precheck()
+    assert whole_result["exist"] is False
+    assert any("指定分片" in err for err in whole_result["errors"])
+
+    planner = _planner_with(records, shard_values=["0-99999"])
+    result = planner.precheck()
+    plan = planner.build(pack=False)
+
+    assert result["exist"] is True
+    restored = [item.shard.shard_value for item in plan.items if not item.is_placeholder]
+    placeholders = [item.shard.shard_value for item in plan.items if item.is_placeholder]
+    assert restored == ["0-99999"]
+    assert placeholders == ["200000-299999", "100000-199999", "300000-419999"]
+    gap_placeholders = [item for item in plan.items if item.is_placeholder and not item.source_ip]
+    assert [item.shard.shard_value for item in gap_placeholders] == ["100000-199999", "300000-419999"]
+    assert any("批次缺失分片" in w and "100000-199999" in w and "300000-419999" in w for w in plan.warnings)
 
 
 def test_placeholders_keep_proxy_routing_complete():
@@ -306,11 +339,13 @@ def test_placeholders_get_ports_and_real_shards_packed_first():
 
 
 def _sized_records(sizes):
+    """Partition 0-419999 into ``len(sizes)`` contiguous shards so whole-batch packing stays valid."""
+    total = 420000
     records = []
     for index, size in enumerate(sizes):
-        record = _record(
-            "{}-{}".format(index * 1000, index * 1000 + 999), "f{}.aof.zst".format(index), server_port=30000 + index
-        )
+        start = index * total // len(sizes)
+        end = (index + 1) * total // len(sizes) - 1
+        record = _record("{}-{}".format(start, end), "f{}.aof.zst".format(index), server_port=30000 + index)
         record["size"] = size
         records.append(record)
     return records
@@ -353,8 +388,12 @@ def test_pack_dest_hosts_caps_by_restored_shards_not_placeholders():
 
 
 def test_source_not_current_is_annotation_only():
-    refs = [ShardRef("0-104999", current_master="1.1.1.1:30000", current_slave="1.1.1.9:30000", resolvable=True)]
-    planner = _planner_with([_record("0-104999", "old.aof.zst", source_ip="3.3.3.3")])
+    refs = [
+        ShardRef(
+            SINGLE_INSTANCE_SHARD_VALUE, current_master="1.1.1.1:30000", current_slave="1.1.1.9:30000", resolvable=True
+        )
+    ]
+    planner = _planner_with([_record(SINGLE_INSTANCE_SHARD_VALUE, "old.aof.zst", source_ip="3.3.3.3")])
     planner.resolver.from_db_meta = MagicMock(return_value=refs)
 
     plan = planner.build(pack=False)
@@ -365,8 +404,12 @@ def test_source_not_current_is_annotation_only():
 
 
 def test_source_is_not_current_after_failover():
-    refs = [ShardRef("0-104999", current_master="1.1.1.9:30000", current_slave="1.1.1.1:30000", resolvable=True)]
-    planner = _planner_with([dict(_record("0-104999", "a.aof.zst"), source_role="slave")])
+    refs = [
+        ShardRef(
+            SINGLE_INSTANCE_SHARD_VALUE, current_master="1.1.1.9:30000", current_slave="1.1.1.1:30000", resolvable=True
+        )
+    ]
+    planner = _planner_with([dict(_record(SINGLE_INSTANCE_SHARD_VALUE, "a.aof.zst"), source_role="slave")])
     planner.resolver.from_db_meta = MagicMock(return_value=refs)
 
     plan = planner.build(pack=False)
@@ -378,13 +421,13 @@ def test_source_is_not_current_after_failover():
 def test_identify_only_picks_latest_round():
     plan = _planner_with(_two_rounds_same_identify()).build(pack=False)
     assert [f.file_name for f in plan.items[0].full_files] == ["new.aof.zst"]
-    assert plan.locked_rounds == [{"shard_value": "0-104999", "round_key": "new.aof.zst"}]
+    assert plan.locked_rounds == [{"shard_value": SINGLE_INSTANCE_SHARD_VALUE, "round_key": "new.aof.zst"}]
 
 
 def test_locked_round_survives_a_newer_round_in_the_same_batch():
     """Ticket locked old.aof.zst; new.aof.zst landed afterwards and must not be picked up."""
     planner = _planner_with(_two_rounds_same_identify())
-    planner.info["locked_rounds"] = [{"shard_value": "0-104999", "round_key": "old.aof.zst"}]
+    planner.info["locked_rounds"] = [{"shard_value": SINGLE_INSTANCE_SHARD_VALUE, "round_key": "old.aof.zst"}]
 
     plan = planner.build(pack=False)
 
@@ -393,7 +436,7 @@ def test_locked_round_survives_a_newer_round_in_the_same_batch():
 
 def test_locked_round_missing_fails_instead_of_falling_back():
     planner = _planner_with(_two_rounds_same_identify())
-    planner.info["locked_rounds"] = [{"shard_value": "0-104999", "round_key": "gone.aof.zst"}]
+    planner.info["locked_rounds"] = [{"shard_value": SINGLE_INSTANCE_SHARD_VALUE, "round_key": "gone.aof.zst"}]
     try:
         planner.build(pack=False)
         assert False, "expected locked round error"
@@ -403,7 +446,7 @@ def test_locked_round_missing_fails_instead_of_falling_back():
 
 
 def test_shard_selection_takes_latest_round():
-    planner = _planner_with(_two_rounds_same_identify(), shard_values=["0-104999"])
+    planner = _planner_with(_two_rounds_same_identify(), shard_values=[SINGLE_INSTANCE_SHARD_VALUE])
     plan = planner.build(pack=False)
     assert [f.file_name for f in plan.items[0].full_files] == ["new.aof.zst"]
 
@@ -418,7 +461,9 @@ def test_shard_selection_rejects_shard_missing_from_batch():
 
 
 def test_shard_selection_rejects_duplicates():
-    planner = _planner_with(_two_rounds_same_identify(), shard_values=["0-104999", "0-104999"])
+    planner = _planner_with(
+        _two_rounds_same_identify(), shard_values=[SINGLE_INSTANCE_SHARD_VALUE, SINGLE_INSTANCE_SHARD_VALUE]
+    )
     try:
         planner.build(pack=False)
         assert False, "expected duplicate shard error"
@@ -455,24 +500,24 @@ def test_planner_requires_select_fields():
 def test_precheck_reports_every_shard_not_just_the_first():
     planner = _planner(
         backup_identify="SCHEDULED-1",
-        shard_values=["0-104999", "105000-209999"],
+        shard_values=["0-209999", "210000-419999"],
     )
     planner.resolver.from_db_meta = MagicMock(return_value=[])
     planner.locator.locate_full_by_identify = MagicMock(
         return_value=[
             # Missing split.001 marks this round incomplete.
-            _record("0-104999", "a.aof.zst.split.000"),
-            _record("0-104999", "a.aof.zst.split.002"),
-            _record("105000-209999", "b.aof.zst"),
+            _record("0-209999", "a.aof.zst.split.000"),
+            _record("0-209999", "a.aof.zst.split.002"),
+            _record("210000-419999", "b.aof.zst"),
         ]
     )
 
     result = planner.precheck()
 
-    assert [s["shard_value"] for s in result["shards"]] == ["0-104999", "105000-209999"]
+    assert [s["shard_value"] for s in result["shards"]] == ["0-209999", "210000-419999"]
     assert result["shards"][0]["ok"] is False
-    assert "分卷不齐全" in shard_errors(result)["0-104999"][0]
-    assert result["errors"] == ["分片 0-104999：全备分卷不齐全"]
+    assert "分卷不齐全" in shard_errors(result)["0-209999"][0]
+    assert result["errors"] == ["分片 0-209999：全备分卷不齐全"]
     assert result["shards"][1]["ok"] is True
     assert result["exist"] is False
 
@@ -480,7 +525,9 @@ def test_precheck_reports_every_shard_not_just_the_first():
 def test_precheck_passes_and_flags_topology_drift():
     planner = _planner(backup_identify="SCHEDULED-1")
     planner.resolver.from_db_meta = MagicMock(return_value=[])
-    planner.locator.locate_full_by_identify = MagicMock(return_value=[_record("0-104999", "a.aof.zst")])
+    planner.locator.locate_full_by_identify = MagicMock(
+        return_value=[_record(SINGLE_INSTANCE_SHARD_VALUE, "a.aof.zst")]
+    )
 
     result = planner.precheck()
 

@@ -121,6 +121,25 @@ func TestPlanWorkloadFallsBackToAQuarterOfTheFullBackups(t *testing.T) {
 	}
 }
 
+func TestPlanSummaryShowsDashForEmptySourcePlaceholder(t *testing.T) {
+	logs := captureLogs(t)
+	h := newHostReport("2.2.2.2", engineCache, []InstanceRestore{
+		{DestPort: 30000, SourceIP: "1.1.1.1", SourcePort: 30000, ShardValue: "0-209999"},
+		{DestPort: 30001, SourceIP: "", SourcePort: 0, ShardValue: "210000-419999"},
+	})
+	h.logPlan(Limits{}, map[int]portPlan{
+		30000: {fullBytes: 1 << 30},
+		30001: {},
+	}, "/data1/recover_redis", "")
+	containsAll(t, logs()[0].msg,
+		"30000  0-209999       1.1.1.1:30000           1.0G -                 0B",
+		"30001  210000-419999  -                         0B -                 0B",
+	)
+	if strings.Contains(logs()[0].msg, ":0") {
+		t.Fatalf("empty-source placeholder must not print :0:\n%s", logs()[0].msg)
+	}
+}
+
 func TestProgressByteIntervalGrowsWithTheWorkload(t *testing.T) {
 	for workload, want := range map[int64]time.Duration{
 		0: 30 * time.Second, 20<<30 - 1: 30 * time.Second, 20 << 30: time.Minute, 80<<30 - 1: time.Minute,

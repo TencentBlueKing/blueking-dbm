@@ -54,10 +54,10 @@
                 {{ t('n 个分片', { n: batchItem.shard_count }) }}
               </div>
               <div
-                v-if="getTopoWarning(batchItem)"
+                v-if="getBatchWarning(batchItem)"
                 class="batch-item-topo">
                 <DbIcon type="gaojing" />
-                {{ getTopoWarning(batchItem) }}
+                {{ getBatchWarning(batchItem) }}
               </div>
             </div>
             <EmptyStatus
@@ -78,14 +78,16 @@
         <div class="pane-body is-padded">
           <template v-if="selectedBatch">
             <BkAlert
-              v-if="selectedTopoWarning"
+              v-if="selectedBatchWarning"
               class="mb-12"
               theme="warning"
-              :title="selectedTopoWarning" />
+              :title="selectedBatchWarning" />
             <div class="section">
               <div class="section-label"><span class="req">*</span>{{ t('构造范围') }}</div>
               <BkRadioGroup v-model="scope">
-                <BkRadio label="all">
+                <BkRadio
+                  :disabled="Boolean(selectedBatch.missing_slots)"
+                  label="all">
                   {{ t('全部（n 个分片）', { n: selectedBatch.shard_count }) }}
                 </BkRadio>
                 <BkRadio label="pick">
@@ -228,7 +230,14 @@
 
   import { bytePretty } from '@utils';
 
-  import { createBackupRecord, getTimeZoneOffset, hasBinlog, type IBackupRecord, utcToLocal } from './backup-record';
+  import {
+    createBackupRecord,
+    getMissingSlotsWarning,
+    getTimeZoneOffset,
+    hasBinlog,
+    type IBackupRecord,
+    utcToLocal,
+  } from './backup-record';
 
   interface Props {
     cluster: {
@@ -309,16 +318,21 @@
 
   const hasBinlogArch = computed(() => hasBinlog(props.cluster.cluster_type));
 
-  // 拓扑不一致：备份时分片数与当前集群分片数不同
-  const getTopoWarning = (batchItem: RollbackBatch) =>
-    currentShardCount.value && batchItem.shard_count !== currentShardCount.value
+  // 残缺批次优先提示缺失分片；完整批次才提示扩缩容拓扑变更
+  const getBatchWarning = (batchItem: RollbackBatch) => {
+    const missingWarning = getMissingSlotsWarning(batchItem.missing_slots);
+    if (missingWarning) {
+      return missingWarning;
+    }
+    return currentShardCount.value && batchItem.shard_count !== currentShardCount.value
       ? t('备份时 x 个分片，当前 y 个分片，将按备份时的分片构造', {
           x: batchItem.shard_count,
           y: currentShardCount.value,
         })
       : '';
+  };
 
-  const selectedTopoWarning = computed(() => (selectedBatch.value ? getTopoWarning(selectedBatch.value) : ''));
+  const selectedBatchWarning = computed(() => (selectedBatch.value ? getBatchWarning(selectedBatch.value) : ''));
 
   // 右栏标题栏 meta：起止时间（所选时区） · 备份方式
   const rightPaneMeta = computed(() =>
@@ -520,14 +534,15 @@
         backup_identify: record.backup_identify,
         backup_type: record.backup_type,
         end_time: record.end_time,
-        is_all_shards_covered: true,
+        is_all_shards_covered: !record.missing_slots,
         is_complete: true,
+        missing_slots: record.missing_slots || '',
         shard_count: record.shard_count,
         source_is_all_current: true,
         start_time: record.start_time,
         total_size: 0,
       });
-      scope.value = record.scope;
+      scope.value = record.missing_slots ? 'pick' : record.scope;
       recoveryTimePoint.value = record.recovery_time_point;
       allowBinlog.value = record.allow_binlog_nonconsecutive;
       // 初始化即拉取分片列表并回显勾选，保证切换到「指定分片」时表格有数据
@@ -537,6 +552,12 @@
         const matched = batchList.value.find((item) => item.backup_identify === record.backup_identify);
         if (matched) {
           selectedBatch.value = matched;
+          if (matched.missing_slots && scope.value !== 'pick') {
+            scope.value = 'pick';
+            if (shardList.value.length === 0) {
+              fetchShards(record.shard_values);
+            }
+          }
           return true;
         }
         return false;
@@ -588,9 +609,10 @@
       return;
     }
     selectedBatch.value = batchItem;
-    // 切换备份记录：构造范围回「全部」、构造到清空、binlog 勾选取消
+    // 切换备份记录：完整批次回「全部」；残缺批次强制「指定分片」并拉取分片列表
     isRestoring.value = true;
-    scope.value = 'all';
+    const forcePick = Boolean(batchItem.missing_slots);
+    scope.value = forcePick ? 'pick' : 'all';
     checkedShardValues.value = [];
     shardList.value = [];
     recoveryTimePoint.value = '';
@@ -599,6 +621,9 @@
     keyHitShardValues.value = [];
     searchValue.value = {};
     updateFilteredShards();
+    if (forcePick) {
+      fetchShards();
+    }
     nextTick(() => {
       isRestoring.value = false;
     });
@@ -708,6 +733,7 @@
       backup_type: selectedBatch.value.backup_type,
       current_shard_count: currentShardCount.value,
       end_time: selectedBatch.value.end_time,
+      missing_slots: selectedBatch.value.missing_slots || '',
       recovery_time_point: recoveryTimePoint.value ? dayjs(recoveryTimePoint.value).format('YYYY-MM-DD HH:mm:ss') : '',
       scope: scope.value,
       shard_count: selectedBatch.value.shard_count,
