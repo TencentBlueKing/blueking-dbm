@@ -32,7 +32,9 @@ class RedisTicketService(BaseService):
             "create ticket for cluster {} , details : {}".format(kwargs["immute_domain"], kwargs["ticket_details"])
         )
 
-        redisDBA = DBAdministrator.get_biz_db_type_admins(bk_biz_id=kwargs["bk_biz_id"], db_type=DBType.Redis.value)
+        redisDBA = DBAdministrator.get_biz_db_type_admins(
+            bk_biz_id=int(kwargs["bk_biz_id"]), db_type=DBType.Redis.value
+        )
 
         ticket = Ticket.create_ticket(
             creator=redisDBA[0],

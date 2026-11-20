@@ -120,7 +120,7 @@ class RedisSubmitBackupTicketService(BaseService):
 
         # 缺省 creator：取业务 Redis DBA 首位
         if not creator:
-            redis_dbas = DBAdministrator.get_biz_db_type_admins(bk_biz_id=bk_biz_id, db_type=DBType.Redis.value)
+            redis_dbas = DBAdministrator.get_biz_db_type_admins(bk_biz_id=int(bk_biz_id), db_type=DBType.Redis.value)
             creator = redis_dbas[0] if redis_dbas else "admin"
 
         # 组装 rules
