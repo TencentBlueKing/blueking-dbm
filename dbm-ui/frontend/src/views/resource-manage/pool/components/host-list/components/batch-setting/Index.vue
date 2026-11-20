@@ -39,7 +39,7 @@
           form-type="vertical"
           :model="formData">
           <div
-            v-for="item in selectedOptions"
+            v-for="item in renderOptions"
             :key="item"
             class="mb-16 setting-item">
             <DbIcon
@@ -140,12 +140,12 @@
   > = {
     bk_cloud_region: {
       content: CloudRegion,
-      label: t('云区域'),
+      label: t('地域'),
       type: 'string',
     },
     bk_cloud_zone: {
       content: CloudZone,
-      label: t('云可用区'),
+      label: t('可用区'),
       type: 'string',
     },
     city_meta: {
@@ -212,13 +212,28 @@
       }),
   );
 
+  // 选项按固定顺序排列：地域、城市、可用区、园区、机架、机型、数据盘
+  const optionOrder = [
+    'bk_cloud_region',
+    'city_meta',
+    'bk_cloud_zone',
+    'sub_zone_meta',
+    'rack_id',
+    'device_class',
+    'storage_device',
+  ];
+
+  // 已添加的表单项也按 optionOrder 顺序渲染（与下拉选项顺序一致）
+  const renderOptions = computed(() => optionOrder.filter((key) => selectedOptions.value.includes(key)));
+
   const machinePropertyOptions = computed(() =>
-    Object.entries(machinePropertyData.value || {}).reduce<
+    optionOrder.reduce<
       {
         label: string;
         value: string;
       }[]
-    >((prev, [key, isShow]) => {
+    >((prev, key) => {
+      const isShow = (machinePropertyData.value as Record<string, boolean> | undefined)?.[key];
       if (isShow) {
         return prev.concat({
           label: settingMap[key].label,

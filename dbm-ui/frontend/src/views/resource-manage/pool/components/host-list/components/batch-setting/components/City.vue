@@ -58,7 +58,7 @@
 
   const { data: cityData, loading: isLoading } = useRequest(getInfrasCities);
 
-  // 层级限制：城市候选按已选云区域过滤（该云区域下园区登记过的城市代码集合）
+  // 层级限制：城市候选按已选地域过滤（该地域下园区登记过的城市代码集合）
   const { data: subzoneList } = useRequest(getInfrasSubzonesByCity);
 
   const cityList = computed(() => {

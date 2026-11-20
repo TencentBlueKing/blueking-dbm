@@ -16,7 +16,7 @@
     v-model="modelValue"
     filterable
     :loading="isLoading"
-    :placeholder="t('请选择云区域')">
+    :placeholder="t('请选择地域')">
     <DbOption
       v-for="item in regionList"
       :key="item.value"
