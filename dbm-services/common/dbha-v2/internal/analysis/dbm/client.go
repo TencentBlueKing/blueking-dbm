@@ -104,6 +104,12 @@ func (c *Client) RequestMetadata(ctx context.Context, req *Request) (int, *Respo
 		return 0, nil, gerrors.Newf(gerrors.InvalidJson, "failed to marshal metadata request, %s", err)
 	}
 
+	logger.Debug(
+		"query metadata request, bk_cloud_id: %d, address_count: %d",
+		req.BkCloudId,
+		len(req.Addresses),
+	)
+
 	cli := c.getRequestClientWithTimeout(config.Cfg.Workflow.DbmApiMetadata.Timeout)
 
 	start := time.Now()
@@ -125,6 +131,13 @@ func (c *Client) RequestMetadata(ctx context.Context, req *Request) (int, *Respo
 	if err := json.Unmarshal(resp, metaRsp); err != nil {
 		return code, nil, gerrors.Newf(gerrors.InvalidJson, "failed to unmarshal metadata response, %s", err)
 	}
+
+	logger.Debug(
+		"query metadata response, bk_cloud_id: %d, address_count: %d, instance_count: %d",
+		req.BkCloudId,
+		len(req.Addresses),
+		len(metaRsp.Data),
+	)
 
 	if len(metaRsp.Data) == 0 {
 		return code, nil, ErrNoResponse
