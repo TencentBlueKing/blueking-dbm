@@ -47,7 +47,7 @@
           <AvailableResourceColumn
             :params="{
               city: item.originProxy.city,
-              bk_cloud_zone: item.originProxy.bk_cloud_zone,
+              bk_cloud_zone_list: item.originProxy.bk_cloud_zone ? [item.originProxy.bk_cloud_zone] : [],
               for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.MYSQL, 'PUBLIC'],
               spec_id: item.specId,

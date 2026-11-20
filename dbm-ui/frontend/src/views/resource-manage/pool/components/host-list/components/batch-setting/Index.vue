@@ -86,12 +86,14 @@
 
   import { useSystemEnviron } from '@stores';
 
-  import { DeviceClass, deviceClassDisplayMap } from '@common/const';
+  import { DeviceClass, deviceClassDisplayMap, getCloudRegionNameDisplay, getCloudZoneName } from '@common/const';
   import { MachineEvents } from '@common/const/machineEvents';
 
   import { leaveConfirm } from '@utils';
 
   import City from './components/City.vue';
+  import CloudRegion from './components/CloudRegion.vue';
+  import CloudZone from './components/CloudZone.vue';
   import DeviceClassItem from './components/DeviceClass.vue';
   import Rack from './components/Rack.vue';
   import StorageDevice, { createRowData } from './components/StorageDevice.vue';
@@ -119,6 +121,8 @@
   const defaultBizId = systemEnvironStore.urls.RESOURCE_INDEPENDENT_BIZ;
 
   const genDefaultData = () => ({
+    bk_cloud_region: '',
+    bk_cloud_zone: '',
     city_meta: '' as string | number,
     device_class: '',
     rack_id: '',
@@ -134,6 +138,16 @@
       type: string;
     }
   > = {
+    bk_cloud_region: {
+      content: CloudRegion,
+      label: t('云区域'),
+      type: 'string',
+    },
+    bk_cloud_zone: {
+      content: CloudZone,
+      label: t('云可用区'),
+      type: 'string',
+    },
     city_meta: {
       content: City,
       label: t('城市'),
@@ -163,7 +177,15 @@
 
   const formRef = useTemplateRef('formRef');
   const itemRef = ref<
-    InstanceType<typeof City | typeof DeviceClassItem | typeof Rack | typeof StorageDevice | typeof SubZone>[]
+    InstanceType<
+      | typeof City
+      | typeof DeviceClassItem
+      | typeof Rack
+      | typeof CloudRegion
+      | typeof StorageDevice
+      | typeof SubZone
+      | typeof CloudZone
+    >[]
   >([]);
 
   const isSubmiting = ref(false);
@@ -171,12 +193,20 @@
 
   const formData = reactive(genDefaultData());
 
+  // 只按已添加的属性项判定：storage_device 的初始空行、未添加属性的默认空值都不算有效填写
   const isSubmitDisabled = computed(
     () =>
-      !Object.entries(formData).some(([formItemKey, formItemValue]) => {
+      !selectedOptions.value.some((formItemKey) => {
+        const formItemValue = formData[formItemKey as keyof typeof formData];
         const type = settingMap[formItemKey].type;
         if (type === 'number') {
           return _.isNumber(formItemValue);
+        }
+        if (type === 'array') {
+          // 数据盘：初始空行不算有效值，任一行填了内容才算
+          return (formItemValue as Record<string, any>[]).some((row) =>
+            Object.values(row).some((rowValue) => rowValue !== '' && rowValue !== undefined && rowValue !== null),
+          );
         }
         return !_.isEmpty(formItemValue);
       }),
@@ -221,11 +251,19 @@
       .then((result) => {
         const params: Pick<
           ServiceParameters<typeof updateResource>,
-          'city_meta' | 'device_class' | 'rack_id' | 'storage_device' | 'sub_zone_meta'
+          | 'bk_cloud_region'
+          | 'bk_cloud_zone'
+          | 'city_meta'
+          | 'device_class'
+          | 'rack_id'
+          | 'storage_device'
+          | 'sub_zone_meta'
         > = result.reduce<Record<string, any>>((prev, resultItem) => {
           return Object.assign(prev, resultItem);
         }, {});
 
+        const cloudRegionAfter = params.bk_cloud_region || '';
+        const cloudZoneAfter = params.bk_cloud_zone || '';
         const cityAfter = params.city_meta?.city || '';
         const subZoneAfter = params.sub_zone_meta?.sub_zone || '';
         const rackIdAfter = params.rack_id || '';
@@ -248,6 +286,22 @@
                 .join(';')}）`;
 
           const remarkItem = {} as NonNullable<ServiceParameters<typeof updateResource>['remark']>[number];
+          if (cloudRegionAfter) {
+            Object.assign(remarkItem, {
+              bk_cloud_region: {
+                after_value: getCloudRegionNameDisplay(cloudRegionAfter),
+                before_value: getCloudRegionNameDisplay(item.bk_cloud_region),
+              },
+            });
+          }
+          if (cloudZoneAfter) {
+            Object.assign(remarkItem, {
+              bk_cloud_zone: {
+                after_value: getCloudZoneName(cloudZoneAfter),
+                before_value: getCloudZoneName(item.bk_cloud_zone),
+              },
+            });
+          }
           if (cityAfter) {
             Object.assign(remarkItem, { city: { after_value: cityAfter, before_value: cityBefore } });
           }

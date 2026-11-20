@@ -7,7 +7,13 @@ import { queryBizMachineAttrs } from '@services/source/dbbase';
 
 import { useUrlSearch } from '@hooks';
 
-import { ClusterTypes, getCloudZoneName, specialOptionLabelMap, SpecialOptions } from '@common/const';
+import {
+  ClusterTypes,
+  getCloudRegionNameDisplay,
+  getCloudZoneName,
+  specialOptionLabelMap,
+  SpecialOptions,
+} from '@common/const';
 import { batchSplitRegex, ipv4 } from '@common/regex';
 
 import { parseQueryMemo } from '@utils';
@@ -49,6 +55,9 @@ export const useHostSearchSelect = (
       const getLabel = (item: { text: string; value: string }) => {
         if (attr === 'spec_id') {
           return `${item.text} [${item.value}]`;
+        }
+        if (attr === 'bk_cloud_region') {
+          return getCloudRegionNameDisplay(item.value) || item.text;
         }
         if (attr === 'bk_cloud_zone') {
           return getCloudZoneName(item.value) || item.text;

@@ -158,7 +158,7 @@
                     :biz-id="formData.bk_biz_id"
                     :params="{
                       bk_cloud_region: formData.details.bk_cloud_region,
-                      bk_cloud_zone: formData.details.bk_cloud_zone_list.join(',') || undefined,
+                      bk_cloud_zone_list: formData.details.bk_cloud_zone_list || undefined,
                       for_bizs: formData.bk_biz_id ? [formData.bk_biz_id, 0] : [0],
                       resource_types: [DBTypes.SQLSERVER, 'PUBLIC'],
                       spec_id: Number(formData.details.resource_spec.backend_group.spec_id),

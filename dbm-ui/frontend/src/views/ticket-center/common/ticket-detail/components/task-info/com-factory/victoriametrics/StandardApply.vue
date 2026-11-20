@@ -19,9 +19,7 @@
     <InfoItem :label="t('部署类型')">
       {{ t('共享集群') }}
     </InfoItem>
-    <InfoItem :label="t('地域')">
-      {{ cityName }}
-    </InfoItem>
+    <RegionRequirementsK8s :ticket-details="ticketDetails" />
     <InfoItem :label="t('BCS 集群')">
       {{ ticketDetails.details.k8s_cluster_name || '--' }}
     </InfoItem>
@@ -111,14 +109,13 @@
 
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
 
   import TicketModel, { type VictoriaMetrics } from '@services/model/ticket/ticket';
-  import { getRegions } from '@services/source/kubernetesToolbox';
 
   import { TicketTypes } from '@common/const';
 
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
+  import RegionRequirementsK8s from '../components/RegionRequirementsK8s.vue';
 
   interface Props {
     ticketDetails: TicketModel<VictoriaMetrics.StandardApply>;
@@ -129,19 +126,9 @@
     inheritAttrs: false,
   });
 
-  const props = defineProps<Props>();
+  defineProps<Props>();
 
   const { t } = useI18n();
-
-  const cityName = ref('--');
-
-  useRequest(getRegions, {
-    onSuccess: (cityList) => {
-      const cityCode = props.ticketDetails.details.city_code;
-      const name = cityList.find((item) => item.regionCode === cityCode)?.regionName;
-      cityName.value = name ?? '--';
-    },
-  });
 </script>
 
 <style lang="less" scoped>

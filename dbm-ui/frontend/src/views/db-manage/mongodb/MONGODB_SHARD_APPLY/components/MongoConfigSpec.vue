@@ -35,7 +35,7 @@
         :biz-id="params.bk_biz_id"
         :params="{
           bk_cloud_region: params.region,
-          bk_cloud_zone: params.zone_list.join(',') || undefined,
+          bk_cloud_zone_list: params.zone_list || undefined,
           for_bizs: params.bk_biz_id ? [params.bk_biz_id, 0] : [0],
           resource_types: [DBTypes.MONGODB, 'PUBLIC'],
           spec_id: Number(modelValue.spec_id),
@@ -265,7 +265,7 @@
 
   import { useTicketModifyState } from '@hooks';
 
-  import { ClusterTypes, DBTypes, MachineTypes } from '@common/const';
+  import { Affinity, ClusterTypes, DBTypes, MachineTypes } from '@common/const';
 
   import MiniTag from '@components/mini-tag/index.vue';
 
@@ -343,13 +343,23 @@
           shard_num: item.shard_recommend.shard_num,
         }),
       );
-      getSpecResourceCountRun({
+      const zoneNames = props.params.zone_list.map((item) => `${item}`);
+      const countParams: ServiceParameters<typeof getSpecResourceCount> = {
         bk_biz_id: Number(props.params.bk_biz_id),
         bk_cloud_id: props.params.bk_cloud_id,
         bk_cloud_region: props.params.region,
-        bk_cloud_zone: props.params.zone_list.map((item) => `${item}`),
         spec_ids: specList.value.map((item) => item.spec_id),
-      });
+      };
+      if (zoneNames.length) {
+        // 指定可用区为单选：按单可用区查询；跨可用区为多选：按多可用区查询并按可用区分组
+        if (props.params.disaster_tolerance_level === Affinity.SAME_SUBZONE_CROSS_SWTICH) {
+          countParams.bk_cloud_zone = zoneNames[0];
+        } else {
+          countParams.sub_zone_ids = zoneNames;
+          countParams.group_by_cloud_zone = true;
+        }
+      }
+      getSpecResourceCountRun(countParams);
     },
   });
 

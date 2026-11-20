@@ -42,7 +42,7 @@
       :min-width="120"
       :title="t('地域')">
       <template #default="{ row: data }: { row: RowData }">
-        {{ data.bk_cloud_region || data.city || '--' }}
+        {{ getCloudRegionNameDisplay(data.bk_cloud_region) || '--' }}
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
@@ -50,7 +50,7 @@
       :min-width="120"
       :title="t('可用区')">
       <template #default="{ row: data }: { row: RowData }">
-        {{ data.bk_cloud_zone || '--' }}
+        {{ getCloudZoneName(data.bk_cloud_zone) || '--' }}
       </template>
     </TicketInfoTableColumn>
     <TicketInfoTableColumn
@@ -76,7 +76,7 @@
 
   import TicketModel, { type ResourcePool } from '@services/model/ticket/ticket';
 
-  import { DBTypeInfos, TicketTypes } from '@common/const';
+  import { DBTypeInfos, getCloudRegionNameDisplay, getCloudZoneName, TicketTypes } from '@common/const';
 
   interface Props {
     ticketDetails: TicketModel<ResourcePool.ResourcePoolReplenish>;

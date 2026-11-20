@@ -228,7 +228,7 @@
         :title="t('地域')"
         :width="150">
         <template #default="{ row }: { row: DbResourceModel }">
-          {{ row.bk_cloud_region || '--' }}
+          {{ getCloudRegionNameDisplay(row.bk_cloud_region) || t('未知') }}
         </template>
       </TableColumn>
       <TableColumn
@@ -370,7 +370,7 @@
 
   import { useGlobalBizs } from '@stores';
 
-  import { getCloudZoneName, TicketTypes } from '@common/const';
+  import { getCloudRegionNameDisplay, getCloudZoneName, TicketTypes } from '@common/const';
   import { UserPersonalSettings } from '@common/const/userPersonalSettings';
 
   import DbIcon from '@components/db-icon';

@@ -21,9 +21,9 @@
       <DbOptionGroup group-style="divider">
         <DbOption
           v-for="item in regionList"
-          :key="item"
-          :label="item"
-          :value="item" />
+          :key="item.value"
+          :label="item.label"
+          :value="item.value" />
       </DbOptionGroup>
       <DbOptionGroup group-style="divider">
         <DbOption
@@ -82,9 +82,9 @@
 <script setup lang="ts">
   import { useRequest } from 'vue-request';
 
-  import { getInfrasCloudZones, getInfrasSubzonesByCity } from '@services/source/infras';
+  import { getInfrasCloudZones, getInfrasCommonCloudRegions, getInfrasSubzonesByCity } from '@services/source/infras';
 
-  import { getCloudZoneName, specialOptionLabelMap, SpecialOptions } from '@common/const';
+  import { getCloudRegionNameDisplay, getCloudZoneName, specialOptionLabelMap, SpecialOptions } from '@common/const';
 
   type CloudZoneItem = ServiceReturnType<typeof getInfrasCloudZones>[number];
 
@@ -108,7 +108,12 @@
 
   const zoneNames = ref<string>();
   const subzoneIds = ref<string[]>([]);
-  const regionList = ref<string[]>([]);
+  const regionList = ref<
+    {
+      label: string;
+      value: string;
+    }[]
+  >([]);
   const cityZoneList = ref<CloudZoneItem[]>([]);
 
   // 可用区候选（zone 与 region 无归属映射，候选为全量；筛选生效由后端完成）
@@ -134,10 +139,13 @@
       }));
   });
 
-  // 地域候选：全量可用区数据按 bk_cloud_region 去重
-  useRequest(getInfrasCloudZones, {
+  useRequest(getInfrasCommonCloudRegions, {
     onSuccess(data) {
-      regionList.value = [...new Set(data.map((item) => item.bk_cloud_region))];
+      const { common, uncommon } = data;
+      regionList.value = common.concat(uncommon).map((item) => ({
+        label: getCloudRegionNameDisplay(item.bk_cloud_region),
+        value: item.bk_cloud_region,
+      }));
     },
   });
 
@@ -161,7 +169,7 @@
     () => {
       if (props.model) {
         region.value = props.model.bk_cloud_region || '';
-        const modelZones = props.model.bk_cloud_zone || [];
+        const modelZones = props.model.bk_cloud_zone_list || [];
         zoneNames.value = Array.isArray(modelZones) ? modelZones[0] : modelZones;
         subzoneIds.value = props.model.subzone_ids;
         // 回填时按已选地域实时拉取可用区候选
@@ -179,7 +187,7 @@
     zoneNames.value = '';
     subzoneIds.value = [];
     emits('change', value, 'bk_cloud_region');
-    emits('change', '', 'bk_cloud_zone');
+    emits('change', [], 'bk_cloud_zone_list');
     emits('change', [], 'subzone_ids');
     // 地域变化：重取可用区候选；园区下拉此时禁用，选定可用区后再实时查询
     fetchZoneList();
@@ -187,7 +195,8 @@
 
   const handleZoneChange = (value: string) => {
     subzoneIds.value = [];
-    emits('change', value, 'bk_cloud_zone');
+    // 界面单选，提交按数组传（如 ["ap-guangzhou-3"]）
+    emits('change', value ? [value] : [], 'bk_cloud_zone_list');
     emits('change', [], 'subzone_ids');
   };
 

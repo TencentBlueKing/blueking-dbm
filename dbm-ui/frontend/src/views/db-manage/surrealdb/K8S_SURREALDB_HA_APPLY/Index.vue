@@ -42,7 +42,8 @@
           <K8SCityCode
             v-model="formData.details.city_code"
             :apply-mode="formData.details.apply_mode"
-            :bk-biz-id="formData.bk_biz_id" />
+            :bk-biz-id="formData.bk_biz_id"
+            @change="(value) => (formData.details.bk_cloud_region = value)" />
           <K8SClusterName
             v-model="formData.details.k8s_cluster_name"
             :apply-mode="formData.details.apply_mode"
@@ -252,7 +253,6 @@
       const cloudItem = cloudList.find((item) => item.bk_cloud_id === 0);
       if (cloudItem) {
         formData.details.bk_cloud_id = `${cloudItem.bk_cloud_id}`;
-        formData.details.bk_cloud_region = cloudItem.bk_region;
       }
     },
   });

@@ -34,6 +34,7 @@
   </div>
 </template>
 <script setup lang="ts">
+  import _ from 'lodash';
   import { ref } from 'vue';
   import { useI18n } from 'vue-i18n';
 
@@ -57,7 +58,7 @@
   const valueTagRef = ref();
 
   // 地域/可用区/园区三个字段合并为一个 tag 展示与编辑
-  const zoneFamilyFields = ['bk_cloud_region', 'bk_cloud_zone', 'subzone_ids'];
+  const zoneFamilyFields = ['bk_cloud_region', 'bk_cloud_zone_list', 'subzone_ids'];
 
   const tags = computed(() => {
     const result: { name: string; value: any }[] = [];
@@ -84,14 +85,16 @@
     const result = { ...props.modelValue };
 
     if (fieldName === 'city') {
-      // 聚合 tag 提交的是整组字段
-      zoneFamilyFields.forEach((key) => {
-        if (isValueEmpty(fieldValue[key])) {
-          delete result[key];
-        } else {
-          result[key] = fieldValue[key];
-        }
-      });
+      // 聚合 tag 提交的是整组字段；非对象形态（异常单值）直接忽略，防止清空全部条件
+      if (_.isPlainObject(fieldValue)) {
+        zoneFamilyFields.forEach((key) => {
+          if (isValueEmpty(fieldValue[key])) {
+            delete result[key];
+          } else {
+            result[key] = fieldValue[key];
+          }
+        });
+      }
     } else if (isValueEmpty(fieldValue)) {
       delete result[fieldName];
     } else {

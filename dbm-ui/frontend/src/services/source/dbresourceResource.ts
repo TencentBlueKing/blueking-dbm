@@ -107,8 +107,8 @@ interface ResouceListParams {
   bk_cloud_ids?: string;
   /** 地域（独立字段，与 city 无映射） */
   bk_cloud_region?: string;
-  /** 可用区（单选） */
-  bk_cloud_zone?: string;
+  /** 可用区数组（资源池列表筛选，界面单选也按数组传） */
+  bk_cloud_zone_list?: string[];
   city?: string;
   /** 资源预览透传别名（实际过滤字段为 bk_cloud_zone） */
   cloud_zone?: string;
@@ -244,17 +244,21 @@ interface SpecResourceCountGrouped {
 /**
  * 获取规格主机数量
  * 不传 group_by_cloud_zone 返回扁平结构（spec_id → 台数）；
- * 传 group_by_cloud_zone 返回按可用区分组结构（total 为总数，by_cloud_zone 为可用区名 → 各规格台数），
- * bk_cloud_zone 传可用区名称，后端自行做「可用区 → 园区」展开
+ * 多个可用区查询时传 group_by_cloud_zone: true，返回按可用区分组结构（total 为总数，by_cloud_zone 为可用区名 → 各规格台数）
  */
 export function getSpecResourceCount(params: {
   bk_biz_id: number;
   bk_cloud_id: number;
+  /** 地域标识 */
   bk_cloud_region?: string;
-  bk_cloud_zone?: string[];
+  /** 单个可用区名称 */
+  bk_cloud_zone?: string;
+  /** 多个可用区查询时传 true，返回按可用区分组结构 */
   group_by_cloud_zone?: boolean;
   resource_type?: string;
   spec_ids: number[];
+  /** 多个可用区名称查询（兼容存量园区数字 id） */
+  sub_zone_ids?: string[];
 }): Promise<Record<number, number> | SpecResourceCountGrouped> {
   return http.post<Record<number, number> | SpecResourceCountGrouped>(`${path}/spec_resource_count/`, params);
 }
@@ -264,6 +268,8 @@ export function getSpecResourceCount(params: {
  */
 export function updateResource(params: {
   bk_biz_id?: number; // update_type 相关字段，当前业务id
+  bk_cloud_region?: string;
+  bk_cloud_zone?: string;
   bk_host_ids: number[];
   city_meta?: {
     city: string;

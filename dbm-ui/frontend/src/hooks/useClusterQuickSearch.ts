@@ -7,7 +7,7 @@ import { queryBizClusterAttrs } from '@services/source/dbbase';
 import { listTag } from '@services/source/tag';
 import { getUserList } from '@services/source/user';
 
-import { clusterTypeInfos, ClusterTypes } from '@common/const';
+import { clusterTypeInfos, ClusterTypes, getCloudRegionNameDisplay } from '@common/const';
 import { domainPort, domainRegex, ipPort, ipv4 } from '@common/regex';
 
 import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
@@ -34,8 +34,19 @@ export const useClusterQuickSearch = (cluster_type: ClusterTypes | ClusterTypes[
       cluster_attrs: clusterAttrs.join(','),
       cluster_type: cluster_type,
     }).then((data) => {
+      const getLabel = (item: { text: string; value: string }) => {
+        if (attr === 'bk_cloud_id') {
+          return `${item.text}[${item.value}]`;
+        }
+        if (attr === 'bk_cloud_region') {
+          return getCloudRegionNameDisplay(item.value) || item.text;
+        }
+
+        return item.text;
+      };
+
       return data[attr].map((item) => ({
-        label: attr === 'bk_cloud_id' ? `${item.text}[${item.value}]` : item.text,
+        label: getLabel(item),
         value: item.value,
       }));
     });

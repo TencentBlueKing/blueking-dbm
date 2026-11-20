@@ -21,7 +21,7 @@
       :biz-id="bizId"
       :params="{
         bk_cloud_region: region,
-        bk_cloud_zone: zoneList.join(',') || undefined,
+        bk_cloud_zone_list: zoneList.join(',') || undefined,
         for_bizs: bizId ? [bizId, 0] : [0],
         resource_types: [DBTypes.REDIS, 'PUBLIC'],
         spec_id: Number(modelValue.spec_id),

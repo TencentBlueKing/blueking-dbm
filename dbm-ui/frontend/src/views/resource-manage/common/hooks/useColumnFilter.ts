@@ -6,7 +6,7 @@ import FaultOrRecycleMachineModel from '@services/model/db-resource/FaultOrRecyc
 import { queryDirtyMachineAttrs } from '@services/source/dbbase';
 import { getUserList } from '@services/source/user';
 
-import { getCloudZoneName, specialOptionLabelMap, SpecialOptions } from '@common/const';
+import { getCloudRegionNameDisplay, getCloudZoneName, specialOptionLabelMap, SpecialOptions } from '@common/const';
 
 import DatetimeRange from '@components/db-table/components/DatetimeRange.vue';
 import MultipleInput from '@components/db-table/components/MultipleInput.vue';
@@ -146,8 +146,19 @@ export const useColumnFilter = (pool?: ServiceParameters<typeof queryDirtyMachin
       data.value = dirtyMachineAttrs.reduce(
         (res, attr) => {
           const getList = () => {
+            const getLabel = (item: { text: string; value: string }) => {
+              if (attr === 'bk_cloud_region') {
+                return getCloudRegionNameDisplay(item.value) || item.text;
+              }
+              if (attr === 'bk_cloud_zone') {
+                return getCloudZoneName(item.value) || item.text;
+              }
+
+              return item.text;
+            };
+
             const formatList = (result[attr] || []).map((item) => ({
-              label: attr === 'bk_cloud_zone' ? getCloudZoneName(item.value) : item.text,
+              label: getLabel(item),
               value: item.value,
             }));
 

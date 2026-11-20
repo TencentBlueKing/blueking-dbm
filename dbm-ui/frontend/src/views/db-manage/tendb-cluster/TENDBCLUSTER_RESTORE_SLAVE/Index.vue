@@ -72,7 +72,7 @@
           <AvailableResourceColumn
             :params="{
               city: item.slave.bk_idc_city_name,
-              bk_cloud_zone: item.slave.bk_cloud_zone,
+              bk_cloud_zone_list: item.slave.bk_cloud_zone ? [item.slave.bk_cloud_zone] : [],
               for_bizs: [currentBizId, 0],
               resource_types: [DBTypes.TENDBCLUSTER, 'PUBLIC'],
               spec_id: item.specId,

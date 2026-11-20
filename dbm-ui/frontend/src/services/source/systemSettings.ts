@@ -68,7 +68,9 @@ export function getDeviceClassList() {
 // 查询主机属性开关配置
 export const getMachineProperty = function () {
   return http.get<{
-    city_meta: boolean; // 地域
+    bk_cloud_region: boolean; // 云地域
+    bk_cloud_zone: boolean; // 云可用区
+    city_meta: boolean; // 城市
     device_class: boolean; // 机型
     rack_id: boolean; // 机架
     storage_device: boolean; // 磁盘

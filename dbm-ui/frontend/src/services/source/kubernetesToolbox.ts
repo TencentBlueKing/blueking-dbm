@@ -41,6 +41,7 @@ export function getAddonVersions(params: {
 export function getRegions(params?: { bkBizId?: number; isPublic?: boolean }) {
   return http.get<
     {
+      bkCloudRegion: string;
       k8sClusterList: {
         clusterAlias: string;
         clusterName: string;

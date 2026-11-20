@@ -103,7 +103,7 @@
 
       if (config.type === 'array' && value.length > 0) {
         Object.assign(acc, {
-          [fieldName]: value.join(','),
+          [fieldName]: config.rawArray ? value : value.join(','),
         });
       } else if (config.type === 'rang' && value.length > 0) {
         Object.assign(acc, {

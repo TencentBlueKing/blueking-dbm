@@ -34,7 +34,7 @@
 
   import { getInfrasCloudRegions, getInfrasSubzonesByCity } from '@services/source/infras';
 
-  import { specialOptionLabelMap, SpecialOptions } from '@common/const';
+  import { getCloudRegionNameDisplay, specialOptionLabelMap, SpecialOptions } from '@common/const';
 
   interface Props {
     model: Record<string, string>;
@@ -81,7 +81,7 @@
     onSuccess(data) {
       regionList.value = data
         .map((item) => ({
-          label: item.display_name,
+          label: getCloudRegionNameDisplay(item.bk_cloud_region),
           value: item.bk_cloud_region,
         }))
         .concat({

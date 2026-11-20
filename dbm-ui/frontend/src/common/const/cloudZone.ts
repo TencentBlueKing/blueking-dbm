@@ -14,6 +14,40 @@
 import { t } from '@locales/index';
 
 /**
+ * 云地域 code → 中文名称映射（前端维护）
+ * 后端各接口下发的可用区是标识值（如 ap-guangzhou），展示时转中文；提交与筛选仍传标识原值
+ */
+export const cloudRegionNameMap: Record<string, string> = {
+  'ap-chongqing': '重庆',
+  'ap-guangzhou': '广州',
+  'ap-hongkong': '香港',
+  'ap-nanjing': '南京',
+  'ap-shanghai': '上海',
+  'ap-shenyang-ec': '沈阳',
+  'ap-shenzhen': '深圳',
+  'ap-singapore': '新加坡',
+  'ap-tianjin': '天津',
+  'ap-xian-ec': '西安',
+};
+
+/** 云地域展示名：未登记的标识值回退原值展示 */
+const getCloudRegionName = (region?: string) => (region ? cloudRegionNameMap[region] || region : '');
+
+/**
+ * 地域展示名：列表「地域」列与筛选项共用
+ * default 表示不限地域（随机）；空表示未采集（-）；其余展示标识原值
+ */
+export const getCloudRegionNameDisplay = (region?: string) => {
+  if (!region) {
+    return '';
+  }
+  if (region === 'default') {
+    return t('随机');
+  }
+  return getCloudRegionName(region);
+};
+
+/**
  * 可用区 code → 中文名称映射（前端维护）
  * 后端各接口下发的可用区是标识值（如 ap-guangzhou-1），展示时转中文；提交与筛选仍传标识原值
  */
@@ -58,17 +92,3 @@ export const cloudZoneNameMap: Record<string, string> = {
 
 /** 可用区展示名：未登记的标识值回退原值展示 */
 export const getCloudZoneName = (zone?: string) => (zone ? cloudZoneNameMap[zone] || zone : '');
-
-/**
- * 地域展示名：列表「地域」列与筛选项共用
- * default 表示不限地域（随机）；空表示未采集（-）；其余展示标识原值
- */
-export const getRegionDisplay = (region?: string) => {
-  if (!region) {
-    return '--';
-  }
-  if (region === 'default') {
-    return t('随机');
-  }
-  return region;
-};

@@ -3,7 +3,7 @@ import { useI18n } from 'vue-i18n';
 import { fetchResourceHostDeviceClass, getResourceOsName } from '@services/source/dbresourceResource';
 import { getCommonCities, getInfrasCloudRegions, getInfrasCloudZones } from '@services/source/infras';
 
-import { getCloudZoneName } from '@common/const';
+import { getCloudRegionNameDisplay, getCloudZoneName } from '@common/const';
 
 import MultipleSelect from '@components/db-table/components/MultipleSelect.vue';
 
@@ -18,7 +18,7 @@ export default () => {
         remoteMethod: () => {
           return getInfrasCloudRegions().then((data) =>
             data.map((item) => ({
-              label: item.display_name,
+              label: getCloudRegionNameDisplay(item.bk_cloud_region),
               value: item.bk_cloud_region,
             })),
           );
@@ -26,7 +26,7 @@ export default () => {
       },
       showConfirmAndReset: true,
     },
-    bk_cloud_zone: {
+    bk_cloud_zone_list: {
       component: markRaw(MultipleSelect),
       name: t('可用区'),
       props: {
