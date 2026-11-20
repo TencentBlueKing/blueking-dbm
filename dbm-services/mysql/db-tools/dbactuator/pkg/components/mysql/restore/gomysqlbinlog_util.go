@@ -59,8 +59,9 @@ type GoMySQLBinlogUtil struct {
 	// row event 解析指定 忽略 tables
 	ExcludeTables []string `json:"exclude_tables,omitempty"`
 	// QueryMatchIgnore ignore some statement query, golang regex format
-	QueryMatchIgnore string `json:"query_match_ignore"`
-	QueryMatchError  string `json:"query_match_error"`
+	QueryMatchIgnore        string `json:"query_match_ignore"`
+	QueryMatchError         string `json:"query_match_error"`
+	SkipRowsEventTimeUpdate bool   `json:"skip_rows_event_time_update"`
 
 	Verbose int `json:"-"`
 	//MySQLClientOpt *MySQLClientOpt `json:"mysql_client_opt"`
@@ -157,6 +158,11 @@ func (b *GoMySQLBinlogUtil) BuildArgs(filterMode bool) ([]string, error) {
 	if b.StopPos > 0 {
 		b.cmdArgs = append(b.cmdArgs, "--stop-position", cast.ToString(b.StopPos))
 	}
+	if b.SkipRowsEventTimeUpdate {
+		b.cmdArgs = append(b.cmdArgs, "--skip-rows-event-time-update true")
+	} else {
+		b.cmdArgs = append(b.cmdArgs, "--skip-rows-event-time-update false")
+	}
 	//b.cmdArgs = append(b.cmdArgs, "--file", b.File)
 	return b.cmdArgs, nil
 }
@@ -182,11 +188,15 @@ func (b *GoMySQLBinlogUtil) Parse(binlogDir, fileName string, filterMode bool) (
 	return resultFile, nil
 }
 
-func (b *GoMySQLBinlogUtil) ReturnParseCommand(binlogDir string, fileNames []string) string {
-	binlogFiles := strings.Join(fileNames, ",")
-	cmd := fmt.Sprintf("cd %s && %s %s -f %s ",
-		binlogDir, b.cmdPath, strings.Join(b.cmdArgs, ","), binlogFiles)
-	return cmd
+// ReturnParseCommandForFile 返回解析单个 binlog 文件的命令，解析结果输出到 stdout
+// 每个文件都需要重新 BuildArgs，因为 StartPos 是跟具体 binlog 文件关联的
+func (b *GoMySQLBinlogUtil) ReturnParseCommandForFile(binlogDir, fileName string, filterMode bool) (string, error) {
+	if _, err := b.BuildArgs(filterMode); err != nil {
+		return "", err
+	}
+	cmd := fmt.Sprintf("cd %s && %s %s --file %s",
+		binlogDir, b.cmdPath, strings.Join(b.cmdArgs, " "), fileName)
+	return cmd, nil
 }
 
 func (b *GoMySQLBinlogUtil) SetCmdPath(cmdPath string) {

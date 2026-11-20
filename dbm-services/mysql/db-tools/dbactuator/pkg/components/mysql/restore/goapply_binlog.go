@@ -2,6 +2,7 @@ package restore
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/samber/lo"
 	"golang.org/x/sync/errgroup"
 
 	"dbm-services/common/go-pubpkg/filecontext"
@@ -22,11 +24,13 @@ import (
 	"dbm-services/common/go-pubpkg/reportlog"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/common"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/dbbackup"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/tools"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
+	"dbm-services/mysql/db-tools/mysql-dbbackup/pkg/src/dbareport"
 	binlogParser "dbm-services/mysql/db-tools/mysql-rotatebinlog/pkg/binlog-parser"
 
 	"github.com/pkg/errors"
@@ -44,25 +48,27 @@ func (c *GoApplyBinlogComp) Example() interface{} {
 		Params: GoApplyBinlog{
 			TgtInstance: common.InstanceObjExample,
 			BinlogOpt: &GoMySQLBinlogUtil{
-				StartTime:     "2022-11-05 00:00:01",
-				StopTime:      "2022-11-05 22:00:01",
-				Idempotent:    true,
-				DisableLogBin: true,
-				SkipGtids:     true,
-				Databases:     []string{"db1", "db2"},
-				Tables:        []string{"tb1", "tb2"},
+				StartTime:               "2022-11-05 00:00:01",
+				StopTime:                "2022-11-05 22:00:01",
+				Idempotent:              true,
+				DisableLogBin:           true,
+				SkipGtids:               true,
+				Databases:               []string{"db1", "db2"},
+				Tables:                  []string{"tb1", "tb2"},
+				SkipRowsEventTimeUpdate: true,
 			},
 			MySQLClientOpt: &MySQLClientOpt{
 				MaxAllowedPacket: 1073741824,
 				BinaryMode:       true,
 			},
-			QuickMode:       true,
-			BinlogDir:       "/data/dbbak/xxxx/20000/binlog_20000",
-			BinlogFiles:     []string{"binlog20000.00001", "binlog20000.00002", "binlog20000.00003"},
-			BinlogStartFile: "binlog20000.00001",
-			WorkDir:         "/data/dbbak/",
-			ParseOnly:       false,
-			ToolSet:         *tools.NewToolSetWithPickNoValidate(tools.ToolGoMysqlbinlog),
+			QuickMode:         true,
+			BinlogDir:         "/data/dbbak/xxxx/20000/binlog_20000",
+			BinlogFiles:       []string{"binlog20000.00001", "binlog20000.00002", "binlog20000.00003"},
+			BinlogStartFile:   "binlog20000.00001",
+			SimpleBinlogFiles: false,
+			WorkDir:           "/data/dbbak/",
+			ParseOnly:         false,
+			ToolSet:           *tools.NewToolSetWithPickNoValidate(tools.ToolGoMysqlbinlog),
 		},
 		GeneralParam: &components.GeneralParam{
 			RuntimeAccountParam: components.RuntimeAccountParam{
@@ -80,10 +86,17 @@ type GoApplyBinlog struct {
 	BinlogDir string `json:"binlog_dir" validate:"required" example:"/data/dbbak/xxxxx/20000/binlog_20000"`
 	// binlog列表
 	BinlogFiles []string `json:"binlog_files" validate:"required"`
+	// SimpleBinlogFiles 是否是精简 binlog files 文件列表
+	// 精简模式，在 binlog_files 里面只需要指定 binlog 文件的开始和结束 2 个文件。如果传递了全部 files 也 ok
+	SimpleBinlogFiles bool `json:"simple_binlog_files"`
 	// 指定要开始应用的第 1 个 binlog。如果指定，一般要设置 start_pos，如果不指定则使用 start_time
 	// BinlogStartFile 只能由外部传入，不要内部修改
 	BinlogStartPos  uint   `json:"binlog_start_pos"`
 	BinlogStartFile string `json:"binlog_start_file"`
+	// BackupIndexFile 本次恢复所使用的全备 .index 文件路径。
+	// 如果提供，会读取 index 里的 backup_filter，自动给 gomysqlbinlog 添加
+	// --databases/--exclude-databases/--tables/--exclude-tables 过滤
+	BackupIndexFile string `json:"backup_index_file"`
 	// 格式 "2006-01-02 15:04:05" 原样传递给 mysqlbinlog
 	// 格式"2006-01-02T15:04:05Z07:00"(示例"2023-12-11T05:03:05+08:00")按照机器本地时间，解析成 "2006-01-02 15:04:05" 再传递给 mysqlbinlog
 	// 在 Init 时会统一把时间字符串转换成 time.RFC3399
@@ -294,6 +307,11 @@ func (r *GoApplyBinlog) Init() error {
 		return err
 	}
 
+	// 根据全备的库表过滤条件，决定 binlog 应用时的 --databases/--tables 等过滤参数
+	if err = r.buildFilterFromBackupIndex(); err != nil {
+		return err
+	}
+
 	// quick_mode is only allowed when binlog_format=row
 	if r.SourceBinlogFormat != "ROW" && r.QuickMode && !r.BinlogOpt.Flashback {
 		r.QuickMode = false
@@ -367,6 +385,23 @@ func (r *GoApplyBinlog) Init() error {
 			logger.Error("MySQLClientExec failed: %w %s", ret, err)
 		}
 	}
+	//if r.SimpleBinlogFiles {
+	// 20250928 这里解决出现传递的 binlog 文件太多，超过命令行参数大小。
+	// 现在允许传输的 binlog文件只传输 2 个：起始和结束，这里自动补齐中间的 binlog，减少参数长度
+	r.BinlogFiles = util.SortStringWithSuffixAsc(r.BinlogFiles, ".")
+	fileSeqList := util.GetSuffixWithLenAndSep(r.BinlogFiles, ".", 0)
+	if leakInts, err := util.IsConsecutiveStrings(fileSeqList, true); err != nil &&
+		(len(leakInts) > 100 || len(r.BinlogFiles) == 2) {
+		logger.Warn("simple_binlog_files=true found %d missing binlog files", len(leakInts))
+		var leakFiles []string
+		for _, intVal := range leakInts {
+			binlogFileName := constructBinlogFilename(r.BinlogFiles[0], intVal)
+			leakFiles = append(leakFiles, binlogFileName)
+		}
+		logger.Warn("add binlog file to list: %v", leakFiles)
+		r.BinlogFiles = lo.Uniq(append(r.BinlogFiles, leakFiles...))
+	}
+	//}
 	if err = r.initDirs(); err != nil {
 		return err
 	}
@@ -422,6 +457,97 @@ func (r *GoApplyBinlog) buildBinlogOptions() error {
 	binlogTool := r.ToolSet.MustGet(tools.ToolGoMysqlbinlog)
 	r.BinlogOpt.SetCmdPath(binlogTool)
 	r.BinlogOpt.SetWorkDir(r.taskDir)
+	return nil
+}
+
+// backupObjectFilter 全备的库表级过滤条件，来自 index 文件的 backup_filter。
+// gomysqlbinlog 支持完整的 --databases/--exclude-databases/--tables/--exclude-tables，
+// 所以这里不需要像 mysqlbinlog 那样用 database_list 去展开 exclude
+type backupObjectFilter struct {
+	// Databases 备份指定的库，为空 或者 ["*"] 表示全部库
+	Databases []string `json:"databases"`
+	// ExcludeDatabases 备份排除的库
+	ExcludeDatabases []string `json:"exclude_databases"`
+	// Tables 备份指定的表，为空 或者 ["*"] 表示全部表
+	Tables []string `json:"tables"`
+	// ExcludeTables 备份排除的表
+	ExcludeTables []string `json:"exclude_tables"`
+}
+
+// isEmpty 没有任何有效的过滤条件，即全库全表备份
+func (f *backupObjectFilter) isEmpty() bool {
+	return isMatchAllObjects(f.Databases) && isMatchAllObjects(f.Tables) &&
+		len(f.ExcludeDatabases) == 0 && len(f.ExcludeTables) == 0
+}
+
+// isMatchAllObjects 没有指定，或者指定为 * 都表示匹配全部
+func isMatchAllObjects(objects []string) bool {
+	return len(objects) == 0 || (len(objects) == 1 && objects[0] == "*")
+}
+
+// loadBackupObjectFilter 从全备 .index 文件解析出库表级过滤条件
+// 返回 nil 表示全库全表备份(或者无法识别的旧格式)，binlog 应用不需要过滤。
+// 上层无条件传入 index 路径，所以这里对 index 缺失、backup_filter 为旧格式等情况都只告警、按无过滤处理
+func loadBackupObjectFilter(indexFilePath string) *backupObjectFilter {
+	if indexFilePath == "" {
+		logger.Warn("backup_index_file is empty, binlog will apply without object filter")
+		return nil
+	}
+	indexObj := &dbbackup.BackupIndexFile{}
+	if err := dbbackup.ParseBackupIndexFile(indexFilePath, indexObj, false); err != nil {
+		logger.Warn("parse backup index file %s failed, binlog will apply without object filter: %s",
+			indexFilePath, err.Error())
+		return nil
+	}
+	if indexObj.BackupFilter == "" {
+		return nil
+	}
+	var objFilter dbareport.BackupObjectFilter
+	if err := json.Unmarshal([]byte(indexObj.BackupFilter), &objFilter); err != nil {
+		// 旧版本备份的 backup_filter 存的是 regex 而不是 json，按无过滤处理
+		logger.Warn("backup_filter is not a json string, ignore it: %s", indexObj.BackupFilter)
+		return nil
+	}
+	objectFilter := &backupObjectFilter{
+		Databases:        trimSplitNonEmpty(objFilter.Databases),
+		ExcludeDatabases: trimSplitNonEmpty(objFilter.ExcludeDatabases),
+		Tables:           trimSplitNonEmpty(objFilter.Tables),
+		ExcludeTables:    trimSplitNonEmpty(objFilter.ExcludeTables),
+	}
+	if objectFilter.isEmpty() {
+		// 全库全表备份，binlog 不需要过滤
+		return nil
+	}
+	return objectFilter
+}
+
+// buildFilterFromBackupIndex 从全备 index 文件里读取备份的库表过滤条件
+// 如果全备只备份了部分库表，则 binlog 应用也需要按相同条件过滤
+func (r *GoApplyBinlog) buildFilterFromBackupIndex() error {
+	objectFilter := loadBackupObjectFilter(r.BackupIndexFile)
+	if objectFilter == nil {
+		return nil
+	}
+	if len(r.BinlogOpt.Databases) > 0 || len(r.BinlogOpt.ExcludeDatabases) > 0 ||
+		len(r.BinlogOpt.Tables) > 0 || len(r.BinlogOpt.ExcludeTables) > 0 {
+		logger.Warn("binlog_opt object filter is given, ignore filter from backup index %s", r.BackupIndexFile)
+		return nil
+	}
+	if !isMatchAllObjects(objectFilter.Databases) {
+		r.BinlogOpt.Databases = objectFilter.Databases
+	}
+	if !isMatchAllObjects(objectFilter.Tables) {
+		r.BinlogOpt.Tables = objectFilter.Tables
+	}
+	r.BinlogOpt.ExcludeDatabases = objectFilter.ExcludeDatabases
+	r.BinlogOpt.ExcludeTables = objectFilter.ExcludeTables
+	logger.Info("binlog apply with --databases=%v --exclude-databases=%v --tables=%v --exclude-tables=%v"+
+		" from backup index %s", r.BinlogOpt.Databases, r.BinlogOpt.ExcludeDatabases,
+		r.BinlogOpt.Tables, r.BinlogOpt.ExcludeTables, r.BackupIndexFile)
+	if !r.QuickMode {
+		r.QuickMode = true
+		logger.Warn("set quick_mode=true to enable binlog object filter")
+	}
 	return nil
 }
 
@@ -732,7 +858,7 @@ func (r *GoApplyBinlog) Start() error {
 			return err
 		}
 		return r.ParseBinlogFiles()
-	} else if !r.BinlogOpt.Flashback {
+	} else if !r.BinlogOpt.Flashback { // 正向解析
 		if r.BinlogOpt.Idempotent {
 			// 这个要在主函数运行，调用 defer 来设置回去
 			newValue := "IDEMPOTENT"
@@ -749,32 +875,43 @@ func (r *GoApplyBinlog) Start() error {
 			}
 		}
 
-		// 这里要考虑命令行的长度
+		// 这里要考虑命令行的长度，挨个遍历 binlog file，而不是全部传入命令行
+		// 但要注意导入用的密码，不能在期间发生改变. (ADMIN密码可能会被随机化，临时密码会在单据存续期间保持不变)
+		fileCount := len(r.BinlogFiles)
 		outFile := filepath.Join(r.taskDir, fmt.Sprintf("import_binlog_%s.log", r.WorkID))
 		errFile := filepath.Join(r.taskDir, fmt.Sprintf("import_binlog_%s.err", r.WorkID))
-		parseCmd := r.BinlogOpt.ReturnParseCommand(r.BinlogDir, r.BinlogFiles)
-		// gomysqlbinlog ... | mysql ...
-		cmd := fmt.Sprintf(`%s | %s >>%s 2>%s`, parseCmd, r.mysqlCli, outFile, errFile)
-		logger.Info(mysqlcomm.ClearSensitiveInformation(mysqlcomm.RemovePassword(cmd)))
+		for i, oneFile := range r.BinlogFiles {
+			// 深拷贝 BinlogOpt，避免 StartPos 等与文件关联的参数污染后续文件
+			localOpt := *r.BinlogOpt
+			if oneFile == r.BinlogStartFile {
+				localOpt.StartPos = r.BinlogStartPos
+			} else {
+				localOpt.StartPos = 0
+			}
+			parseCmd, err := localOpt.ReturnParseCommandForFile(r.BinlogDir, oneFile, r.QuickMode)
+			if err != nil {
+				return err
+			}
+			// gomysqlbinlog ... | mysql ...
+			cmd := fmt.Sprintf(`%s | %s >>%s 2>%s`, parseCmd, r.mysqlCli, outFile, errFile)
+			logger.Info("[%d/%d] command: %s", i+1, fileCount,
+				mysqlcomm.ClearSensitiveInformation(mysqlcomm.RemovePassword(cmd)))
 
-		if err := fileLock.Add(1); err == nil {
-			defer fileLock.Done()
 			// 标准输出，错误输出到打印到 errFile 了
 			retContent, err := mysqlutil.ExecCommandMySQLShell(cmd)
 			if err != nil {
-				//fileLock.FileIncrSafe(-1, 60)
-				return errors.WithMessage(err, retContent)
+				errStr, _ := cmutil.NewGrepLines(errFile, true, false).
+					MatchWordsExclude([]string{"Using a password"}, 2)
+				return errors.WithMessagef(err, "errFile: %s\nstdoutStr:%s\nerrContent:%s\n",
+					errFile, retContent, errStr)
 			}
 			// 因为错误日志都重定向到文件了，所以真实错误判断要从 errFile 中读取
 			errContent, _ := cmutil.NewGrepLines(errFile, true, false).
 				MatchWordsExclude([]string{"Using a password"}, 2)
-			if errContent != "" || err != nil {
+			if errContent != "" {
 				logger.Error(errContent)
-				//fileLock.FileIncrSafe(-1, 60)
 				return errors.New(errContent)
 			}
-		} else {
-			return errors.WithMessage(err, "file lock incr failed")
 		}
 	} else {
 		return errors.New("flashback=true must have parse_only=true")

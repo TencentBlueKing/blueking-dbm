@@ -4,13 +4,15 @@ package masterslaveheartbeat
 import (
 	"context"
 	"database/sql"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 
 	//"errors"
 	"fmt"
 	"log/slog"
 	"strconv"
 	"strings"
+	"time"
+
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/utils"
 
@@ -53,10 +55,10 @@ type primaryDesc struct {
 	IsThisServer uint32 `db:"IS_THIS_SERVER"`
 }
 
-func (c *Checker) updateHeartbeat() error {
+func (c *Checker) updateHeartbeat(ctx context.Context) error {
 	masterServerId := ""
 	binlogFormatOld := ""
-	err := c.db.QueryRow("select @@server_id, @@binlog_format").
+	err := c.db.QueryRowContext(ctx, "select @@server_id, @@binlog_format").
 		Scan(&masterServerId, &binlogFormatOld)
 	if err != nil {
 		slog.Error(
@@ -72,7 +74,7 @@ func (c *Checker) updateHeartbeat() error {
 	)
 
 	// will set session variables, so get a connection from pool
-	conn, err := c.db.DB.Conn(context.Background())
+	conn, err := c.db.DB.Conn(ctx)
 	if err != nil {
 		slog.Error(name, slog.String("error", err.Error()))
 		return err
@@ -82,7 +84,7 @@ func (c *Checker) updateHeartbeat() error {
 	}()
 
 	if config.MonitorConfig.MachineType == "spider" {
-		_, err := conn.ExecContext(context.Background(), "set tc_admin=0")
+		_, err := conn.ExecContext(ctx, "set tc_admin=0")
 		if err != nil {
 			slog.Error("master-slave-heartbeat", slog.String("error", err.Error()))
 			return err
@@ -97,18 +99,18 @@ VALUES('%s', @@server_id, now(), sysdate(), timestampdiff(SECOND, now(),sysdate(
 		c.heartBeatTable, masterServerId,
 	)
 
-	if _, err = conn.ExecContext(context.Background(), txrrSQL); err != nil {
+	if _, err = conn.ExecContext(ctx, txrrSQL); err != nil {
 		err := errors.Wrapf(err, "update heartbeat need SET SESSION tx_isolation = 'REPEATABLE-READ'")
 		slog.Error("master-slave-heartbeat", slog.String("error", err.Error()))
 		return err
 	}
-	if _, err = conn.ExecContext(context.Background(), binlogSQL); err != nil {
+	if _, err = conn.ExecContext(ctx, binlogSQL); err != nil {
 		err := errors.WithMessage(err, "update heartbeat need binlog_format=STATEMENT")
 		slog.Error("master-slave-heartbeat", slog.String("error", err.Error()))
 		return err
 	}
 
-	res, err := conn.ExecContext(context.Background(), insertSQL)
+	res, err := conn.ExecContext(ctx, insertSQL)
 	if err != nil {
 		// 不再自动创建表
 		// merr.Number == 1146 || merr.Number == 1054 , c.initTableHeartbeat()
@@ -123,9 +125,9 @@ VALUES('%s', @@server_id, now(), sysdate(), timestampdiff(SECOND, now(),sysdate(
 	return nil
 }
 
-func (c *Checker) reportHeartbeatDelay() (*pkg.MySQLMonitorDBH, string, error) {
+func (c *Checker) reportHeartbeatDelay(ctx context.Context) (*pkg.MySQLMonitorDBH, string, error) {
 	slaveStatus := make(map[string]interface{})
-	rows, err := c.db.Queryx(`SHOW SLAVE STATUS`)
+	rows, err := c.db.QueryxContext(ctx, `SHOW SLAVE STATUS`)
 	if err != nil {
 		slog.Error(name, slog.String("error", err.Error()))
 		return c.db, "", err
@@ -246,39 +248,46 @@ func (c *Checker) heartBeatOnSpider() (warnDB *pkg.MySQLMonitorDBH, msg string, 
 		return nil, "", nil
 	}
 
+	// 设大，暂不启用 context timeout，可能会影响 db hang 告警（当然，如果真的有 db hang了也有其他 collect会触发）
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
+
 	res := primaryDesc{}
-	err = c.db.QueryRowx(`tdbctl get primary`).StructScan(&res)
+	err = c.db.QueryRowxContext(ctx, `tdbctl get primary`).StructScan(&res)
 	if err != nil {
 		slog.Error(name, slog.String("err", err.Error()))
 		return c.db, err.Error(), nil // 获取 primary 失败转成明确的告警
 	}
 	slog.Info(name, slog.Bool("is primary", res.IsThisServer == 1))
 	if res.IsThisServer == 1 {
-		err = c.updateHeartbeat()
+		err = c.updateHeartbeat(ctx)
 	} else {
-		warnDB, msg, err = c.reportHeartbeatDelay()
+		warnDB, msg, err = c.reportHeartbeatDelay(ctx)
 	}
 
 	return warnDB, msg, err
 }
 
 func (c *Checker) heartBeatOnStorage() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	slog.Info(name, slog.String("machine type", config.MonitorConfig.MachineType))
 	switch *config.MonitorConfig.Role {
 	case "master":
-		err = c.updateHeartbeat()
+		err = c.updateHeartbeat(ctx)
 		if err != nil {
 			return c.db, err.Error(), nil
 		}
 	case "slave":
-		return c.reportHeartbeatDelay()
+		return c.reportHeartbeatDelay(ctx)
 
 	case "repeater":
-		err = c.updateHeartbeat()
+		err = c.updateHeartbeat(ctx)
 		if err != nil {
 			return c.db, err.Error(), nil
 		}
-		return c.reportHeartbeatDelay()
+		return c.reportHeartbeatDelay(ctx)
 
 	default:
 		return c.db, fmt.Sprintf("unknown role: %s", *config.MonitorConfig.Role), nil

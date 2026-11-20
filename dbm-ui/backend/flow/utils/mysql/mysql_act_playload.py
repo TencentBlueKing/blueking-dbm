@@ -1894,6 +1894,40 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             },
         }
 
+    @staticmethod
+    def _get_backup_db_filter(backupinfo: dict) -> dict:
+        """
+        从全备记录的 extra_fields.backup_filter 解析出库级过滤条件
+        返回 {} 表示全库备份(或无法识别)，binlog 前滚不需要按库过滤，走原有逻辑
+        """
+        extra_fields = (backupinfo or {}).get("extra_fields") or {}
+        if not isinstance(extra_fields, dict):
+            # 兼容 extra_fields 未反序列化的情况
+            try:
+                extra_fields = json.loads(extra_fields)
+            except (TypeError, ValueError):
+                return {}
+        backup_filter = extra_fields.get("backup_filter", "")
+        if not backup_filter:
+            return {}
+        try:
+            obj_filter = json.loads(backup_filter)
+        except (TypeError, ValueError):
+            # 老版本备份的 backup_filter 存的是 regex，不是 json，按无过滤处理
+            logger.warning("backup_filter is not json, ignore it: {}".format(backup_filter))
+            return {}
+        if not isinstance(obj_filter, dict):
+            return {}
+        databases = [db.strip() for db in (obj_filter.get("databases") or "").split(",") if db.strip()]
+        exclude_databases = [db.strip() for db in (obj_filter.get("exclude_databases") or "").split(",") if db.strip()]
+        if databases in ([], ["*"]) and not exclude_databases:
+            return {}
+        return {
+            # databases=* 表示全部库，交给 exclude_databases 去排除
+            "databases": [] if databases == ["*"] else databases,
+            "exclude_databases": exclude_databases,
+        }
+
     def tendb_recover_binlog_payload(self, **kwargs):
         """
         MYSQL 实例 前滚binglog
@@ -1913,6 +1947,37 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             binlog_files_list = [self.cluster["binlog_start_file"], self.cluster["binlog_files_list"][0]]
         else:
             binlog_files_list = self.cluster["binlog_files_list"]
+        tgt_instance = {
+            "host": kwargs["ip"],
+            "port": self.cluster["rollback_port"],
+            "user": self.account["admin_user"],
+            "pwd": self.account["admin_pwd"],
+            "socket": None,
+            "charset": self.cluster["charset"],
+            "options": "",
+        }
+        # 全备的 index 文件，actuator 会读取其中的 backup_filter 得到库过滤条件，不管有没有过滤都传
+        backup_index_file = ""
+        index_info = self.cluster.get("backupinfo", {}).get("index", {}) or {}
+        if index_info.get("file_name"):
+            backup_index_file = os.path.join(
+                self.cluster["file_target_path"], os.path.basename(index_info["file_name"])
+            )
+        else:
+            logger.warning("backupinfo has no index file, binlog will apply without databases filter")
+        # 全备只备份了部分库(databases/exclude_databases)时，binlog 前滚也要按库过滤。
+        # 官方 mysqlbinlog 的库表过滤语法不完整，这种情况改用 gomysqlbinlog；其余情况保持原有逻辑不变
+        db_filter = self._get_backup_db_filter(self.cluster.get("backupinfo", {}))
+        if db_filter:
+            logger.info("backup db filter {}, apply binlog with gomysqlbinlog".format(db_filter))
+            return self.__goapply_binlog_payload(
+                tgt_instance=tgt_instance,
+                binlog_files_list=binlog_files_list,
+                simple_binlog_files=simple_binlog_files,
+                binlog_start_file=binlog_start_file,
+                binlog_start_pos=binlog_start_pos,
+                backup_index_file=backup_index_file,
+            )
         payload = {
             "db_type": DBActuatorTypeEnum.MySQL.value,
             "action": DBActuatorActionEnum.RecoverBinlog.value,
@@ -1923,15 +1988,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "binlog_dir": self.cluster["file_target_path"],
                     "binlog_files": binlog_files_list,
                     "simple_binlog_files": simple_binlog_files,
-                    "tgt_instance": {
-                        "host": kwargs["ip"],
-                        "port": self.cluster["rollback_port"],
-                        "user": self.account["admin_user"],
-                        "pwd": self.account["admin_pwd"],
-                        "socket": None,
-                        "charset": self.cluster["charset"],
-                        "options": "",
-                    },
+                    "tgt_instance": tgt_instance,
                     "recover_opt": {
                         "start_time_bak": backup_time,
                         "stop_time": self.cluster["rollback_time"],
@@ -1946,10 +2003,53 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     },
                     "parse_only": False,
                     "binlog_start_file": binlog_start_file,
+                    "backup_index_file": backup_index_file,
                 },
             },
         }
         return payload
+
+    def __goapply_binlog_payload(
+        self,
+        tgt_instance: dict,
+        binlog_files_list: list,
+        simple_binlog_files: bool,
+        binlog_start_file: str,
+        binlog_start_pos: int,
+        backup_index_file: str,
+    ) -> dict:
+        """
+        使用 gomysqlbinlog 前滚 binlog。
+        库表过滤条件由 actuator 从 backup_index_file 的 backup_filter 中读取，
+        gomysqlbinlog 支持完整的 --databases/--exclude-databases 语法
+        """
+        return {
+            "db_type": DBActuatorTypeEnum.MySQL.value,
+            "action": DBActuatorActionEnum.GoApplyBinlog.value,
+            "payload": {
+                "general": {"runtime_account": self.account},
+                "extend": {
+                    "work_dir": self.cluster["file_target_path"],
+                    "binlog_dir": self.cluster["file_target_path"],
+                    "binlog_files": binlog_files_list,
+                    "simple_binlog_files": simple_binlog_files,
+                    "tgt_instance": tgt_instance,
+                    "binlog_opt": {
+                        "idempotent": True,
+                        "disable_log_bin": True,
+                        "skip_gtids": True,
+                    },
+                    "mysql_client_opt": {"max_allowed_packet": 1073741824, "binary_mode": True},
+                    # 用 binlog_start_file + binlog_start_pos 定位起点，不使用 start_time
+                    "stop_time": self.cluster["rollback_time"],
+                    "binlog_start_file": binlog_start_file,
+                    "binlog_start_pos": binlog_start_pos,
+                    "parse_only": False,
+                    "quick_mode": True,
+                    "backup_index_file": backup_index_file,
+                },
+            },
+        }
 
     def get_install_tmp_db_backup_payload(self, **kwargs):
         """

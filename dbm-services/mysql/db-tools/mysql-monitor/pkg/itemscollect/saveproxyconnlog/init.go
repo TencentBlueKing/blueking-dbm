@@ -3,9 +3,11 @@ package saveproxyconnlog
 
 import (
 	"context"
-	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 	"fmt"
 	"log/slog"
+	"time"
+
+	"dbm-services/mysql/db-tools/mysql-monitor/pkg"
 
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/config"
 	"dbm-services/mysql/db-tools/mysql-monitor/pkg/monitoriteminterface"
@@ -57,8 +59,11 @@ func (c *Checker) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 
 	slog.Info("scanned new connlog entries", slog.Int("count", len(entries)))
 
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
 	// 获取后端 MySQL 连接
-	conn, err := c.db.Connx(context.Background())
+	conn, err := c.db.Connx(ctx)
 	if err != nil {
 		slog.Error("get backend connection failed", slog.String("error", err.Error()))
 		return nil, "", err
@@ -68,19 +73,19 @@ func (c *Checker) Run() (warnDB *pkg.MySQLMonitorDBH, msg string, err error) {
 	}()
 
 	// 初始化连接（关闭 binlog）
-	err = initConn(context.Background(), conn)
+	err = initConn(ctx, conn)
 	if err != nil {
 		return nil, "", err
 	}
 
 	// 批量写入
-	err = batchWrite(context.Background(), conn, entries, config.MonitorConfig.Ip, c.WriteBatch)
+	err = batchWrite(ctx, conn, entries, config.MonitorConfig.Ip, c.WriteBatch)
 	if err != nil {
 		return nil, "", err
 	}
 
 	// 清理历史数据
-	err = cleanOldData(context.Background(), conn, config.MonitorConfig.Ip)
+	err = cleanOldData(ctx, conn, config.MonitorConfig.Ip)
 	if err != nil {
 		slog.Warn("clean old data failed, continue", slog.String("error", err.Error()))
 		// 清理失败不影响主流程

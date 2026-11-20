@@ -87,8 +87,8 @@ class ConfFile(StrStructuredEnum):
     DEPLOY_INFO = EnumField("deploy_info", _("部署信息"))
     # ----- MySQL -----
     ITEMS_CONFIG = EnumField("items-config.yaml", _("本地监控配置"))
-    DBBACKUP_INI = EnumField("dbbackup.ini", _("全备配置选项"))
-    DBBACKUP_OPTIONS = EnumField("dbbackup.options", _("全备控制选项"))
+    DBBACKUP_INI = EnumField("dbbackup.ini", _("全备配置"))
+    DBBACKUP_OPTIONS = EnumField("dbbackup.options", _("备份控制选项"))
     BINLOG_ROTATE = EnumField("binlog_rotate.yaml", _("Binlog备份配置"))
     CHECKSUM = EnumField("checksum.yaml", _("校验配置"))
     COSINFO = EnumField("cosinfo.toml", _("备份远程存储配置"))
