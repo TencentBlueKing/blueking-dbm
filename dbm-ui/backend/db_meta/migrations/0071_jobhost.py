@@ -1,0 +1,50 @@
+# Generated manually for JobHost
+
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ("db_meta", "0070_cluster_apply_snapshot_alter_proxyinstance_version_and_more"),
+    ]
+
+    operations = [
+        migrations.CreateModel(
+            name="JobHost",
+            fields=[
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("creator", models.CharField(max_length=64, verbose_name="创建人")),
+                ("create_at", models.DateTimeField(auto_now_add=True, verbose_name="创建时间")),
+                ("updater", models.CharField(max_length=64, verbose_name="修改人")),
+                ("update_at", models.DateTimeField(auto_now=True, verbose_name="更新时间")),
+                ("name", models.CharField(max_length=64, verbose_name="名称")),
+                ("bk_biz_id", models.IntegerField(default=0, verbose_name="业务ID")),
+                ("bk_cloud_id", models.IntegerField(default=0, verbose_name="云区域ID")),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("deploying", "deploying"),
+                            ("running", "running"),
+                            ("destroying", "destroying"),
+                            ("destroyed", "destroyed"),
+                        ],
+                        default="deploying",
+                        max_length=32,
+                        verbose_name="状态",
+                    ),
+                ),
+                ("ip", models.CharField(default="", max_length=64, verbose_name="IP")),
+                ("deploy_path", models.CharField(default="", max_length=255, verbose_name="部署路径")),
+                ("version", models.CharField(default="", max_length=64, verbose_name="版本")),
+                ("db_type", models.CharField(default="", max_length=64, verbose_name="数据库类型")),
+                ("purpose", models.CharField(default="", max_length=64, verbose_name="用途")),
+                ("tags", models.JSONField(default=dict, verbose_name="标签")),
+            ],
+            options={
+                "verbose_name": "作业机表",
+                "verbose_name_plural": "作业机表",
+            },
+        ),
+    ]

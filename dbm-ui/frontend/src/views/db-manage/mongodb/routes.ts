@@ -32,7 +32,9 @@ export const mongoToolboxChildrenRoutes: RouteRecordRaw[] = [
   createRouteItem(TicketTypes.MONGODB_REPLICASET_MIGRATE, t('副本集迁移')),
   createRouteItem(TicketTypes.MONGODB_SHARD_MIGRATE, t('分片集群迁移')),
   createRouteItem(TicketTypes.MONGODB_DATA_EXPORT, t('数据导出')),
+  createRouteItem(TicketTypes.MONGODB_DATA_MIGRATE, t('数据迁移')),
   createRouteItem(TicketTypes.MONGODB_UPGRADE_VERSION, t('版本升级')),
+
   createRouteItem(TicketTypes.MONGODB_INSTANCE_RELOAD, t('重启')),
   {
     path: 'structure-instance/:page?',

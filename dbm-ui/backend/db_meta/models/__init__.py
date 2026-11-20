@@ -19,6 +19,7 @@ from .db_version import DBVersion, Distribution, VersionSeries
 from .extra_process import ExtraProcessInstance
 from .group import Group, GroupInstance
 from .instance import ProxyInstance, StorageInstance
+from .job_host import JobHost, JobHostStatus
 from .machine import Machine
 from .mysql_dts import MysqlDtsCluster, MysqlDtsInfo, MysqlDtsStatus
 from .proxy_instance_ext import TenDBClusterSpiderExt

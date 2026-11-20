@@ -32,6 +32,8 @@ class InstanceRole(StrStructuredEnum):
     # mysql dts
     MYSQL_DTS_MASTER_MASTER = EnumField("mysql_dts_master_master", "mysql dts master master")
     MYSQL_DTS_WORKER_MASTER = EnumField("mysql_dts_worker_master", "mysql dts worker master")
+    # 跨 DB 临时作业机
+    JOB_HOST = EnumField("job_host", _("JobHost"))
 
     # Redis
     REDIS_PROXY = EnumField("proxy", _("Proxy"))

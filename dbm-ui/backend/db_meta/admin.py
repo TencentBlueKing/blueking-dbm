@@ -281,3 +281,26 @@ class SyncFailedMachineAdmin(admin.ModelAdmin):
 class TagAdmin(admin.ModelAdmin):
     list_display = ("key", "value", "bk_biz_id", "is_builtin", "type")
     search_fields = ("bk_biz_id", "key", "value")
+
+
+@admin.register(models.job_host.JobHost)
+class JobHostAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "name",
+        "ip",
+        "bk_biz_id",
+        "bk_cloud_id",
+        "db_type",
+        "purpose",
+        "status",
+        "deploy_path",
+        "version",
+        "creator",
+        "create_at",
+        "updater",
+        "update_at",
+    )
+    list_filter = ("status", "db_type", "purpose", "bk_cloud_id")
+    search_fields = ("name", "ip", "bk_biz_id", "purpose", "version")
+    readonly_fields = ("create_at", "update_at")

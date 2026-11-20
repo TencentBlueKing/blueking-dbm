@@ -2078,6 +2078,18 @@ class ActionEnum:
         common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    MONGODB_DATA_MIGRATE = ActionMeta(
+        id=TicketType.MONGODB_DATA_MIGRATE.lower(),
+        name=_("MongoDB 数据迁移"),
+        name_en="MONGODB_DATA_MIGRATE",
+        type="execute",
+        related_actions=[DB_MANAGE.id],
+        related_resource_types=[ResourceEnum.MONGODB],
+        group=_("MongoDB"),
+        subgroup=_("查询与变更"),
+        common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
+    )
+
     MONGODB_RESTORE = ActionMeta(
         id=TicketType.MONGODB_RESTORE.lower(),
         name=_("MongoDB 定点回档"),

@@ -145,6 +145,7 @@ func (m *JobGenericManager) RegisterAtomJob() {
 			atommongodb.NewExecScript,
 			atommongodb.NewBackupJob,
 			atommongodb.NewRestoreJob,
+			atommongodb.NewShardCollectionsJob,
 			atommongodb.NewPitrRecoverJob,
 			atommongodb.NewRemoveNsJob,
 			atommongodb.NewInstallDbmonJob,

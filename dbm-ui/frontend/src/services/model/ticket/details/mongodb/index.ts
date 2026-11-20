@@ -4,7 +4,9 @@ export * from './backup';
 export * from './clusterStandardize';
 export * from './cutoff';
 export * from './dataExport';
+export * from './dataMigrate';
 export * from './destroy';
+
 export * from './disable';
 export * from './enable';
 export * from './excelAuthorize';

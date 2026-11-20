@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/pkg/errors"
@@ -44,6 +45,11 @@ type restoreParam struct {
 		IsPartial  bool        `json:"isPartial"`  // 为true时，备份指定库和表
 		Oplog      bool        `json:"oplog"`      // 是否备份oplog，只有在IsPartial为false可为true
 		NsFilter   NsFilterArg `json:"nsFilter"`
+		// LocalFile 是本机已有的 dump 包。绝对路径，或 recoverDir 下的文件名。设置后不再读 srcFile。
+		LocalFile string `json:"localFile"`
+		// SkipExistCheck 跳过「目标库表必须不存在」检查。
+		// 分片集群的多个 shard 包会先后导入同一批用户表，后面的包要追加数据。
+		SkipExistCheck bool `json:"skipExistCheck"`
 	} `json:"Args"`
 }
 
@@ -95,6 +101,9 @@ func (s *restoreJob) Run() error {
 // checkDstMongo 检查目标MongoDB中，没有要恢复的库和表.
 func (s *restoreJob) checkDstMongo() error {
 	// todo Check Filter Args
+	if s.param.Args.SkipExistCheck {
+		return nil
+	}
 	if s.param.Args.IsPartial {
 		// 1. 按照db和col过滤，检查目标库表是否已经存在. 如果存在，报错.
 		filter := logical.NewNsFilter(s.param.Args.NsFilter.DbList,
@@ -107,7 +116,7 @@ func (s *restoreJob) checkDstMongo() error {
 		if err != nil {
 			return errors.Wrap(err, "GetDbCollectionWithFilter")
 		}
-		if len(dbColList) >= 0 {
+		if len(dbColList) > 0 {
 			return errors.New("some db or col already exists")
 		}
 	}
@@ -121,7 +130,10 @@ func (s *restoreJob) doLogicalRestore() error {
 	helper := logical.NewMongoRestoreHelper(s.MongoInst, s.MongoRestoreBin, s.param.AdminUsername,
 		s.param.AdminPassword, "admin", s.OsUser)
 
-	srcFilePath := filepath.Join(s.param.Args.RecoverDir, s.param.Args.SrcFile[0].FileName)
+	srcFilePath, err := s.resolveSrcFile()
+	if err != nil {
+		return err
+	}
 	fileSize, err := util.GetFileSize(srcFilePath)
 	if err != nil {
 		return errors.Wrap(err, "GetFileSize")
@@ -133,7 +145,11 @@ func (s *restoreJob) doLogicalRestore() error {
 		return errors.Wrap(err, "UntarFile")
 	}
 	log.Info("end untar file %s, dstDir %s", srcFilePath, dstDir)
-	dstDirWithDump := path.Join(dstDir, "dump")
+	dstDirWithDump, err := locateDumpRoot(dstDir)
+	if err != nil {
+		return err
+	}
+	log.Info("dump root %s", dstDirWithDump)
 
 	// dbm系统产生的表. 不需要重复导入.
 	deletedCol, err := s.removeDbmSysNs(dstDirWithDump)
@@ -224,6 +240,15 @@ func (s *restoreJob) removeDbmSysNs(dstDir string) ([]string, error) {
 	return deletedCol, nil
 }
 
+func dbIgnored(ignore []string, db string) bool {
+	for _, name := range ignore {
+		if name == db {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *restoreJob) removeNsByFilter(dbColList []logical.DbCollection, dstDir string) error {
 	// 导入部分表时，要删除掉不需要的库和表文件.
 	if !s.param.Args.IsPartial {
@@ -234,7 +259,8 @@ func (s *restoreJob) removeNsByFilter(dbColList []logical.DbCollection, dstDir s
 
 	// todo 支持部分恢复 这里要删除掉不需要的库和表文件.
 	for _, row := range dbColList {
-		if row.Db == "admin" {
+		// 部分回档默认保留 admin（账号）。调用方把 admin 放进 ignore_dbs 时要删掉，避免数据迁移把源集群账号灌进目标。
+		if row.Db == "admin" && !dbIgnored(s.param.Args.NsFilter.IgnoreDbList, "admin") {
 			continue
 		}
 		matchList, notMatchList := filter.FilterTbV2(row.Db, row.Col)
@@ -312,6 +338,49 @@ func (s *restoreJob) Init(runtime *jobruntime.JobGenericRuntime) error {
 	}
 
 	return nil
+}
+
+// locateDumpRoot 返回含库目录的 dump 根。
+// 备份系统产物是 <extracted>/dump/<db>/*.bson；mongodump -o 直接写成 <extracted>/<db>/*.bson。
+func locateDumpRoot(extracted string) (string, error) {
+	withDump := path.Join(extracted, "dump")
+	if util.FileExists(withDump) {
+		return withDump, nil
+	}
+	entries, err := os.ReadDir(extracted)
+	if err != nil {
+		return "", errors.Wrap(err, "read extracted dir")
+	}
+	for _, ent := range entries {
+		if !ent.IsDir() {
+			continue
+		}
+		sub, err := os.ReadDir(path.Join(extracted, ent.Name()))
+		if err != nil {
+			return "", errors.Wrap(err, "read db dir")
+		}
+		for _, f := range sub {
+			name := f.Name()
+			if strings.HasSuffix(name, ".bson") || strings.HasSuffix(name, ".bson.gz") {
+				return extracted, nil
+			}
+		}
+	}
+	return "", errors.Errorf("dump dir not found under %s", extracted)
+}
+
+// resolveSrcFile 优先使用本机 localFile，否则使用 recoverDir 下的 srcFile[0]。
+func (s *restoreJob) resolveSrcFile() (string, error) {
+	if s.param.Args.LocalFile != "" {
+		if filepath.IsAbs(s.param.Args.LocalFile) {
+			return s.param.Args.LocalFile, nil
+		}
+		return filepath.Join(s.param.Args.RecoverDir, s.param.Args.LocalFile), nil
+	}
+	if len(s.param.Args.SrcFile) == 0 || s.param.Args.SrcFile[0].FileName == "" {
+		return "", errors.New("srcFile or localFile is required")
+	}
+	return filepath.Join(s.param.Args.RecoverDir, s.param.Args.SrcFile[0].FileName), nil
 }
 
 // checkParams 校验参数
