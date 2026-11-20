@@ -479,8 +479,8 @@
 
   // 设置用户个人表头信息
   const defaultSettings = {
-    checked: ['instance', 'group_id', 'bk_cloud_id', 'status', 'creator', 'create_at'],
     disabled: ['instance'],
+    hidden: ['id'],
   };
   const { settings, updateTableSettings } = useTableSettings(
     UserPersonalSettings.INFLUXDB_TABLE_SETTINGS,

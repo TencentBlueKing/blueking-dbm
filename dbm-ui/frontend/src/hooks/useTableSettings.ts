@@ -15,12 +15,16 @@ import { useUserProfile } from '@stores';
 
 interface Settings {
   /**
-   * 后续迭代新增且需要默认显示的列
+   * 旧方案（保存显示列）下，后续迭代新增且需要默认显示的列
+   * @deprecated 新方案保存隐藏列，新增列默认显示；仅用于转换旧数据，不要再新增配置
    */
   appendColumns?: string[];
-  checked?: string[];
   disabled?: string[];
   fontSize?: 'large' | 'medium';
+  /**
+   * 默认隐藏的列，仅在用户未保存过列设置时生效
+   */
+  hidden?: string[];
   /**
    * 后续迭代新增的列在用户已保存列顺序中的位置：key 为新列，value 为要插到其前面的列。
    * 不配置时新列沿用表格默认行为，补在已保存顺序的最后
@@ -34,9 +38,22 @@ interface Settings {
   size?: 'medium' | 'mini' | 'small';
 }
 
-interface SettingsChangePayload {
-  columns?: string[];
+/**
+ * 用户个人配置中保存的数据，checked / appendColumns 为旧方案字段
+ */
+interface ProfileSettings {
+  appendColumns?: string[];
+  checked?: string[];
   fontSize?: Settings['fontSize'];
+  hidden?: string[];
+  order?: string[];
+  rowSize?: Settings['rowSize'];
+  size?: Settings['size'];
+}
+
+interface SettingsChangePayload {
+  fontSize?: Settings['fontSize'];
+  hidden?: string[];
   order?: string[];
   rowSize?: Settings['rowSize'];
   size?: Settings['size'];
@@ -67,22 +84,42 @@ export const useTableSettings = (key: string, defaultSettings: Settings) => {
   const userProfileStore = useUserProfile();
 
   // 获取用户配置的表头信息
-  const settings = computed<Settings>(() => {
-    const profileSettings = userProfileStore.profile[key] as Partial<Settings> | undefined;
-    const appendColumns = defaultSettings.appendColumns ?? [];
-    const savedAppendColumnSet = new Set<string>(profileSettings?.appendColumns ?? []);
-    const pendingAppendColumns = appendColumns.filter((column) => !savedAppendColumnSet.has(column));
-    const sourceChecked = profileSettings?.checked ?? defaultSettings.checked;
-    const checked =
-      sourceChecked === undefined ? undefined : Array.from(new Set(sourceChecked.concat(pendingAppendColumns)));
+  const settings = computed(() => {
+    const profileSettings = userProfileStore.profile[key] as ProfileSettings | undefined;
+    const savedAppendColumnSet = new Set(profileSettings?.appendColumns);
+    // 旧方案下用户保存配置之后才新增、需要强制显示的列
+    const pendingAppendColumns = (defaultSettings.appendColumns ?? []).filter(
+      (column) => !savedAppendColumnSet.has(column),
+    );
+    const pendingAppendColumnSet = new Set(pendingAppendColumns);
+
+    let hidden = profileSettings?.hidden;
+    let checked: string[] | undefined;
+    if (!hidden && profileSettings?.checked) {
+      if (profileSettings.order) {
+        // 旧数据转换：旧方案每次保存的 order 即当时的全部列，未选中的就是隐藏列
+        const checkedSet = new Set(profileSettings.checked);
+        hidden = profileSettings.order.filter(
+          (column) => !checkedSet.has(column) && !pendingAppendColumnSet.has(column),
+        );
+      } else {
+        // 更早的旧数据没有 order，无法得知全部列，交给表格按列定义计算
+        checked = Array.from(new Set(profileSettings.checked.concat(pendingAppendColumns)));
+      }
+    }
+    // 用户未保存过列设置时使用默认隐藏列
+    if (!hidden && !checked) {
+      hidden = defaultSettings.hidden;
+    }
+
     const rowSize =
       profileSettings?.rowSize ?? profileSettings?.size ?? defaultSettings.rowSize ?? defaultSettings.size ?? 'small';
 
     return {
-      appendColumns,
       checked,
       disabled: defaultSettings.disabled,
       fontSize: profileSettings?.fontSize ?? defaultSettings.fontSize ?? 'medium',
+      hidden,
       order: insertColumnsToOrder(profileSettings?.order ?? defaultSettings.order, defaultSettings.insertColumnsBefore),
       rowSize,
       size: rowSize === 'large' ? undefined : rowSize,
@@ -90,7 +127,7 @@ export const useTableSettings = (key: string, defaultSettings: Settings) => {
   });
 
   /**
-   * 更新表头设置
+   * 更新表头设置，只保存新方案字段，旧方案字段随之清除
    */
   const updateTableSettings = (payload?: SettingsChangePayload) => {
     if (!payload) return;
@@ -99,9 +136,8 @@ export const useTableSettings = (key: string, defaultSettings: Settings) => {
     userProfileStore.updateProfile({
       label: key,
       values: {
-        appendColumns: defaultSettings.appendColumns,
-        checked: payload.columns,
         fontSize: payload.fontSize,
+        hidden: payload.hidden,
         order: payload.order,
         rowSize,
         size: rowSize,

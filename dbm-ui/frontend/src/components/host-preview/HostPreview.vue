@@ -162,12 +162,12 @@
     keyword: '',
     pagination: useDefaultPagination(),
     settings: {
-      checked: ['bk_host_innerip', 'bk_host_innerip_v6', 'bk_host_name', 'status', 'instance_num'],
       fields: columns.map((item) => ({
         disabled: ['bk_host_innerip', 'bk_host_innerip_v6'].includes(item.colKey as string),
         field: item.colKey as string,
         label: item.title as string,
       })),
+      hidden: ['bk_cloud_name', 'bk_os_name', 'bk_cloud_vendor', 'bk_os_type', 'bk_host_id', 'bk_agent_id'],
     },
   });
 

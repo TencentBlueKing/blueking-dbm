@@ -14,7 +14,6 @@
 import { t } from '@locales/index';
 
 export default {
-  checked: ['ip', 'bk_cpu', 'host_name', 'alive', 'deploy_name_node', 'deploy_zookeeper', 'instance_num'],
   fields: [
     {
       disabled: true,
@@ -62,4 +61,5 @@ export default {
       label: 'Agent ID',
     },
   ],
+  hidden: ['bk_idc_name', 'cloud_area', 'os_name', 'os_type', 'host_id', 'agent_id'],
 };

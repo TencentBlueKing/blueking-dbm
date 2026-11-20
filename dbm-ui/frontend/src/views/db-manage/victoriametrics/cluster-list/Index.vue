@@ -203,20 +203,8 @@
 
   // 设置用户个人表头信息（存储入口列默认隐藏，列设置中打开后显示）
   const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.VM_CLUSTER_TABLE_SETTINGS, {
-    checked: [
-      'master_domain',
-      'query_entry_display',
-      'cluster_ids',
-      'name',
-      'tag',
-      'status',
-      'major_version',
-      'region',
-      'creator',
-      'create_at',
-      'time_zone',
-    ],
     disabled: ['domain'],
+    hidden: ['storage_entry_display'],
   });
 
   const fetchData = () => {

@@ -298,15 +298,7 @@
   ]);
 
   const settings = {
-    checked: [
-      'target_cluster',
-      'source_cluster',
-      'cluster_type',
-      'target_nodes',
-      'instance_per_host',
-      'struct_type',
-      'ticket_id',
-    ],
+    hidden: ['db_patterns', 'ignore_dbs', 'table_patterns', 'ignore_tables', 'operation'],
   };
 
   const clusterTypeFilterList = [

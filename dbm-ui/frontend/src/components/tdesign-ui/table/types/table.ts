@@ -28,6 +28,7 @@ export interface BkUiSettingsField {
 export type BkUiSettings = {
   /**
    * 选中列 不配置（undefined）则默认全选
+   * @deprecated 兼容旧配置，新配置统一使用 hidden；同时配置时以 hidden 为准
    */
   checked?: string[];
   /**
@@ -48,6 +49,10 @@ export type BkUiSettings = {
    */
   hasCheckAll?: boolean;
   /**
+   * 隐藏列 未列入的列（含后续新增的列）都显示，禁用列始终显示
+   */
+  hidden?: string[];
+  /**
    * 所有可配置列的显示顺序
    */
   order?: string[];
@@ -63,6 +68,10 @@ export type RowSizeEnum = 'large' | 'medium' | 'mini' | 'small';
 export interface BkUiSettingsChangePayload {
   columns: string[];
   fontSize: FontSizeEnum;
+  /**
+   * 隐藏列，持久化时保存该字段
+   */
+  hidden: string[];
   order: string[];
   rowSize: RowSizeEnum;
 }

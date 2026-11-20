@@ -122,7 +122,7 @@ export const useColumnsSettings = (
   const fontSize = shallowRef<FontSizeEnum>(props.bkUiSettings?.fontSize || 'medium');
   const rowSize = shallowRef<RowSizeEnum>(props.bkUiSettings?.rowSize || props.size || 'medium');
   // 当前生效的列配置来源：外部传入的配置，或组件内确认过、外部尚未回写的配置；外部配置变化后以外部为准
-  const rawSettings = shallowRef<Pick<BkUiSettings, 'checked' | 'order'>>();
+  const rawSettings = shallowRef<Pick<BkUiSettings, 'checked' | 'hidden' | 'order'>>();
 
   // 只监听外部配置本身：列定义变化（列 props 更新、列增删）不会重置 rawSettings，沿用组件内已确认的配置
   watch(
@@ -187,7 +187,7 @@ export const useColumnsSettings = (
               },
               onConfirm: (settings: BkUiSettingsChangePayload) => {
                 rawSettings.value = {
-                  checked: settings.columns,
+                  hidden: settings.hidden,
                   order: settings.order,
                 };
                 fontSize.value = settings.fontSize;
@@ -196,6 +196,7 @@ export const useColumnsSettings = (
                 props.onBkUiSettingsChange?.({
                   columns: localColumnSettings.value.checked,
                   fontSize: fontSize.value,
+                  hidden: localColumnSettings.value.hidden,
                   order: localColumnSettings.value.order,
                   rowSize: rowSize.value,
                 });

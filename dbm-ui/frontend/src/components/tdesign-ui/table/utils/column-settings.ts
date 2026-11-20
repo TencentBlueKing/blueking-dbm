@@ -18,6 +18,7 @@ import { BKUI_COLUMN_ROW_OPERATION_KEY, BUILT_IN_COLUMN_KEYS } from './constant'
 export interface ResolvedColumnSettings {
   checked: string[];
   fields: BkUiSettingsField[];
+  hidden: string[];
   order: string[];
 }
 
@@ -56,7 +57,7 @@ export const getSettingsFields = (columns: BkUiTableCol[], settings?: BkUiSettin
 
 export const resolveColumnSettings = (
   fields: BkUiSettingsField[],
-  settings?: Pick<BkUiSettings, 'checked' | 'order'>,
+  settings?: Pick<BkUiSettings, 'checked' | 'hidden' | 'order'>,
 ): ResolvedColumnSettings => {
   const fieldKeys = fields.map((field) => field.field);
   const validSet = new Set(fieldKeys);
@@ -68,14 +69,19 @@ export const resolveColumnSettings = (
       fieldKeys,
     ),
   );
-  // 未配置选中列时默认全选，禁用列始终选中
-  const checkedSet = new Set((settings?.checked ?? fieldKeys).concat(disabledKeys));
+  // hidden 优先：未隐藏的列都显示；否则兼容旧的 checked，未配置时默认全选；禁用列始终显示
+  const hiddenSet = new Set(settings?.hidden);
+  const visibleKeys = settings?.hidden
+    ? fieldKeys.filter((field) => !hiddenSet.has(field))
+    : (settings?.checked ?? fieldKeys);
+  const checkedSet = new Set(visibleKeys.concat(disabledKeys));
 
   const fieldMap = new Map(fields.map((field) => [field.field, field]));
 
   return {
     checked: order.filter((field) => checkedSet.has(field)),
     fields: order.map((field) => fieldMap.get(field)!),
+    hidden: order.filter((field) => !checkedSet.has(field)),
     order,
   };
 };

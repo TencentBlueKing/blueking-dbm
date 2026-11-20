@@ -103,16 +103,6 @@
   const isIndeterminate = computed(() => Object.keys(checkedMap.value).length > 0);
 
   const settings = {
-    checked: [
-      'prod_cluster',
-      'prod_instance_range',
-      'rollback_version',
-      'temp_cluster_proxy',
-      'specification',
-      'related_rollback_bill_id',
-      'host_count',
-      'recovery_time_point',
-    ],
     fields: [
       {
         field: 'prod_cluster',

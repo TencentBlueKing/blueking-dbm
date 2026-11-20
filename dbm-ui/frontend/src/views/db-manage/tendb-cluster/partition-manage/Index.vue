@@ -370,20 +370,7 @@
 
   const { settings: tableSetting, updateTableSettings } = useTableSettings(
     UserPersonalSettings.PARTITION_TABLE_SETTINGS,
-    {
-      checked: [
-        'id',
-        'immute_domain',
-        'dblike',
-        'tblike',
-        'partition_column',
-        'partition_column_type',
-        'partition_time_interval',
-        'expire_time',
-        'status',
-        'execute_time',
-      ],
-    },
+    {},
   );
   const tableRef = ref();
   const searchValue = ref<Record<string, string>>({});
