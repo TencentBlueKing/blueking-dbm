@@ -16,8 +16,6 @@ from typing import Dict, Optional
 
 from django.utils.translation import gettext as _
 
-from backend.components import DBConfigApi
-from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.configuration.constants import DBType
 from backend.core import consts
 from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, ClusterType
@@ -341,46 +339,19 @@ class ImportSQLFlow(object):
             file_list.extend(obj["sql_files"])
         return list(set(file_list))
 
-    def __get_dbconfig_db_version(self, db_module_id, cluster_type) -> str:
-        """从 DBConfig 获取模块部署版本，失败或为空时返回空串。"""
-        try:
-            data = DBConfigApi.query_conf_item(
-                {
-                    "bk_biz_id": str(self.data["bk_biz_id"]),
-                    "level_name": LevelName.MODULE,
-                    "level_value": str(db_module_id),
-                    "conf_file": "deploy_info",
-                    "conf_type": "deploy",
-                    "namespace": cluster_type,
-                    "format": FormatType.MAP,
-                }
-            )["content"]
-            return (data or {}).get("db_version") or ""
-        except Exception as e:
-            logger.warning(_("从 DBConfig 获取版本失败: {}").format(str(e)))
-            return ""
-
     def __get_template_db_version(self, cluster: Cluster, mysql_var_map: dict) -> str:
         """
-        获取语义检测使用的 MySQL 版本，补偿优先级：
-        1. DBConfig db_version
-        2. cluster.major_version
-        3. 远程实例 version 变量（原始字符串）
+        获取语义检测使用的 MySQL 版本，优先级：
+        1. cluster.major_version
+        2. 远程实例 version 变量（原始字符串）
         """
-        db_version = self.__get_dbconfig_db_version(
-            db_module_id=cluster.db_module_id, cluster_type=cluster.cluster_type
-        )
-        if db_version:
-            return db_version
-
         major_version = (cluster.major_version or "").strip()
         if major_version:
-            logger.warning(_("DBConfig 版本为空，使用集群 major_version 补偿: {}").format(major_version))
             return major_version
 
         remote_version = (mysql_var_map.get("version") or "").strip()
         if remote_version:
-            logger.warning(_("DBConfig 与 major_version 均为空，使用远程实例版本补偿: {}").format(remote_version))
+            logger.warning(_("集群 {} major_version 为空，使用远程实例版本: {}").format(cluster.id, remote_version))
             return remote_version
 
         raise Exception(_("无法获取集群 {} 的 MySQL 版本").format(cluster.id))
