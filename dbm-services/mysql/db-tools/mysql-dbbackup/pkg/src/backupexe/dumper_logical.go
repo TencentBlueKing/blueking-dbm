@@ -62,7 +62,7 @@ func (l *LogicalDumper) buildArgs() ([]string, error) {
 		"-h", l.cnf.Public.MysqlHost,
 		"-P", strconv.Itoa(l.cnf.Public.MysqlPort),
 		"-u", l.cnf.Public.MysqlUser,
-		fmt.Sprintf("--password='%s'", l.cnf.Public.MysqlPasswd),
+		fmt.Sprintf("--password=%s", cmutil.ShellQuote(l.cnf.Public.MysqlPasswd)),
 		"-o", filepath.Join(l.cnf.Public.BackupDir, l.cnf.Public.TargetName()),
 		"--long-query-retry-interval=10",
 		fmt.Sprintf("--long-query-retries=%d", l.cnf.LogicalBackup.FlushRetryCount),

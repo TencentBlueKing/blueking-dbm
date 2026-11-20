@@ -11,6 +11,7 @@
 package mysqlcomm
 
 import (
+	"regexp"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -63,6 +64,22 @@ func MysqlCliHasOption(mysqlCmd string, option string) error {
 		return nil
 	}
 	return errors.Errorf("check option error for %s %s", mysqlCmd, option)
+}
+
+// MysqlCliVersion 获取 mysql 客户端版本号
+// example: /usr/local/mysql/bin/mysql  Ver 8.0.30-txsql for Linux on x86_64 (20241001) ==> 8.0.30
+// 解析失败返回空字符串
+func MysqlCliVersion(mysqlCmd string) (string, error) {
+	outStr, errStr, err := cmutil.ExecCommand(false, "", mysqlCmd, "--version")
+	if err != nil {
+		return "", errors.WithMessagef(err, errStr)
+	}
+	// 注意不能直接解析整行，因为命令路径里可能带数字
+	verReg := regexp.MustCompile(`Ver\s+(\d+\.\d+\.\d+)`)
+	if res := verReg.FindStringSubmatch(outStr); len(res) == 2 {
+		return res[1], nil
+	}
+	return "", errors.Errorf("failed to parse mysql client version from: %s", outStr)
 }
 
 // MysqlAdminHasOption test mysqladmin has option or not

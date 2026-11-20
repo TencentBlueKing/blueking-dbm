@@ -396,7 +396,14 @@ func (r *RecoverBinlog) buildMysqlOptions() error {
 		logger.Info("fallback to system mysql client: %s", mysqlClient)
 	}
 	// mysqlOpt.BinaryMode &&
-	if mysqlcomm.MysqlCliHasOption(mysqlClient, "--binary-mode") == nil {
+	// mysql 8.0 客户端 在 --binary-mode 下执行 DELIMITER 会报错，所以 8.0 客户端不加 --binary-mode
+	cliVersion, err := mysqlcomm.MysqlCliVersion(mysqlClient)
+	if err != nil {
+		logger.Warn("get mysql client version failed: %s", err.Error())
+	}
+	if cliVersion != "" && cmutil.MySQLVersionParse(cliVersion) >= cmutil.MySQLVersionParse("8.0.0") {
+		logger.Info("mysql client %s version %s, skip --binary-mode", mysqlClient, cliVersion)
+	} else if mysqlcomm.MysqlCliHasOption(mysqlClient, "--binary-mode") == nil {
 		r.TgtInstance.Options += " --binary-mode"
 	}
 	r.mysqlCli = r.TgtInstance.MySQLClientCmd(mysqlClient)
