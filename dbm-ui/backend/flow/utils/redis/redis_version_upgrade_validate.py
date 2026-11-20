@@ -20,11 +20,9 @@ from django.utils.translation import gettext_lazy as _
 
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster, StorageInstance
-from backend.flow.utils.redis.redis_proxy_util import (
-    get_redis_version_by_ip,
-    get_storage_version_names_by_cluster_type,
-)
-from backend.flow.utils.redis.redis_util import is_cross_engine_version_change, version_gt
+from backend.db_package.models.db_version import DBVersion
+from backend.flow.utils.redis.redis_package_resolver import validate_storage_upgrade
+from backend.flow.utils.redis.redis_proxy_util import get_redis_version_by_ip
 
 PairKey = Tuple[str, str]
 
@@ -51,7 +49,7 @@ def get_master_slave_ips(cluster: Cluster) -> PairKey:
 
 def register_pair_entry(
     cluster: Cluster,
-    target_version: str,
+    target_version: int,
     ips_in_item: Set[str],
     pair_buckets: Dict[PairKey, Dict],
     ip_index: Dict[str, Dict],
@@ -60,6 +58,8 @@ def register_pair_entry(
     """把单个集群的升级声明注册到 pair 桶与 IP 索引.
 
     只做单集群元信息解析 + 聚合, 完整校验在 validate_pair_buckets 里进行.
+
+    @param target_version: 目标版本管理V2版本的 db_version_id
 
     @param ips_in_item: 本次要升级的 IP 集合, 必须是该集群主从对的子集且必须包含 slave_ip
       (主从版一律 slave 先升级). 整机替换的 "master 成对替换" 会同时换掉两台机器,
@@ -124,9 +124,10 @@ def validate_pair_buckets(
     pair_buckets: Dict[PairKey, Dict],
     ip_index: Dict[str, Dict],
     cluster_meta: Dict[int, Dict],
+    db_versions: Dict[int, DBVersion],
 ):
     """
-    对 pair/IP 索引做五类校验, 并把通过校验的桶收敛成单值:
+    对 pair/IP 索引做五类校验, 并把通过校验的桶收敛成单值 (db_versions: db_version_id -> DBVersion):
     1. 单 IP 目标版本一致;
     2. 单 IP 仅属一种 (master_ip, slave_ip) 拓扑;
     3. 单 IP 上兄弟集群必须全部在升级列表 (master 侧和 slave 侧分别校验);
@@ -158,7 +159,7 @@ def validate_pair_buckets(
         if len(info["target_versions"]) > 1:
             raise Exception(
                 _("IP {} 上的集群 {} 目标版本不一致: {}。同一 IP 上所有集群必须升级到同一版本").format(
-                    ip, sorted(info["cluster_ids"]), sorted(info["target_versions"])
+                    ip, sorted(info["cluster_ids"]), sorted(db_versions[v].name for v in info["target_versions"])
                 )
             )
 
@@ -190,28 +191,15 @@ def validate_pair_buckets(
         upgrade_master = next(iter(bucket["upgrade_master_flags"]))
         any_cluster_id = bucket["cluster_ids"][0]
         any_cluster = cluster_meta[any_cluster_id]["cluster"]
-        valid_versions = get_storage_version_names_by_cluster_type(any_cluster.cluster_type, True)
-        if target_version not in valid_versions:
-            raise Exception(
-                _("Redis集群 {} 目标版本 {} 不合法, 合法版本: {}").format(any_cluster.immute_domain, target_version, valid_versions)
-            )
 
         # 不支持降级: 只需分别检查一次 master_ip / slave_ip (同 IP 上版本一致)
         ips_to_check: List[str] = [slave_ip] + ([master_ip] if upgrade_master else [])
-        for ip in ips_to_check:
-            cur_ver = get_redis_version_by_ip(any_cluster_id, ip)
-            if is_cross_engine_version_change(cur_ver, target_version):
-                raise Exception(
-                    _("集群 {} IP {} 当前版本 {} 与目标版本 {} 引擎不同(Redis/Valkey), 不支持跨引擎版本升级, 请使用 DTS 数据迁移").format(
-                        any_cluster.immute_domain, ip, cur_ver, target_version
-                    )
-                )
-            if version_gt(cur_ver, target_version):
-                raise Exception(
-                    _("IP对 {}/{} 上 IP {} 当前版本 {} > 目标版本 {}, 不支持降级").format(
-                        master_ip, slave_ip, ip, cur_ver, target_version
-                    )
-                )
+        validate_storage_upgrade(
+            db_versions[target_version],
+            any_cluster.cluster_type,
+            any_cluster.immute_domain,
+            {ip: get_redis_version_by_ip(any_cluster_id, ip) for ip in ips_to_check},
+        )
 
         # finalize bucket: 收敛到单值便于下游消费
         bucket["target_version"] = target_version

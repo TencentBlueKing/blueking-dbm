@@ -64,6 +64,7 @@ from backend.flow.consts import (
 )
 from backend.flow.engine.bamboo.scene.redis.redis_rollback.plan import RollbackPlan, rollback_manifest
 from backend.flow.utils.base.payload_handler import PayloadHandler
+from backend.flow.utils.redis.redis_package_resolver import RedisUpgradePackageResolver, RedisUpgradeTarget
 from backend.flow.utils.redis.redis_proxy_util import (
     get_cache_backup_mode,
     get_twemproxy_cluster_server_shards,
@@ -2562,7 +2563,8 @@ class RedisActPayload(object):
         params = kwargs["params"]
         db_version = params["db_version"]
         cluster_type = params.get("cluster_type", "")
-        redis_pkg = get_latest_redis_package_by_version(db_version, name_prefix=params.get("pkg_name_prefix"))
+        upgrade_target = RedisUpgradeTarget.from_dict(params.get("upgrade_target"))
+        redis_pkg = get_latest_redis_package_by_version(db_version, upgrade_target=upgrade_target)
         payload = {
             "pkg": redis_pkg.name,
             "pkg_md5": redis_pkg.md5,
@@ -2757,21 +2759,19 @@ class RedisActPayload(object):
     # redis proxy 原地升级/降级
     def redis_proxy_upgrade_online_payload(self, **kwargs) -> dict:
         params = kwargs["params"]
-        # target_version_file could be None
-        proxy_pkg_prefix = params.get("proxy_pkg_prefix", None)
         proxy_pkg: Package = None
         if is_twemproxy_proxy_type(params["cluster_type"]):
-            proxy_pkg = get_redis_package_v2_release(
-                pkg_type=MediumEnum.Twemproxy,
-                series=TwemproxyVersion.TwemproxyLatest.value,
-                name_prefix=proxy_pkg_prefix,
-            )
+            pkg_type, series = MediumEnum.Twemproxy, TwemproxyVersion.TwemproxyLatest.value
         elif is_predixy_proxy_type(params["cluster_type"]):
-            proxy_pkg = get_redis_package_v2_release(
-                pkg_type=MediumEnum.Predixy,
-                series=PredixyVersion.PredixyLatest.value,
-                name_prefix=proxy_pkg_prefix,
-            )
+            pkg_type, series = MediumEnum.Predixy, PredixyVersion.PredixyLatest.value
+        else:
+            pkg_type, series = None, None
+        upgrade_target = RedisUpgradeTarget.from_dict(params.get("upgrade_target"))
+        if upgrade_target and pkg_type:
+            # 升级指定目标版本: 不限定版本阶段与 *-latest 系列
+            proxy_pkg = RedisUpgradePackageResolver([pkg_type.value]).package(upgrade_target)
+        elif pkg_type:
+            proxy_pkg = get_redis_package_v2_release(pkg_type=pkg_type, series=series)
         return {
             "db_type": DBActuatorTypeEnum.Redis.value,
             "action": DBActuatorTypeEnum.Redis.value + "_" + RedisActuatorActionEnum.PROXY_VERSION_UPGRADE.value,

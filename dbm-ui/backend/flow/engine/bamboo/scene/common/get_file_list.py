@@ -18,6 +18,7 @@ from backend.db_package.models import Package
 from backend.db_services.redis.util import is_predixy_proxy_type
 from backend.db_services.version.constants import PredixyVersion, TwemproxyVersion
 from backend.flow.consts import CLOUD_SSL_PATH, MediumEnum, MysqlVersionToDBBackupForMap
+from backend.flow.utils.redis.redis_package_resolver import RedisUpgradePackageResolver, RedisUpgradeTarget
 from backend.flow.utils.redis.redis_util import get_latest_redis_package_by_version, get_redis_package_v2_release
 
 
@@ -244,7 +245,7 @@ class GetFileList(object):
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{riak_monitor_pkg.path}",
         ]
 
-    def redis_cluster_apply_proxy(self, cluster_type, proxy_name_prefix: Optional[str] = None) -> list:
+    def redis_cluster_apply_proxy(self, cluster_type, upgrade_target: Optional[RedisUpgradeTarget] = None) -> list:
         """
         部署redis,所有节点需要的proxy pkg包
         """
@@ -254,9 +255,11 @@ class GetFileList(object):
             version = PredixyVersion.PredixyLatest
             pkg_type = MediumEnum.Predixy
 
-        proxy_pkg = get_redis_package_v2_release(
-            pkg_type=pkg_type, series=version.value, name_prefix=proxy_name_prefix
-        )
+        if upgrade_target:
+            # 升级指定目标版本: 不限定版本阶段与 *-latest 系列
+            proxy_pkg = RedisUpgradePackageResolver([pkg_type]).package(upgrade_target)
+        else:
+            proxy_pkg = get_redis_package_v2_release(pkg_type=pkg_type, series=version.value)
         bkdbmon_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.DbMon)
         redis_tool_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.RedisTools)
         return [
@@ -285,11 +288,13 @@ class GetFileList(object):
             ret.append(f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{redismodules_pkg.path}")
         return ret
 
-    def redis_cluster_version_update(self, db_version: str, name_prefix: Optional[str] = None) -> list:
+    def redis_cluster_version_update(
+        self, db_version: str, upgrade_target: Optional[RedisUpgradeTarget] = None
+    ) -> list:
         """
         redis集群版本升级
         """
-        redis_pkg = get_latest_redis_package_by_version(db_version, name_prefix=name_prefix)
+        redis_pkg = get_latest_redis_package_by_version(db_version, upgrade_target=upgrade_target)
         bkdbmon_pkg = get_redis_package_v2_release(pkg_type=MediumEnum.DbMon)
         return [
             f"{env.BKREPO_PROJECT}/{env.BKREPO_BUCKET}/{self.actuator_pkg.path}",

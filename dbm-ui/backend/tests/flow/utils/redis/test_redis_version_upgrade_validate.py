@@ -8,8 +8,11 @@ from types import SimpleNamespace
 
 import pytest
 
+from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole
+from backend.db_package.models import DBVersion, Package
 from backend.flow.utils.redis import redis_version_upgrade_validate as mod
+from backend.tests.mock_data.db_package.v2 import create_redis_package
 
 MASTER_IP = "1.1.1.1"
 SLAVE_IP = "1.1.1.2"
@@ -66,20 +69,40 @@ class _FakeStorageObjects:
         return SimpleNamespace(values_list=lambda *args, **kw: list(cluster_ids))
 
 
-def _stub_db(monkeypatch, ip_role_clusters, valid_versions=None, current_version=CURRENT_VERSION):
+@pytest.fixture
+def db_versions(db):
+    """version_name -> DBVersion, 供 pair 桶按 db_version_id 引用"""
+    Package.objects.filter(db_type=DBType.Redis.value).delete()
+    specs = [
+        ("redis-6.2.14", "Redis-6", "6.2.14.0.0.0"),
+        ("redis-7.0.0", "Redis-7", "7.0.0.0.0.0"),
+        ("redis-7.2.4", "Redis-7", "7.2.4.0.0.0"),
+        ("valkey-8.0.1", "Valkey-8", "8.0.1.0.0.0"),
+    ]
+    by_name = {}
+    for name, series, full_version in specs:
+        pkg = create_redis_package(
+            f"{name}.tar.gz", series=series, full_version=full_version, phase="release", version_name=name
+        )
+        by_name[name] = DBVersion.objects.select_related("version_series__distribution").get(pk=pkg.db_version_id)
+    return by_name
+
+
+def _stub_db(monkeypatch, ip_role_clusters, current_version=CURRENT_VERSION):
     monkeypatch.setattr(mod.StorageInstance, "objects", _FakeStorageObjects(ip_role_clusters))
-    monkeypatch.setattr(
-        mod, "get_storage_version_names_by_cluster_type", lambda *a, **kw: valid_versions or [TARGET_VERSION]
-    )
     monkeypatch.setattr(mod, "get_redis_version_by_ip", lambda *a, **kw: current_version)
 
 
-def _register(clusters_and_ips):
+def _validate(pair_buckets, ip_index, cluster_meta, db_versions):
+    mod.validate_pair_buckets(pair_buckets, ip_index, cluster_meta, {v.id: v for v in db_versions.values()})
+
+
+def _register(clusters_and_ips, db_versions=None):
     pair_buckets, ip_index, cluster_meta = {}, {}, {}
     for cluster, target_version, ips in clusters_and_ips:
         mod.register_pair_entry(
             cluster=cluster,
-            target_version=target_version,
+            target_version=db_versions[target_version].id if db_versions else target_version,
             ips_in_item=set(ips),
             pair_buckets=pair_buckets,
             ip_index=ip_index,
@@ -118,11 +141,13 @@ def test_register_merges_sibling_clusters_into_one_bucket():
 
 
 def test_validate_noop_without_buckets():
-    mod.validate_pair_buckets(pair_buckets={}, ip_index={}, cluster_meta={})
+    mod.validate_pair_buckets(pair_buckets={}, ip_index={}, cluster_meta={}, db_versions={})
 
 
-def test_validate_finalizes_bucket(monkeypatch):
-    pair_buckets, ip_index, cluster_meta = _register([(_fake_cluster(), TARGET_VERSION, [MASTER_IP, SLAVE_IP])])
+def test_validate_finalizes_bucket(monkeypatch, db_versions):
+    pair_buckets, ip_index, cluster_meta = _register(
+        [(_fake_cluster(), TARGET_VERSION, [MASTER_IP, SLAVE_IP])], db_versions
+    )
     _stub_db(
         monkeypatch,
         {
@@ -131,18 +156,18 @@ def test_validate_finalizes_bucket(monkeypatch):
         },
     )
 
-    mod.validate_pair_buckets(pair_buckets, ip_index, cluster_meta)
+    _validate(pair_buckets, ip_index, cluster_meta, db_versions)
 
     bucket = pair_buckets[(MASTER_IP, SLAVE_IP)]
-    assert bucket["target_version"] == TARGET_VERSION
+    assert bucket["target_version"] == db_versions[TARGET_VERSION].id
     assert bucket["upgrade_master"] is True
     assert "target_versions" not in bucket
     assert "upgrade_master_flags" not in bucket
 
 
-def test_validate_rejects_missing_sibling_cluster(monkeypatch):
+def test_validate_rejects_missing_sibling_cluster(monkeypatch, db_versions):
     """漏提交兄弟集群会让同一台机器同时承载 master 和 slave 实例"""
-    pair_buckets, ip_index, cluster_meta = _register([(_fake_cluster(1), TARGET_VERSION, [SLAVE_IP])])
+    pair_buckets, ip_index, cluster_meta = _register([(_fake_cluster(1), TARGET_VERSION, [SLAVE_IP])], db_versions)
     _stub_db(
         monkeypatch,
         {
@@ -152,29 +177,31 @@ def test_validate_rejects_missing_sibling_cluster(monkeypatch):
     )
 
     with pytest.raises(Exception, match="未加入本次升级"):
-        mod.validate_pair_buckets(pair_buckets, ip_index, cluster_meta)
+        _validate(pair_buckets, ip_index, cluster_meta, db_versions)
 
 
-def test_validate_rejects_inconsistent_target_versions_on_one_ip(monkeypatch):
+def test_validate_rejects_inconsistent_target_versions_on_one_ip(monkeypatch, db_versions):
     pair_buckets, ip_index, cluster_meta = _register(
         [
             (_fake_cluster(1), TARGET_VERSION, [SLAVE_IP]),
             (_fake_cluster(2), "redis-7.0.0", [SLAVE_IP]),
-        ]
+        ],
+        db_versions,
     )
     _stub_db(monkeypatch, {})
 
     with pytest.raises(Exception, match="目标版本不一致"):
-        mod.validate_pair_buckets(pair_buckets, ip_index, cluster_meta)
+        _validate(pair_buckets, ip_index, cluster_meta, db_versions)
 
 
-def test_validate_rejects_inconsistent_upgrade_scope(monkeypatch):
+def test_validate_rejects_inconsistent_upgrade_scope(monkeypatch, db_versions):
     """同 pair 上一个集群只升 slave、另一个连 master 一起升, 切换动作会互相打断"""
     pair_buckets, ip_index, cluster_meta = _register(
         [
             (_fake_cluster(1), TARGET_VERSION, [SLAVE_IP]),
             (_fake_cluster(2), TARGET_VERSION, [MASTER_IP, SLAVE_IP]),
-        ]
+        ],
+        db_versions,
     )
     _stub_db(
         monkeypatch,
@@ -185,25 +212,34 @@ def test_validate_rejects_inconsistent_upgrade_scope(monkeypatch):
     )
 
     with pytest.raises(Exception, match="升级范围不一致"):
-        mod.validate_pair_buckets(pair_buckets, ip_index, cluster_meta)
+        _validate(pair_buckets, ip_index, cluster_meta, db_versions)
 
 
-def test_validate_rejects_multiple_pair_partners(monkeypatch):
+def test_validate_rejects_multiple_pair_partners(monkeypatch, db_versions):
     """一台机器出现在两种主从配对里, 拓扑不被支持"""
     pair_buckets, ip_index, cluster_meta = _register(
         [
             (_fake_cluster(1), TARGET_VERSION, [SLAVE_IP]),
             (_fake_cluster(2, master_ip=MASTER_IP, slave_ip="3.3.3.3"), TARGET_VERSION, ["3.3.3.3"]),
-        ]
+        ],
+        db_versions,
     )
     _stub_db(monkeypatch, {})
 
     with pytest.raises(Exception, match="存在多种主从配对"):
-        mod.validate_pair_buckets(pair_buckets, ip_index, cluster_meta)
+        _validate(pair_buckets, ip_index, cluster_meta, db_versions)
 
 
-def test_validate_rejects_unsupported_target_version(monkeypatch):
-    pair_buckets, ip_index, cluster_meta = _register([(_fake_cluster(), "bad-version", [SLAVE_IP])])
+def test_validate_rejects_target_of_other_pkg_type(monkeypatch, db_versions):
+    tendisplus = create_redis_package(
+        "tendisplus-2.7.6.tgz",
+        pkg_type="tendisplus",
+        series="Tendisplus-2.7",
+        full_version="2.7.6.0.0.0",
+        phase="release",
+    ).db_version
+    db_versions["tendisplus-2.7.6"] = tendisplus
+    pair_buckets, ip_index, cluster_meta = _register([(_fake_cluster(), "tendisplus-2.7.6", [SLAVE_IP])], db_versions)
     _stub_db(
         monkeypatch,
         {
@@ -212,12 +248,12 @@ def test_validate_rejects_unsupported_target_version(monkeypatch):
         },
     )
 
-    with pytest.raises(Exception, match="目标版本 bad-version 不合法"):
-        mod.validate_pair_buckets(pair_buckets, ip_index, cluster_meta)
+    with pytest.raises(Exception, match="不是 redis 介质版本"):
+        _validate(pair_buckets, ip_index, cluster_meta, db_versions)
 
 
-def test_validate_rejects_downgrade(monkeypatch):
-    pair_buckets, ip_index, cluster_meta = _register([(_fake_cluster(), TARGET_VERSION, [SLAVE_IP])])
+def test_validate_rejects_downgrade(monkeypatch, db_versions):
+    pair_buckets, ip_index, cluster_meta = _register([(_fake_cluster(), TARGET_VERSION, [SLAVE_IP])], db_versions)
     _stub_db(
         monkeypatch,
         {
@@ -228,36 +264,34 @@ def test_validate_rejects_downgrade(monkeypatch):
     )
 
     with pytest.raises(Exception, match="不支持降级"):
-        mod.validate_pair_buckets(pair_buckets, ip_index, cluster_meta)
+        _validate(pair_buckets, ip_index, cluster_meta, db_versions)
 
 
-def test_validate_rejects_redis_to_valkey(monkeypatch):
-    pair_buckets, ip_index, cluster_meta = _register([(_fake_cluster(), "valkey-8.0.1", [SLAVE_IP])])
+def test_validate_rejects_redis_to_valkey(monkeypatch, db_versions):
+    pair_buckets, ip_index, cluster_meta = _register([(_fake_cluster(), "valkey-8.0.1", [SLAVE_IP])], db_versions)
     _stub_db(
         monkeypatch,
         {
             (MASTER_IP, InstanceRole.REDIS_MASTER.value): {1},
             (SLAVE_IP, InstanceRole.REDIS_SLAVE.value): {1},
         },
-        valid_versions=["valkey-8.0.1"],
         current_version="redis-6.2.14",
     )
 
     with pytest.raises(Exception, match="请使用 DTS 数据迁移"):
-        mod.validate_pair_buckets(pair_buckets, ip_index, cluster_meta)
+        _validate(pair_buckets, ip_index, cluster_meta, db_versions)
 
 
-def test_validate_rejects_valkey_to_redis(monkeypatch):
-    pair_buckets, ip_index, cluster_meta = _register([(_fake_cluster(), "redis-7.2.4", [SLAVE_IP])])
+def test_validate_rejects_valkey_to_redis(monkeypatch, db_versions):
+    pair_buckets, ip_index, cluster_meta = _register([(_fake_cluster(), "redis-7.2.4", [SLAVE_IP])], db_versions)
     _stub_db(
         monkeypatch,
         {
             (MASTER_IP, InstanceRole.REDIS_MASTER.value): {1},
             (SLAVE_IP, InstanceRole.REDIS_SLAVE.value): {1},
         },
-        valid_versions=["redis-7.2.4"],
         current_version="valkey-8.0.1",
     )
 
     with pytest.raises(Exception, match="请使用 DTS 数据迁移"):
-        mod.validate_pair_buckets(pair_buckets, ip_index, cluster_meta)
+        _validate(pair_buckets, ip_index, cluster_meta, db_versions)
