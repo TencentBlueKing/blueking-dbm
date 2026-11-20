@@ -17,7 +17,7 @@ import { type Mysql } from '@services/model/ticket/ticket';
  */
 export interface FlowItem {
   context: {
-    expire_time?: number;
+    expire_time_hours?: number;
   };
   cost_time: number;
   details: {
