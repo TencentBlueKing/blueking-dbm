@@ -14,6 +14,7 @@
 <template>
   <TableColumn
     col-key="cluster_state"
+    :filter="columnFilter"
     :min-width="200"
     :title="t('运行概况')">
     <template #default="{ row }: { row: IRowData }">
@@ -55,6 +56,8 @@
 
   import { ClusterTypes } from '@common/const';
 
+  import ClusterState from '@components/db-table/components/ClusterState.vue';
+
   import { CLUSTER_DETAIL_ANCHOR_CLUSTER_STATE } from '@views/db-manage/common/cluster-details/constants';
 
   import type { ClusterTypeRelateClusterModel } from './types';
@@ -86,6 +89,19 @@
   const { t } = useI18n();
 
   const { displayFields } = useClusterStateSchema(props.clusterType);
+
+  // 列筛选与搜索栏「运行概况」条件同一个 id，值为逗号分隔的 state__{key}#{value}，由搜索栏拆成 state__{key} 参数
+  const columnFilter = {
+    component: markRaw(ClusterState),
+    popupProps: {
+      attach: 'body',
+      placement: 'bottom',
+    },
+    props: {
+      clusterType: props.clusterType,
+    },
+    showConfirmAndReset: true,
+  };
 
   const viewActionId = computed(() => viewActionIdMap[props.clusterType]);
   const isOverflow = computed(() => displayFields.value.length > MAX_ROW_COUNT);

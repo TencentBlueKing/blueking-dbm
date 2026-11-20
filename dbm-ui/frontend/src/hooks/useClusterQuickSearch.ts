@@ -11,7 +11,7 @@ import { getUserList } from '@services/source/user';
 import { clusterTypeInfos, ClusterTypes } from '@common/const';
 import { domainPort, domainRegex, ipPort, ipv4 } from '@common/regex';
 
-import ClusterStateSearchPanel from '@components/cluster-state-search-panel/Index.vue';
+import ClusterStatePanel from '@components/db-quick-search/bk-quick-search/components/create-area/components/value-menu/components/ClusterStatePanel.vue';
 import { type Props as QuickSearchProps } from '@components/db-quick-search/bk-quick-search/Index.vue';
 
 import {
@@ -189,7 +189,7 @@ export const useClusterQuickSearch = (cluster_type: ClusterTypes | ClusterTypes[
         type: 'multiple',
       },
       isClusterStateSupported && {
-        component: markRaw(ClusterStateSearchPanel),
+        component: markRaw(ClusterStatePanel),
         formatValuesText: (values: { label: string; value: string | number }[]) =>
           formatClusterStateFilterText(values, clusterStateFieldNameMap.value),
         id: 'cluster_state',
