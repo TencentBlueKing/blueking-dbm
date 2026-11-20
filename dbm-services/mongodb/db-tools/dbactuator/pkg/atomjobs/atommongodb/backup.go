@@ -44,7 +44,11 @@ type backupParams struct {
 	FileTag               string            `json:"fileTag"`        // fileTag normal_backup or forever_backup
 	BackupType            string            `json:"backupType"`     // 只能是 logical
 	MaxConcurrency        int               `json:"maxConcurrency"` // 最大并发数，默认为4
-	Args                  struct {
+	// SkipUpload 为 true 时只在本机生成 tar，不上报备份系统。数据迁移 cluster 模式使用。
+	SkipUpload bool `json:"skipUpload"`
+	// ArchiveBaseName 是 billdump 下的文件名前缀（不含后缀）。SkipUpload 时必填，产物为 {name}.tar.gz。
+	ArchiveBaseName string `json:"archiveBaseName"`
+	Args            struct {
 		BackupNode string      `json:"backupNode"`
 		IsPartial  bool        `json:"isPartial"` // 为true时，备份指定库和表
 		Oplog      bool        `json:"oplog"`     // 是否备份oplog，只有在IsPartial为false可为true
@@ -182,6 +186,60 @@ func getMongoDumpOutPath(ip string, port int) (string, string, error) {
 	return "", "", errors.New("getBackupPath failed")
 }
 
+// validateArchiveBaseName 拒绝空值、路径分隔符以及 "." / ".."，避免 RemoveAll 误删 billdump 或其父目录。
+func validateArchiveBaseName(baseName string) error {
+	if baseName == "" {
+		return errors.New("archiveBaseName is required when skipUpload is true")
+	}
+	if baseName == "." || baseName == ".." {
+		return errors.New("archiveBaseName must not be . or ..")
+	}
+	if strings.ContainsAny(baseName, `/\`) || path.Base(baseName) != baseName {
+		return errors.New("archiveBaseName must be a single path segment")
+	}
+	return nil
+}
+
+// underBackupDir 确认候选路径是 backupDir 下的子路径（不能等于 backupDir 本身）。
+func underBackupDir(backupDir, candidate string) error {
+	backupClean := path.Clean(backupDir)
+	cleaned := path.Clean(candidate)
+	prefix := backupClean + string(os.PathSeparator)
+	if cleaned == backupClean || !strings.HasPrefix(cleaned, prefix) {
+		return errors.Errorf("archive path escapes backup dir: %s", cleaned)
+	}
+	return nil
+}
+
+// getNamedDumpOutPath 在 billdump 下使用固定目录名，便于迁移流程预先约定 tar 路径。
+func getNamedDumpOutPath(baseName string) (string, string, error) {
+	if err := validateArchiveBaseName(baseName); err != nil {
+		return "", "", err
+	}
+	backupDir, err := getBackupPath()
+	if err != nil {
+		return "", "", err
+	}
+	tmpDir := path.Join(backupDir, baseName)
+	tarPath := path.Join(backupDir, baseName+".tar.gz")
+	if err = underBackupDir(backupDir, tmpDir); err != nil {
+		return "", "", err
+	}
+	if err = underBackupDir(backupDir, tarPath); err != nil {
+		return "", "", err
+	}
+	if err = os.RemoveAll(tmpDir); err != nil && !os.IsNotExist(err) {
+		return "", "", errors.Wrap(err, "RemoveAll")
+	}
+	if err = os.Remove(tarPath); err != nil && !os.IsNotExist(err) {
+		return "", "", errors.Wrap(err, "Remove")
+	}
+	if err = util.MkDirsIfNotExists([]string{tmpDir}); err != nil {
+		return "", "", err
+	}
+	return tmpDir, baseName, nil
+}
+
 func (s *backupJob) removeOldBackupFilesStep() error {
 	// removeOldBackupFiles
 	billDumpDir := path.Join(consts.GetMongoBackupDir(), "dbbak", "billdump")
@@ -316,7 +374,13 @@ func retStringBool(err error) string {
 // doLogicalBackup backup by mongodump
 func (s *backupJob) doLogicalBackup() error {
 	s.runtime.Logger.Info("dump start")
-	tmpPath, tmpDirName, err := getMongoDumpOutPath(s.ConfParams.IP, s.ConfParams.Port)
+	var tmpPath, tmpDirName string
+	var err error
+	if s.ConfParams.SkipUpload {
+		tmpPath, tmpDirName, err = getNamedDumpOutPath(s.ConfParams.ArchiveBaseName)
+	} else {
+		tmpPath, tmpDirName, err = getMongoDumpOutPath(s.ConfParams.IP, s.ConfParams.Port)
+	}
 	if err != nil {
 		return errors.Wrap(err, "getMongoDumpOutPath")
 	}
@@ -401,7 +465,8 @@ func (s *backupJob) doLogicalBackup() error {
 	s.runtime.Logger.Info("dump end, start make archive file")
 	tarStartTime := time.Now()
 	var tarPath, tarFileName string
-	if isTlinux12() {
+	// skipUpload 固定 gzip，使 flow 能预先知道文件名，且 logical.UntarFile 可直接解开。
+	if s.ConfParams.SkipUpload || isTlinux12() {
 		tarPath, tarFileName, err = s.makeArchiveFileGzip(tmpPath, tmpDirName)
 	} else {
 		tarPath, tarFileName, err = s.makeArchiveFileZstd(tmpPath, tmpDirName)
@@ -414,6 +479,11 @@ func (s *backupJob) doLogicalBackup() error {
 
 	fSize, _ := util.GetFileSize(tarPath)
 	s.runtime.Logger.Info("backup file: %s size: %d", tarPath, fSize)
+	if s.ConfParams.SkipUpload {
+		s.setBackupPipeContextData(tarPath, tarFileName, fSize, nil)
+		s.runtime.Logger.Info("skipUpload, keep local file %s", tarPath)
+		return nil
+	}
 	if err = ensureBackupClientFilePerm(tarPath); err != nil {
 		return err
 	}
@@ -446,6 +516,11 @@ func (s *backupJob) doLogicalBackup() error {
 // setBackupPipeContextData 将备份文件信息写入 PipeContextData，供 flow 交付产物解析
 func (s *backupJob) setBackupPipeContextData(tarPath, tarFileName string, fSize int64, task *backupsys.TaskInfo) {
 	inst := s.ConfParams.BkDbmInstance
+	bsTaskID, bsTag := "", ""
+	if task != nil {
+		bsTaskID = task.TaskId
+		bsTag = task.Tag
+	}
 	s.runtime.PipeContextData = map[string]interface{}{
 		"cluster_id":     inst.ClusterId,
 		"cluster_domain": inst.ClusterDomain,
@@ -454,8 +529,8 @@ func (s *backupJob) setBackupPipeContextData(tarPath, tarFileName string, fSize 
 		"file_name":      tarFileName,
 		"file_path":      tarPath,
 		"file_size":      fSize,
-		"bs_taskid":      task.TaskId,
-		"bs_tag":         task.Tag,
+		"bs_taskid":      bsTaskID,
+		"bs_tag":         bsTag,
 	}
 }
 
@@ -589,6 +664,10 @@ func (s *backupJob) Init(runtime *jobruntime.JobGenericRuntime) error {
 	}
 	if !util.FileExists(s.MongoDump) {
 		return errors.Errorf("mongodump not exists, path:%s", s.MongoDump)
+	}
+
+	if s.ConfParams.SkipUpload {
+		return validateArchiveBaseName(s.ConfParams.ArchiveBaseName)
 	}
 
 	// set default file tag if not set

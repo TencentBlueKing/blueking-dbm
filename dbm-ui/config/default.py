@@ -146,6 +146,7 @@ INSTALLED_APPS += (
     "backend.db_services.redis.maxmemory_set",
     "backend.db_services.redis.capacity_evaluate_service",
     "backend.db_dirty",
+    "backend.exec_host",
     "backend.db_periodic_task",
     "backend.db_report",
     "backend.db_services.redis.slots_migrate",

@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 import base64
 import importlib
 import json
@@ -25,13 +26,14 @@ from backend import env
 from backend.components import JobApi
 from backend.flow.models import FlowNode
 from backend.flow.plugins.components.collections.common.base_service import BkJobService
+from backend.flow.utils.log_redact import RedactingLogMixin
 from backend.flow.utils.mongodb.mongodb_script_template import make_script_common_kwargs, mongodb_actuator_template2
 
 logger = logging.getLogger("json")
 cpl = re.compile("<ctx>(?P<context>.+?)</ctx>")  # 非贪婪模式，只匹配第一次出现的自定义tag
 
 
-class _ExecBkJobService(BkJobService):
+class _ExecBkJobService(RedactingLogMixin, BkJobService):
     """
     根据db-actuator组件，绑定fast_execute_script api接口访问。
     """
@@ -84,11 +86,9 @@ class _ExecBkJobService(BkJobService):
         if kwargs.get("payload_func"):
             payload_func = kwargs.get("payload_func")
             self.log_info("payload_func {}".format(payload_func))
-            self.log_info("db_act_template {}".format(db_act_template))
             module = importlib.import_module(payload_func["module"])
             func = getattr(module, payload_func["function"])
             db_act_template = func(db_act_template, trans_data)
-            self.log_info("db_act_template {}".format(db_act_template))
 
         db_act_template["root_id"] = root_id
         db_act_template["node_id"] = node_id
@@ -114,7 +114,13 @@ class _ExecBkJobService(BkJobService):
             "target_server": {"ip_list": target_ip_info},
         }
 
-        self.log_info("[{}] ready start task with body {} {}".format(node_name, "", body))
+        self.log_info(
+            "[{}] ready start task ips={} script_b64_len={}".format(
+                node_name,
+                [item.get("ip") for item in target_ip_info],
+                len(body.get("script_content") or ""),
+            )
+        )
         resp = JobApi.fast_execute_script(
             {**(make_script_common_kwargs(timeout=259200, exec_account="root")), **body}, raw=True
         )

@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 from typing import Dict, List, Optional, Tuple
 
 from django.utils.translation import gettext as _
@@ -31,11 +32,29 @@ class RestoreSubTask(BaseSubTask):
 
     @classmethod
     def make_kwargs(
-        cls, sub_payload: Dict, file_path, dest_dir: str, exec_node: MongoNode, dest_node: MongoNode, dest_type: str
+        cls,
+        sub_payload: Dict,
+        file_path,
+        dest_dir: str,
+        exec_node: MongoNode,
+        dest_node: MongoNode,
+        dest_type: str,
+        local_file: str = None,
+        skip_exist_check: bool = False,
     ) -> dict:
         ns_filter = sub_payload.get("ns_filter")
         is_partial = MongoDBNsFilter.is_partial(ns_filter)
         dba_user, dba_pwd = MongoUtil.get_dba_user_password(dest_node.ip, dest_node.port, dest_node.bk_cloud_id)
+        restore_args = {
+            "srcFile": sub_payload.get("task_ids") or [],
+            "isPartial": is_partial,
+            "oplog": False,
+            "nsFilter": ns_filter,
+            "recoverDir": dest_dir,
+            "skipExistCheck": skip_exist_check,
+        }
+        if local_file:
+            restore_args["localFile"] = local_file
         return {
             "set_trans_data_dataclass": CommonContext.__name__,
             "get_trans_data_ip_var": None,
@@ -52,13 +71,7 @@ class RestoreSubTask(BaseSubTask):
                     "dest_type": dest_type,
                     "adminUsername": dba_user,
                     "adminPassword": dba_pwd,
-                    "args": {
-                        "srcFile": sub_payload["task_ids"],
-                        "isPartial": is_partial,
-                        "oplog": False,
-                        "nsFilter": sub_payload["ns_filter"],
-                        "recoverDir": dest_dir,
-                    },
+                    "args": restore_args,
                 },
             },
         }

@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_autofix import MongoAutofixFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_autofix_manual import MongoAutofixManualFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_autofix_pre import MongoAutofixPreFlow
@@ -17,8 +18,10 @@ from backend.flow.engine.bamboo.scene.mongodb.mongodb_cluster_add_shard import M
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_cluster_reduce_shard import MongoDBClusterReduceShardFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_cluster_scale_mongos import ScaleMongoSFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_data_export import MongoDataExportFlow
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_data_migrate import MongoDBDataMigrateFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_deferred_deinstall import MongoDeferredDeInstallFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_deinstall import MongoDBDeInstallFlow
+from backend.flow.engine.bamboo.scene.mongodb.mongodb_dts import MongoDBDtsFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_enable_disable import MongoEnableDisableFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_exec_script import MongoExecScriptFlow
 from backend.flow.engine.bamboo.scene.mongodb.mongodb_fake_install import MongoFakeInstallFlow
@@ -73,6 +76,18 @@ class MongoDBController(BaseController):
     def mongo_restore(self):
         # 发起恢复任务
         MongoRestoreFlow(root_id=self.root_id, data=self.ticket_data).start()
+
+    def mongo_data_migrate(self):
+        """把逻辑数据迁入已存在的空目标集群。源为单据备份产物或可访问集群。"""
+        MongoDBDataMigrateFlow(root_id=self.root_id, data=self.ticket_data).start()
+
+    def mongo_dts(self):
+        """在执行机上用 MongoShake 做全量加增量同步，追平后回收。"""
+        MongoDBDtsFlow(root_id=self.root_id, data=self.ticket_data).start()
+
+    def mongo_dts_cleanup(self):
+        """失败后手动清理：停 collector、删工作目录、删临时账号、按需回收执行机。"""
+        MongoDBDtsFlow(root_id=self.root_id, data=self.ticket_data).cleanup()
 
     def mongo_pitr_restore(self):
         # 发起PITR恢复任务
