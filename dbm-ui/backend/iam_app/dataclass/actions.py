@@ -18,6 +18,7 @@ from iam import Action
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole
+from backend.env import RUN_VER
 from backend.iam_app.constans import DEPRECATED_ACTION_GROUP, MAX_ACTION_NAME_LEN, CommonActionLabel
 from backend.iam_app.dataclass.resources import ResourceEnum, ResourceMeta
 from backend.iam_app.exceptions import ActionNotExistError, BaseIAMError
@@ -43,6 +44,8 @@ class ActionMeta(Action):
     common_labels: List[str] = None  # 动作隶属常用操作配置组
 
     is_ticket_action: bool = False  # 表示该动作是单据工具箱
+    # 仅内部版注册。开源环境不写入权限模型
+    internal_only: bool = False
 
     # ---------------- IAM V4 字段 ----------------
     # V4 的动作只有 id/name/resource_type_id 三个字段，且只能关联单个资源类型，
@@ -60,6 +63,10 @@ class ActionMeta(Action):
         if self.is_ticket_action:
             self.__ticket_tool_action_init__()
 
+    def enabled_in_internal_env(self) -> bool:
+        """internal_only 的动作只在内部版 RUN_VER=ieod 注册。"""
+        return not self.internal_only or RUN_VER == "ieod"
+
     def __ticket_tool_action_init__(self):
         """单据工具箱action的初始化"""
         ticket_type = self.id.upper()
@@ -72,7 +79,7 @@ class ActionMeta(Action):
         self.related_resource_types = self.related_resource_types or [getattr(ResourceEnum, group.upper())]
         self.related_actions = self.related_actions or []
         # 添加单据动作所属组和常用操作
-        self.group = DBType.get_choice_label(group)
+        self.group = str(DBType.get_choice_label(group))
         self.subgroup = str(self.subgroup or _("工具箱"))
 
     def to_json(self):
@@ -80,6 +87,7 @@ class ActionMeta(Action):
         content.pop("is_ticket_action")
         content.pop("common_labels")
         content.pop("related_resource_type_v4")
+        content.pop("internal_only")
         content.update(
             {
                 "description": self.description or self.name,
@@ -3092,6 +3100,43 @@ class ActionEnum:
         group=_("集群管理"),
         subgroup=_("集群管理"),
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
+    )
+
+    # 管理空间「域名服务」。分组同名，label 为空，无依赖动作，授权直接写到用户。
+    # 新建入口看 dns_domain_create；域名、编辑、删除看该域名的 dns_manage；
+    # 全局操作日志入口常驻，查看看 dns_audit_view。
+    DNS_DOMAIN_CREATE = ActionMeta(
+        id="dns_domain_create",
+        name=_("创建域名"),
+        name_en="Create DNS Domain",
+        type="execute",
+        related_actions=[],
+        related_resource_types=[],
+        group=_("域名服务"),
+        common_labels=[],
+        internal_only=True,
+    )
+    DNS_MANAGE = ActionMeta(
+        id="dns_manage",
+        name=_("域名管理"),
+        name_en="DNS Domain Manage",
+        type="manage",
+        related_actions=[],
+        related_resource_types=[ResourceEnum.DNS_DOMAIN],
+        group=_("域名服务"),
+        common_labels=[],
+        internal_only=True,
+    )
+    DNS_AUDIT_VIEW = ActionMeta(
+        id="dns_audit_view",
+        name=_("域名服务全局操作日志查看"),
+        name_en="DNS Audit View",
+        type="view",
+        related_actions=[],
+        related_resource_types=[],
+        group=_("域名服务"),
+        common_labels=[],
+        internal_only=True,
     )
 
     @classmethod

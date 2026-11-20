@@ -536,6 +536,10 @@ class Services:
     @classmethod
     def auto_create_iam_migrations(cls):
         """自动注册iam"""
+        if env.BK_IAM_SKIP:
+            logger.info("BK_IAM_SKIP=true，跳过 IAM 模型注册")
+            return
+
         # V4 模型迁移
         if env.ENABLE_IAM_V4:
             try:

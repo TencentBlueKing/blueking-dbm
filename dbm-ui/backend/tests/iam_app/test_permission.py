@@ -214,6 +214,65 @@ class TestPermission:
 
         assert len(data) > 0
 
+    def test_grant_dns_domain_manage(self, mock_iam_client):
+        """新建域名走路径授权。新建关联和实例授权对这个资源会被权限中心拒绝。"""
+        mock_iam_client.grant_or_revoke_path_permission.return_value = ""
+        resource = ResourceEnum.DNS_DOMAIN.create_instance("eco.test.db")
+
+        result = IAMV3Backend(mock_iam_client).grant_creator_actions(resource, "ecoli")
+
+        assert result == ""
+        request = mock_iam_client.grant_or_revoke_path_permission.call_args[0][0]
+        payload = request.to_dict()
+        assert payload["operate"] == "grant"
+        assert payload["action"]["id"] == "dns_manage"
+        assert payload["subject"]["id"] == "ecoli"
+        assert payload["resources"][0]["path"] == [{"type": "dns_domain", "id": "eco.test.db", "name": "eco.test.db"}]
+        mock_iam_client.grant_resource_creator_actions.assert_not_called()
+        mock_iam_client.grant_or_revoke_instance_permission.assert_not_called()
+
+    def test_dns_manage_matches_instance_policy(self, mock_iam_client):
+        """空 condition 判否。路径授权写下的 id in，以及单值 eq，都能判过。"""
+        from iam.iam import IAM
+
+        domain = "eco.test.db"
+        resource = ResourceEnum.DNS_DOMAIN.create_instance(domain)
+        mock_iam_client._build_object_set.side_effect = lambda *args, **kwargs: IAM._build_object_set(
+            mock_iam_client, *args, **kwargs
+        )
+        mock_iam_client._eval_policy.side_effect = lambda *args, **kwargs: IAM._eval_policy(
+            mock_iam_client, *args, **kwargs
+        )
+        mock_iam_client._eval_expr.side_effect = lambda *args, **kwargs: IAM._eval_expr(
+            mock_iam_client, *args, **kwargs
+        )
+        backend = IAMV3Backend(mock_iam_client)
+
+        mock_iam_client._do_policy_query_by_actions.return_value = [{"action": {"id": "dns_manage"}, "condition": {}}]
+        assert backend.batch_is_allowed("ecoli", [ActionEnum.DNS_MANAGE], [[resource]])[domain]["dns_manage"] is False
+
+        mock_iam_client._do_policy_query_by_actions.return_value = [
+            {
+                "action": {"id": "dns_manage"},
+                "condition": {"op": "eq", "field": "dns_domain.id", "value": domain},
+            }
+        ]
+        assert backend.is_allowed("ecoli", ActionEnum.DNS_MANAGE, [resource]) is True
+
+        other = ResourceEnum.DNS_DOMAIN.create_instance("other.test.db")
+        assert (
+            backend.batch_is_allowed("ecoli", [ActionEnum.DNS_MANAGE], [[other]])["other.test.db"]["dns_manage"]
+            is False
+        )
+
+        mock_iam_client._do_policy_query_by_actions.return_value = [
+            {
+                "action": {"id": "dns_manage"},
+                "condition": {"op": "in", "field": "dns_domain.id", "value": [domain, "other.kept.db"]},
+            }
+        ]
+        assert backend.multi_actions_is_allowed("ecoli", [ActionEnum.DNS_MANAGE], [resource])["dns_manage"] is True
+
     def test_grant_creator_actions(self, test_username, mock_iam_backend, test_cluster_for_iam):
         """测试授权创建者。V3走属性授权、V4走角色实例授权，差异由后端消化"""
         perm = Permission(username=test_username)

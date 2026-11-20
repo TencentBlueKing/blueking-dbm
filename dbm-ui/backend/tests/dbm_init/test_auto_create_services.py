@@ -97,16 +97,26 @@ class TestAutoCreateServices(TestCase):
         Services.auto_register_application()
         mock_api_call.assert_called_once()
 
+    @patch("backend.dbm_init.services.env.ENABLE_IAM_V4", False)
+    @patch("backend.dbm_init.services.env.BK_IAM_SKIP", False)
     @patch("backend.dbm_init.services.call_command")
     @patch("backend.dbm_init.services.generate_iam_migration_json")
     def test_auto_create_iam_migrations(self, mock_generate_json, mock_call_command):
-        """自动注册 IAM 只需调用脚本与命令"""
-        mock_generate_json.side_effect = [None]
-
+        """未跳过且为 V3 时，自动注册 IAM 只需调用脚本与命令"""
         Services.auto_create_iam_migrations()
 
         mock_generate_json.assert_called_once_with(json_name="initial.json")
         mock_call_command.assert_called_once_with("iam_makemigrations", "initial.json")
+
+    @patch("backend.dbm_init.services.env.BK_IAM_SKIP", True)
+    @patch("backend.dbm_init.services.call_command")
+    @patch("backend.dbm_init.services.generate_iam_migration_json")
+    def test_auto_create_iam_migrations_skip(self, mock_generate_json, mock_call_command):
+        """BK_IAM_SKIP 时不注册 IAM 模型"""
+        Services.auto_create_iam_migrations()
+
+        mock_generate_json.assert_not_called()
+        mock_call_command.assert_not_called()
 
     @patch("backend.dbm_init.services.SwitchOrgView.initial")
     def test_auto_init_grafana_success(self, mock_initial):

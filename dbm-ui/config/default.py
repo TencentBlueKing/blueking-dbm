@@ -139,6 +139,7 @@ INSTALLED_APPS += (
     "backend.db_services.mysql.open_area",
     "backend.db_services.ipchooser",
     "backend.db_services.risk_memo",
+    "backend.db_services.dns_domain",
     "backend.dbm_tools",
     "backend.db_proxy",
     "backend.db_monitor",
