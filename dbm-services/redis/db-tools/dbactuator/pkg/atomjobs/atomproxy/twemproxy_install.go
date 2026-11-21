@@ -220,6 +220,8 @@ func (ti *twemproxyInstall) Run() (err error) {
 	}
 
 	if installed, _ := ti.isTwemproxyRunning(ti.params.Port); installed {
+		// 已运行实例重复安装时也刷新提示符
+		ti.setShellPrompt()
 		ti.runtime.Logger.Info("startProcess success. port %d already running", ti.params.Port)
 		return
 	}
@@ -228,6 +230,8 @@ func (ti *twemproxyInstall) Run() (err error) {
 	if err != nil {
 		return errors.Wrap(err, "startProcess")
 	}
+	// 拉起成功后写入主机 shell 提示符, 避免安装失败时留下误导性的提示符
+	ti.setShellPrompt()
 	ti.runtime.Logger.Info("startProcess success. port %d", ti.params.Port)
 	return nil
 }
@@ -555,6 +559,20 @@ func (ti *twemproxyInstall) startProcess(port int) error {
 	ti.runtime.Logger.Error(err.Error())
 	return err
 
+}
+
+// setShellPrompt 写入 twemproxy 主机提示符, 失败仅告警, 不阻断安装
+func (ti *twemproxyInstall) setShellPrompt() {
+	label, err := consts.ProxyShellPromptLabel(consts.MetaRoleTwemproxy, ti.params.IP)
+	if err != nil {
+		ti.runtime.Logger.Warn("%s: skip set shell prompt, %v", ti.Name(), err)
+		return
+	}
+	if err = consts.SetRedisShellPrompt(label, true); err != nil {
+		ti.runtime.Logger.Warn("%s: set shell prompt(%s) failed:%v", ti.Name(), label, err)
+		return
+	}
+	ti.runtime.Logger.Info("%s: set shell prompt(%s) success", ti.Name(), label)
 }
 
 // Retry times

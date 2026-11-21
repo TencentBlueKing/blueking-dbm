@@ -236,6 +236,19 @@ func (job *TwemproxyOperate) ClearMoreDirsWhenShutdown(port int) (err error) {
 		job.runtime.Logger.Error(err.Error())
 		return
 	}
+	// 清理主机 shell 提示符, 失败仅告警, 不阻断下架流程
+	job.removeShellPrompt()
+
 	// util.CleanProxyExporter()
 	return nil
+}
+
+// removeShellPrompt 清理 twemproxy 主机提示符, 失败仅告警, 不阻断下架流程
+func (job *TwemproxyOperate) removeShellPrompt() {
+	job.runtime.Logger.Info("start clear redis shell prompt")
+	if err := consts.RemoveRedisShellPrompt(); err != nil {
+		job.runtime.Logger.Warn("%s: remove shell prompt failed:%v", job.Name(), err)
+		return
+	}
+	job.runtime.Logger.Info("%s: remove shell prompt success", job.Name())
 }

@@ -339,8 +339,24 @@ func (p *PredixyInstall) Run() error {
 	if err := p.startup(); err != nil {
 		return err
 	}
+	// 写入主机 shell 提示符
+	p.setShellPrompt()
 
 	return nil
+}
+
+// setShellPrompt 写入 predixy 主机提示符, 失败仅告警, 不阻断安装
+func (p *PredixyInstall) setShellPrompt() {
+	label, err := consts.ProxyShellPromptLabel(consts.MetaRolePredixy, p.ConfParams.IP)
+	if err != nil {
+		p.runtime.Logger.Warn("%s: skip set shell prompt, %v", p.Name(), err)
+		return
+	}
+	if err = consts.SetRedisShellPrompt(label, true); err != nil {
+		p.runtime.Logger.Warn("%s: set shell prompt(%s) failed:%v", p.Name(), label, err)
+		return
+	}
+	p.runtime.Logger.Info("%s: set shell prompt(%s) success", p.Name(), label)
 }
 
 // mkdir 创建相关目录并给目录授权
