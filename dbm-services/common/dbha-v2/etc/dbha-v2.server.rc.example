@@ -217,8 +217,9 @@ ADMIN_PROBE_PROXY_ADMIN_TIMEOUT=5s
 # probes must react to topology changes faster. Minimum 1m; rc files omitting it default to 10m.
 ADMIN_PROBE_METADATA_CACHE_MAX_AGE=10m
 # Age past which a cached row is ignored outright. Metadata sync never deletes, so rows left by
-# decommissioned instances would otherwise stay permanently stale and disable the cache for
-# that IP. Must be at least CACHE_MAX_AGE; rc files omitting it default to 24h.
+# decommissioned instances stay stale until analysis retention removes them (14 days by default)
+# and would disable the cache for that IP meanwhile. Must be at least CACHE_MAX_AGE; rc files
+# omitting it default to 24h.
 ADMIN_PROBE_METADATA_TOMBSTONE_AGE=24h
 
 # ## admin · probe health-check write verification (returned to probe via GetProbeConfig)

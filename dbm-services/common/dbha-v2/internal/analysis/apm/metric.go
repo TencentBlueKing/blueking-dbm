@@ -38,6 +38,10 @@ const (
 	MetricLabelStatusCode  = "status_code"
 	MetricLabelBizID       = "biz_id"
 	MetricLabelHarvestType = "harvest_type"
+	MetricLabelTable       = "table"
+	MetricLabelReason      = "reason"
+	MetricLabelStage       = "stage"
+	MetricLabelKind        = "kind"
 
 	MetricServerName                 = "analysis"
 	MetricApiNameQueryMetadata       = "query_metadata"
@@ -94,7 +98,24 @@ var (
 	DbhaDataStatusUpdatedCount     *haapm.HaGauge
 	DbhaDataStatusUpdatedIPCount   *haapm.HaGauge
 	DbhaDataStatusActiveIPCount    *haapm.HaGauge
+
+	// Retention*
+	RetentionEnabled                           *haapm.HaGauge
+	RetentionLeader                            *haapm.HaGauge
+	RetentionDeletedRowsTotal                  *haapm.HaCounter
+	RetentionAttemptedRowsTotal                *haapm.HaCounter
+	RetentionSkippedTotal                      *haapm.HaCounter
+	RetentionErrorsTotal                       *haapm.HaCounter
+	RetentionStatementTimeConsumingMs          *haapm.HaHistogram
+	RetentionRoundTimeConsumingMs              *haapm.HaHistogram
+	RetentionPassStaleRows                     *haapm.HaGauge
+	RetentionPassScannedRows                   *haapm.HaGauge
+	RetentionLastPassCompletedTimestampSeconds *haapm.HaGauge
+	RetentionStalled                           *haapm.HaGauge
 )
+
+// retentionRoundBuckets covers the 60s default round budget; the default duration buckets stop at 10s.
+var retentionRoundBuckets = []float64{100, 500, 1000, 2500, 5000, 10000, 30000, 60000, 120000}
 
 func init() {
 	initScanMetrics()
@@ -107,6 +128,7 @@ func init() {
 	initDbmApiMetrics()
 	initDetectorMetrics()
 	initDbTableUpdatedMetrics()
+	initRetentionMetrics()
 }
 
 func initScanMetrics() {
@@ -342,6 +364,76 @@ func initDbTableUpdatedMetrics() {
 		"Number of IPs (distinct cloud/ip) that reported within the latest statistics window, by db_type: "+
 			"active (reporting) IPs, not an installed count",
 		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName, MetricLabelDbType,
+	)
+}
+
+func initRetentionMetrics() {
+	RetentionEnabled = haapm.NewHaGauge(
+		"retention_enabled",
+		"Whether stale-row retention is enabled in this instance (1) or not (0)",
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
+	)
+	RetentionLeader = haapm.NewHaGauge(
+		"retention_leader",
+		"Whether this instance holds the retention election (1) or not (0)",
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName,
+	)
+	RetentionDeletedRowsTotal = haapm.NewHaCounter(
+		"retention_deleted_rows_total",
+		"Total number of stale rows physically deleted by retention, by table",
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName, MetricLabelTable,
+	)
+	RetentionAttemptedRowsTotal = haapm.NewHaCounter(
+		"retention_attempted_rows_total",
+		"Total number of stale candidate rows submitted to DELETE by retention, by table",
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName, MetricLabelTable,
+	)
+	RetentionSkippedTotal = haapm.NewHaCounter(
+		"retention_skipped_total",
+		"Total number of retention runs that yielded on purpose, by table and reason",
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName, MetricLabelTable, MetricLabelReason,
+	)
+	RetentionErrorsTotal = haapm.NewHaCounter(
+		"retention_errors_total",
+		"Total number of retention statement failures, by table, stage and kind",
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName, MetricLabelTable, MetricLabelStage, MetricLabelKind,
+	)
+	RetentionStatementTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
+		"retention_statement_time_consuming_ms",
+		"Time consuming of retention statements in milliseconds, by table and stage",
+		haapm.DefaultDurationBuckets,
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName, MetricLabelTable, MetricLabelStage,
+	)
+	RetentionRoundTimeConsumingMs = haapm.NewHaHistogramWithBuckets(
+		"retention_round_time_consuming_ms",
+		"Time consuming of one retention run on a table in milliseconds",
+		retentionRoundBuckets,
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName, MetricLabelTable,
+	)
+
+	initRetentionPassMetrics()
+}
+
+func initRetentionPassMetrics() {
+	RetentionPassStaleRows = haapm.NewHaGauge(
+		"retention_pass_stale_rows",
+		"Stale rows submitted to DELETE during the latest completed retention pass, by table",
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName, MetricLabelTable,
+	)
+	RetentionPassScannedRows = haapm.NewHaGauge(
+		"retention_pass_scanned_rows",
+		"Rows covered by the cursor during the latest completed retention pass, by table",
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName, MetricLabelTable,
+	)
+	RetentionLastPassCompletedTimestampSeconds = haapm.NewHaGauge(
+		"retention_last_pass_completed_timestamp_seconds",
+		"Unix time of the latest completed retention pass, initialized to the election time, by table",
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName, MetricLabelTable,
+	)
+	RetentionStalled = haapm.NewHaGauge(
+		"retention_stalled",
+		"Whether retention made no progress for stallAlertAfter while work or errors existed (1) or not (0)",
+		haapm.MetricLabelServiceID, haapm.MetricLabelServiceName, MetricLabelTable,
 	)
 }
 

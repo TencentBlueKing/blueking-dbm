@@ -73,6 +73,18 @@ func frameworkMetrics() []interface{} {
 		DbhaDataStatusUpdatedCount,
 		DbhaDataStatusUpdatedIPCount,
 		DbhaDataStatusActiveIPCount,
+		RetentionEnabled,
+		RetentionLeader,
+		RetentionDeletedRowsTotal,
+		RetentionAttemptedRowsTotal,
+		RetentionSkippedTotal,
+		RetentionErrorsTotal,
+		RetentionStatementTimeConsumingMs,
+		RetentionRoundTimeConsumingMs,
+		RetentionPassStaleRows,
+		RetentionPassScannedRows,
+		RetentionLastPassCompletedTimestampSeconds,
+		RetentionStalled,
 	}
 }
 
