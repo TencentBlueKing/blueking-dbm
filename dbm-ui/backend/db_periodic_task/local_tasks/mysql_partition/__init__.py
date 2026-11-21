@@ -9,4 +9,5 @@ specific language governing permissions and limitations under the License.
 """
 
 from .mysql_check_partition_v2 import mysql_check_partition_v2
+from .retry_partition_task import tendbcluster_partition_retry_task, tendbha_partition_retry_task
 from .task import tendbcluster_partition_task, tendbha_partition_task
