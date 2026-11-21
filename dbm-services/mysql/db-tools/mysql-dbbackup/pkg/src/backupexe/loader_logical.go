@@ -151,6 +151,7 @@ func (l *LogicalLoader) Execute() (err error) {
 	pwd, _ := os.Getwd()
 
 	binPath := filepath.Join(l.dbbackupHome, "bin/myloader")
+	cmutil.LogBinaryVersion(binPath, logger.Log.Infof, logger.Log.Warnf)
 	args := []string{
 		"-v", "3",
 		"-h", l.cnf.MysqlHost,
