@@ -8,7 +8,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/components/mysql/common"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/rollback"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 )
 
@@ -50,8 +49,7 @@ func (c *StandardizeMySQLComp) Init() error {
 			SpiderAutoIncrModeMap:    nil,
 			AllowDiskFileSystemTypes: nil,
 		},
-		RollBackContext: rollback.RollBackObjects{},
-		TimeZone:        "",
+		TimeZone: "",
 	}
 	c.inner.Params.Medium = c.Params.Medium
 	c.inner.Params.Host = c.Params.IP

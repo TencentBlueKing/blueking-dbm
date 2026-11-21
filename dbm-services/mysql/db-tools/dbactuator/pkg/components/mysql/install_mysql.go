@@ -31,7 +31,6 @@ import (
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/cst"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/core/staticembed"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
-	"dbm-services/mysql/db-tools/dbactuator/pkg/rollback"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/mysqlutil"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
@@ -45,7 +44,6 @@ type InstallMySQLComp struct {
 	Params             *InstallMySQLParams      `json:"extend"`
 	InstanceConfig     map[int]json.RawMessage
 	installMySQLConfig `json:"-"`
-	RollBackContext    rollback.RollBackObjects `json:"-"`
 	TimeZone           string
 
 	// 执行这个 comp 时用的 mysql 帐号
@@ -675,8 +673,6 @@ func (i *InstallMySQLComp) InitInstanceDirs() (err error) {
 				logger.Error("初始化实例目录%s 失败:%s", dir, err.Error())
 				return err
 			}
-			// mkdir ok, add will rollback dir
-			i.RollBackContext.AddDelFile(dir)
 		}
 	}
 	for _, dir := range []string{i.DataBaseDir, i.LogBaseDir} {
@@ -826,7 +822,7 @@ func (i *InstallMySQLComp) Startup() (err error) {
 			logger.Error("start %d failed err: %s", port, err.Error())
 			return err
 		}
-		i.RollBackContext.AddKillProcess(pid)
+		logger.Info("start %d successfully, pid: %d", port, pid)
 	}
 	return nil
 }
@@ -1341,7 +1337,7 @@ func (i *InstallMySQLComp) TdbctlStartup() (err error) {
 			logger.Error("start %d failed err: %s", port, err.Error())
 			return err
 		}
-		i.RollBackContext.AddKillProcess(pid)
+		logger.Info("start %d successfully, pid: %d", port, pid)
 	}
 	return nil
 }
