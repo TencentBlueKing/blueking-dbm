@@ -516,6 +516,27 @@ class CheckClientConnKwargs:
 
 
 @dataclass
+class DynamicCheckClientConnKwargs:
+    """
+    定义动态检测客户端连接的私有变量结构体
+    运行期根据集群ID+角色动态获取待检测实例列表
+    @attributes bk_cloud_id：云区域id
+    @attributes cluster_id：集群id
+    @attributes check_role: 待检测的实例角色，CheckClientConnRole.value
+    @attributes is_filter_sleep: 是否过滤sleep状态的线程， 默认否
+    @attributes long_process_time: 超过多少秒的活跃连接视为长连接，默认-1表示不按时间过滤
+    @attributes filter_hosts: 需要过滤的主机列表，默认空列表
+    """
+
+    bk_cloud_id: int
+    cluster_id: int
+    check_role: str
+    is_filter_sleep: bool = False
+    long_process_time: int = -1
+    filter_hosts: list = field(default_factory=list)
+
+
+@dataclass
 class CheckLongInnoDbTrxKwargs:
     """
     定义检测 InnoDB 长未提交事务的私有变量结构体

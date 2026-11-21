@@ -1340,6 +1340,16 @@ class TBinlogDumperAddType(StrStructuredEnum):
     INCR_SYNC = EnumField("incr_sync", _("增量同步"))
 
 
+class CheckClientConnRole(StrStructuredEnum):
+    """
+    动态检测客户端连接时，按集群角色动态获取待检测实例的类型
+    """
+
+    BACKEND = EnumField("backend", _("backend/remote 存储节点"))
+    SPIDER = EnumField("spider", _("spider_master/spider_slave 接入层"))
+    PROXY = EnumField("proxy", _("mysql-proxy 节点"))
+
+
 class DorisRoleEnum(StrStructuredEnum):
     HOT = EnumField("hot", _("hot"))
     WARM = EnumField("warm", _("warm"))

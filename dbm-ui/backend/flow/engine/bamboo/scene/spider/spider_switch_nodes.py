@@ -29,14 +29,9 @@ from backend.flow.engine.validate.exceptions import CheckDisasterToleranceExcept
 from backend.flow.plugins.components.collections.common.add_unlock_ticket_type_config import (
     AddUnlockTicketTypeConfigComponent,
 )
-from backend.flow.plugins.components.collections.common.pause_with_ticket_lock_check import (
-    PauseWithTicketLockCheckComponent,
-)
+from backend.flow.plugins.components.collections.common.pause import PauseComponent
 from backend.flow.plugins.components.collections.mysql.flow_output_summary import MysqlFlowOutputSummaryComponent
-from backend.flow.plugins.components.collections.spider.check_if_normal_for_cluster import (
-    CheckIfNormalSpiderNodeComponent,
-)
-from backend.flow.utils.base.base_dataclass import AddUnLockTicketTypeKwargs, ReleaseUnLockTicketTypeKwargs
+from backend.flow.utils.base.base_dataclass import AddUnLockTicketTypeKwargs
 from backend.flow.utils.mysql.flow_output_presets.instance_change import InstanceChangeAction
 from backend.flow.utils.mysql.mysql_context_dataclass import SystemInfoContext
 from backend.ticket.constants import TicketType
@@ -72,12 +67,23 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
     """
 
     # 定义临时解除单据互斥锁的单据类型列表
-    temporary_unlock_ticket_type_list = [
+    pre_switch_unlock_types = [
         TicketType.TENDBCLUSTER_IMPORT_SQLFILE,
         TicketType.TENDBCLUSTER_FORCE_IMPORT_SQLFILE,
         TicketType.TENDBCLUSTER_SEMANTIC_CHECK,
         TicketType.TENDBCLUSTER_AUTHORIZE_RULES,
     ]
+
+    # 定义执行替换前临时开放的单据类型列表
+    pre_expand_unlock_types = [
+        TicketType.TENDBCLUSTER_MIGRATE_CLUSTER,
+        TicketType.TENDBCLUSTER_NODE_REBALANCE,
+    ]
+
+    @property
+    def all_unlock_types(self) -> list:
+        """所有临时解锁的单据类型全集：人工确认时需全部重新互斥（与前面各解锁 act 的范围保持一致）"""
+        return self.pre_expand_unlock_types + self.pre_switch_unlock_types
 
     def __init__(self, root_id: str, data: Optional[Dict]):
         """
@@ -310,6 +316,22 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
 
         sub_pipeline = SubBuilder(root_id=self.root_id, data=sub_flow_context)
 
+        # 如果是故障自愈场景，不需要做
+        # 执行spider扩容节点之前，允许remote替换类单据进入
+        if not disable_manual_confirm:
+            # 释放对单据的互斥锁
+            # 单据类型：TenDBCLuster的整机迁移/节点均衡（remote替换类单据）
+            sub_pipeline.add_act(
+                act_name=_("释放remote替换类单据互斥锁"),
+                act_component_code=AddUnlockTicketTypeConfigComponent.code,
+                kwargs=asdict(
+                    AddUnLockTicketTypeKwargs(
+                        cluster_ids=[cluster_id],
+                        unlock_ticket_type_list=self.pre_expand_unlock_types,
+                    )
+                ),
+            )
+
         # 执行扩容实例
         # 注意：内部调用不透传 is_print_summary，走默认 False——避免在替换语义下额外落
         # "ADD" 摘要行；本方法尾部会统一挂载 SWITCH 摘要（包含 related_instance 表达对端）。
@@ -328,29 +350,23 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
             # 释放对单据的互斥锁
             # 单据类型：TenDBCLuster的SQL变更/强制变更/模拟执行/授权
             sub_pipeline.add_act(
-                act_name=_("释放部分单据互斥锁"),
+                act_name=_("释放变更类单据互斥锁"),
                 act_component_code=AddUnlockTicketTypeConfigComponent.code,
                 kwargs=asdict(
                     AddUnLockTicketTypeKwargs(
-                        cluster_ids=[cluster_id], unlock_ticket_type_list=self.temporary_unlock_ticket_type_list
+                        cluster_ids=[cluster_id],
+                        unlock_ticket_type_list=self.pre_switch_unlock_types,
                     )
                 ),
             )
 
-            # 人工确认前，解除释放互斥锁，重新互斥
-            sub_pipeline.add_act(
-                act_name=_("人工确认，解除释放，重新判断互斥条件"),
-                act_component_code=PauseWithTicketLockCheckComponent.code,
-                kwargs=asdict(
-                    ReleaseUnLockTicketTypeKwargs(
-                        cluster_ids=[cluster_id],
-                        release_unlock_ticket_type_list=self.temporary_unlock_ticket_type_list,
-                    )
-                ),
-            )
+            # 人工确认
+            sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
         # 执行缩容实例
         # 注意：同上，内部调用不透传 is_print_summary，避免额外落 "REDUCE" 摘要行。
+        # 缩容子流程内部还有一次人工确认：本流程前面已对本集群解锁过部分单据类型，
+        # 通过 ticket_lock_types 交给子流程，在确认时重新加锁并校验互斥（谁解锁，谁传单）。
         sub_pipeline.add_sub_pipeline(
             self.reduce_spider_nodes_with_cluster(
                 cluster_id=cluster_id,
@@ -361,6 +377,7 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
                 is_check_disaster_tolerance_level=False,
                 is_check_process=self.data.get("is_safe", True),
                 disable_manual_confirm=disable_manual_confirm,
+                release_unlock_ticket_type_list=self.all_unlock_types,
             )
         )
 
@@ -423,31 +440,3 @@ class TenDBClusterSwitchNodesFlow(TenDBClusterAddNodesFlow, TenDBClusterReduceNo
             check_ai_monitor_cluster_list=[int(info["cluster_id"]) for info in self.data["infos"]],
             init_trans_data_class=SystemInfoContext(),
         )
-
-    def revoke_flow(self):
-        """
-        定义TenDB Cluster替换接入层流程出现异常，终止的流程
-        主要逻辑是根据单据终止后，哪些新机器可以进入主机退回流程中
-        """
-        revoke_pipeline = Builder(root_id=self.root_id, data=self.data)
-
-        acts_list = []
-        for info in self.data["infos"]:
-            acts_list.append(
-                {
-                    "act_name": _("集群ID[{}]计算回收主机".format(info["cluster_id"])),
-                    "act_component_code": CheckIfNormalSpiderNodeComponent.code,
-                    "kwargs": asdict(
-                        CheckIfNormalSpiderNodeComponent.kwargs(
-                            cluster_id=info["cluster_id"],
-                            spider_hosts=info["spider_new_ip_list"],
-                            spider_role=info["switch_spider_role"],
-                            resource_spec=info["resource_spec"],
-                            created_by=self.data["created_by"],
-                        )
-                    ),
-                }
-            )
-
-        revoke_pipeline.add_parallel_acts(acts_list=acts_list)
-        revoke_pipeline.run_pipeline()

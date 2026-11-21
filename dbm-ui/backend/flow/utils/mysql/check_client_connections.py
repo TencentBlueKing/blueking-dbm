@@ -10,8 +10,13 @@ specific language governing permissions and limitations under the License.
 
 from typing import List, Optional
 
+from django.utils.translation import gettext as _
+
 from backend.components import DRSApi
-from backend.flow.consts import MYSQL_SYS_USER, UserName
+from backend.db_meta.enums import InstanceStatus, MachineType, TenDBClusterSpiderRole
+from backend.db_meta.exceptions import DBMetaException
+from backend.db_meta.models import Cluster
+from backend.flow.consts import MYSQL_SYS_USER, CheckClientConnRole, UserName
 from backend.flow.utils.mysql.get_mysql_sys_user import get_mysql_sys_users
 
 
@@ -82,3 +87,43 @@ def check_client_connection(
     )
 
     return res
+
+
+def get_cluster_instances_by_role(cluster_id: int, role: str) -> List[str]:
+    """
+    根据集群ID和角色，动态获取集群内该角色 running 状态的实例地址
+    @param cluster_id: 集群id
+    @param role: 检测角色，CheckClientConnRole.value（backend/spider/proxy）
+    @return: ["ip:port", ...]
+    """
+    try:
+        cluster = Cluster.objects.get(id=cluster_id)
+    except Cluster.DoesNotExist:
+        raise DBMetaException(message=_("集群[{}]不存在".format(cluster_id)))
+
+    if role == CheckClientConnRole.BACKEND.value:
+        # backend 角色合并 backend + remote 两类存储实例
+        instances = cluster.storageinstance_set.filter(
+            machine_type__in=[MachineType.BACKEND.value, MachineType.REMOTE.value],
+            status=InstanceStatus.RUNNING.value,
+        )
+    elif role == CheckClientConnRole.SPIDER.value:
+        # spider 角色只包含业务接入层（spider_master/spider_slave）
+        instances = cluster.proxyinstance_set.filter(
+            machine_type=MachineType.SPIDER.value,
+            tendbclusterspiderext__spider_role__in=[
+                TenDBClusterSpiderRole.SPIDER_MASTER.value,
+                TenDBClusterSpiderRole.SPIDER_SLAVE.value,
+            ],
+            status=InstanceStatus.RUNNING.value,
+        )
+    elif role == CheckClientConnRole.PROXY.value:
+        # proxy 角色指 mysql-proxy 实例
+        instances = cluster.proxyinstance_set.filter(
+            machine_type=MachineType.PROXY.value,
+            status=InstanceStatus.RUNNING.value,
+        )
+    else:
+        raise DBMetaException(message=_("未知的检测角色类型: {}".format(role)))
+
+    return [inst.ip_port for inst in instances]

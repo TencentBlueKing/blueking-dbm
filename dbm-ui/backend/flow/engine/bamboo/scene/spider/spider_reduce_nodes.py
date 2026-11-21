@@ -27,9 +27,13 @@ from backend.flow.engine.bamboo.scene.spider.common.exceptions import NormalSpid
 from backend.flow.engine.validate.base_validate import BaseValidator
 from backend.flow.engine.validate.exceptions import CheckDisasterToleranceException
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
+from backend.flow.plugins.components.collections.common.pause_with_ticket_lock_check import (
+    PauseWithTicketLockCheckComponent,
+)
 from backend.flow.plugins.components.collections.mysql.check_client_connections import CheckClientConnComponent
 from backend.flow.plugins.components.collections.mysql.flow_output_summary import MysqlFlowOutputSummaryComponent
 from backend.flow.plugins.components.collections.spider.drop_spider_ronting import DropSpiderRoutingComponent
+from backend.flow.utils.base.base_dataclass import ReleaseUnLockTicketTypeKwargs
 from backend.flow.utils.mysql.flow_output_presets.instance_change import InstanceChangeAction
 from backend.flow.utils.mysql.mysql_act_dataclass import CheckClientConnKwargs
 from backend.flow.utils.spider.spider_act_dataclass import DropSpiderRoutingKwargs
@@ -218,6 +222,7 @@ class TenDBClusterReduceNodesFlow(object):
         disable_manual_confirm: bool = False,
         is_rebuild: bool = False,
         is_print_summary: bool = False,
+        release_unlock_ticket_type_list: Optional[List[str]] = None,
     ):
         """
         根据cluster维度处理缩容子流程
@@ -237,6 +242,12 @@ class TenDBClusterReduceNodesFlow(object):
               装配好的 items 随 pipeline 打包，运行时直接落库。
             - False：不挂载摘要节点，供衍生 flow（Switch / Rebuild / DisasterRecover）复用时
               避免误落"缩容"语义摘要。
+        @param release_unlock_ticket_type_list: 调用方在进入本子流程之前，已通过 AddUnlockTicketTypeConfigComponent
+            对本集群临时解锁的单据类型列表，默认None表示调用方没有解锁过。"谁解锁，谁传单"：
+            - 非空：人工确认节点升级为 PauseWithTicketLockCheckComponent，确认执行时先把这批
+              单据类型重新加锁，再校验互斥条件，避免解锁窗口期内有新单据插入造成冲突；
+            - 空/None：保持普通人工确认（PauseComponent），子流程不做任何加锁处理。
+            仅在人工确认未被禁用（disable_manual_confirm=False）时生效。
         """
         # 获取对应集群相关对象
         try:
@@ -313,6 +324,8 @@ class TenDBClusterReduceNodesFlow(object):
 
             sub_pipeline.add_parallel_acts(check_client_connection_acts)
 
+        # 拼接清理接入层对应的访问配置，只包括DBM系统注册的DNS和CLB
+        # 外部私自注册的，一律不处理
         entry_role = ClusterEntryRole.MASTER_ENTRY.value
         if reduce_spider_role == TenDBClusterSpiderRole.SPIDER_SLAVE.value:
             entry_role = ClusterEntryRole.SLAVE_ENTRY.value
@@ -328,9 +341,26 @@ class TenDBClusterReduceNodesFlow(object):
             },
         )
         sub_pipeline.add_sub_pipeline(sub_flow=entry_sub_process)
+
         # 后续流程需要在这里加一个暂停节点，让用户在合适的时间执行下架
         if not disable_manual_confirm:
-            sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
+            if release_unlock_ticket_type_list:
+                # 调用方在进入本子流程前已对本集群解锁过部分单据类型（AddUnlockTicketTypeConfigComponent），
+                # 人工确认时需要把这些单据类型重新加锁，并再次校验互斥条件
+                sub_pipeline.add_act(
+                    act_name=_("人工确认，解除释放，重新判断互斥条件"),
+                    act_component_code=PauseWithTicketLockCheckComponent.code,
+                    kwargs=asdict(
+                        ReleaseUnLockTicketTypeKwargs(
+                            cluster_ids=[cluster_id],
+                            release_unlock_ticket_type_list=release_unlock_ticket_type_list,
+                        )
+                    ),
+                    skippable=False,
+                )
+            else:
+                # 调用方没有解锁过任何单据类型，保持原有的普通人工确认行为
+                sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
 
         # 删除spider的路由关系
         sub_pipeline.add_act(
@@ -402,7 +432,6 @@ class TenDBClusterReduceNodesFlow(object):
             )
 
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
-        # pipeline.run_pipeline()
         # 启动接入单据值守监听
         pipeline.run_pipeline_with_sidecar(
             check_ai_monitor_cluster_list=[int(info["cluster_id"]) for info in self.data["infos"]],

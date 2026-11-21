@@ -23,7 +23,6 @@ from backend.flow.engine.bamboo.scene.spider.common.exceptions import CtlSwitchT
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.plugins.components.collections.mysql.sync_master import SyncMasterService
 from backend.flow.utils.base.payload_handler import PayloadHandler
-from backend.flow.utils.spider.spider_db_function import get_flush_routing_sql_for_server
 
 
 class CtlSwitchToSlaveService(BaseService):
@@ -366,11 +365,9 @@ class CtlSwitchToSlaveService(BaseService):
         """
         @param ctl_master: 当前集群的中控primary
         @param bk_cloud_id: 云区域id
+        中控发生切换变更，做全量刷新路由处理，保证每个节点路由表中primary信息是对的。
         """
-        get_flush_routing_sql_list = get_flush_routing_sql_for_server(
-            ctl_master=f"{ctl_master.machine.ip}{IP_PORT_DIVIDER}{ctl_master.admin_port}",
-            bk_cloud_id=bk_cloud_id,
-        )
+        get_flush_routing_sql_list = ["TDBCTL FLUSH ROUTING;"]
         self.log_info(f"exec flush_routing cmds:[{get_flush_routing_sql_list}]")
 
         # 如果返回为空，直接返回

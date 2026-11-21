@@ -34,9 +34,15 @@ from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.departs impor
 from backend.flow.engine.bamboo.scene.mysql.deploy_peripheraltools.subflow import standardize_mysql_cluster_subflow
 from backend.flow.engine.bamboo.scene.spider.common.common_sub_flow import remote_migrate_switch_sub_flow
 from backend.flow.plugins.components.collections.common.add_alarm_shield import AddAlarmShieldComponent
+from backend.flow.plugins.components.collections.common.add_unlock_ticket_type_config import (
+    AddUnlockTicketTypeConfigComponent,
+)
 from backend.flow.plugins.components.collections.common.disable_alarm_shield import DisableAlarmShieldComponent
 from backend.flow.plugins.components.collections.common.download_backup_client import DownloadBackupClientComponent
 from backend.flow.plugins.components.collections.common.pause import PauseComponent
+from backend.flow.plugins.components.collections.common.pause_with_ticket_lock_check import (
+    PauseWithTicketLockCheckComponent,
+)
 from backend.flow.plugins.components.collections.mysql.clear_machine import MySQLClearMachineComponent
 from backend.flow.plugins.components.collections.mysql.exec_actuator_script import ExecuteDBActuatorScriptComponent
 from backend.flow.plugins.components.collections.mysql.mysql_checksum_ticket import MySQLCheckSumTicketComponent
@@ -48,6 +54,7 @@ from backend.flow.plugins.components.collections.mysql.mysql_checksum_ticket_sta
 )
 from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.spider.spider_db_meta import SpiderDBMetaComponent
+from backend.flow.utils.base.base_dataclass import AddUnLockTicketTypeKwargs, ReleaseUnLockTicketTypeKwargs
 from backend.flow.utils.common_act_dataclass import DownloadBackupClientKwargs
 from backend.flow.utils.mysql.common.mysql_cluster_info import get_version_and_charset
 from backend.flow.utils.mysql.mysql_act_dataclass import (
@@ -83,6 +90,12 @@ class TendbClusterMigrateRemoteFlow(object):
 
         # 定义备份文件存放到目标机器目录位置
         self.backup_target_path = f"/data/dbbak/{self.root_id}"
+
+        # 定义此flow部分阶段能释放锁的单据类型: spider替换单据、spider升降配单据
+        self.pre_expand_unlock_types = [
+            TicketType.TENDBCLUSTER_SPIDER_SWITCH_NODES,
+            TicketType.TENDBCLUSTER_SPIDER_CONF_UP_DOWN,
+        ]
 
     def migrate_master_slave_flow(self):
         """
@@ -401,6 +414,17 @@ class TendbClusterMigrateRemoteFlow(object):
             ):
                 raise Exception(_("安装/卸载/新实例/切换实例为空,请检查参数"))
             # === 主流程 串联各个子流程 ===
+            # 最小粒度单据互斥锁的优化场景：安装前让spider替换类单据进入， 两类单据可以切换前同时执行
+            cluster_level_pipeline.add_act(
+                act_name=_("释放spider替换类单据互斥锁"),
+                act_component_code=AddUnlockTicketTypeConfigComponent.code,
+                kwargs=asdict(
+                    AddUnLockTicketTypeKwargs(
+                        cluster_ids=[cluster_id],
+                        unlock_ticket_type_list=self.pre_expand_unlock_types,
+                    )
+                ),
+            )
             # 安装remote节点
             cluster_level_pipeline.add_parallel_sub_pipeline(sub_flow_list=install_sub_pipeline_list)
             # 屏蔽新节点告警
@@ -465,9 +489,17 @@ class TendbClusterMigrateRemoteFlow(object):
                 )
             )
             # todo 添加checksum单据状态检查 、添加通过后添加checksum结果的查询
-            # 人工确定切换
+            # 人工确认前，解除释放互斥锁，重新互斥
             cluster_level_pipeline.add_act(
-                act_name=_("人工确认切换 {}".format(cluster_class.name)), act_component_code=PauseComponent.code, kwargs={}
+                act_name=_("人工确认，解除释放，重新判断互斥条件"),
+                act_component_code=PauseWithTicketLockCheckComponent.code,
+                kwargs=asdict(
+                    ReleaseUnLockTicketTypeKwargs(
+                        cluster_ids=[cluster_id],
+                        release_unlock_ticket_type_list=self.pre_expand_unlock_types,
+                    )
+                ),
+                skippable=False,
             )
             # 切换到新实例
             cluster_level_pipeline.add_sub_pipeline(
@@ -490,6 +522,20 @@ class TendbClusterMigrateRemoteFlow(object):
                     )
                 ),
             )
+
+            # 最小粒度单据互斥锁的优化场景：切换之后让spider替换类单据进入，
+            # 这里的优化是因为，下架旧实例可能停留很长时间，所有不需要等到旧实例下架，才让spider替换类单据进入
+            cluster_level_pipeline.add_act(
+                act_name=_("释放spider替换类单据互斥锁"),
+                act_component_code=AddUnlockTicketTypeConfigComponent.code,
+                kwargs=asdict(
+                    AddUnLockTicketTypeKwargs(
+                        cluster_ids=[cluster_id],
+                        unlock_ticket_type_list=self.pre_expand_unlock_types,
+                    )
+                ),
+            )
+
             # 切换后重安装周边
             cluster_level_pipeline.add_sub_pipeline(
                 sub_flow=standardize_mysql_cluster_subflow(
