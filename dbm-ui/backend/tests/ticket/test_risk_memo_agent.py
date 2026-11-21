@@ -229,7 +229,7 @@ class TestRiskMemoViewSet:
         """测试获取风险操作记录日志"""
         risk, record = test_risk_operate_record
         url = "/apis/risk_memo/get_risk_operate_records/"
-        response = client.get(url, {"risk": risk.id, "limit": 10, "offset": 0})
+        response = client.get(url, {"bk_biz_id": risk.bk_biz_id, "risk": risk.id, "limit": 10, "offset": 0})
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()["data"]

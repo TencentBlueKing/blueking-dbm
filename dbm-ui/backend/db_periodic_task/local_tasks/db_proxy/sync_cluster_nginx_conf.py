@@ -34,6 +34,7 @@ from backend.db_proxy.constants import (
 )
 from backend.db_proxy.exceptions import ProxyPassBaseException
 from backend.db_proxy.models import ClusterExtension, DBCloudProxy, DBExtension
+from backend.db_proxy.views.job_callback.token import build_job_callback_url
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.utils.script_template import fast_execute_script_common_kwargs
 from backend.utils.redis import RedisConn
@@ -76,9 +77,11 @@ def fill_cluster_service_nginx_conf():
         job_payload["file_target_path"] = NGINX_PUSH_TARGET_PATH
         job_payload["file_list"] = _file_list
         job_payload["target_server"]["ip_list"] = nginx_ip_list
-        job_payload["callback_url"] = f"{env.BK_SAAS_CALLBACK_URL}/apis/proxypass/push_conf_callback/"
+        job_payload["callback_url"] = build_job_callback_url("push_conf_callback")
 
-        logger.info(_("nginx配置文件下发参数：{}").format(job_payload))
+        logger.info(
+            _("nginx配置文件下发参数：{}").format({**job_payload, "callback_url": job_payload["callback_url"].split("?", 1)[0]})
+        )
         _resp = JobApi.push_config_file(job_payload, raw=True, use_admin=True)
         if not _resp["result"]:
             raise ProxyPassBaseException(_("下发文件job启动失败，错误信息: {}").format(_resp["message"]))
@@ -179,9 +182,13 @@ def clean_deleted_cluster_service_nginx_conf():
                     for nginx in nginx_extensions
                 ]
             },
-            "callback_url": f"{env.BK_SAAS_CALLBACK_URL}/apis/proxypass/delete_conf_callback/",
+            "callback_url": build_job_callback_url("delete_conf_callback"),
         }
-        logger.info(_("nginx子配置清理job参数: {}").format(job_payload))
+        logger.info(
+            _("nginx子配置清理job参数: {}").format(
+                {**job_payload, "callback_url": job_payload["callback_url"].split("?", 1)[0]}
+            )
+        )
 
         # 每次请求只处理同一云区域的数据，避免单个云区域失败影响其他云区域的清理
         resp = JobApi.fast_execute_script(
@@ -241,9 +248,13 @@ def inspect_cluster_service_nginx_conf():
                 "script_content": base64_encode("\n".join(check_cmds)),
                 "script_language": 1,
                 "target_server": {"ip_list": [{"bk_cloud_id": nginx_bk_cloud_id, "ip": nginx_ip}]},
-                "callback_url": f"{env.BK_SAAS_CALLBACK_URL}/apis/proxypass/inspect_conf_callback/",
+                "callback_url": build_job_callback_url("inspect_conf_callback"),
             }
-            logger.info(_("nginx子配置巡检job参数: {}").format(job_payload))
+            logger.info(
+                _("nginx子配置巡检job参数: {}").format(
+                    {**job_payload, "callback_url": job_payload["callback_url"].split("?", 1)[0]}
+                )
+            )
             resp = JobApi.fast_execute_script(
                 {**fast_execute_script_common_kwargs, **job_payload}, use_admin=True, raw=True
             )

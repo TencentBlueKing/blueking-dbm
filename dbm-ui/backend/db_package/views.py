@@ -18,6 +18,7 @@ from django.db.transaction import atomic
 from django.utils import timezone
 from django.utils.translation import gettext as _
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.serializers import Serializer
@@ -59,7 +60,6 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
     def get_action_permission_map(self):
         return {
             (
-                "list",
                 "list_install_pkg_types",
                 "list_install_packages",
             ): []
@@ -70,7 +70,12 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
 
     @staticmethod
     def instance_getter(request, view):
-        if view.action == "destroy":
+        if view.action == "list":
+            db_type = request.query_params.get("db_type", "").strip()
+            if not db_type:
+                raise ValidationError({"db_type": _("请指定 DB 类型")})
+            return [db_type]
+        elif view.action == "destroy":
             return [Package.objects.get(id=view.kwargs["pk"]).db_type]
         elif view.action == "bulk_create":
             return list(set([data["db_type"] for data in request.data["packages"]]))

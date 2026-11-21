@@ -19,6 +19,7 @@ from django.utils.translation import gettext_lazy as _
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers, status
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
@@ -40,6 +41,7 @@ from backend.iam_app.handlers.drf_perm.base import RejectPermission, ResourceAct
 from backend.iam_app.handlers.drf_perm.cluster import ClusterDetailPermission, InstanceDetailPermission
 from backend.iam_app.handlers.drf_perm.ticket import (
     BatchApprovalPermission,
+    TicketListPermission,
     create_ticket_permission,
     ticket_flows_config_permission,
 )
@@ -68,6 +70,7 @@ from backend.ticket.filters import (
 )
 from backend.ticket.flow_manager.manager import TicketFlowManager
 from backend.ticket.handler import CheckDomainRepeatHandler, TicketHandler
+from backend.ticket.itsm_callback import verify_callback
 from backend.ticket.models import (
     ClusterOperateRecord,
     Flow,
@@ -142,6 +145,8 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     pagination_class = AuditedLimitOffsetPagination
 
     def _get_custom_permissions(self):
+        if self.action == "list":
+            return [TicketListPermission()]
         # 创建单据，关联单据类型的动作
         if self.action == "create":
             return create_ticket_permission(self.request.data["ticket_type"])
@@ -178,7 +183,6 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
             return []
         # 其他非敏感GET接口，不鉴权
         elif self.action in [
-            "list",
             "flow_types",
             "get_nodes",
             "get_ticket_version",
@@ -398,9 +402,28 @@ class TicketViewSet(viewsets.AuditedModelViewSet):
     )
     @action(methods=["POST"], detail=True, permission_classes=[AllowAny])
     def callback(self, request, pk):
-        ticket = Ticket.objects.get(id=pk)
-        manager = TicketFlowManager(ticket=ticket)
-        manager.run_next_flow()
+        logger.info(_("收到 ITSM 回调：单据 ID=%s"), pk)
+        stage = _("查询单据")
+        try:
+            ticket = Ticket.objects.get(id=pk)
+            stage = _("校验回调凭证")
+            verify_callback(ticket, request.data)
+            stage = _("推进单据流程")
+            logger.info(_("ITSM 回调开始推进流程：单据 ID=%s"), pk)
+            manager = TicketFlowManager(ticket=ticket)
+            manager.run_next_flow()
+        except PermissionDenied:
+            raise
+        except Exception as exc:
+            # 验证接口的异常消息可能包含请求参数，只记录异常类型，避免泄露回调凭证。
+            logger.error(
+                _("ITSM 回调处理失败：单据 ID=%s，失败阶段=%s，异常类型=%s"),
+                pk,
+                stage,
+                type(exc).__name__,
+            )
+            raise
+        logger.info(_("ITSM 回调处理完成：单据 ID=%s"), pk)
         return Response()
 
     @common_swagger_auto_schema(
