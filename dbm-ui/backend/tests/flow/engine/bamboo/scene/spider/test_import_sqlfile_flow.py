@@ -1,17 +1,25 @@
 # -*- coding: utf-8 -*-
 from types import SimpleNamespace
+from unittest.mock import MagicMock
 
 import pytest
 from django.utils.translation import gettext as _
 
 from backend.flow.engine.bamboo.scene.spider import import_sqlfile_flow as mod
 from backend.flow.engine.bamboo.scene.spider.import_sqlfile_flow import ImportSQLFlow
+from backend.flow.plugins.components.collections.mysql import check_sqlfile_md5 as check_mod
+from backend.flow.plugins.components.collections.mysql.check_sqlfile_md5 import CheckSqlFileMd5Component
+from backend.flow.plugins.components.collections.mysql.exec_actuator_script_with_bk_job_record import (
+    ExecuteDBActuatorScriptWithBkJobRecordComponent,
+)
+from backend.flow.plugins.components.collections.mysql.trans_flies import TransFileComponent
 from backend.flow.plugins.components.collections.spider.check_remote_master_var_consistency import (
     CheckRemoteMasterVarConsistencyComponent,
 )
 from backend.flow.plugins.components.collections.spider.check_rocksdb_ghost_collation import (
     CheckRocksDBGhostCollationComponent,
 )
+from backend.ticket.constants import TicketType
 
 
 class _FakeClusters:
@@ -62,7 +70,7 @@ class _RecorderBuilder:
         self.ran = True
 
 
-def _build_flow(monkeypatch, engine):
+def _run_import_flow(monkeypatch, engine, extra_data=None):
     cluster = SimpleNamespace(
         id=1,
         bk_cloud_id=0,
@@ -87,16 +95,23 @@ def _build_flow(monkeypatch, engine):
         lambda *args, **kwargs: SimpleNamespace(mysql_import_sqlfile=lambda path, filelist: []),
     )
 
+    data = {
+        "cluster_ids": [cluster.id],
+        "path": "/tmp/sql",
+        "execute_objects": [{"sql_files": ["test.sql"]}],
+    }
+    data.update(extra_data or {})
     flow = ImportSQLFlow(
         root_id="root-1",
-        data={
-            "cluster_ids": [cluster.id],
-            "path": "/tmp/sql",
-            "execute_objects": [{"sql_files": ["test.sql"]}],
-        },
+        data=data,
     )
     flow.import_sqlfile_flow()
-    return _RecorderBuilder.created[1].acts
+    return _RecorderBuilder.created[0], _RecorderBuilder.created[1]
+
+
+def _build_flow(monkeypatch, engine):
+    unused_parent, sub = _run_import_flow(monkeypatch, engine)
+    return sub.acts
 
 
 @pytest.mark.parametrize(
@@ -126,6 +141,59 @@ def test_ghost_collation_check_is_only_inserted_before_rocksdb_online_ddl(monkey
             _("检查可能阻塞DDL变更的活跃查询"),
             _("执行SQL导入"),
         ]
+
+
+def test_md5_check_is_between_transfer_and_import(monkeypatch):
+    parent, sub = _run_import_flow(
+        monkeypatch,
+        "innodb",
+        {
+            "ticket_type": TicketType.TENDBCLUSTER_IMPORT_SQLFILE.value,
+            "sql_files_md5": {"test.sql": "d41d8cd98f00b204e9800998ecf8427e"},
+        },
+    )
+
+    assert [group[-1]["act_component_code"] for group in parent.parallel_acts] == [
+        TransFileComponent.code,
+        CheckSqlFileMd5Component.code,
+    ]
+    assert parent.parallel_acts[1][0]["kwargs"]["repo_path"] == "/tmp/sql"
+    assert sub.acts[-1]["act_component_code"] == ExecuteDBActuatorScriptWithBkJobRecordComponent.code
+
+
+@pytest.mark.parametrize(
+    ("extra_data", "reason", "ticket_type"),
+    [
+        ({}, "missing", None),
+        ({"sql_files_md5": {}}, "empty", None),
+        (
+            {
+                "ticket_type": TicketType.MYSQL_FORCE_IMPORT_SQLFILE.value,
+                "sql_files_md5": {"test.sql": "d41d8cd98f00b204e9800998ecf8427e"},
+            },
+            "force",
+            TicketType.MYSQL_FORCE_IMPORT_SQLFILE.value,
+        ),
+        (
+            {
+                "ticket_type": TicketType.TENDBCLUSTER_FORCE_IMPORT_SQLFILE.value,
+                "sql_files_md5": {"test.sql": "d41d8cd98f00b204e9800998ecf8427e"},
+            },
+            "force",
+            TicketType.TENDBCLUSTER_FORCE_IMPORT_SQLFILE.value,
+        ),
+    ],
+)
+def test_md5_skip_cases_add_no_node_and_log_reason(monkeypatch, extra_data, reason, ticket_type):
+    log_info = MagicMock()
+    monkeypatch.setattr(check_mod.logger, "info", log_info)
+    parent, unused_sub = _run_import_flow(monkeypatch, "innodb", extra_data)
+
+    codes = [act["act_component_code"] for group in parent.parallel_acts for act in group]
+    assert CheckSqlFileMd5Component.code not in codes
+    log_text = str(log_info.call_args.args[0])
+    assert "reason={}".format(reason) in log_text
+    assert "ticket_type={}".format(ticket_type) in log_text
 
 
 def _check_act_name(domain):

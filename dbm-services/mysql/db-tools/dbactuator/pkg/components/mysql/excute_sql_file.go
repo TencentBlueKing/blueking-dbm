@@ -17,6 +17,7 @@ package mysql
 import (
 	"bufio"
 	"context"
+	"crypto/md5"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
@@ -61,9 +62,10 @@ type ExecuteSQLFileParam struct {
 	FilePathSubfix    string                      `json:"file_path_suffix"`
 	FileBaseDir       string                      `json:"file_base_dir"`
 	ExecuteObjects    []ExecuteSQLFileObj         `json:"execute_objects"`
-	Force             bool                        `json:"force"`                // 是否强制执行 执行出错后，是否继续往下执行
-	IsSpider          bool                        `json:"is_spider"`            // 是否是spider集群
-	JustCheckDDLBlock bool                        `json:"just_check_ddl_block"` // 只检查ddl阻塞
+	Force             bool                        `json:"force"`                   // 是否强制执行 执行出错后，是否继续往下执行
+	SqlFilesMd5       map[string]string           `json:"sql_files_md5,omitempty"` // 文件名到 MD5。空则跳过校验
+	IsSpider          bool                        `json:"is_spider"`               // 是否是spider集群
+	JustCheckDDLBlock bool                        `json:"just_check_ddl_block"`    // 只检查ddl阻塞
 	MntSpiderInstance map[int][]SpiderMntInstance `json:"mnt_spider_instance"`
 	Engine            string                      `json:"engine"`  // 引擎类型 gh-ost 需要用
 	BillId            uint                        `json:"bill_id"` // billId
@@ -129,10 +131,85 @@ func (e *ExecuteSQLFileComp) Example() interface{} {
 					DbNames:       []string{"db1", "db2"},
 				},
 			},
-			Force:    false,
-			IsSpider: false,
+			Force:       false,
+			SqlFilesMd5: map[string]string{"111.sql": "d41d8cd98f00b204e9800998ecf8427e"},
+			IsSpider:    false,
 		},
 	}
+}
+
+var readSQLFileMD5 = func(filePath string) (string, error) {
+	f, err := os.Open(filePath)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+	sum := md5.New()
+	if _, err = io.Copy(sum, f); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(sum.Sum(nil)), nil
+}
+
+func normalizeSQLFileMD5(raw string) (string, bool) {
+	digest := strings.ToLower(strings.TrimSpace(raw))
+	if len(digest) != 32 {
+		return "", false
+	}
+	for _, ch := range digest {
+		if (ch < '0' || ch > '9') && (ch < 'a' || ch > 'f') {
+			return "", false
+		}
+	}
+	return digest, true
+}
+
+func (e *ExecuteSQLFileComp) checkSQLFilesMd5() error {
+	if e.Params == nil || len(e.Params.SqlFilesMd5) == 0 {
+		logger.Warn("sql_files_md5 为空，跳过 SQL 文件 MD5 校验，继续执行")
+		return nil
+	}
+	hashed := map[string]struct{}{}
+	var errs []error
+	for _, obj := range e.Params.ExecuteObjects {
+		for _, sqlFile := range obj.SQLFiles {
+			if _, done := hashed[sqlFile]; done {
+				continue
+			}
+			hashed[sqlFile] = struct{}{}
+			if sqlFile == "" || sqlFile != path.Base(sqlFile) || strings.Contains(sqlFile, "..") {
+				logger.Error("SQL文件MD5校验失败: filename=%s, 原因=illegal_filename", sqlFile)
+				errs = append(errs, fmt.Errorf("SQL文件名非法:%s", sqlFile))
+				continue
+			}
+			expectedRaw, ok := e.Params.SqlFilesMd5[sqlFile]
+			if !ok {
+				logger.Error("SQL文件MD5校验失败: filename=%s, 原因=missing_digest", sqlFile)
+				errs = append(errs, fmt.Errorf("SQL文件MD5缺失:%s", sqlFile))
+				continue
+			}
+			expected, ok := normalizeSQLFileMD5(expectedRaw)
+			if !ok {
+				logger.Error("SQL文件MD5校验失败: filename=%s, expected=%s, 原因=illegal_md5", sqlFile, expectedRaw)
+				errs = append(errs, fmt.Errorf("SQL文件MD5非法:%s", sqlFile))
+				continue
+			}
+			filePath := path.Join(e.taskdir, sqlFile)
+			actual, err := readSQLFileMD5(filePath)
+			if err != nil {
+				logger.Error("SQL文件MD5校验失败: filename=%s, 原因=read_failed, 错误=%s", sqlFile, err.Error())
+				errs = append(errs, fmt.Errorf("读取SQL文件失败:%s", sqlFile))
+				continue
+			}
+			if actual != expected {
+				logger.Error("SQL文件MD5校验失败: filename=%s, 期望MD5=%s, 实际MD5=%s", sqlFile, expected, actual)
+				errs = append(errs, fmt.Errorf("SQL文件MD5不一致:%s", sqlFile))
+				continue
+			}
+			logger.Info("SQL文件MD5校验通过: filename=%s, md5=%s", sqlFile, actual)
+		}
+	}
+	return errors.Join(errs...)
 }
 
 // PreCheck do some check step
@@ -143,6 +220,10 @@ func (e *ExecuteSQLFileComp) PreCheck() (err error) {
 	}
 	if err = e.CheckSQLFileExist(); err != nil {
 		logger.Error("SQL文件存在性检查失败:%s", err.Error())
+		return err
+	}
+	if err = e.checkSQLFilesMd5(); err != nil {
+		logger.Error("SQL文件MD5校验失败:%s", err.Error())
 		return err
 	}
 	logger.Info("检查单行里面的SQL文件内容重复性检查")
