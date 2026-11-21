@@ -321,6 +321,25 @@ def test_batch_layout_missing_slots_cannot_form_a_cluster():
         planner.build(pack=False)
 
 
+def test_pick_mode_synthesizes_gap_placeholders_for_incomplete_cluster_batch(backup_files_still_present):
+    """Pick mode fills missing Cluster slots with empty placeholders; single-slot gaps use start-end."""
+    # Drop the middle shard and leave a one-slot hole between the first and last.
+    incomplete = ["0-5460", "5462-16383"]
+    planner = _planner(cluster_type=REDIS_CLUSTER, shards=incomplete, shard_values=["0-5460"], **REPLAY)
+    result = planner.precheck()
+    plan = planner.build(pack=False)
+
+    assert result["exist"] is True
+    assert any("批次缺失分片" in w and "5461-5461" in w for w in result["warnings"])
+    placeholders = [item for item in plan.items if item.is_placeholder]
+    assert [item.shard.shard_value for item in placeholders] == ["5462-16383", "5461-5461"]
+    gap = next(item for item in placeholders if item.shard.shard_value == "5461-5461")
+    assert gap.source_ip == "" and gap.source_port == 0
+    assert not gap.full_files and not gap.binlog_files
+    # cluster_nodes compact single-slot ranges to ``5461``; the synthetic shard_value stays ``5461-5461``.
+    assert sorted(node["slots"] for node in plan.cluster_nodes()) == ["0-5460", "5461", "5462-16383"]
+
+
 def test_cluster_shard_value_must_parse_to_slots():
     result = _planner(cluster_type=REDIS_CLUSTER, shards=["switched-0"]).precheck()
     assert result["exist"] is False

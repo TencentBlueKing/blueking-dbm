@@ -331,6 +331,27 @@ def coverage_gaps(
     return sorted(expected - covered)
 
 
+def gap_ranges(gaps: Sequence[int]) -> List[Tuple[int, int]]:
+    """Merge sorted distinct gap slots into inclusive closed ranges ``[(start, end), ...]``."""
+    if not gaps:
+        return []
+    ranges: List[Tuple[int, int]] = []
+    start = prev = gaps[0]
+    for slot in gaps[1:]:
+        if slot == prev + 1:
+            prev = slot
+            continue
+        ranges.append((start, prev))
+        start = prev = slot
+    ranges.append((start, prev))
+    return ranges
+
+
+def format_gap_slots(gaps: Sequence[int]) -> str:
+    """Compact ``0-4,10-13,17`` from sorted gap slots; empty when there are none."""
+    return ",".join(str(start) if start == end else "{}-{}".format(start, end) for start, end in gap_ranges(gaps))
+
+
 def overlapping_shards(shard_values: Sequence[str]) -> List[Tuple[str, str]]:
     """Return pairs of shard_values whose slot ranges intersect.
 

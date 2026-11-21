@@ -350,13 +350,7 @@ class RedisRollbackFlow:
 
         self._deploy_proxy(plan, plan_id, act_kwargs, dest_ips, redis_pipeline)
 
-        prod_instance_range = [
-            item.shard.current_master or "{}:{}".format(item.source_ip, item.source_port) for item in plan.items
-        ]
-        prod_temp_pairs = [
-            ["{}:{}".format(item.source_ip, item.source_port), "{}:{}".format(item.dest_ip, item.dest_port)]
-            for item in plan.items
-        ]
+        prod_instance_range, prod_temp_pairs = self._construction_source_meta(plan.items)
         recover_at = plan.recover_at
         if hasattr(recover_at, "isoformat"):
             recover_at_value = recover_at.isoformat()
@@ -495,6 +489,28 @@ class RedisRollbackFlow:
                 }
             )
         pipeline.add_parallel_acts(acts_list=acts)
+
+    @staticmethod
+    def _construction_source_meta(items) -> Tuple[List[str], List[List[str]]]:
+        """Build construction-record source fields without emitting illegal ``:0`` for gap placeholders.
+
+        Synthetic gap placeholders have empty ``source_ip``/``source_port`` and no ``current_master``.
+        ``prod_instance_range`` drops those empty addresses; ``prod_temp_instance_pairs`` keeps every
+        temp port with an empty source string so destroy still sees the temp side.
+        """
+
+        def _source_addr(item) -> str:
+            if item.shard.current_master:
+                return item.shard.current_master
+            if item.source_ip and item.source_port:
+                return "{}{}{}".format(item.source_ip, IP_PORT_DIVIDER, item.source_port)
+            return ""
+
+        prod_instance_range = [addr for addr in (_source_addr(item) for item in items) if addr]
+        prod_temp_pairs = [
+            [_source_addr(item), "{}{}{}".format(item.dest_ip, IP_PORT_DIVIDER, item.dest_port)] for item in items
+        ]
+        return prod_instance_range, prod_temp_pairs
 
     @staticmethod
     def _proxy_servers(plan):

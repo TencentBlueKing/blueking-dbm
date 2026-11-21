@@ -104,20 +104,21 @@ def _record(shard_value, file_name):
 def test_precheck_marks_missing_file_and_blocks_the_plan():
     planner = _planner()
     planner.resolver.from_db_meta = MagicMock(return_value=[])
-    planner.locator.locate_full_by_identify = MagicMock(return_value=[_record("0-104999", "a.aof.zst")])
+    # Full Twemproxy cover so the layout gate does not mask the missing-file error under test.
+    planner.locator.locate_full_by_identify = MagicMock(return_value=[_record("0-419999", "a.aof.zst")])
     with patch(_PATCH, return_value=[]):
         result = planner.precheck()
     assert result["exist"] is False
     assert result["shards"][0]["ok"] is False
-    assert "task-a.aof.zst" in shard_errors(result)["0-104999"][0]
-    assert result["errors"] == ["分片 0-104999：全备已过期或不可下载"]
+    assert "task-a.aof.zst" in shard_errors(result)["0-419999"][0]
+    assert result["errors"] == ["分片 0-419999：全备已过期或不可下载"]
     assert result["error_groups"][0]["code"] == ISSUE_FULL_UNAVAILABLE
 
 
 def test_precheck_api_failure_fails_the_whole_plan():
     planner = _planner()
     planner.resolver.from_db_meta = MagicMock(return_value=[])
-    planner.locator.locate_full_by_identify = MagicMock(return_value=[_record("0-104999", "a.aof.zst")])
+    planner.locator.locate_full_by_identify = MagicMock(return_value=[_record("0-419999", "a.aof.zst")])
     with patch(_PATCH, side_effect=RuntimeError("down")):
         result = planner.precheck()
     assert result["exist"] is False
@@ -144,7 +145,7 @@ def test_build_also_confirms_ssd_binlog_task_ids():
     planner.cluster.cluster_type = ClusterType.TwemproxyTendisSSDInstance.value
     planner.info = {"backup_identify": "SCHEDULED-1", "recovery_time_point": "2026-01-01T01:01:00+00:00"}
     planner.resolver.from_db_meta = MagicMock(return_value=[])
-    planner.locator.locate_full_by_identify = MagicMock(return_value=[_record("0-104999", "a.tar")])
+    planner.locator.locate_full_by_identify = MagicMock(return_value=[_record("0-419999", "a.tar")])
     planner.locator.locate_binlogs = MagicMock(
         return_value=[
             binlog_record(

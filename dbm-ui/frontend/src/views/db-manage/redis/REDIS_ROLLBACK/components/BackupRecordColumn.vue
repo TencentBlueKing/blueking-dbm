@@ -73,6 +73,7 @@
 
   import {
     getBackupTypeText,
+    getMissingSlotsWarning,
     getScopeText,
     hasBinlog,
     type IBackupRecord,
@@ -122,7 +123,14 @@
   const showRecovery = computed(() => Boolean(modelValue.value) && hasBinlog(props.clusterType));
 
   const topoWarning = computed(() => {
-    if (!modelValue.value || !modelValue.value.current_shard_count) {
+    if (!modelValue.value) {
+      return '';
+    }
+    const missingWarning = getMissingSlotsWarning(modelValue.value.missing_slots);
+    if (missingWarning) {
+      return missingWarning;
+    }
+    if (!modelValue.value.current_shard_count) {
       return '';
     }
     return modelValue.value.shard_count !== modelValue.value.current_shard_count

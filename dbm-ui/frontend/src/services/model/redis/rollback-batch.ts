@@ -24,6 +24,8 @@ export default class RollbackBatch {
   end_time: string;
   is_all_shards_covered: boolean;
   is_complete: boolean;
+  // 批次未覆盖的连续 slot/segment 区间；完整或无需路由时为空串
+  missing_slots: string;
   shard_count: number;
   source_is_all_current: boolean;
   start_time: string;
@@ -35,6 +37,7 @@ export default class RollbackBatch {
     this.end_time = payload.end_time;
     this.is_all_shards_covered = payload.is_all_shards_covered;
     this.is_complete = payload.is_complete;
+    this.missing_slots = payload.missing_slots || '';
     this.shard_count = payload.shard_count;
     this.source_is_all_current = payload.source_is_all_current;
     this.start_time = payload.start_time;

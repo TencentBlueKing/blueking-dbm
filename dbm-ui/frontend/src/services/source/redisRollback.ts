@@ -90,6 +90,7 @@ export function getRollbackPrecheck(params: {
   resource_spec?: {
     redis: {
       count: number;
+      spec_id?: number;
     };
   };
   shard_values?: string[];

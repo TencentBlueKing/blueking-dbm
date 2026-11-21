@@ -111,6 +111,48 @@ def test_proxy_servers_cover_every_plan_item_including_placeholders():
         RedisRollbackFlow._proxy_servers(_proxy_plan(ClusterType.TendisRedisInstance.value))
 
 
+def test_construction_meta_skips_empty_source_without_emitting_colon_zero():
+    """Synthetic gap placeholders must not write ``:0`` into construction-record fields."""
+    from types import SimpleNamespace
+
+    from backend.db_services.redis.rollback.shards import ShardRef
+    from backend.flow.engine.bamboo.scene.redis.redis_rollback.flow import RedisRollbackFlow
+
+    items = [
+        SimpleNamespace(
+            dest_ip="2.2.2.2",
+            dest_port=30000,
+            source_ip="1.1.1.1",
+            source_port=30000,
+            shard=ShardRef("0-5460", current_master="1.1.1.1:30000"),
+        ),
+        SimpleNamespace(
+            dest_ip="2.2.2.2",
+            dest_port=30001,
+            source_ip="1.1.1.2",
+            source_port=30001,
+            shard=ShardRef("5461-10922"),
+        ),
+        SimpleNamespace(
+            dest_ip="2.2.2.2",
+            dest_port=30002,
+            source_ip="",
+            source_port=0,
+            shard=ShardRef("10923-16383"),
+        ),
+    ]
+
+    prod_range, pairs = RedisRollbackFlow._construction_source_meta(items)
+
+    assert prod_range == ["1.1.1.1:30000", "1.1.1.2:30001"]
+    assert pairs == [
+        ["1.1.1.1:30000", "2.2.2.2:30000"],
+        ["1.1.1.2:30001", "2.2.2.2:30001"],
+        ["", "2.2.2.2:30002"],
+    ]
+    assert ":0" not in prod_range and all(":0" not in pair[0] and ":0" not in pair[1] for pair in pairs)
+
+
 def test_old_proxy_payload_names_resolve_to_the_renamed_functions():
     from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 

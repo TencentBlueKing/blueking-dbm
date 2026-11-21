@@ -13,6 +13,8 @@ from backend.db_services.redis.rollback.shards import (
     ShardResolver,
     coverage_gaps,
     extract_identify_prefix,
+    format_gap_slots,
+    gap_ranges,
     overlapping_shards,
     parse_shard_value,
     round_key_from_filename,
@@ -83,6 +85,13 @@ def test_coverage_gaps_missing_last():
     gaps = coverage_gaps(shards)
     assert 315000 in gaps
     assert 419999 in gaps
+
+
+def test_gap_ranges_merges_consecutive_slots():
+    assert gap_ranges([]) == []
+    assert gap_ranges([5]) == [(5, 5)]
+    assert gap_ranges([1, 2, 3, 10, 12, 13]) == [(1, 3), (10, 10), (12, 13)]
+    assert format_gap_slots([5462, 5463, 10923]) == "5462-5463,10923"
 
 
 def test_single_instance_shard_value():
