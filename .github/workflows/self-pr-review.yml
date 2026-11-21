@@ -1,0 +1,230 @@
+# Cloud-side AI self-review for PRs authored by cycker only.
+# Deploy to: TencentBlueKing/blueking-dbm -> .github/workflows/self-pr-review.yml
+#
+# Required repo configuration (GitHub Models was retired on 2026-07-30, so an
+# OpenAI-compatible endpoint is needed):
+#   vars.LLM_API_BASE     e.g. https://your-gateway/v1
+#   secrets.LLM_API_KEY   API key
+#   vars.LLM_MODEL        model name (default: gpt-4o-mini)
+# Optional:
+#   vars.POST_PR_COMMENT  "false" keeps results only in the run summary + artifact
+#   secrets.WECOM_WEBHOOK WeCom group robot webhook for instant notification
+#   workflow_dispatch with dry_run=true validates config without any LLM call or write.
+
+name: self-pr-ai-review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: PR number to review
+        required: true
+        type: string
+      dry_run:
+        description: Check configuration only, no LLM call and no writes
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: ai-self-review-${{ github.event.pull_request.number || inputs.pr_number }}-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.user.login == 'cycker'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run AI self-review
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          LLM_API_BASE: ${{ vars.LLM_API_BASE }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_MODEL: ${{ vars.LLM_MODEL }}
+          POST_PR_COMMENT: ${{ vars.POST_PR_COMMENT }}
+          WECOM_WEBHOOK: ${{ secrets.WECOM_WEBHOOK }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, subprocess, sys, urllib.request
+
+          REPO = os.environ["REPO"]
+          PR = str(os.environ["PR_NUMBER"])
+          HEAD_SHA = os.environ.get("HEAD_SHA", "")
+          API_BASE = (os.environ.get("LLM_API_BASE") or "").strip().rstrip("/")
+          API_KEY = (os.environ.get("LLM_API_KEY") or "").strip()
+          MODEL = (os.environ.get("LLM_MODEL") or "gpt-4o-mini").strip()
+          POST_COMMENT = (os.environ.get("POST_PR_COMMENT") or "true").strip().lower() != "false"
+          WEBHOOK = (os.environ.get("WECOM_WEBHOOK") or "").strip()
+          DRY_RUN = (os.environ.get("DRY_RUN") or "false").strip().lower() == "true"
+          MAX_CHARS = 36000
+          MAX_CHUNKS = 8
+          MARKER = "<!-- ai-self-review -->"
+
+          def gh(*args):
+              return subprocess.check_output(["gh", *args], text=True)
+
+          def fail(msg):
+              print("::error::" + msg)
+              sys.exit(1)
+
+          print("config: repo=%s pr=%s model=%s api_base=%s key=%s comment=%s webhook=%s dry_run=%s" % (
+              REPO, PR, MODEL, API_BASE or "(unset)", "set" if API_KEY else "MISSING",
+              POST_COMMENT, "set" if WEBHOOK else "unset", DRY_RUN))
+          if DRY_RUN:
+              print("dry run: configuration checked, nothing was called or written.")
+              sys.exit(0)
+
+          # Only ever touch PRs authored by cycker, including manual dispatch.
+          meta = json.loads(gh("pr", "view", PR, "-R", REPO,
+                              "--json", "number,title,author,headRefOid,additions,deletions,changedFiles"))
+          author = (meta.get("author") or {}).get("login", "")
+          if author != "cycker":
+              print("skip: PR #%s author is %s, not cycker" % (PR, author))
+              sys.exit(0)
+          sha = HEAD_SHA or meta.get("headRefOid", "")
+          sha7 = sha[:7]
+          title = meta.get("title", "")
+
+          if not API_BASE or not API_KEY:
+              print("::warning::LLM_API_BASE / LLM_API_KEY not configured; skipping review. "
+                    "Set the repo variable and secret, then re-run this workflow.")
+              sys.exit(0)
+
+          url = API_BASE if API_BASE.endswith("/chat/completions") else API_BASE + "/chat/completions"
+
+          def llm(system, user, max_tokens=3000):
+              body = json.dumps({
+                  "model": MODEL,
+                  "messages": [{"role": "system", "content": system},
+                               {"role": "user", "content": user}],
+                  "temperature": 0.1,
+                  "max_tokens": max_tokens,
+              }).encode("utf-8")
+              req = urllib.request.Request(url, data=body, headers={
+                  "Authorization": "Bearer " + API_KEY,
+                  "Content-Type": "application/json",
+              })
+              with urllib.request.urlopen(req, timeout=240) as resp:
+                  data = json.loads(resp.read().decode("utf-8"))
+              return data["choices"][0]["message"]["content"].strip()
+
+          # Split the diff into file-aligned chunks that fit the model context.
+          raw = gh("pr", "diff", PR, "-R", REPO)
+          blocks = [b for b in re.split(r"(?=^diff --git )", raw, flags=re.M)
+                    if b.startswith("diff --git ")]
+          parts, buf, size = [], [], 0
+          for block in blocks:
+              if len(block) > MAX_CHARS:
+                  block = block[:MAX_CHARS] + "\n[... single file truncated ...]\n"
+              if buf and size + len(block) > MAX_CHARS:
+                  parts.append("".join(buf))
+                  buf, size = [], 0
+              buf.append(block)
+              size += len(block)
+          if buf:
+              parts.append("".join(buf))
+          chunk_cap_hit = len(parts) > MAX_CHUNKS
+          parts = parts[:MAX_CHUNKS]
+
+          system = (
+              "You are a senior DBA / backend code reviewer. Review ONLY the git diff provided. "
+              "Answer in Chinese. Sort findings by severity P0/P1/P2. "
+              "Every finding must give file:line, the problem, and a concrete fix. "
+              "Check correctness and edge cases, idempotency and retry, concurrency and locks, "
+              "DB migrations and rollback, credential / command-injection / hardcoded-secret risks, "
+              "and test coverage. Only report issues provable from the diff; no generic architecture advice. "
+              "If nothing is blocking, state 未发现阻断性问题.")
+
+          findings = []
+          for i, part in enumerate(parts, 1):
+              user = "This is chunk %d/%d of PR #%s (head %s), split by file. Review only this chunk.\n\n%s" % (
+                  i, len(parts), PR, sha7, part)
+              try:
+                  findings.append("### Chunk %d/%d\n%s" % (i, len(parts), llm(system, user)))
+              except Exception as exc:
+                  findings.append("### Chunk %d/%d\n(review failed: %s)" % (i, len(parts), exc))
+
+          joined = "\n\n".join(findings)
+          if len(parts) > 1:
+              try:
+                  summary = llm(
+                      "Merge these partial code review results. Answer in Chinese. "
+                      "De-duplicate findings, keep P0/P1/P2 order, then end with exactly one sentence "
+                      "starting with 一句话归纳：that contains the PR number, main risk and conclusion. "
+                      "Do not invent issues absent from the partial results.",
+                      joined[:30000], max_tokens=1800)
+              except Exception:
+                  summary = joined
+          else:
+              summary = joined
+
+          report_text = "\n".join([
+              "# PR #%s AI self-review · %s" % (PR, sha7), "",
+              "- PR: %s" % title,
+              "- Head: `%s`" % sha,
+              "- Diff: %s files, +%s / -%s" % (meta.get("changedFiles", 0),
+                                               meta.get("additions", 0), meta.get("deletions", 0)),
+              "- Review coverage: %d file blocks in %d chunk(s)%s" % (
+                  len(blocks), len(parts), " (tail skipped: chunk cap)" if chunk_cap_hit else ""),
+              "", summary, "",
+          ])
+          with open("review.md", "w", encoding="utf-8") as fh:
+              fh.write(report_text)
+          summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+          if summary_path:
+              with open(summary_path, "a", encoding="utf-8") as fh:
+                  fh.write(report_text + "\n")
+
+          if POST_COMMENT:
+              with open("review_comment.md", "w", encoding="utf-8") as fh:
+                  fh.write(MARKER + "\n" + report_text)
+              comments = json.loads(gh("api", "repos/%s/issues/%s/comments?per_page=100" % (REPO, PR)))
+              cid = next((c["id"] for c in comments if MARKER in (c.get("body") or "")), None)
+              try:
+                  if cid:
+                      gh("api", "-X", "PATCH", "repos/%s/issues/comments/%s" % (REPO, cid),
+                         "-F", "body=@review_comment.md")
+                  else:
+                      gh("pr", "comment", PR, "-R", REPO, "--body-file", "review_comment.md")
+                  print("PR comment upserted (id=%s)" % (cid or "new"))
+              except Exception as exc:
+                  print("::warning::failed to upsert PR comment: %s" % exc)
+
+          # Best effort: keep the local queue label in sync.
+          subprocess.run(["gh", "pr", "edit", PR, "-R", REPO, "--remove-label", "ai-review-pending"],
+                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+          if WEBHOOK:
+              one_liner = next((line.strip() for line in report_text.splitlines()
+                                if "一句话归纳" in line), "PR #%s review ready" % PR)
+              payload = {"msgtype": "markdown", "markdown": {"content":
+                         "**PR #%s AI self-review (%s)**\n> %s\n\n[查看 PR](https://github.com/%s/pull/%s)"
+                         % (PR, sha7, one_liner, REPO, PR)}}
+              try:
+                  urllib.request.urlopen(urllib.request.Request(WEBHOOK,
+                      data=json.dumps(payload).encode("utf-8"),
+                      headers={"Content-Type": "application/json"}), timeout=15).close()
+                  print("WeCom webhook notified")
+              except Exception as exc:
+                  print("::warning::WeCom webhook failed: %s" % exc)
+
+          print("done: report written, %d chunk(s)" % len(parts))
+          PY
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-review-${{ github.event.pull_request.number || inputs.pr_number }}
+          path: review.md
+          if-no-files-found: ignore
