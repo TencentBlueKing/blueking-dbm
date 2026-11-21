@@ -3,8 +3,15 @@
 import pytest
 
 from backend.components.dbconfig.constants import LevelName
+from backend.configuration.constants import DBType
+from backend.db_meta.enums import ClusterType
+from backend.db_package.constants import PackageType
+from backend.db_package.models import Package
+from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.utils.redis import redis_act_playload as mod
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
+from backend.flow.utils.redis.redis_package_resolver import RedisUpgradeTarget
+from backend.tests.mock_data.db_package.v2 import create_redis_package, ensure_v2_release_package
 
 TARGET_MAJOR_VERSION = "Redis-6"
 CURRENT_MAJOR_VERSION = "Redis-5"
@@ -351,10 +358,10 @@ def test_redis_conf_names_by_cluster_type_equal_versions_inherit_all():
 
 
 def _stub_latest_pkg(monkeypatch, captured=None):
-    def fake(version, name_prefix=None):
+    def fake(version, upgrade_target=None):
         if captured is not None:
             captured["version"] = version
-            captured["name_prefix"] = name_prefix
+            captured["upgrade_target"] = upgrade_target
         return type("P", (), {"name": "p.tar.gz", "md5": "md5"})
 
     monkeypatch.setattr(mod, "get_latest_redis_package_by_version", fake)
@@ -423,14 +430,14 @@ def test_version_update_payload_includes_port_conf_configs(monkeypatch, stub_con
     assert sorted(got["payload"]["port_conf_configs"].keys()) == ["30000", "30001"]
 
 
-def test_version_update_payload_forwards_pkg_name_prefix(monkeypatch):
+def test_version_update_payload_forwards_upgrade_target(monkeypatch):
     captured = {}
     _stub_latest_pkg(monkeypatch, captured)
 
     _new_payload_builder().redis_cluster_version_update_online_payload(
         params={
             "db_version": TARGET_MAJOR_VERSION,
-            "pkg_name_prefix": "redis-6.2.14",
+            "upgrade_target": {"db_version_id": 12, "version_name": "redis-6.2.14"},
             "cluster_type": "TwemproxyRedisInstance",
             "ip": "1.1.1.1",
             "ports": [30000],
@@ -438,7 +445,7 @@ def test_version_update_payload_forwards_pkg_name_prefix(monkeypatch):
         }
     )
 
-    assert captured == {"version": TARGET_MAJOR_VERSION, "name_prefix": "redis-6.2.14"}
+    assert captured == {"version": TARGET_MAJOR_VERSION, "upgrade_target": RedisUpgradeTarget(12, "redis-6.2.14")}
 
 
 def test_version_update_payload_without_prefix_looks_up_by_series_only(monkeypatch):
@@ -455,4 +462,112 @@ def test_version_update_payload_without_prefix_looks_up_by_series_only(monkeypat
         }
     )
 
-    assert captured == {"version": TARGET_MAJOR_VERSION, "name_prefix": None}
+    assert captured == {"version": TARGET_MAJOR_VERSION, "upgrade_target": None}
+
+
+@pytest.fixture
+def redis_packages(db):
+    """清空 redis 介质, 只保留 GetFileList 必需的周边介质"""
+    Package.objects.filter(db_type=DBType.Redis.value).delete()
+    for pkg_type in (PackageType.DBActuator.value, PackageType.DbMon.value, PackageType.RedisTools.value):
+        ensure_v2_release_package(pkg_type=pkg_type, db_type=DBType.Redis.value, name=f"{pkg_type}.tar.gz")
+
+
+def _proxy_upgrade_payload(cluster_type, **target_params):
+    return _new_payload_builder().redis_proxy_upgrade_online_payload(
+        params={"cluster_type": cluster_type, "ip": "1.1.1.1", "port": 50000, "password": "", **target_params}
+    )
+
+
+def _target_of(pkg):
+    return RedisUpgradeTarget.from_package(pkg)
+
+
+@pytest.mark.usefixtures("redis_packages")
+class TestUpgradePackageResolution:
+    def test_storage_file_list_resolves_selected_alpha_version(self):
+        pkg = create_redis_package("redis-7.2.5.tar.gz", series="Redis-7", full_version="7.2.5.0.0.0", phase="alpha")
+
+        files = GetFileList(db_type=DBType.Redis).redis_cluster_version_update(
+            "Redis-7", upgrade_target=_target_of(pkg)
+        )
+
+        assert any(path.endswith("/redis-7.2.5.tar.gz") for path in files)
+
+    def test_proxy_file_list_resolves_beta_target(self):
+        pkg = create_redis_package(
+            "predixy-1.6.0.tar.gz",
+            pkg_type=PackageType.Predixy.value,
+            series="Predixy-2",
+            full_version="1.6.0.0.0.0",
+            phase="beta",
+        )
+
+        files = GetFileList(db_type=DBType.Redis).redis_cluster_apply_proxy(
+            ClusterType.TendisPredixyRedisCluster.value, _target_of(pkg)
+        )
+
+        assert files[1].endswith("/predixy-1.6.0.tar.gz")
+
+    @staticmethod
+    def _same_name_alpha_and_release(pkg_type, name, series):
+        release = create_redis_package(
+            name, pkg_type=pkg_type, series=series, full_version="5.9.9.0.0.0", phase="release", recommend=True
+        )
+        alpha = create_redis_package(
+            name,
+            pkg_type=pkg_type,
+            series=series,
+            full_version="5.9.8.0.0.0",
+            phase="alpha",
+            version_name=f"{name}-alpha",
+        )
+        Package.objects.filter(pk=release.pk).update(md5="release-md5")
+        Package.objects.filter(pk=alpha.pk).update(md5="alpha-md5")
+        return alpha, release
+
+    def test_storage_payload_takes_package_of_upgrade_target(self):
+        alpha, release = self._same_name_alpha_and_release(PackageType.Redis.value, "redis-7.2.5.tar.gz", "Redis-7")
+        params = {
+            "db_version": "Redis-7",
+            "cluster_type": ClusterType.TendisPredixyRedisCluster.value,
+            "ip": "1.1.1.1",
+            "ports": [30000],
+            "role": "redis_slave",
+        }
+
+        for pkg, md5 in ((alpha, "alpha-md5"), (release, "release-md5")):
+            got = _new_payload_builder().redis_cluster_version_update_online_payload(
+                params={**params, "upgrade_target": _target_of(pkg).to_dict()}
+            )
+            assert got["payload"]["pkg"] == "redis-7.2.5.tar.gz"
+            assert got["payload"]["pkg_md5"] == md5
+
+    def test_proxy_payload_takes_package_of_upgrade_target(self):
+        alpha, release = self._same_name_alpha_and_release(
+            PackageType.Predixy.value, "predixy-1.6.0.tar.gz", "Predixy-latest"
+        )
+
+        for pkg, md5 in ((alpha, "alpha-md5"), (release, "release-md5")):
+            got = _proxy_upgrade_payload(
+                ClusterType.TendisPredixyRedisCluster.value,
+                upgrade_target=_target_of(pkg).to_dict(),
+            )
+            assert got["payload"]["pkg"] == "predixy-1.6.0.tar.gz"
+            assert got["payload"]["pkg_md5"] == md5
+
+    def test_proxy_file_list_without_target_only_takes_latest_release(self):
+        predixy = PackageType.Predixy.value
+        series = "Predixy-latest"
+        create_redis_package(
+            "predixy-1.4.3.tar.gz", pkg_type=predixy, series=series, full_version="1.4.3.0.0.0", phase="release"
+        )
+        create_redis_package(
+            "predixy-1.6.0.tar.gz", pkg_type=predixy, series=series, full_version="1.6.0.0.0.0", phase="alpha"
+        )
+
+        files = GetFileList(db_type=DBType.Redis).redis_cluster_apply_proxy(
+            ClusterType.TendisPredixyRedisCluster.value
+        )
+
+        assert files[1].endswith("/predixy-1.4.3.tar.gz")

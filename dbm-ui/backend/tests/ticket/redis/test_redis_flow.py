@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import copy
 import logging
 
 import pytest
@@ -16,6 +17,7 @@ from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Cluster, Machine, Spec, StorageInstance, StorageInstanceTuple
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
+from backend.tests.mock_data.db_package.v2 import create_redis_package
 from backend.tests.mock_data.ticket.redis_flow import (
     REDIS_CLUSTER_APPLY_DATA,
     REDIS_CLUSTER_CUTOFF_DATA,
@@ -124,7 +126,12 @@ class TestRedisFlow(BaseTicketTest):
     @use_pipeline_mock
     def test_redis_version_update(self):
         # redis版本升级
-        self.flow_test(REDIS_VERSION_UPDATE_DATA)
+        pkg = create_redis_package(
+            "redis-6.2.14.tar.gz", series="Redis-6", full_version="6.2.14.0.0.0", phase="release"
+        )
+        data = copy.deepcopy(REDIS_VERSION_UPDATE_DATA)
+        data["details"]["infos"][0]["target_versions"][0]["db_version_id"] = pkg.db_version_id
+        self.flow_test(data)
 
     @use_pipeline_mock
     def test_redis_cluster_rollback_flow(self):
