@@ -2,6 +2,7 @@
 package logparserjob
 
 import (
+	"bufio"
 	"context"
 	"dbm-services/mongodb/db-tools/dbmon/pkg/fileinfo"
 	"dbm-services/mongodb/db-tools/dbmon/pkg/fileutil"
@@ -156,7 +157,6 @@ func ParseFile(srcFileName string, dirName, outFileName string, follow bool,
 		return
 	}
 	dirName, _ = filepath.Abs(dirName)
-	seekCacheFile := path.Join(dirName, ".seek")
 	dstDir := fmt.Sprintf("%s/%s", dirName, outFileName) + ".%Y%m%d-%H%M"
 	// todo 同一分钟内如果日志数量过多，要过滤掉.
 
@@ -172,6 +172,14 @@ func ParseFile(srcFileName string, dirName, outFileName string, follow bool,
 		logger.Error("failed to create rotatelogs", zap.Error(err))
 		return
 	}
+	return parseFileTo(srcFileName, dstWriter, dirName, follow, ctx, osCtx, metaInfo, logger)
+}
+
+// parseFileTo 是 ParseFile 的可注入版本，dstWriter 由调用方提供（rotatelogs 或测试用的失败 writer）。
+// 若 dstWriter 实现 io.Closer，退出时会关闭。
+func parseFileTo(srcFileName string, dstWriter io.Writer, dirName string, follow bool,
+	ctx, osCtx context.Context, metaInfo []byte, logger *zap.Logger) (succ int, fail int, err error) {
+	seekCacheFile := path.Join(dirName, ".seek")
 
 	// 如果文件不存在: seekInfo.Offset = 0
 	// 如果文件小于Offset: seekInfo.Offset = 0
@@ -188,8 +196,39 @@ func ParseFile(srcFileName string, dirName, outFileName string, follow bool,
 			CompleteLines: true,
 		})
 	if err != nil {
+		if c, ok := dstWriter.(io.Closer); ok {
+			_ = c.Close()
+		}
 		err = errors.Wrap(err, "seek")
 		return
+	}
+	// rotatelogs 每次 Write 都落到 syscall。缓冲后按秒 flush，轮转仍按 flush 时刻切文件。
+	bufWriter := bufio.NewWriterSize(dstWriter, 32*1024)
+	// writeErr 记录首个写入/刷盘错误。bufio.Writer 出错后内部 err 被置住，后续 Write/Flush
+	// 全部短路返回旧错误且 n=0。此时继续推进 offset 会让这段日志既不落盘、重启后也被跳过。
+	// 因此一旦写入失败就停止消费，只保存已成功输出对应的读取位置。
+	var writeErr error
+	writeLine := func(p []byte) bool {
+		if writeErr != nil {
+			return false
+		}
+		if _, e := bufWriter.Write(p); e != nil {
+			writeErr = e
+			logger.Error("write json log failed", zap.Error(e))
+			return false
+		}
+		return true
+	}
+	flush := func() bool {
+		if writeErr != nil {
+			return false
+		}
+		if e := bufWriter.Flush(); e != nil {
+			writeErr = e
+			logger.Error("flush json log failed", zap.Error(e))
+			return false
+		}
+		return true
 	}
 
 	// 如果metaInfo不为空，且最后一个字符不是逗号，则添加逗号
@@ -203,6 +242,17 @@ func ParseFile(srcFileName string, dirName, outFileName string, follow bool,
 	prevNum := -1
 	prevOffset := int64(0)
 	prevTime := primitive.NewDateTimeFromTime(time.Now())
+	// pendingOffset 是已缓冲但尚未刷盘的行对应的读取位置；只有 flush 成功后才提交到 seekCache。
+	// 这样磁盘满等写入失败时，.seek 不会指向未落盘的内容，重启后能从上次成功位置续读。
+	pendingOffset := seekCache.Offset
+	pendingInodeUpdate := false
+	// commit 把 pendingOffset 提交到 seekCache，仅在 flush 成功后调用。
+	commit := func() {
+		if pendingInodeUpdate || pendingOffset != seekCache.Offset {
+			_ = seekCache.Update(pendingOffset, pendingInodeUpdate)
+			pendingInodeUpdate = false
+		}
+	}
 	for {
 		select {
 		case <-osCtx.Done():
@@ -212,18 +262,19 @@ func ParseFile(srcFileName string, dirName, outFileName string, follow bool,
 			logger.Info("context done, stop parsing")
 			goto END
 		case <-ticker.C:
-			// 每秒保存一次.
-			err = seekCache.Save(true)
+			// 每秒刷盘并保存 offset。只有 flush 成功才提交 pendingOffset。
+			if !flush() {
+				logger.Info("stop parsing after write failure")
+				goto END
+			}
+			commit()
+			err = seekCache.Save(false)
 			logger.Debug(fmt.Sprintf("save seekinfo %+v", seekCache), zap.Error(err))
 		case line := <-tailHandle.Lines:
 			if line == nil {
-				if follow {
-					continue
-				} else {
-					// 非follow模式下，这表示文件读取完毕
-					logger.Info("non-follow, nil received, stop parsing")
-					goto END
-				}
+				// channel 已关闭。follow 时继续读会在关闭的 channel 上空转。
+				logger.Info("tail closed, stop parsing", zap.Bool("follow", follow))
+				goto END
 			}
 
 			logger.Debug("line info received", zap.String("line", line.Text),
@@ -258,42 +309,61 @@ func ParseFile(srcFileName string, dirName, outFileName string, follow bool,
 			msg.Line.TimeDiff = int64(msg.DateTime.Time().Sub(msg.Line.Time).Seconds())
 			msgJson, _ := json.Marshal(msg)
 			// 在{} 中插入 metaInfo. metaInfo 可以为空 []byte{}
+			ok := true
 			if len(metaInfo) > 0 {
-				_, _ = dstWriter.Write(msgJson[0:1])
-				_, _ = dstWriter.Write(metaInfo)
-				_, _ = dstWriter.Write(msgJson[1:])
+				ok = writeLine(msgJson[0:1]) && writeLine(metaInfo) && writeLine(msgJson[1:])
 			} else {
-				_, _ = dstWriter.Write(msgJson)
+				ok = writeLine(msgJson)
 			}
-			_, _ = dstWriter.Write([]byte("\n"))
+			if ok {
+				ok = writeLine([]byte("\n"))
+			}
+			if !ok {
+				// 写入失败，停止消费。pendingOffset 未提交，重启后从上次成功位置续读。
+				logger.Info("stop parsing after write failure")
+				goto END
+			}
 
 			if prevNum > line.Num || prevNum == -1 {
 				logger.Info("line number reset, update inode",
 					zap.Int("prevNum", prevNum), zap.Int("lineNum", line.Num))
 			}
-
-			// 保存SeekInfo，如果LineNum重置，更新Inode
-			err = seekCache.Update(line.SeekInfo.Offset,
-				prevNum > line.Num || prevNum == -1 || prevOffset > line.SeekInfo.Offset)
-
-			if err != nil {
-				logger.Error("save seek info failed", zap.Error(err))
+			// 记录待提交的读取位置；行号重置或 offset 回退时，提交时一并更新 inode。
+			pendingOffset = line.SeekInfo.Offset
+			if prevNum > line.Num || prevNum == -1 || prevOffset > line.SeekInfo.Offset {
+				pendingInodeUpdate = true
 			}
 			prevNum, prevOffset, prevTime = line.Num, line.SeekInfo.Offset, msg.DateTime
 		}
 	}
 
 END:
-	seekCache.Save(true)
-	logger.Info("cleanup tail handle")
-	tailHandle.Cleanup()
-	err = tailHandle.Stop()
-	if err != nil {
-		logger.Error("stop tail handle failed", zap.Error(err))
+	// 退出前尽力刷盘。flush 成功才提交 pendingOffset，失败则只保留已提交的位置，
+	// 未落盘的内容重启后会重读。
+	if flush() {
+		commit()
 	}
-	err = dstWriter.Close()
-	if err != nil {
-		logger.Error("close dst writer failed", zap.Error(err))
+	seekCache.Save(true)
+	logger.Info("stop tail handle")
+	// 不要再调用 Cleanup。它和 Stop 都会 RemoveWatch，全局计数会被减成负数，
+	// 下一次 Watch 不再注册 inotify，tail 就只能在重新打开文件时读到当时的末尾。
+	if stopErr := tailHandle.Stop(); stopErr != nil {
+		logger.Error("stop tail handle failed", zap.Error(stopErr))
+		if err == nil {
+			err = stopErr
+		}
+	}
+	if c, ok := dstWriter.(io.Closer); ok {
+		if closeErr := c.Close(); closeErr != nil {
+			logger.Error("close dst writer failed", zap.Error(closeErr))
+			if err == nil {
+				err = closeErr
+			}
+		}
+	}
+	// 写入失败是最早发生的错误，优先返回，便于上层识别。
+	if writeErr != nil && err == nil {
+		err = errors.Wrap(writeErr, "write json log failed")
 	}
 	logger.Info("ParseFile done")
 	return
