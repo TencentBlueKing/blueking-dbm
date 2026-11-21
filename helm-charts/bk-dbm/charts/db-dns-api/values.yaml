@@ -79,3 +79,6 @@ serviceMonitor:
 bkLogConfig:
   enabled: false
   dataId: 1
+
+kms:
+  credentialDir: /etc/secrets/dns-api-kms

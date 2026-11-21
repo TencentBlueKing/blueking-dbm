@@ -94,8 +94,8 @@ RUN set -ex &&  \
     rm -rf ./static/monacoeditorwork && \
     mv ./static/static/monacoeditorwork ./static/monacoeditorwork
 
-# 收集静态文件
-ENV APP_ID=bk-dbm APP_TOKEN=xxxx
+# 收集静态文件（APP_TOKEN 作为 AES 密钥，bkcrypto 要求至少 16 位）
+ENV APP_ID=bk-dbm APP_TOKEN=xxxxxxxxxxxxxxxx
 RUN python manage.py collectstatic --settings=config.prod --noinput
 
 ENTRYPOINT ["/app"]

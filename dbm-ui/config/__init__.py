@@ -17,11 +17,14 @@ import environ
 # Django starts so that shared_task will use this app.
 from blueapps.core.celery import celery_app
 
-django_env = environ.Env()
+from blueking import kms
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 environ.Env.read_env(os.path.join(BASE_DIR, os.getenv("ENV_FILE", "local.env")))
+
+# 必须在 read_env 之后、任何读取凭证的代码之前执行，使 local.env 中的 ENABLE_KMS 也能生效
+django_env = kms.KMSEnv(kms.inject_credentials())
 
 __all__ = ["celery_app", "RUN_VER", "APP_CODE", "SECRET_KEY", "BASE_DIR", "django_env"]
 

@@ -110,13 +110,25 @@ containers:
       {{- if .Values.envs -}}
         {{- include "envs" . | trim | nindent 6 }}
       {{- end }}
+      {{- with include "bk-dbm.kms.cloudEnvs" . | trim }}{{ . | nindent 6 }}{{ end }}
     envFrom:
       {{- if .Values.extraEnvVarsCM }}
       - configMapRef:
           name: {{ .Values.extraEnvVarsCM }}
       {{- end }}
+    volumeMounts:
+      # 启动脚本渲染出的 pull-crond 配置含 token，放在内存盘中
+      - name: secure-conf
+        mountPath: /data/secure
+      {{- with include "bk-dbm.kms.cloudVolumeMounts" . | trim }}{{ . | nindent 6 }}{{ end }}
     resources:
       {{- toYaml .Values.resources | nindent 6 }}
+volumes:
+  - name: secure-conf
+    emptyDir:
+      medium: Memory
+      sizeLimit: 1Mi
+  {{- with include "bk-dbm.kms.cloudVolumes" . | trim }}{{ . | nindent 2 }}{{ end }}
 {{- with .Values.nodeSelector }}
 nodeSelector:
 {{- toYaml . | nindent 2 }}

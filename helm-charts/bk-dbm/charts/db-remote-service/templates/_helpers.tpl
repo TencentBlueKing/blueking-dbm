@@ -74,6 +74,7 @@ environment variables
 {{- define "db-remote-service.container_env" -}}
 env:
   {{- include "dbm.envs" . | trim | nindent 2 }}
+  {{- with include "bk-dbm.kms.cloudEnvs" . | trim }}{{ . | nindent 2 }}{{ end }}
 envFrom:
   {{- if .Values.extraEnvVarsCM }}
   - configMapRef:

@@ -6,7 +6,8 @@ export DEBUG=true
 
 
 export APP_ID=bk-dbm
-export APP_TOKEN=xxx
+# APP_TOKEN 作为 AES 密钥，bkcrypto 要求至少 16 位
+export APP_TOKEN=xxxxxxxxxxxxxxxx
 export YUM_INSTALL_SERVICE=1
 export CREATE_PYTHON_VENV=1
 export VENV_DIR="/tmp/ci_py_venv"

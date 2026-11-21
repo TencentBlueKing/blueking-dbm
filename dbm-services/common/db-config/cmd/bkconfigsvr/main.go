@@ -89,6 +89,12 @@ func init() {
 	config.InitConfig("logger")
 	config.InitConfig("config")
 	logger.Init()
+	// KMS：必须在 main() 建立数据库连接之前完成覆盖；开启后加载失败即停止启动，不回退配置文件中的旧凭证
+	if applied, err := config.ApplyKMSCredentials(); err != nil {
+		log.Fatalf("load KMS runtime credentials failed: %s", err.Error())
+	} else if applied {
+		logger.Info("KMS runtime credentials applied")
+	}
 
 	pflag.Bool("migrate", false,
 		"run migrate to databases and exit. set migrate.enable to config.yaml will run migrate and continue ")

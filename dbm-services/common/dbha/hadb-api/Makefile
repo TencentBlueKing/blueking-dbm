@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 BASE_DIR = $(shell pwd)
-VERSION = 0.0.1
+VERSION = 0.0.1-alpha.39_kms
 GITHASH = ""
 APPNAME = hadb-api
 GOOS ?= linux

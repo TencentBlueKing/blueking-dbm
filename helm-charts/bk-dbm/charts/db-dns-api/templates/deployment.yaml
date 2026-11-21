@@ -1,3 +1,5 @@
+{{- $kms := (.Values.global | default dict).kms | default dict }}
+{{- $kmsEnabled := $kms.enabled | default false }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -29,6 +31,15 @@ spec:
                 mode: 420
                 path: path/to/config.yaml
             defaultMode: 272
+        {{- if $kmsEnabled }}
+        - name: kms-credentials
+          secret:
+            secretName: {{ $kms.secretName | default "bk-dbm-kms" | quote }}
+            defaultMode: 0400
+            items:
+              - key: envelope
+                path: envelope
+        {{- end }}
     {{- with .Values.global.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
@@ -50,6 +61,17 @@ spec:
             {{- if .Values.envs -}}
               {{- include "envs" . | trim | nindent 12 }}
             {{- end }}
+            - name: ENABLE_KMS
+              value: {{ $kmsEnabled | quote }}
+            {{- if $kmsEnabled }}
+            - name: DB_DNS_API_KMS_CREDENTIAL_DIR
+              value: {{ .Values.kms.credentialDir | quote }}
+            - name: BK_DBM_KMS_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $kms.secretName | default "bk-dbm-kms" | quote }}
+                  key: privateKey
+            {{- end }}
 
           envFrom:
             {{- if .Values.extraEnvVarsCM }}
@@ -64,6 +86,11 @@ spec:
               name: config-volume
               subPath: path/to/config.yaml
               mountPath: /conf/config.yaml
+            {{- if $kmsEnabled }}
+            - name: kms-credentials
+              mountPath: {{ .Values.kms.credentialDir | quote }}
+              readOnly: true
+            {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
