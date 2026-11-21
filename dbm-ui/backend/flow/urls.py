@@ -140,6 +140,7 @@ from backend.flow.views.mysql_clb_operation import (
 )
 from backend.flow.views.mysql_clone_cluster import MysqlCloneClusterSceneApiView
 from backend.flow.views.mysql_data_migrate import MysqlDataMigrateSceneApiView
+from backend.flow.views.mysql_dts_precheck import MysqlDtsPrecheckSceneApiView
 from backend.flow.views.mysql_edit_config import MysqlEditConfigSceneApiView
 from backend.flow.views.mysql_failover_drill import MysqlFailoverDrillSceneApiView
 from backend.flow.views.mysql_flashback import MysqlFlashbackSceneApiView
@@ -691,4 +692,5 @@ urlpatterns = [
     url(r"^scene/enable_k8s_surrealdb$", EnableSurrealDBSceneApiView.as_view()),
     url(r"^scene/delete_k8s_surrealdb$", DestroySurrealDBSceneApiView.as_view()),
     url(r"^scene/install_k8s_surrealdb_ha$", InstallK8sSurrealdbHASceneApiView.as_view()),
+    url(r"^scene/mysql_dts_precheck$", MysqlDtsPrecheckSceneApiView.as_view()),
 ]
