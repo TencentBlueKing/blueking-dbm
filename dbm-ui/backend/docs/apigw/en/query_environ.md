@@ -31,6 +31,7 @@ curl -X 'GET' \
   "data": {
     "APP_CODE": "bk_dbm",
     "APP_VERSION": "",
+    "RUN_VER": "open",
     "BK_DOMAIN": ".example.com",
     "BK_HELPER_URL": null,
     "BK_DBM_URL": "http://example.com",
@@ -96,6 +97,7 @@ curl -X 'GET' \
 | data                              | dict       | Data                           |
 | APP_CODE                          | string     | Application code                       |
 | APP_VERSION                       | string     | Application version                       |
+| RUN_VER                           | string     | Runtime edition, open for community and ieod for internal |
 | BK_DOMAIN                         | string     | BlueKing domain                       |
 | BK_HELPER_URL                     | string     | BlueKing helper URL                    |
 | BK_DBM_URL                        | string     | BlueKing DBM URL                    |

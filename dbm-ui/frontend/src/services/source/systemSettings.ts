@@ -56,6 +56,7 @@ export function getSystemEnviron() {
     ENABLE_EXTERNAL_PROXY: boolean;
     RES0URCE_INDEPENDENT_BIZ_NAME: string;
     RESOURCE_INDEPENDENT_BIZ: number;
+    RUN_VER: string;
     USER_MANAGE_FRONTEND_APIGW_DOMAIN: string;
   }>(`${path}/environ/`);
 }

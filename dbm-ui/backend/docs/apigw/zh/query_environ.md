@@ -32,6 +32,7 @@ curl -X 'GET' \
   "data": {
     "APP_CODE": "bk_dbm",
     "APP_VERSION": "",
+    "RUN_VER": "open",
     "BK_DOMAIN": ".example.com",
     "BK_HELPER_URL": null,
     "BK_DBM_URL": "http://example.com",
@@ -97,6 +98,7 @@ curl -X 'GET' \
 | data                              | dict       | 数据                           |
 | APP_CODE                          | string     | 应用代码                       |
 | APP_VERSION                       | string     | 应用版本                       |
+| RUN_VER                           | string     | 运行版本，open 为社区版，ieod 为内部版 |
 | BK_DOMAIN                         | string     | 蓝鲸域名                       |
 | BK_HELPER_URL                     | string     | 蓝鲸助手URL                    |
 | BK_DBM_URL                        | string     | 蓝鲸DBM URL                    |

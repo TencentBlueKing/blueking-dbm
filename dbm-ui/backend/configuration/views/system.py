@@ -120,6 +120,7 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
         envs = {
             "APP_CODE": env.APP_CODE,
             "APP_VERSION": env.APP_VERSION,
+            "RUN_VER": env.RUN_VER,
             "BK_DOMAIN": env.BK_DOMAIN,
             "BK_HELPER_URL": env.BK_HELPER_URL,
             "BK_DBM_URL": env.BK_SAAS_HOST,

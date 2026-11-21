@@ -13,6 +13,7 @@ from django.utils.translation import gettext_lazy as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
+from backend.env import RUN_VER
 from blue_krill.data_types.enum import EnumField, StrStructuredEnum
 
 
@@ -43,6 +44,8 @@ FUNCTION_CONTROLLER_INIT_MAP = {
         "is_enabled": True,
         "children": {
             ClusterType.TendisPredixyTendisplusCluster.value: {"is_enabled": True},
+            ClusterType.TendisPredixyTendisplusInstance.value: {"is_enabled": True},
+            ClusterType.TendisPredixyRedisCluster.value: {"is_enabled": True},
             ClusterType.TendisTwemproxyRedisInstance.value: {"is_enabled": True},
             ClusterType.TwemproxyTendisSSDInstance.value: {"is_enabled": True},
             CustomFuncNameEnum.ToolBox.value: {"is_enabled": True},
@@ -61,6 +64,8 @@ FUNCTION_CONTROLLER_INIT_MAP = {
         "children": {
             ClusterType.MongoShardedCluster.value: {"is_enabled": True},
             ClusterType.MongoReplicaSet.value: {"is_enabled": True},
+            "sharedClusterList": {"is_enabled": True},
+            "replicaSetList": {"is_enabled": True},
             CustomFuncNameEnum.ToolBox.value: {"is_enabled": True},
         },
     },
@@ -73,6 +78,52 @@ FUNCTION_CONTROLLER_INIT_MAP = {
             # TODO: 暂时屏蔽对influxdb的鉴权
             DBType.InfluxDB.value: {"is_enabled": False},
             DBType.Pulsar.value: {"is_enabled": True},
+            DBType.Doris.value: {
+                "is_enabled": True,
+                "children": {
+                    CustomFuncNameEnum.ToolBox.value: {"is_enabled": True},
+                },
+            },
+            DBType.Riak.value: {"is_enabled": True},
+            CustomFuncNameEnum.ToolBox.value: {"is_enabled": False},
+        },
+    },
+    DBType.Oracle.value: {
+        "is_enabled": True,
+        "children": {
+            ClusterType.OraclePrimaryStandby.value: {"is_enabled": True},
+            ClusterType.OracleSingleNone.value: {"is_enabled": True},
+            CustomFuncNameEnum.ToolBox.value: {"is_enabled": True},
+        },
+    },
+    "k8s": {
+        "is_enabled": False,
+        "children": {
+            DBType.K8sSurrealdb.value: {"is_enabled": False},
+            DBType.K8sQdrant.value: {"is_enabled": False},
+            DBType.K8sVictoriametrics.value: {"is_enabled": False},
+        },
+    },
+    "common": {
+        "is_enabled": True,
+        "children": {
+            "clb": {"is_enabled": True},
+            "dorisColdResource": {"is_enabled": True},
+        },
+    },
+    "dashboard": {"is_enabled": False},
+    "resourceManage": {
+        "is_enabled": True,
+        "children": {
+            "resourcePool": {"is_enabled": False},
+            "replenishList": {
+                "is_enabled": True,
+                "children": {
+                    "replenishListRowOperation": {"is_enabled": True},
+                },
+            },
+            "replenishRecord": {"is_enabled": True},
+            "specListReplenish": {"is_enabled": True},
         },
     },
     CustomFuncNameEnum.AddOnServicePlugin.value: {
@@ -87,6 +138,36 @@ FUNCTION_CONTROLLER_INIT_MAP = {
             "monitor_policy": {"is_enabled": True},
             "duty_rule": {"is_enabled": True},
             "notice_group": {"is_enabled": True},
+        },
+    },
+}
+
+# 社区版只保留 MySQL、Redis、Kafka、ES
+COMMUNITY_FUNCTION_CONTROLLER_INIT_MAP = {
+    DBType.MySQL.value: {
+        "is_enabled": True,
+        "children": {
+            CustomFuncNameEnum.ToolBox.value: {"is_enabled": True},
+            ClusterType.TenDBSingle.value: {"is_enabled": True},
+            ClusterType.TenDBHA.value: {"is_enabled": True},
+        },
+    },
+    DBType.Redis.value: {
+        "is_enabled": True,
+        "children": {
+            ClusterType.TendisPredixyTendisplusCluster.value: {"is_enabled": True},
+            ClusterType.TendisPredixyTendisplusInstance.value: {"is_enabled": True},
+            ClusterType.TendisPredixyRedisCluster.value: {"is_enabled": True},
+            ClusterType.TendisTwemproxyRedisInstance.value: {"is_enabled": True},
+            ClusterType.TwemproxyTendisSSDInstance.value: {"is_enabled": True},
+            CustomFuncNameEnum.ToolBox.value: {"is_enabled": True},
+        },
+    },
+    CustomFuncNameEnum.BigData.value: {
+        "is_enabled": True,
+        "children": {
+            DBType.Es.value: {"is_enabled": True},
+            DBType.Kafka.value: {"is_enabled": True},
         },
     },
 }
@@ -142,7 +223,9 @@ class FunctionController(models.Model):
                 if "children" in func_data:
                     calculate_functions(func_data["children"], parent_name=name)
 
-        calculate_functions(FUNCTION_CONTROLLER_INIT_MAP)
+        # ieod 用默认全量列表；其余（社区版 RUN_VER=open）只用社区版列表
+        init_map = FUNCTION_CONTROLLER_INIT_MAP if RUN_VER == "ieod" else COMMUNITY_FUNCTION_CONTROLLER_INIT_MAP
+        calculate_functions(init_map)
         FunctionController.objects.bulk_create(to_be_created_functions)
         FunctionController.objects.bulk_update(to_be_updated_functions, fields=["is_enabled"])
 
