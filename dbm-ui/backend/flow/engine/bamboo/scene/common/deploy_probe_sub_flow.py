@@ -113,6 +113,7 @@ def probe_start_sub_flow(
     data: Dict,
     bk_cloud_id: int,
     ips: List[str],
+    error_ignorable: bool = False,
 ) -> SubProcess:
     """
     探针启动子流程包含：生成配置文件 + 启动探针 + 检查探针健康状态。
@@ -157,6 +158,7 @@ ps -ef | grep dbha-probe
             "cluster": {"shell_command": start_script},
             "account_alias": ExecuteShellScriptUser.Mysql.value,
         },
+        error_ignorable=error_ignorable,
     )
 
     return sp.build_sub_process(sub_name=_("探针启动"))
