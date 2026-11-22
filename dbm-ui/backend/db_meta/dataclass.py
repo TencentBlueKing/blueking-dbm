@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from dataclasses import dataclass
-from typing import Dict, List, Mapping, Sequence, Tuple
+from typing import Dict, List, Literal, Mapping, Optional, Sequence, Tuple
 
 from django.utils.translation import gettext_lazy as _
 
@@ -80,3 +80,42 @@ class DBModuleComponentVersion:
                 normalized.append(item)
 
         return cls(db_version_id=db_version_id, permit_os_type=permit_os_type, permit_os=tuple(normalized))
+
+
+@dataclass(frozen=True)
+class VersionInfo:
+    """一个具体版本。full_version 是六段式，例如 8.0.32.0.0.11。"""
+
+    db_version_id: int
+    full_version: str
+    version_series: str
+    version_name: str
+    distribution: str
+
+    @classmethod
+    def from_db_version(cls, db_version) -> "VersionInfo":
+        return cls(
+            db_version_id=db_version.id,
+            full_version=db_version.full_version,
+            version_series=db_version.version_series.name if db_version.version_series else "",
+            version_name=db_version.name,
+            distribution=(db_version.distribution_snapshot or {}).get("name", ""),
+        )
+
+
+@dataclass(frozen=True)
+class LayerVersion:
+    """组件绑定的版本，以及当前生效的操作系统约束。
+
+    binding：模块或集群快照上保存的原始绑定。
+    effective_permit_os：生效的操作系统列表，空列表表示不限制；
+        跟随版本包但查不到同类型的已启用介质包时为 None。
+    version：绑定的版本已被删除时为 None。
+    source：数据来自模块（module）还是集群部署快照（snapshot）。
+    """
+
+    component: str
+    binding: DBModuleComponentVersion
+    effective_permit_os: Optional[List[str]]
+    version: Optional[VersionInfo]
+    source: Literal["module", "snapshot"]

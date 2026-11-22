@@ -9,16 +9,15 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
-from typing import Dict, Iterable, List, Mapping, NamedTuple, Optional, Sequence, Tuple
+from typing import Dict, Iterable, List, Mapping, NamedTuple, Optional, Sequence
 
 from django.utils.translation import gettext_lazy as _
 
-from backend.db_meta.dataclass import DBModuleComponentVersion
+from backend.db_meta.dataclass import DBModuleComponentVersion, LayerVersion, VersionInfo
 from backend.db_meta.enums import AccessLayer, ClusterMachineAccessTypeDefine, MachineType
 from backend.db_meta.exceptions import DBModuleVersionException, DBModuleVersionNotSetException
 from backend.db_meta.models import DBModule
-from backend.db_meta.models.db_version import DBVersion
-from backend.db_package.models import Package
+from backend.db_package.models import DBVersion, Package
 from backend.flow.consts import MediumEnum
 
 # 组件绑定的介质包类型。TenDBCluster 的存储/接入介质在发行版上挂的 db_type 也是 MySQL。
@@ -69,15 +68,50 @@ def effective_permit_os(layer: DBModuleComponentVersion, package_os: Mapping[int
     return package.os_names
 
 
-def get_layer_permit_os(db_module, access_layer: str) -> Optional[Tuple[str, Optional[List[str]]]]:
-    """模块某一层当前允许的操作系统，返回 (操作系统类型, 操作系统列表)。
+def resolve_layer_versions(
+    bindings: Mapping[int, Mapping[str, DBModuleComponentVersion]], source: str
+) -> Dict[int, Dict[str, LayerVersion]]:
+    """批量把组件绑定展开成 LayerVersion，版本和介质包各查一次。
 
-    列表的含义见 effective_permit_os。这一层还没设置版本时返回 None。
+    bindings 的 key 由调用方决定，模块传模块 ID，集群快照传集群 ID，返回时原样保留。
     """
-    layer = db_module.current_db_version.get(_layer_component(db_module.cluster_type, access_layer))
-    if not layer:
-        return None
-    return layer.permit_os_type, effective_permit_os(layer, enabled_package_os([layer.db_version_id]))
+    version_ids = {binding.db_version_id for layers in bindings.values() for binding in layers.values()}
+    versions = DBVersion.objects.select_related("version_series").in_bulk(version_ids)
+    package_os = enabled_package_os(version_ids)
+
+    result = {}
+    for key, layers in bindings.items():
+        result[key] = {}
+        for component, binding in layers.items():
+            db_version = versions.get(binding.db_version_id)
+            result[key][component] = LayerVersion(
+                component=component,
+                binding=binding,
+                effective_permit_os=effective_permit_os(binding, package_os),
+                version=VersionInfo.from_db_version(db_version) if db_version else None,
+                source=source,
+            )
+    return result
+
+
+def get_modules_layer_versions(modules: Sequence[DBModule]) -> Dict[int, Dict[str, LayerVersion]]:
+    """批量取模块各组件当前绑定的版本。
+
+    返回 {模块ID: {组件名: LayerVersion}}，例如 {1: {"backend": LayerVersion, "proxy": LayerVersion}}。
+    没设置版本的模块（存量模块、未接入版本管理的集群类型）对应空字典。
+    """
+    return resolve_layer_versions({module.db_module_id: module.current_db_version for module in modules}, "module")
+
+
+def get_module_versions(db_module: DBModule) -> Dict[str, LayerVersion]:
+    """单个模块各组件当前绑定的版本，返回 {组件名: LayerVersion}，没设置版本时为空字典。"""
+    return get_modules_layer_versions([db_module])[db_module.db_module_id]
+
+
+def get_module_layer_version(db_module: DBModule, access_layer: str) -> Optional[LayerVersion]:
+    """模块某一层（AccessLayer.STORAGE / AccessLayer.PROXY）当前绑定的版本，这一层没设置版本时返回 None。"""
+    component = layer_component(db_module.cluster_type, access_layer)
+    return get_module_versions(db_module).get(component)
 
 
 def get_layer_package(db_module_id: int, access_layer: str) -> Package:
@@ -87,7 +121,7 @@ def get_layer_package(db_module_id: int, access_layer: str) -> Package:
     绑定了版本但没有已启用介质包时抛 DBModuleVersionException。
     """
     db_module = DBModule.objects.get(db_module_id=db_module_id)
-    component = _layer_component(db_module.cluster_type, access_layer)
+    component = layer_component(db_module.cluster_type, access_layer)
     layer = db_module.current_db_version.get(component)
     if not layer:
         raise DBModuleVersionNotSetException(message=_("模块 {} 的 {} 尚未设置版本").format(db_module_id, component))
@@ -156,11 +190,11 @@ def _validate_layer(
 
 def storage_version_series(modules: Sequence) -> Dict[int, str]:
     """各模块存储层版本的系列名。这一层还没设置版本时为空字符串。"""
-    version_views = describe_modules_version(modules)
+    layer_versions = get_modules_layer_versions(modules)
     series = {}
     for module in modules:
-        storage = _layer_component(module.cluster_type, AccessLayer.STORAGE)
-        series[module.db_module_id] = version_views[module.db_module_id].get(storage, {}).get("version_series", "")
+        storage = layer_versions[module.db_module_id].get(layer_component(module.cluster_type, AccessLayer.STORAGE))
+        series[module.db_module_id] = storage.version.version_series if storage and storage.version else ""
     return series
 
 
@@ -173,43 +207,26 @@ def describe_modules_version(modules: Sequence) -> Dict[int, Dict[str, Dict]]:
 
     返回示例: {模块ID: {"proxy": {...}, "backend": {...}}}，未设置版本的模块对应空字典。
     """
-    layers_by_module = {module.db_module_id: module.current_db_version for module in modules}
-    version_ids = {layer.db_version_id for layers in layers_by_module.values() for layer in layers.values()}
-    versions = DBVersion.objects.select_related("version_series").in_bulk(version_ids)
-    package_os = enabled_package_os(version_ids)
-
-    result = {}
-    for module_id, layers in layers_by_module.items():
-        result[module_id] = {}
-        for component, layer in layers.items():
-            db_version = versions.get(layer.db_version_id)
-            result[module_id][component] = _describe_layer(layer, db_version, effective_permit_os(layer, package_os))
-    return result
-
-
-def _describe_layer(
-    layer: DBModuleComponentVersion, db_version: Optional[DBVersion], effective_os: Optional[List[str]]
-) -> Dict:
-    info = {
-        **layer.to_dict(),
-        "follow_package": layer.follow_package,
-        "effective_permit_os": effective_os,
-        "distribution": "",
-        "version_series": "",
-        "version_name": "",
-        "full_version": "",
+    return {
+        module_id: {component: _describe_layer(layer) for component, layer in layers.items()}
+        for module_id, layers in get_modules_layer_versions(modules).items()
     }
-    # 版本已被删除时只返回模块上保存的字段
-    if not db_version:
-        return info
-
-    info["distribution"] = (db_version.distribution_snapshot or {}).get("name", "")
-    info["version_series"] = db_version.version_series.name if db_version.version_series else ""
-    info["version_name"] = db_version.name
-    info["full_version"] = db_version.full_version
-    return info
 
 
-def _layer_component(cluster_type: str, access_layer: str) -> Optional[str]:
+def _describe_layer(layer: LayerVersion) -> Dict:
+    version = layer.version
+    return {
+        **layer.binding.to_dict(),
+        "follow_package": layer.binding.follow_package,
+        "effective_permit_os": layer.effective_permit_os,
+        # 版本已被删除时只返回模块上保存的字段
+        "distribution": version.distribution if version else "",
+        "version_series": version.version_series if version else "",
+        "version_name": version.version_name if version else "",
+        "full_version": version.full_version if version else "",
+    }
+
+
+def layer_component(cluster_type: str, access_layer: str) -> Optional[str]:
     """模块某一层对应的组件名，例如主从的存储层是 backend、TenDBCluster 的接入层是 spider。"""
     return ClusterMachineAccessTypeDefine.get(cluster_type, {}).get(access_layer)

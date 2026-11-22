@@ -23,8 +23,7 @@ from backend.db_meta.enums import (
 )
 from backend.db_meta.enums.version_phase import VersionPhase
 from backend.db_meta.models import BKCity, Cluster, DBModule, Machine, StorageInstance
-from backend.db_meta.models.db_version import DBVersion, Distribution, VersionSeries
-from backend.db_package.models import Package
+from backend.db_package.models import DBVersion, Distribution, Package, VersionSeries
 from backend.db_services.ipchooser.constants import BkOsType
 from backend.flow.consts import MediumEnum
 from backend.tests.mock_data import constant

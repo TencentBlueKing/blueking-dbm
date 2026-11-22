@@ -37,6 +37,7 @@ class DBModule(AuditedModel):
 
     in_upgrade = models.BooleanField(default=False, help_text=_("在升级状态"))
     # 两个字段的值都是 {组件名: DBModuleComponentVersion.to_dict()}，组件名见 ClusterTypeModuleComponentDefine
+    # 读取版本信息请用 backend.db_meta.api.db_module 导出的函数，不要直接读字段
     current_db_version_info_dict = models.JSONField(help_text=_("当前版本信息 id"), default=dict)
     target_db_version_info_dict = models.JSONField(help_text=_("目标版本信息 id"), default=dict, null=True, blank=True)
 

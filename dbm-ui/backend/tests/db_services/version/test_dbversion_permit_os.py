@@ -16,8 +16,7 @@ from rest_framework.test import APIRequestFactory, force_authenticate
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums.version_phase import VersionPhase
-from backend.db_meta.models.db_version import DBVersion, Distribution, VersionSeries
-from backend.db_package.models import Package
+from backend.db_package.models import DBVersion, Distribution, Package, VersionSeries
 from backend.db_services.ipchooser.constants import BkOsType
 from backend.db_services.version.views.dbversion import DBVersionViewSet
 from backend.flow.consts import MediumEnum

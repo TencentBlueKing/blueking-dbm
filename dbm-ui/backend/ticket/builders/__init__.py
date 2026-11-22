@@ -23,7 +23,7 @@ from rest_framework import serializers
 from backend import env
 from backend.configuration.constants import AffinityEnum, DBType, SystemSettingsEnum
 from backend.configuration.models import DBAdministrator, SystemSettings
-from backend.db_meta.api.db_module.version import get_layer_permit_os
+from backend.db_meta.api.db_module import get_module_layer_version
 from backend.db_meta.enums import MachineType, TenDBClusterSpiderRole
 from backend.db_meta.models import AppCache, Cluster, DBModule, Machine, ProxyInstance, StorageInstance
 from backend.db_package.models import Package
@@ -414,16 +414,15 @@ class ResourceApplyParamBuilder(CallBackBuilderMixin):
         if not resource_spec.get(role) or "hosts" in resource_spec[role]:
             return
 
-        permit_os = get_layer_permit_os(db_module, access_layer)
+        layer = get_module_layer_version(db_module, access_layer)
         # 模块未设置该层版本，保持原有申请行为
-        if not permit_os:
+        if not layer:
             return
 
-        os_type, os_names = permit_os
-        resource_spec[role]["os_type"] = os_type
+        resource_spec[role]["os_type"] = layer.binding.permit_os_type
         # 不限制操作系统（空列表）或查不到介质包（None）时，只按操作系统类型申请
-        if os_names:
-            resource_spec[role]["os_names"] = os_names
+        if layer.effective_permit_os:
+            resource_spec[role]["os_names"] = layer.effective_permit_os
 
     def patch_info_module_os_params(self, role: str, access_layer: str):
         """

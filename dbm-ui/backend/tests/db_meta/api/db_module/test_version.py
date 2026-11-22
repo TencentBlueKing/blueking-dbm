@@ -23,7 +23,8 @@ from backend.db_meta.api.db_module.version import (
     describe_module_version,
     enabled_package_os,
     get_layer_package,
-    get_layer_permit_os,
+    get_module_layer_version,
+    get_module_versions,
     storage_version_series,
     validate_components,
 )
@@ -33,8 +34,7 @@ from backend.db_meta.enums.machine_type import MachineType
 from backend.db_meta.enums.version_phase import VersionPhase
 from backend.db_meta.exceptions import DBModuleVersionException, DBModuleVersionNotSetException
 from backend.db_meta.models import DBModule
-from backend.db_meta.models.db_version import DBVersion, Distribution, VersionSeries
-from backend.db_package.models import Package
+from backend.db_package.models import DBVersion, Distribution, Package, VersionSeries
 from backend.db_services.cmdb.serializers import CreateModuleSLZ
 from backend.db_services.ipchooser.constants import BkOsType
 from backend.flow.consts import MediumEnum
@@ -143,7 +143,7 @@ class TestDBModuleComponentVersion:
                 {MachineType.SINGLE.value: DBModuleComponentVersion.from_dict(_layer(mysql, ["tlinux-4"]))}
             )
 
-    def test_get_layer_permit_os(self):
+    def test_get_module_layer_version(self):
         backend = _make_version(MediumEnum.MySQL.value, "MySQL-8.0", "8.0.32.0.0.7", ["tlinux-3.2"])
         proxy = _make_version(MediumEnum.MySQLProxy.value, "Proxy-2.x", "2.1.0.0.0.7", ["tlinux-3.2", "tlinux-4"])
         created = api.db_module.create(
@@ -158,14 +158,24 @@ class TestDBModuleComponentVersion:
         )
         module = DBModule.objects.get(db_module_id=created["db_module_id"])
 
-        assert get_layer_permit_os(module, AccessLayer.PROXY) == (BkOsType.LINUX.value, ["tlinux-4"])
-        assert get_layer_permit_os(module, AccessLayer.STORAGE) == (BkOsType.LINUX.value, ["tlinux-3.2"])
+        assert set(get_module_versions(module)) == {MachineType.BACKEND.value, MachineType.PROXY.value}
+
+        proxy_layer = get_module_layer_version(module, AccessLayer.PROXY)
+        assert proxy_layer.component == MachineType.PROXY.value
+        assert proxy_layer.binding.permit_os_type == BkOsType.LINUX.value
+        assert proxy_layer.effective_permit_os == ["tlinux-4"]
+        assert proxy_layer.version.full_version == "2.1.0.0.0.7"
+        assert proxy_layer.source == "module"
+
+        storage_layer = get_module_layer_version(module, AccessLayer.STORAGE)
+        assert storage_layer.effective_permit_os == ["tlinux-3.2"]
+        assert storage_layer.version.version_series == "MySQL-8.0"
 
         Package.objects.filter(db_version=backend).update(permit_os=[])
-        assert get_layer_permit_os(module, AccessLayer.STORAGE) == (BkOsType.LINUX.value, [])
+        assert get_module_layer_version(module, AccessLayer.STORAGE).effective_permit_os == []
 
         Package.objects.filter(db_version=backend).update(enable=False)
-        assert get_layer_permit_os(module, AccessLayer.STORAGE) == (BkOsType.LINUX.value, None)
+        assert get_module_layer_version(module, AccessLayer.STORAGE).effective_permit_os is None
 
         legacy = DBModule.objects.create(
             bk_biz_id=constant.BK_BIZ_ID,
@@ -174,7 +184,7 @@ class TestDBModuleComponentVersion:
             alias_name="legacy-os",
             **_AUDIT,
         )
-        assert get_layer_permit_os(legacy, AccessLayer.PROXY) is None
+        assert get_module_layer_version(legacy, AccessLayer.PROXY) is None
 
     def test_update_os_keeps_version_id(self):
         backend = _make_version(MediumEnum.MySQL.value, "MySQL-8.0", "8.0.32.0.0.2", ["tlinux-3.2", "tlinux-4"])
