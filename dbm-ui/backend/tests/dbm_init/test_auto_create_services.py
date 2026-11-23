@@ -84,11 +84,13 @@ class TestAutoCreateServices(TestCase):
         self.assertTrue(Services.auto_create_bkmonitor_channel())
         mock_init_metric.assert_called_once()
 
+    @patch.object(Services, "auto_create_job_user")
     @patch("backend.dbm_init.services.BkJobFileSourceManager.get_or_create_file_source")
-    def test_auto_create_bkjob_service(self, mock_file_source):
-        """初始化 BKJob 文件源"""
+    def test_auto_create_bkjob_service(self, mock_file_source, mock_create_job_user):
+        """初始化 BKJob 文件源，并在业务集创建 mysql 执行账号"""
         Services.auto_create_bkjob_service()
         mock_file_source.assert_called_once()
+        mock_create_job_user.assert_called_once_with(["mysql"])
 
     @patch("backend.dbm_init.services.api_call")
     def test_auto_register_application(self, mock_api_call):

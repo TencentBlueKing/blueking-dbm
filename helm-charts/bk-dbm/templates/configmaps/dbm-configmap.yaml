@@ -31,6 +31,7 @@ data:
   APP_TOKEN: "{{ .Values.dbm.envs.bkAppToken }}"
   BK_DOMAIN: "{{ .Values.global.bkDomain }}"
   BK_SAAS_HOST: "{{ .Values.dbm.envs.bkSaasUrl }}"
+  BK_SAAS_BACKEND_HOST: "{{ .Values.dbm.envs.bkSaasBackendUrl | default .Values.dbm.envs.bkSaasUrl }}"
   BROKER_URL: "{{ .Values.dbm.envs.brokerUrl }}"
   DBA_APP_BK_BIZ_ID: "{{ .Values.dbm.envs.dbaAppBkBizId }}"
   CORS_ALLOWED_ORIGINS: "{{ .Values.dbm.envs.corsAllowedOrigins | default "" }}"
