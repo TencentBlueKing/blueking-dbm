@@ -1129,6 +1129,19 @@ class ActionEnum:
         common_labels=[CommonActionLabel.DEVELOPER, CommonActionLabel.BIZ_MAINTAIN],
     )
 
+    # 异构迁移同时挂源 MySQL 与目标 TenDBCluster。label 为空，不进常用操作。
+    # V4 只能挂一个资源，先挂 TenDBCluster；升 V4 时双资源挂载要重做。
+    MYSQL_DTS_DATA_MIGRATE_HETERO = ActionMeta(
+        id="mysql_dts_data_migrate_hetero",
+        name=_("MySQL DTS 异构迁移"),
+        name_en="mysql_dts_data_migrate_hetero",
+        type="execute",
+        related_resource_types=[ResourceEnum.MYSQL, ResourceEnum.TENDBCLUSTER],
+        related_resource_type_v4=ResourceEnum.TENDBCLUSTER,
+        group=_("TenDBCluster"),
+        subgroup=_("数据处理"),
+    )
+
     TENDBCLUSTER_APPLY = ActionMeta(
         id=TicketType.TENDBCLUSTER_APPLY.lower(),
         related_actions=[DB_MANAGE.id],

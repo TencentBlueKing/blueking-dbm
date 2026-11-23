@@ -11,9 +11,22 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.ticket.builders.mysql.base import DBTableField
+
 
 class ResetDtsTaskSerializer(serializers.Serializer):
     """Reset DTS 任务：删除后按原配置重建并启动，使任务从 Dump 重跑；不会清理目标业务数据。"""
 
     task_name = serializers.CharField(help_text=_("DTS 任务名。reset 会删除并重建任务（从 Dump 重跑），不会清理目标业务数据。"))
     dts_cluster_id = serializers.IntegerField(help_text=_("DTS 集群 ID，用于解析 master_addr"))
+
+
+class HeteroSchemaSqlSerializer(serializers.Serializer):
+    """获取异构迁移目标表结构。库表通配规则与提单 sync_scope 相同。"""
+
+    cluster_id = serializers.IntegerField(help_text=_("源集群 ID，TenDBHA 或 TenDBSingle"))
+    target_cluster_id = serializers.IntegerField(help_text=_("目标 TenDBCluster 集群 ID"))
+    db_patterns = serializers.ListField(child=DBTableField(db_field=True), allow_empty=False)
+    ignore_dbs = serializers.ListField(child=DBTableField(db_field=True), required=False, default=list)
+    table_patterns = serializers.ListField(child=DBTableField(), allow_empty=False)
+    ignore_tables = serializers.ListField(child=DBTableField(), required=False, default=list)

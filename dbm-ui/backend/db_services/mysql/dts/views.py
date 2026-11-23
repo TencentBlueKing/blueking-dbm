@@ -15,7 +15,8 @@ from rest_framework.response import Response
 from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_services.mysql.dts.handlers import MySQLDtsMigrateHandler
-from backend.db_services.mysql.dts.serializers import ResetDtsTaskSerializer
+from backend.db_services.mysql.dts.schema_sql import build_hetero_schema_sql
+from backend.db_services.mysql.dts.serializers import HeteroSchemaSqlSerializer, ResetDtsTaskSerializer
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 
 SWAGGER_TAG = "db_services/mysql/dts"
@@ -38,3 +39,17 @@ class MySQLDtsMigrateViewSet(viewsets.SystemViewSet):
             dts_cluster_id=data["dts_cluster_id"],
         )
         return Response(result)
+
+    @common_swagger_auto_schema(
+        operation_summary=_("获取异构迁移目标表结构 SQL"),
+        request_body=HeteroSchemaSqlSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["POST"], detail=False, serializer_class=HeteroSchemaSqlSerializer)
+    def schema_sql(self, request, bk_biz_id, *args, **kwargs):
+        """
+        展开源集群库表通配符，返回一整份 TSpider 建表 SQL。
+        响应字段 sql 即单据 target_schema_sql 的原文。
+        """
+        data = self.params_validate(HeteroSchemaSqlSerializer)
+        return Response(build_hetero_schema_sql(bk_biz_id, data))

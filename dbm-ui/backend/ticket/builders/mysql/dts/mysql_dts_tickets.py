@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+import re
 
 from django.utils.translation import gettext as gettext_runtime
 from django.utils.translation import gettext_lazy as _
@@ -126,6 +127,11 @@ class MigrateSourceSerializer(serializers.Serializer):
 
 class MigrateTargetSerializer(serializers.Serializer):
     cluster_id = serializers.IntegerField(help_text=_("目标集群ID"))
+    spider_mnt = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        help_text=_("目标 TenDBCluster 的 Spider 运维节点 IP（异构迁移必填）"),
+    )
     target_spider = serializers.CharField(
         required=False,
         allow_blank=True,
@@ -133,9 +139,16 @@ class MigrateTargetSerializer(serializers.Serializer):
     )
 
     def validate(self, attrs):
+        spider_mnt = (attrs.get("spider_mnt") or "").strip()
         target_spider = (attrs.get("target_spider") or "").strip()
+        if spider_mnt and target_spider:
+            raise serializers.ValidationError(gettext_runtime("spider_mnt 与 target_spider 不要同时传，异构迁移只传运维节点 IP"))
+        if spider_mnt:
+            return self._validate_spider_mnt(attrs, spider_mnt)
+
         if not target_spider:
             attrs["target_spider"] = None
+            attrs["spider_mnt"] = ""
             return attrs
 
         cluster_id = attrs.get("cluster_id")
@@ -170,6 +183,33 @@ class MigrateTargetSerializer(serializers.Serializer):
             )
 
         attrs["target_spider"] = "{}{}{}".format(ip, IP_PORT_DIVIDER, port)
+        attrs["spider_mnt"] = ""
+        return attrs
+
+    def _validate_spider_mnt(self, attrs, spider_mnt):
+        """运维节点只收 IP，端口从该集群唯一的 SPIDER_MNT 实例带出，并写成 target_spider 供 Flow 接入。"""
+        cluster_id = attrs.get("cluster_id")
+        cluster = Cluster.objects.filter(id=cluster_id).first()
+        if cluster is None:
+            raise serializers.ValidationError({"cluster_id": gettext_runtime("集群 {} 不存在").format(cluster_id)})
+        if cluster.cluster_type != ClusterType.TenDBCluster.value:
+            raise serializers.ValidationError({"spider_mnt": gettext_runtime("spider_mnt 仅适用于 TenDBCluster 目标集群")})
+        matches = list(
+            cluster.proxyinstance_set.filter(
+                machine__ip=spider_mnt,
+                tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MNT,
+            )
+        )
+        if not matches:
+            raise serializers.ValidationError(
+                {"spider_mnt": gettext_runtime("{} 不是目标集群 {} 的 Spider 运维节点").format(spider_mnt, cluster.id)}
+            )
+        if len(matches) > 1:
+            raise serializers.ValidationError(
+                {"spider_mnt": gettext_runtime("目标集群 {} 的运维节点 {} 对应多个实例，无法确定端口").format(cluster.id, spider_mnt)}
+            )
+        attrs["spider_mnt"] = spider_mnt
+        attrs["target_spider"] = "{}{}{}".format(spider_mnt, IP_PORT_DIVIDER, matches[0].port)
         return attrs
 
 
@@ -353,6 +393,12 @@ class MysqlMigrateRowSerializer(serializers.Serializer):
         default=dict,
         help_text=_("行内资源规格（deploy 部署时按角色 master/worker 申请；多行共用一套 deploy 时需一致）"),
     )
+    target_schema_sql = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        default="",
+        help_text=_("该行目标表结构 SQL 原文（异构迁移必填，只存原文）"),
+    )
 
     def validate_backup_locale(self, value):
         return _clean_ticket_backup_locale(value)
@@ -399,6 +445,12 @@ class MysqlMigrateBaseDetailSerializer(serializers.Serializer):
     clusters = serializers.DictField(
         required=False,
         help_text=_("集群信息"),
+    )
+    target_schema_sql = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        default="",
+        help_text=_("单行目标表结构 SQL 原文（异构迁移必填，只存原文）"),
     )
 
     def validate_backup_locale(self, value):
@@ -1249,7 +1301,7 @@ def _collect_destroy_dts_cluster_ids(ticket) -> list[int]:
 DTS_MIGRATE_TICKET_TYPES = frozenset(
     {
         TicketType.MYSQL_DTS_DATA_MIGRATE,
-        TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE,
+        TicketType.MYSQL_DTS_DATA_MIGRATE_HETERO,
         TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME,
     }
 )
@@ -1467,12 +1519,107 @@ class MysqlToMysqlMigrateFlowBuilder(DtsMigrateFlowBuilder):
     validator = MySQLController.mysql_to_mysql_migrate_scene.validator
 
 
+_CREATE_TABLE_LINE = re.compile(r"(?im)^[ \t]*CREATE\s+TABLE\b")
+_USE_LINE = re.compile(r"(?im)^[ \t]*USE\s+[`\"]?([A-Za-z0-9_]+)[`\"]?")
+_TABLE_NAME = re.compile(r"(?is)^[ \t]*CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?[`\"]?([A-Za-z0-9_]+)")
+_SHARD_KEY = re.compile(r"""(?is)shard_key\s+(?:\\")?["']?([^"'\\\s]+)""")
+_HETERO_SOURCE_CLUSTER_TYPES = {ClusterType.TenDBHA.value, ClusterType.TenDBSingle.value}
+
+
+def parse_target_schema_sql(sql: str) -> list[tuple[str, str, str]]:
+    """按 USE 切库、按行首 CREATE TABLE 切段，从表注释 shard_key 取分片键。
+
+    返回 (库名, 表名, shardkey)。没有 shardkey 时第三项为空串。
+    """
+    text = sql or ""
+    starts = [match.start() for match in _CREATE_TABLE_LINE.finditer(text)]
+    tables = []
+    for index, start in enumerate(starts):
+        end = starts[index + 1] if index + 1 < len(starts) else len(text)
+        segment = text[start:end]
+        name_match = _TABLE_NAME.match(segment)
+        if not name_match:
+            continue
+        db_matches = list(_USE_LINE.finditer(text[:start]))
+        db_name = db_matches[-1].group(1) if db_matches else ""
+        shard_match = _SHARD_KEY.search(segment)
+        shard_key = (shard_match.group(1) or "").strip() if shard_match else ""
+        tables.append((db_name, name_match.group(1), shard_key))
+    return tables
+
+
+def _hetero_migrate_rows(attrs: dict) -> list[tuple[str, dict]]:
+    infos = attrs.get("infos") or []
+    if infos:
+        return [("infos[{}]".format(idx), row) for idx, row in enumerate(infos)]
+    return [("migrate", attrs)]
+
+
+def _require_hetero_spider_mnt(attrs: dict) -> None:
+    """异构迁移每一对目标都必须指定运维节点 IP。"""
+    for label, row in _hetero_migrate_rows(attrs):
+        migrate = row.get("migrate") or {}
+        topology = migrate.get("topology")
+        if topology != MigrateTopology.ONE_TO_ONE.value:
+            raise serializers.ValidationError(
+                gettext_runtime("异构迁移仅支持 one_to_one 拓扑，{} 实际为 {}").format(label, topology)
+            )
+        target = ((migrate.get("one_to_one") or {}).get("target")) or {}
+        if not (target.get("spider_mnt") or "").strip():
+            raise serializers.ValidationError(gettext_runtime("{} 必须指定 Spider 运维节点").format(label))
+
+
+def _validate_hetero_schema_sql(attrs: dict) -> None:
+    """每行 SQL 原文必须能切开建表语句，且每张表都有非空 shardkey。"""
+    for label, row in _hetero_migrate_rows(attrs):
+        tables = parse_target_schema_sql(row.get("target_schema_sql") or "")
+        if not tables:
+            raise serializers.ValidationError(gettext_runtime("{} 目标表结构未获取或加载失败").format(label))
+        missing = [
+            "{}.{}".format(db_name or "?", table_name) for db_name, table_name, shard_key in tables if not shard_key
+        ]
+        if missing:
+            raise serializers.ValidationError(
+                gettext_runtime("{} 目标表 {} 缺少 shardkey").format(label, ", ".join(missing))
+            )
+
+
+def _validate_hetero_cluster_types(plans, *, bk_biz_id: int) -> None:
+    """源仅 TenDBHA/TenDBSingle，目标仅 TenDBCluster，且都属于当前业务。"""
+    clusters = _collect_plans_clusters(plans)
+    for plan in plans:
+        for spec in plan.task_specs:
+            target = clusters.get(spec.target_cluster_id)
+            if target is None:
+                raise serializers.ValidationError(gettext_runtime("集群 {} 不存在").format(spec.target_cluster_id))
+            if target.cluster_type != ClusterType.TenDBCluster.value:
+                raise serializers.ValidationError(
+                    gettext_runtime("异构迁移目标集群仅支持 TenDBCluster，集群 {} 类型为 {}").format(target.id, target.cluster_type)
+                )
+            if bk_biz_id and target.bk_biz_id != bk_biz_id:
+                raise serializers.ValidationError(gettext_runtime("集群 {} 不属于当前业务").format(target.id))
+            for source in spec.sources:
+                src = clusters.get(source.cluster_id)
+                if src is None:
+                    raise serializers.ValidationError(gettext_runtime("集群 {} 不存在").format(source.cluster_id))
+                if src.cluster_type not in _HETERO_SOURCE_CLUSTER_TYPES:
+                    raise serializers.ValidationError(
+                        gettext_runtime("异构迁移源集群仅支持 TenDBHA/TenDBSingle，集群 {} 类型为 {}").format(src.id, src.cluster_type)
+                    )
+                if bk_biz_id and src.bk_biz_id != bk_biz_id:
+                    raise serializers.ValidationError(gettext_runtime("集群 {} 不属于当前业务").format(src.id))
+
+
 class MysqlHaToClusterMigrateDetailSerializer(MysqlMigrateBaseDetailSerializer):
-    """HA → Cluster 同名迁移：四列契约与 MYSQL_TO_MYSQL 相同。"""
+    """MySQL → TenDBCluster 异构同名迁移。"""
 
     def validate(self, attrs):
+        _require_hetero_spider_mnt(attrs)
         attrs = super().validate(attrs)
         _validate_same_name_sync_scope_contract(_raw_ticket_details(self, attrs))
+        plans = self.context.get("migrate_plans") or [self.context["migrate_plan"]]
+        _validate_hetero_cluster_types(plans, bk_biz_id=self.context.get("bk_biz_id", 0))
+        _validate_hetero_schema_sql(attrs)
         return attrs
 
 
@@ -1481,11 +1628,14 @@ class MysqlHaToClusterMigrateFlowParamBuilder(DtsMigrateFlowParamBuilder):
     migrate_type = "ha_to_cluster"
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE, is_apply=True)
+@builders.BuilderFactory.register(
+    TicketType.MYSQL_DTS_DATA_MIGRATE_HETERO, iam=ActionEnum.MYSQL_DTS_DATA_MIGRATE_HETERO, is_apply=True
+)
 class MysqlHaToClusterMigrateFlowBuilder(DtsMigrateFlowBuilder):
     serializer = MysqlHaToClusterMigrateDetailSerializer
+    precheck_flow_builder = DtsMigratePrecheckFlowParamBuilder
     inner_flow_builder = MysqlHaToClusterMigrateFlowParamBuilder
-    inner_flow_name = _("MySQL HA到Cluster数据迁移")
+    inner_flow_name = _("MySQL DTS 异构迁移")
     resource_batch_apply_builder = DtsMigrateResourceParamBuilder
     validator = MySQLController.mysql_ha_to_cluster_migrate_scene.validator
 

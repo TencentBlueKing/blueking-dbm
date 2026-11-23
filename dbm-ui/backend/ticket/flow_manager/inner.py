@@ -54,7 +54,7 @@ logger = logging.getLogger("root")
 # 因为此时经常还没有 pipeline，REVOKED 信号不会发出。
 _MYSQL_DTS_MIGRATE_TICKET_TYPES = (
     TicketType.MYSQL_DTS_DATA_MIGRATE,
-    TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE,
+    TicketType.MYSQL_DTS_DATA_MIGRATE_HETERO,
     TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME,
 )
 
@@ -183,7 +183,7 @@ class InnerFlow(BaseTicketFlow):
             # rename 单按行推断 migrate_type，这里不整单写死
             if ticket_type == TicketType.MYSQL_DTS_DATA_MIGRATE:
                 migrate_type = "mysql_to_mysql"
-            elif ticket_type == TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE:
+            elif ticket_type == TicketType.MYSQL_DTS_DATA_MIGRATE_HETERO:
                 migrate_type = "ha_to_cluster"
             else:
                 migrate_type = ""

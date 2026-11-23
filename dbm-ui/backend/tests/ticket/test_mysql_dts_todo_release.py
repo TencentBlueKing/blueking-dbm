@@ -73,7 +73,7 @@ class MysqlDtsTodoReleaseTest(TestCase):
     def test_revoke_without_pipeline_releases_only_todo(self):
         for ticket_type in (
             TicketType.MYSQL_DTS_DATA_MIGRATE,
-            TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE,
+            TicketType.MYSQL_DTS_DATA_MIGRATE_HETERO,
             TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME,
         ):
             with self.subTest(ticket_type=ticket_type):
