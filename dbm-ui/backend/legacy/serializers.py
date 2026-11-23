@@ -31,7 +31,7 @@ class CreateDNSSerializer(DBMDomainProtectMixin, serializers.Serializer):
         instances = serializers.ListField(help_text=_("实例列表"), child=serializers.CharField(), allow_empty=False)
         manager = serializers.CharField(help_text=_("管理者"), required=False, allow_blank=True)
         remark = serializers.CharField(help_text=_("域名备注信息"), required=False, allow_blank=True)
-        domain_type = serializers.CharField(help_text=_("域名类型"), required=False, allow_blank=True)
+        domain_type = serializers.IntegerField(help_text=_("域名类型"), required=False)
         extends = serializers.CharField(help_text=_("域名自定义扩展字段"), required=False, allow_blank=True)
 
     app = serializers.CharField(help_text=_("GCS业务英文缩写"))
@@ -58,7 +58,7 @@ class QueryDNSSerializer(serializers.Serializer):
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域 ID"))
     domain_name = serializers.ListField(help_text=_("域名列表"), child=serializers.CharField(), required=False)
     ip = serializers.ListField(help_text=_("IP 列表"), child=serializers.CharField(), required=False)
-    domain_type = serializers.ListField(help_text=_("域名类型列表"), child=serializers.CharField(), required=False)
+    domain_type = serializers.ListField(help_text=_("域名类型列表"), child=serializers.IntegerField(), required=False)
     columns = serializers.ListField(help_text=_("返回数据列列表"), child=serializers.CharField(), allow_empty=False)
 
     def validate(self, attrs):

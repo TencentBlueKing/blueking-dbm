@@ -39,7 +39,7 @@ curl -X 'DELETE' \
       ],
       "manager": "string",
       "remark": "string",
-      "domain_type": "string",
+      "domain_type": 0,
       "extends": "string"
     }
   ]

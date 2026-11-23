@@ -38,7 +38,8 @@ func InitDnsDB() error {
 			&entity.TbDnsIdcMap{},
 			&entity.TbDnsServer{},
 			&entity.TbDnsConfig{},
-			&entity.TbDnsOpLog{})
+			&entity.TbDnsOpLog{},
+			&entity.TbDnsDomainInfo{})
 		// 创建索引
 		db.Table("tb_dns_base").AddIndex("idx_ip_port", "ip", "port")
 		db.Table("tb_dns_base").AddIndex("idx_domain_name_app", "domain_name", "app")
@@ -50,6 +51,8 @@ func InitDnsDB() error {
 
 		db.Table("tb_dns_op_log").AddIndex("idx_domain_name_op_time", "domain_name", "op_time")
 		db.Table("tb_dns_op_log").AddIndex("idx_op_time", "op_time")
+
+		db.Table("tb_dns_domain_info").AddUniqueIndex("uidx_domain_name", "domain_name")
 	}
 	DnsDB = db
 	return nil
