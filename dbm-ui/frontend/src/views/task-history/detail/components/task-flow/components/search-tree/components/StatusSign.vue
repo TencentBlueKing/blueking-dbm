@@ -17,7 +17,7 @@
     style="font-size: 12px; color: #3a84ff" />
   <DbIcon
     v-else-if="isSpinning"
-    style="color: #3a84ff"
+    class="rotate-loading"
     svg
     type="sync-pending" />
   <div

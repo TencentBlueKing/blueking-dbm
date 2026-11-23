@@ -26,24 +26,25 @@ import FileImage from '@images/file.png';
 import forceFailImage from '@images/force-fail.png';
 import ForceRetryImage from '@images/force-retry.png';
 import ForceSkipWarningImage from '@images/force-skip-warning.png';
+import LoadingGif from '@images/loading.gif';
 import MinusImage from '@images/minus-fill.png';
 import PlusImage from '@images/plus-fill.png';
 import manualConfirmImage from '@images/querenjixu.png';
 import RetryImage from '@images/refresh-2.png';
 import SkipImage from '@images/skip.png';
 import SkipSignImage from '@images/skip-2.png';
-import PendingImage from '@images/sync-pending.png';
 import WaitTodoImage from '@images/wait-todo.png';
 
 import {
   Circle as GCircle,
   type DisplayObject,
   type Group,
+  HTML as GHTML,
   Image as GImage,
   Rect as GRect,
   Text as GText,
 } from '@antv/g';
-import { Rect, type RectStyleProps, type UpsertHooks } from '@antv/g6';
+import { Rect, type RectStyleProps } from '@antv/g6';
 
 import { type Node } from './layout';
 
@@ -54,7 +55,6 @@ export type FlowNodeAttributes = {
   finishedImageBackgroundColor: string;
   focusNodeVisibility: 'hidden' | 'visible';
   forceFailOptFill: string;
-  loadingImageBackgroundColor: string;
   manualOptFill: string;
   nodeBackgroundshadowColor: string;
   retryOptFill: string;
@@ -67,6 +67,9 @@ const LINE_WIDTH = 168;
 
 // 节点标题换行、耗时背景宽度都要测量文本，节点多时反复新建 canvas 开销明显，这里复用同一个上下文
 const textMeasureContext = document.createElement('canvas').getContext('2d')!;
+
+// 执行中状态图标的边长，与其他状态图标的底色圆（直径 18）一致，落在白底圆（直径 22）里
+const LOADING_GIF_SIZE = 18;
 
 // 2行的情况下，对文本进行填充调整
 function adjustLinesText(linesText: string[], keyword: string) {
@@ -729,35 +732,18 @@ export class NormalNode extends Rect {
 
     // 准备中与执行中共用这个分支
     if (this.isRunning || this.displayStatus === 'READY') {
-      // 绘制执行中loading
-      const loadingBackgroundStyle = {
-        cx: width / 2,
-        cy: -height / 2,
-        fill: attributes.loadingImageBackgroundColor,
-        r: 9,
-      };
-      this.upsertShape('rightTopLoadingImageBackground', GCircle, loadingBackgroundStyle, container);
+      // 画布渲染器绘制 gif 只取第一帧，不会动；用 HTML 图形把 <img> 叠在画布上，由浏览器播放。
+      // gif 自带蓝色圆底，不再单独画底色圆。pointerEvents 关掉，指针穿透到画布，
+      // 落在下层的白底圆上，状态提示照常触发
       const loadingImageStyle = {
-        height: 14,
-        src: PendingImage,
-        transformOrigin: 'center center',
-        width: 14,
-        x: width / 2 - 7,
-        y: -height / 2 - 7,
+        height: LOADING_GIF_SIZE,
+        innerHTML: `<img src="${LoadingGif}" width="${LOADING_GIF_SIZE}" height="${LOADING_GIF_SIZE}" style="display: block" />`,
+        pointerEvents: 'none' as const,
+        width: LOADING_GIF_SIZE,
+        x: width / 2 - LOADING_GIF_SIZE / 2,
+        y: -height / 2 - LOADING_GIF_SIZE / 2,
       };
-      // 挂在 afterCreate 上：只在图形新建时启动旋转，复用旧图形时动画还在，重挂会把角度归零。
-      // 不能改用节点的 onCreate，它只在节点元素创建时触发一次，
-      // 而失败重试回到执行中时这个图形是被 clearStaleShapes 收掉后重建的
-      this.upsertShape('rightTopLoadingImage', GImage, loadingImageStyle, container, {
-        afterCreate: (loadingImage) => {
-          loadingImage.animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(-360deg)' }], {
-            direction: 'normal',
-            duration: 3000,
-            easing: 'linear',
-            iterations: Infinity,
-          });
-        },
-      });
+      this.upsertShape('rightTopLoadingImage', GHTML, loadingImageStyle, container);
       return;
     }
     if (this.displayStatus === 'SKIPPED') {
@@ -887,10 +873,9 @@ export class NormalNode extends Rect {
     Ctor: new (...args: any[]) => T,
     style: T['attributes'],
     container: Group,
-    hooks?: UpsertHooks,
   ) {
     this.drawnKeys.add(key);
     this.ownedKeys.add(key);
-    this.upsert(key, Ctor, style, container, hooks);
+    return this.upsert(key, Ctor, style, container);
   }
 }
