@@ -8,6 +8,10 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+# DEPRECATED: 旧版 MySQL 备份恢复演练调度实现，已由 gen_task_v2.py 替代（见 task.py）。
+# 仅作回退兜底保留，待 gen_task_v2.py 线上运行稳定后删除本文件。
+# 注意：删除前需先将 gen_task_v2.py 复用的公共工具（EXERCISED_BACKUP_ID_LOOKBACK_DAYS、
+# backup_info_format、build_recovery_storage_spec、bytes_to_gb、return_resource）迁出。
 import heapq
 import json
 import logging
