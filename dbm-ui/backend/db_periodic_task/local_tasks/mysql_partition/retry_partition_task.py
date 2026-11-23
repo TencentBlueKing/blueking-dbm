@@ -25,7 +25,10 @@ from backend.db_periodic_task.local_tasks.mysql_partition.execute_partition_task
     execute_tendbcluster_partition_task,
     execute_tendbha_partition_task,
 )
-from backend.db_periodic_task.local_tasks.mysql_partition.get_partition_conf import get_exec_domain_info
+from backend.db_periodic_task.local_tasks.mysql_partition.get_partition_conf import (
+    get_exec_domain_info,
+    get_partition_by_config_id,
+)
 from backend.db_periodic_task.local_tasks.mysql_partition.mysql_check_partition_v2 import (
     BIZ_PAGE_SIZE,
     CONFIG_ID_PAGE_SIZE,
@@ -129,6 +132,7 @@ def coerce_conf_cnt_map(conf_cnt_map: Optional[Dict]) -> Dict[int, int]:
 
 
 def query_conf_by_ids(bk_biz_id: int, cluster_type: str, config_ids: List[int]) -> List[Dict]:
+    """只用来拿 config_id 对应的 cluster_id。这一行不下发。"""
     params = {
         "bk_biz_id": bk_biz_id,
         "cluster_type": cluster_type,
@@ -140,18 +144,79 @@ def query_conf_by_ids(bk_biz_id: int, cluster_type: str, config_ids: List[int]) 
     return resp.get("items") or []
 
 
-def normalize_execute_config(item: Dict) -> Optional[Tuple[int, Dict]]:
-    """query_conf_v2 的配置体补上 config_id 后，直接作为执行任务的 configs。"""
-    if not item or item.get("cluster_id") in (None, ""):
-        return None
-    config = dict(item)
-    raw_config_id = config.get("config_id")
+def _config_id_of(item: Dict) -> Optional[int]:
+    raw_config_id = item.get("config_id")
     if raw_config_id in (None, ""):
-        raw_config_id = config.get("id")
+        raw_config_id = item.get("id")
     if raw_config_id in (None, ""):
         return None
-    config["config_id"] = int(raw_config_id)
-    return int(config["cluster_id"]), config
+    return int(raw_config_id)
+
+
+def load_retry_configs(bk_biz_id: int, cluster_type: str, config_ids: List[int]) -> Dict[int, List[Dict]]:
+    """
+    只拉待重试的配置。
+
+    query_conf_v2 只提供 cluster_id。执行参数用 get_conf_by_id，和按配置执行的日常入口同一份返回。
+    """
+    grouped: Dict[int, List[Dict]] = defaultdict(list)
+    seen = set()
+    for config_id_chunk in _chunked(config_ids, CONF_QUERY_SIZE):
+        try:
+            items = query_conf_by_ids(bk_biz_id, cluster_type, config_id_chunk)
+        except Exception as exc:  # pylint: disable=broad-except
+            logger.exception(
+                "分区重试查询配置所属集群失败 cluster_type=%s bk_biz_id=%s ids=%s err=%s",
+                cluster_type,
+                bk_biz_id,
+                len(config_id_chunk),
+                exc,
+            )
+            continue
+        for item in items:
+            config_id = _config_id_of(item or {})
+            cluster_id = item.get("cluster_id") if item else None
+            if config_id is None or cluster_id in (None, ""):
+                logger.warning(
+                    "分区重试配置缺少 cluster_id 或 config_id cluster_type=%s bk_biz_id=%s item=%s",
+                    cluster_type,
+                    bk_biz_id,
+                    item,
+                )
+                continue
+            if config_id in seen:
+                continue
+            seen.add(config_id)
+            try:
+                data = get_partition_by_config_id(int(cluster_id), config_id, cluster_type)
+            except Exception as exc:  # pylint: disable=broad-except
+                logger.exception(
+                    "分区重试拉取单条配置失败 cluster_type=%s cluster_id=%s config_id=%s err=%s",
+                    cluster_type,
+                    cluster_id,
+                    config_id,
+                    exc,
+                )
+                continue
+            configs = (data or {}).get("configs") or []
+            if not configs:
+                logger.warning(
+                    "分区重试单条配置为空 cluster_type=%s cluster_id=%s config_id=%s",
+                    cluster_type,
+                    cluster_id,
+                    config_id,
+                )
+                continue
+            grouped[int(cluster_id)].extend(configs)
+        if len(items) < len(config_id_chunk):
+            logger.warning(
+                "分区重试配置查询条数少于请求 cluster_type=%s bk_biz_id=%s request=%s response=%s",
+                cluster_type,
+                bk_biz_id,
+                len(config_id_chunk),
+                len(items),
+            )
+    return grouped
 
 
 def dispatch_retry_group(cluster_type: str, cluster_id: int, configs: List[Dict], eta: datetime, seq: int):
@@ -186,9 +251,9 @@ def dispatch_page_retries(
     start: datetime,
 ) -> Tuple[int, int, int]:
     """
-    处理一页 config_id：判定后按集群切组下发。
+    一页 config_id 先按巡检规则判定，再只拉失败和未执行的配置下发。
 
-    返回本页的失败数、未执行数、下发组数。配置体只活在这一页里。
+    返回本页的失败数、未执行数、下发组数。
     """
     success_ids, failed_ids = _fetch_execution_sets_for_config_ids(
         cluster_type=cluster_type,
@@ -205,45 +270,7 @@ def dispatch_page_retries(
     if not retry_ids:
         return len(fail_ids), len(not_run_ids), 0
 
-    grouped: Dict[int, List[Dict]] = defaultdict(list)
-    seen = set()
-    for config_id_chunk in _chunked(retry_ids, CONF_QUERY_SIZE):
-        try:
-            items = query_conf_by_ids(bk_biz_id, cluster_type, config_id_chunk)
-        except Exception as exc:  # pylint: disable=broad-except
-            logger.exception(
-                "分区重试查询配置失败 cluster_type=%s bk_biz_id=%s ids=%s err=%s",
-                cluster_type,
-                bk_biz_id,
-                len(config_id_chunk),
-                exc,
-            )
-            continue
-        for item in items:
-            normalized = normalize_execute_config(item)
-            if normalized is None:
-                logger.warning(
-                    "分区重试配置缺少 cluster_id 或 config_id cluster_type=%s bk_biz_id=%s item=%s",
-                    cluster_type,
-                    bk_biz_id,
-                    item,
-                )
-                continue
-            cluster_id, config = normalized
-            config_id = config["config_id"]
-            if config_id in seen:
-                continue
-            seen.add(config_id)
-            grouped[cluster_id].append(config)
-        if len(items) < len(config_id_chunk):
-            logger.warning(
-                "分区重试配置查询条数少于请求 cluster_type=%s bk_biz_id=%s request=%s response=%s",
-                cluster_type,
-                bk_biz_id,
-                len(config_id_chunk),
-                len(items),
-            )
-
+    grouped = load_retry_configs(bk_biz_id, cluster_type, retry_ids)
     group_cnt = 0
     for cluster_id, configs in grouped.items():
         clock = clocks.get(cluster_id)
@@ -262,6 +289,7 @@ def retry_one_biz_partition_task(bk_biz_id: int, cluster_type: str, conf_cnt_map
     """
     单个业务的分区重试。
 
+    和巡检一样先分页收集 config_id，判定失败和当天未执行后，再按 id 拉配置下发。
     conf_cnt_map 由调度入口查一次后传入。缺失时按 30 秒一波排期，不中断下发。
     不自动重试：时钟在本任务进程内，中途失败后再跑会把已下发的组再排一次。
     """
