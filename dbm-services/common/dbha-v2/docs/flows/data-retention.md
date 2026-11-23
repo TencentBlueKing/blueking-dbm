@@ -31,7 +31,7 @@ analysis 定期物理删除 `t_dbm_metadata` 与 `t_dbha_status` 中长期不再
 
 ## 3. 配置
 
-配置位于 `analysis.yaml` 的 `workflow.retention`，全部有代码默认值，旧配置文件无需修改。部署模板不包含该段。
+配置位于 `analysis.yaml` 的 `workflow.retention`。部署模板和 `dbha-v2.server.rc.example` 已带下列默认值；未包含 `retention` 的旧配置文件仍使用代码默认值，无需修改。
 
 ```yaml
 workflow:
