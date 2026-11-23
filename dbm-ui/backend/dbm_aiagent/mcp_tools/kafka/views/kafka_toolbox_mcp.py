@@ -24,6 +24,7 @@ from backend.dbm_aiagent.mcp_tools.kafka.impl.kafka_toolbox import (
     describe_consumer_group,
     describe_topic,
     get_broker_config,
+    get_effective_topic_config,
     get_topic_config,
     list_consumer_groups,
     list_topics,
@@ -43,7 +44,9 @@ from backend.dbm_aiagent.mcp_tools.kafka.serializers.kafka_toolbox import (
     DescribeConsumerGroupInputSerializer,
     DescribeConsumerGroupOutputSerializer,
     DescribeTopicInputSerializer,
+    EffectiveTopicConfigOutputSerializer,
     GetBrokerConfigInputSerializer,
+    GetEffectiveTopicConfigInputSerializer,
     GetTopicConfigInputSerializer,
     KafkaClusterHealthCheckOutputSerializer,
     KafkaDescribeTopicOutputSerializer,
@@ -61,7 +64,8 @@ logger = logging.getLogger("flow")
 
 """
 Kafka 工具箱 MCP - 在 Kafka 集群 broker 上远程执行 Kafka CLI 命令
-- 只读：list_topics, describe_topic, list_consumer_groups, describe_consumer_group, get_topic_config, get_broker_config
+- 只读：list_topics, describe_topic, list_consumer_groups, describe_consumer_group, get_topic_config, get_broker_config,
+  get_effective_topic_config
 - 写操作：alter_topic_config, delete_topic_config
 """
 
@@ -158,6 +162,31 @@ class KafkaToolboxMcpToolsViewSet(McpToolsViewSet):
         result = get_broker_config(
             immute_domain=validated_params["cluster_domain"],
             broker_id=validated_params["broker_id"],
+        )
+        return Response(result)
+
+    @mcp_tools_api_decorator(
+        description=str(
+            _(
+                "查看Kafka topic的有效配置（保留期、保留大小、segment大小与滚动时间、清理策略）。"
+                "合并topic覆盖项、broker动态配置、server.properties静态值和内置默认值，"
+                "优先级：topic覆盖 > broker动态 > server.properties静态值 > 默认值，返回每项的有效值及其来源，同时返回各层原始值。"
+                "broker级的值取自第一个broker。warnings非空时结果可能不完整。"
+                "get_topic_config/get_broker_config只返回覆盖项，空结果不代表保留期是默认值，判断保留期请用本工具。"
+                "参数：cluster_domain（集群域名），topic（topic名称）"
+            )
+        ),
+        request_slz=GetEffectiveTopicConfigInputSerializer,
+        response_slz=EffectiveTopicConfigOutputSerializer,
+        tags=[DBMMCPTags.READ],
+        mcp=[DBMMcpTools.KAFKA_TOOLBOX],
+        name_prefix="kafka_toolbox",
+    )
+    def get_effective_topic_config(self, request, *args, **kwargs):
+        validated_params = self.params_validate(self.get_serializer_class())
+        result = get_effective_topic_config(
+            immute_domain=validated_params["cluster_domain"],
+            topic=validated_params["topic"],
         )
         return Response(result)
 

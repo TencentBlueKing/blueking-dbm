@@ -108,6 +108,12 @@ class GetBrokerConfigInputSerializer(KafkaToolboxBaseInputSerializer):
     broker_id = serializers.IntegerField(help_text=_("broker ID"))
 
 
+class GetEffectiveTopicConfigInputSerializer(GetTopicConfigInputSerializer):
+    """复用 topic 名称校验：topic 会被拼进远程执行的脚本"""
+
+    pass
+
+
 class AlterTopicConfigInputSerializer(KafkaToolboxBaseInputSerializer):
     topic = serializers.CharField(help_text=_("topic 名称"))
     config_key = serializers.CharField(help_text=_("配置项名称，如 retention.ms, cleanup.policy, max.message.bytes 等"))
@@ -260,6 +266,23 @@ class ConfigOutputSerializer(serializers.Serializer):
     entity_type = serializers.CharField(help_text=_("实体类型 (topic/broker)"))
     entity_name = serializers.CharField(help_text=_("实体名称"))
     configs = serializers.DictField(child=serializers.CharField(), help_text=_("配置项"))
+
+
+class EffectiveTopicConfigOutputSerializer(serializers.Serializer):
+    cluster_domain = serializers.CharField(help_text=_("集群域名"))
+    topic = serializers.CharField(help_text=_("topic 名称"))
+    broker_ip = serializers.CharField(help_text=_("读取 broker 级配置所用的 broker IP"))
+    broker_id = serializers.CharField(help_text=_("该 broker 的 broker.id"), allow_null=True)
+    effective = serializers.DictField(
+        help_text=_(
+            "有效值。每项含 value（毫秒或字节，-1 表示不限制）、source（来源层）、key（命中的配置键）、"
+            "hours（时间类，换算成小时）、unlimited（是否不限制）；source 为 default 表示取内置默认值"
+        )
+    )
+    layers = serializers.DictField(
+        help_text=_("各层原始值，用于核对：topic / broker_dynamic / broker_default_dynamic / broker_static")
+    )
+    warnings = serializers.ListField(child=serializers.CharField(), help_text=_("需要注意的问题，非空时结果可能不完整"))
 
 
 class BrokerInfoSerializer(serializers.Serializer):

@@ -9,6 +9,8 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+import re
+import shlex
 import time
 from typing import Dict, List
 
@@ -19,6 +21,11 @@ from backend.components import JobApi
 from backend.db_meta.enums import InstanceRole
 from backend.db_meta.models import Cluster
 from backend.dbm_aiagent.mcp_tools.common.impl.job import get_job_exec_status
+from backend.dbm_aiagent.mcp_tools.kafka.impl.kafka_effective_config import (
+    SKIPPED_MARK,
+    build_effective_config_result,
+    static_keys_regex,
+)
 from backend.flow.consts import DBA_ROOT_USER
 from backend.utils.string import base64_encode
 
@@ -32,6 +39,10 @@ KAFKA_JAVA_HOME = f"{KAFKA_ENV_DIR}/jdk"
 KAFKA_SERVER_PROPERTIES = f"{KAFKA_CONFIG_DIR}/server.properties"
 KAFKA_SCRAM_JAAS_CONF = f"{KAFKA_CONFIG_DIR}/kafka_server_scram_jaas.conf"
 KAFKA_CLIENT_PROPERTIES = f"{KAFKA_ENV_DIR}/kafka/client.properties"
+
+# 过滤 kafka CLI 的已知噪音：SLF4J 提示、egrep 过时警告、grep 的 "warning: stray \\ before" 警告。
+# 不能写成无锚点的 grep -v "stray"，否则名字含 stray 的 topic 的输出行会被整行丢掉
+KAFKA_NOISE_FILTER = 'grep -v "^SLF4J" | grep -v "^egrep:" | grep -v "warning: stray"'
 
 # 轮询 Job 状态的参数
 JOB_POLL_INTERVAL = 5  # 秒
@@ -128,7 +139,7 @@ if [ "$USE_ZK" -eq 0 ] && grep -q 'SASL_PLAINTEXT' {KAFKA_SERVER_PROPERTIES} 2>/
 fi
 
 # 执行 kafka CLI 命令（过滤已知噪音，保留真实错误信息）
-$KAFKA_BIN $CONNECTION_ARG {cli_args} $AUTH_ARG 2>&1 | {{ grep -v "^SLF4J" | grep -v "^egrep:" | grep -v "stray" || true; }}
+$KAFKA_BIN $CONNECTION_ARG {cli_args} $AUTH_ARG 2>&1 | {{ {KAFKA_NOISE_FILTER} || true; }}
 """
     return script
 
@@ -155,7 +166,22 @@ def execute_kafka_cli(
     """
     connection_info = resolve_cluster_connection_info(immute_domain)
     script = build_kafka_cli_script(connection_info, kafka_bin, cli_args)
+    return execute_kafka_script(connection_info, script, task_name, timeout)
 
+
+def execute_kafka_script(connection_info: Dict, script: str, task_name: str, timeout: int = 300) -> str:
+    """
+    在目标 broker 上远程执行脚本并轮询结果。
+
+    Args:
+        connection_info: resolve_cluster_connection_info 返回的集群信息
+        script: 完整的 shell 脚本内容
+        task_name: Job 任务名称
+        timeout: 超时秒数
+
+    Returns:
+        脚本输出的文本内容
+    """
     target_ips = [{"ip": connection_info["broker_ip"], "bk_cloud_id": connection_info["bk_cloud_id"]}]
 
     body = {
@@ -257,6 +283,119 @@ def get_broker_config(immute_domain: str, broker_id: int) -> Dict:
     return parse_config_output(output, "broker", str(broker_id))
 
 
+def build_effective_config_script(connection_info: Dict, topic: str) -> str:
+    """
+    构建查询 topic 有效配置的脚本，一次输出多段，用 ===NAME=== 分隔：
+    STATIC（server.properties 白名单行）/ CLIENT_PROPERTIES / BROKER_ID / TOPIC / BROKER_DYNAMIC / BROKER_DEFAULT_DYNAMIC / END
+    topic 已由序列化器校验为 [a-zA-Z0-9._-]+，可安全拼进脚本。
+    """
+    if not re.fullmatch(r"[a-zA-Z0-9._-]+", topic):
+        raise ValueError(f"invalid topic name: {topic!r}")
+    quoted_topic = shlex.quote(topic)
+    broker_ip = connection_info["broker_ip"]
+    broker_port = connection_info["broker_port"]
+
+    return f"""#!/bin/bash
+
+export JAVA_HOME={KAFKA_JAVA_HOME}
+export PATH=$JAVA_HOME/bin:$PATH
+
+KAFKA_BIN="{KAFKA_BIN_DIR}/kafka-configs.sh"
+BOOTSTRAP_SERVER="{broker_ip}:{broker_port}"
+PROPS="{KAFKA_SERVER_PROPERTIES}"
+USE_ZK=0
+
+# 运行时检测连接模式
+CONNECTION_ARG=""
+if $KAFKA_BIN --help 2>&1 | grep -qF -- '--zookeeper'; then
+    ZK_CONNECT=$(grep '^zookeeper.connect=' $PROPS 2>/dev/null | head -1 | cut -d'=' -f2-)
+    if [ -n "$ZK_CONNECT" ]; then
+        CONNECTION_ARG="--zookeeper $ZK_CONNECT"
+        USE_ZK=1
+    else
+        CONNECTION_ARG="--bootstrap-server $BOOTSTRAP_SERVER"
+    fi
+else
+    CONNECTION_ARG="--bootstrap-server $BOOTSTRAP_SERVER"
+fi
+
+# 是否启用 SASL（忽略被注释的行）
+SASL_ENABLED=0
+if grep -qE '^[[:space:]]*[^#[:space:]].*SASL_PLAINTEXT' $PROPS 2>/dev/null; then
+    SASL_ENABLED=1
+fi
+
+# SASL 认证仅在 bootstrap-server 模式下需要
+AUTH_ARG=""
+if [ "$USE_ZK" -eq 0 ] && [ "$SASL_ENABLED" -eq 1 ]; then
+    AUTH_ARG="--command-config {KAFKA_CLIENT_PROPERTIES}"
+fi
+
+FILTER='{KAFKA_NOISE_FILTER}'
+
+# 只取白名单键，认证等其他配置不读取
+echo "===STATIC==="
+grep -E '^[[:space:]]*({static_keys_regex()})[[:space:]]*[=:[:space:]]' $PROPS 2>/dev/null || true
+
+# 本机 broker.id：按 IP:端口 在 kafka-broker-api-versions 的输出里匹配（该命令只支持 bootstrap-server，
+# 即使 kafka-configs 走 ZK 模式，SASL 集群上它也需要认证）
+BROKER_AUTH_ARG=""
+CLIENT_PROPS_STATE="not_required"
+if [ "$SASL_ENABLED" -eq 1 ]; then
+    BROKER_AUTH_ARG="--command-config {KAFKA_CLIENT_PROPERTIES}"
+    if [ -f "{KAFKA_CLIENT_PROPERTIES}" ]; then
+        CLIENT_PROPS_STATE="present"
+    else
+        CLIENT_PROPS_STATE="missing"
+    fi
+fi
+echo "===CLIENT_PROPERTIES==="
+echo "$CLIENT_PROPS_STATE"
+API_VERSIONS_BIN="{KAFKA_BIN_DIR}/kafka-broker-api-versions.sh"
+BROKER_ID=$(timeout 30 $API_VERSIONS_BIN --bootstrap-server $BOOTSTRAP_SERVER $BROKER_AUTH_ARG 2>/dev/null \\
+    | awk -v hp="$BOOTSTRAP_SERVER" '$1 == hp && $2 == "(id:" {{print $3; exit}}')
+# 取不到时回退到 server.properties 里的 broker.id（ZK 模式下查动态配置不依赖认证）
+if ! [[ "$BROKER_ID" =~ ^[0-9]+$ ]]; then
+    BROKER_ID=$(grep -E '^[[:space:]]*broker\\.id[[:space:]]*=' $PROPS 2>/dev/null | tail -1 | cut -d= -f2- | tr -d '[:space:]')
+fi
+echo "===BROKER_ID==="
+echo "$BROKER_ID"
+
+echo "===TOPIC==="
+$KAFKA_BIN $CONNECTION_ARG --describe --entity-type topics --entity-name={quoted_topic} $AUTH_ARG 2>&1 | eval $FILTER || true
+
+echo "===BROKER_DYNAMIC==="
+if [[ "$BROKER_ID" =~ ^[0-9]+$ ]]; then
+    $KAFKA_BIN $CONNECTION_ARG --describe --entity-type brokers --entity-name $BROKER_ID $AUTH_ARG 2>&1 | eval $FILTER || true
+else
+    echo "{SKIPPED_MARK}"
+fi
+
+echo "===BROKER_DEFAULT_DYNAMIC==="
+$KAFKA_BIN $CONNECTION_ARG --describe --entity-type brokers --entity-default $AUTH_ARG 2>&1 | eval $FILTER || true
+
+echo "===END==="
+"""
+
+
+def get_effective_topic_config(immute_domain: str, topic: str) -> Dict:
+    """
+    查询 topic 的有效配置（保留期、segment 等）。
+    一次 Job 内读取 topic 覆盖项、broker 动态配置和 server.properties 静态值，再按优先级合并，
+    同时返回各层原始值，便于核对。broker 级的值取自第一个 broker。
+    """
+    connection_info = resolve_cluster_connection_info(immute_domain)
+    script = build_effective_config_script(connection_info, topic)
+    raw_output = execute_kafka_script(connection_info, script, task_name=_("Kafka: 查询 topic 有效配置"), timeout=120)
+    return build_effective_config_result(
+        immute_domain=immute_domain,
+        topic=topic,
+        broker_ip=connection_info["broker_ip"],
+        major_version=connection_info["major_version"],
+        raw_output=raw_output,
+    )
+
+
 def cluster_health_check(immute_domain: str) -> Dict:
     """
     集群健康检查（合并为一次 Job 调用，避免 3 次串行调用的 15s+ 延迟）：
@@ -308,7 +447,7 @@ if [ "$USE_SASL" -eq 1 ]; then
     BROKER_AUTH_ARG="--command-config {KAFKA_CLIENT_PROPERTIES}"
 fi
 
-FILTER='grep -v "^egrep:" | grep -v "^SLF4J" | grep -v "stray"'
+FILTER='{KAFKA_NOISE_FILTER}'
 
 echo "===BROKERS==="
 {KAFKA_BIN_DIR}/kafka-broker-api-versions.sh --bootstrap-server $BOOTSTRAP_SERVER $BROKER_AUTH_ARG 2>&1 | eval $FILTER || true
@@ -401,7 +540,7 @@ fi
 $KAFKA_BIN --bootstrap-server $BOOTSTRAP_SERVER --topic {topic} \
     --max-messages {max_messages} --timeout-ms {timeout_ms} \
     {"--from-beginning" if from_beginning else ""} \
-    $AUTH_ARG 2>&1 | {{ grep -v "^SLF4J" | grep -v "^egrep:" | grep -v "stray" || true; }}
+    $AUTH_ARG 2>&1 | {{ {KAFKA_NOISE_FILTER} || true; }}
 """
 
     target_ips = [{"ip": connection_info["broker_ip"], "bk_cloud_id": connection_info["bk_cloud_id"]}]
