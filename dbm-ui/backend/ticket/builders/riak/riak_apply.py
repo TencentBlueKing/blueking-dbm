@@ -17,13 +17,14 @@ from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.flow.engine.controller.riak import RiakController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import CommonValidate
+from backend.ticket.builders.common.base import CommonValidate, DeployClusterTagsField
 from backend.ticket.builders.common.bigdata import BigDataApplyDetailsSerializer
 from backend.ticket.builders.riak.base import BaseRiakTicketFlowBuilder
 from backend.ticket.constants import TicketType
 
 
 class RiakApplyDetailSerializer(BigDataApplyDetailsSerializer):
+    tags = DeployClusterTagsField()
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
     db_module_id = serializers.IntegerField(help_text=_("DB模块ID"))
 

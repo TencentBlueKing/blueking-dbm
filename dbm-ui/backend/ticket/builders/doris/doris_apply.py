@@ -24,6 +24,7 @@ from backend.flow.consts import DORIS_DEFAULT_INSTANCE_NUM
 from backend.flow.engine.controller.doris import DorisController
 from backend.ticket import builders
 from backend.ticket.builders.common import constants
+from backend.ticket.builders.common.base import DeployClusterTagsField
 from backend.ticket.builders.common.bigdata import BaseDorisTicketFlowBuilder, BigDataApplyDetailsSerializer
 from backend.ticket.constants import TicketType
 
@@ -31,6 +32,7 @@ logger = logging.getLogger("root")
 
 
 class DorisApplyDetailSerializer(BigDataApplyDetailsSerializer):
+    tags = DeployClusterTagsField()
     http_port = serializers.IntegerField(help_text=_("http端口"), default=DORIS_DEFAULT_HTTP_PORT)
     query_port = serializers.IntegerField(help_text=_("输入端口"), default=DORIS_DEFAULT_QUERY_PORT)
     enable_cold_storage = serializers.BooleanField(help_text=_("是否建立低频存储"), default=False)
