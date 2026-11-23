@@ -28,6 +28,8 @@ github.com/ProtonMail/go-crypto v0.0.0-20230528122434-6f98819771a1 h1:JMDGhoQvXN
 github.com/ProtonMail/go-crypto v0.0.0-20230528122434-6f98819771a1/go.mod h1:EjAoLdwvbIOoOQr3ihjnSoLZRtE8azugULFRteWMNc0=
 github.com/StudioSol/set v1.0.0 h1:G27J71la+Da08WidabBkoRrvPLTa4cdCn0RjvyJ5WKQ=
 github.com/StudioSol/set v1.0.0/go.mod h1:hIUNZPo6rEGF43RlPXHq7Fjmf+HkVJBqAjtK7Z9LoIU=
+github.com/TencentBlueKing/bk-kms-sdk/go v1.0.0 h1:IQ4TjcstagXxHRsiU/isdOmSi9gVt44IRsqbvkywu+8=
+github.com/TencentBlueKing/bk-kms-sdk/go v1.0.0/go.mod h1:KnMcaPsydcio/pzuazMSUNcYkctkBbbujpn6av8wHtY=
 github.com/acomagu/bufpipe v1.0.4 h1:e3H4WUzM3npvo5uv95QuJM3cQspFNtFBzvJ2oNjKIDQ=
 github.com/acomagu/bufpipe v1.0.4/go.mod h1:mxdxdup/WdsKVreO5GpW4+M/1CE2sMG4jeGJ2sYmHc4=
 github.com/ahmetalpbalkan/go-cursor v0.0.0-20131010032410-8136607ea412 h1:vOVO0ypMfTt6tZacyI0kp+iCZb1XSNiYDqnzBWYgfe4=

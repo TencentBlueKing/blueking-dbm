@@ -14,6 +14,7 @@ import argparse
 import logging
 import os
 
+import kms
 from handlers import MediumHandler
 
 logger = logging.getLogger("root")
@@ -29,6 +30,7 @@ args = parser.parse_args()
 
 if __name__ == "__main__":
     """版本镜像脚本执行入口"""
+    kms.inject_credentials()
     path = os.path.join(os.path.abspath(os.path.dirname(__file__)), "medium")
 
     if args.type == "update_lock":

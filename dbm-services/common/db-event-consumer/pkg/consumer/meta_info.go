@@ -73,7 +73,8 @@ func QueryKafkaMetaWithBkDataId(sinker *Sinker, bkdata *config.BkmApiInfo) error
 	if bkTenantId := os.Getenv("BK_TENANT_ID"); bkTenantId != "" {
 		req.Header.Set("X-Bk-Tenant-Id", bkTenantId)
 	}
-	slog.Info("request", slog.Any("request", req))
+	// 不打印整个 request，header 中包含 bk_app_secret
+	slog.Info("request", slog.String("url", endpoint.String()))
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

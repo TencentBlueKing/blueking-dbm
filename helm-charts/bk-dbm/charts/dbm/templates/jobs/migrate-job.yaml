@@ -16,6 +16,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       restartPolicy: Never
+      {{- with include "dbm.podVolumes" . }}{{ . | nindent 6 }}{{ end }}
       containers:
         - name: dbm-migrate
           image: "{{ .Values.global.imageRegistry | default .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
@@ -25,13 +26,7 @@ spec:
             - -c
           args:
             - "python manage.py migrate db_report --database=report_db && python manage.py migrate && python manage.py createcachetable django_cache"
-          env: 
-            {{- include "dbm.envs" . | trim | nindent 12 }}
-          envFrom:
-            {{- if .Values.extraEnvVarsCM }}
-            - configMapRef:
-                name: {{ .Values.extraEnvVarsCM }}
-            {{- end }}
+          {{- include "dbm.container_env" . | nindent 10 }}
           resources:
             {{- toYaml .Values.initJob.resources | nindent 12 }}
 {{- end }}
