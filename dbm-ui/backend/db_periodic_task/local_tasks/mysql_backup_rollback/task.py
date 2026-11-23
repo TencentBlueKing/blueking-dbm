@@ -17,7 +17,7 @@ from django.utils.translation import gettext as _
 from backend.db_periodic_task.local_tasks import register_periodic_task
 
 from .check_failed_task import check_mysql_backup_exercise_failed
-from .gen_task import gen_rollback_task
+from .gen_task_v2 import gen_rollback_task_v2 as gen_rollback_task
 
 logger = logging.getLogger("root")
 
