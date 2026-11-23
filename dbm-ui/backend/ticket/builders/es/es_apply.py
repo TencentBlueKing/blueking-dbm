@@ -22,6 +22,7 @@ from backend.db_services.dbbase.constants import ES_DEFAULT_PORT
 from backend.flow.engine.controller.es import EsController
 from backend.ticket import builders
 from backend.ticket.builders.common import constants
+from backend.ticket.builders.common.base import DeployClusterTagsField
 from backend.ticket.builders.common.bigdata import BaseEsTicketFlowBuilder, BigDataApplyDetailsSerializer
 from backend.ticket.builders.common.constants import BigDataRole
 from backend.ticket.constants import TicketType
@@ -30,6 +31,7 @@ logger = logging.getLogger("root")
 
 
 class EsApplyDetailSerializer(BigDataApplyDetailsSerializer):
+    tags = DeployClusterTagsField()
     http_port = serializers.IntegerField(help_text=_("端口"), default=ES_DEFAULT_PORT)
     apply_clb = serializers.BooleanField(help_text=_("集群部署成功后是否创建CLB"), required=False, default=False)
     apply_polaris = serializers.BooleanField(help_text=_("集群部署成功后是否创建北极星"), required=False, default=False)

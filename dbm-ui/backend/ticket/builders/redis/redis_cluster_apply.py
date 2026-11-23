@@ -20,6 +20,7 @@ from backend.flow.engine.controller.redis import RedisController
 from backend.ticket import builders
 from backend.ticket.builders.common.base import (
     CommonValidate,
+    DeployClusterTagsField,
     SkipToRepresentationMixin,
     TicketBaseValidateSerializerMixin,
     get_ticket_zone_list,
@@ -49,6 +50,7 @@ class RedisClusterApplyDetailSerializer(
 
     cluster_name = serializers.CharField(help_text=_("集群ID（英文数字及下划线）"))
     cluster_alias = serializers.CharField(help_text=_("集群别名（一般为中文别名）"), required=False, allow_blank=True)
+    tags = DeployClusterTagsField()
     proxy_pwd = serializers.CharField(help_text=_("proxy访问密码"), required=False)
 
     ip_source = serializers.ChoiceField(help_text=_("主机来源"), choices=IpSource.get_choices())

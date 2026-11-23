@@ -22,13 +22,14 @@ from backend.flow.engine.controller.redis import RedisController
 from backend.flow.utils.redis.redis_databases import validate_apply_databases
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.common.base import CommonValidate, get_ticket_zone_list
+from backend.ticket.builders.common.base import CommonValidate, DeployClusterTagsField, get_ticket_zone_list
 from backend.ticket.builders.redis.base import BaseRedisInstanceTicketFlowBuilder, RedisBaseOperateDetailSerializer
 from backend.ticket.constants import TicketType
 
 
 class RedisInstanceApplyDetailSerializer(RedisBaseOperateDetailSerializer):
     class InstanceInfoSerializer(serializers.Serializer):
+        tags = DeployClusterTagsField()
         cluster_name = serializers.CharField(help_text=_("集群ID（英文数字及下划线）"))
         databases = serializers.IntegerField(help_text=_("db数量"))
         backend_group = serializers.JSONField(help_text=_("追加部署的主机信息"), required=False)

@@ -20,6 +20,7 @@ from backend.db_services.dbbase.constants import KAFKA_DEFAULT_PORT
 from backend.flow.engine.controller.kafka import KafkaController
 from backend.ticket import builders
 from backend.ticket.builders.common import constants
+from backend.ticket.builders.common.base import DeployClusterTagsField
 from backend.ticket.builders.common.bigdata import BaseKafkaTicketFlowBuilder, BigDataApplyDetailsSerializer
 from backend.ticket.builders.common.constants import BigDataRole
 from backend.ticket.constants import TicketType
@@ -73,6 +74,7 @@ class KafkaApplyDetailSerializer(BigDataApplyDetailsSerializer):
     }
     """
 
+    tags = DeployClusterTagsField()
     no_security = serializers.IntegerField(
         help_text=_("无认证开关, 1表示无认证。0表示认证，默认0"), min_value=0, max_value=1, required=False, default=0
     )

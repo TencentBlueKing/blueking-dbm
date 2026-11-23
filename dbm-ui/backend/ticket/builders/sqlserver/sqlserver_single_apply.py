@@ -28,7 +28,12 @@ from backend.flow.engine.controller.sqlserver import SqlserverController
 from backend.flow.utils.sqlserver.sqlserver_bk_config import get_module_infos
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.common.base import CommonValidate, TicketBaseValidateSerializerMixin, get_ticket_zone_list
+from backend.ticket.builders.common.base import (
+    CommonValidate,
+    DeployClusterTagsField,
+    TicketBaseValidateSerializerMixin,
+    get_ticket_zone_list,
+)
 from backend.ticket.builders.sqlserver.base import (
     BaseSQLServerSingleTicketFlowBuilder,
     SQLServerBaseOperateResourceParamBuilder,
@@ -41,6 +46,7 @@ class SQLServerSingleApplyDetailSerializer(TicketBaseValidateSerializerMixin, se
     class DomainSerializer(serializers.Serializer):
         """域名信息序列化，此字段是集群名，可考虑跟前端一起调整为 cluster_name"""
 
+        tags = DeployClusterTagsField()
         key = serializers.CharField(help_text=_("域名关键字"), max_length=LEN_MIDDLE)
 
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
@@ -173,6 +179,9 @@ class SQLServerSingleApplyFlowParamBuilder(builders.FlowParamBuilder):
 
     def format_ticket_data(self):
         clusters = self.format_cluster_domains()
+        for cluster, domain in zip(clusters, self.ticket_data["domains"]):
+            if "tags" in domain:
+                cluster["tags"] = domain["tags"]
         inst_num = self.ticket.details["inst_num"]
         cluster_count = len(clusters)
         # 按需求的实例数量自动给集群分组
