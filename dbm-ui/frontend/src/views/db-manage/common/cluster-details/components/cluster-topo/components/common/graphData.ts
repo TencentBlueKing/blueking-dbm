@@ -84,7 +84,13 @@ export interface GraphLine {
   isSameY: boolean;
   label: string;
   source: string;
+  style?: {
+    sourcePort: string;
+    targetPort: string;
+  };
   target: string;
+  /** 分组间连线按相对位置选横向或纵向曲线，未指定时用默认 cubic-horizontal */
+  type?: 'cubic-horizontal' | 'cubic-vertical';
 }
 
 // graph node types
@@ -177,7 +183,9 @@ const defaultNodeConfig = {
   groupTitle: 44,
   itemHeight: 28,
   minHeight: 54,
-  /** Mongo「共 N 分片」行文案较长：shard / ip:port,... */
+  /** 节点最小宽度，文案很短时也保持卡片观感 */
+  minWidth: 200,
+  /** Mongo「共 N 分片」行文案较长：shard / ip:port,...，作为该组的最大宽度 */
   mongoShardsWidth: 560,
   /** 节点水平间距，需留出连线标签宽度（如「访问」「绑定」） */
   offsetX: 100,
@@ -185,8 +193,29 @@ const defaultNodeConfig = {
   offsetY: 48,
   startX: 100,
   startY: 100,
+  /** 节点最大宽度，实际宽度按整张图最长文案自适应，超出时折行 */
   width: 296,
 };
+
+/** 分组标题字体，与 topoNode 绘制分组标题一致 */
+const GROUP_TITLE_FONT = '700 12px Arial';
+
+// 需要水平排列特定分组的集群类型（es / hdfs / mongo）
+const HORIZONTAL_ALIGN_CLUSTER_TYPES: string[] = [
+  ClusterTypes.ES,
+  ClusterTypes.HDFS,
+  ClusterTypes.MONGO_REPLICA_SET,
+  ClusterTypes.MONGO_SHARED_CLUSTER,
+];
+
+// 有专属布局函数的集群类型，通用布局阶段不做重叠避让
+const CUSTOM_LAYOUT_CLUSTER_TYPES: string[] = [
+  ...HORIZONTAL_ALIGN_CLUSTER_TYPES,
+  ClusterTypes.TENDBCLUSTER,
+  ClusterTypes.TENDBHA,
+  ClusterTypes.K8S_SURREALDB_HA,
+  ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER,
+];
 
 // 特殊逻辑：控制节点水平对齐
 const sameSources = [
@@ -294,7 +323,11 @@ export class GraphData {
     nodes: GraphNode[];
   } = { edges: [], nodes: [] };
 
+  mongoShardsNodeWidth = defaultNodeConfig.mongoShardsWidth;
+
   nodeConfig: typeof defaultNodeConfig = { ...defaultNodeConfig };
+  /** 本图统一节点宽度、Mongo 分片组宽度，由 calcNodeWidths 计算 */
+  nodeWidth = defaultNodeConfig.width;
 
   constructor(clusterType: string, nodeConfig: NodeConfig = {}) {
     this.nodeConfig = Object.assign(this.nodeConfig, nodeConfig);
@@ -306,16 +339,52 @@ export class GraphData {
    */
   calcChildrenNodeLocations(targetNode: GraphNode) {
     const { groupTitle } = this.nodeConfig;
-    targetNode.children.forEach((childNode, index) => {
-      const offet = (targetNode.style.height - childNode.style.height) / 2;
-      // eslint-disable-next-line no-param-reassign
+    // 坐标为节点中心点，行高可能因折行不同，需按「上边缘 + 半高」逐行累加，不能直接加上一行高度
+    let rowTop = targetNode.style.y - targetNode.style.height / 2 + groupTitle;
+    for (const childNode of targetNode.children) {
       childNode.style.x = targetNode.style.x;
-      // eslint-disable-next-line no-param-reassign
-      childNode.style.y =
-        index === 0
-          ? targetNode.style.y + groupTitle - offet
-          : targetNode.children[index - 1].style.y + targetNode.children[index - 1].style.height;
-    });
+      childNode.style.y = rowTop + childNode.style.height / 2;
+      rowTop += childNode.style.height;
+    }
+  }
+
+  /**
+   * 计算分组间连线的端口：连线固定落在分组某条边的中点，曲线方向与端口方向一致，
+   * 避免按中心方向取交点时落到边角、箭头沿边框横躺被节点盖住
+   * 实例行之间的连线保持原逻辑（实例行只有左右端口，由 G6 就近选择）
+   * @param edges 连线列表
+   * @param nodes 已定位的节点列表
+   */
+  calcEdgePorts(edges: GraphLine[], nodes: GraphNode[]) {
+    const nodeMap = new Map(nodes.map((node) => [node.id, node]));
+    for (const edge of edges) {
+      const source = nodeMap.get(edge.source);
+      const target = nodeMap.get(edge.target);
+      if (source?.type !== GroupTypes.GROUP || target?.type !== GroupTypes.GROUP) {
+        continue;
+      }
+
+      const { style: sourceStyle } = source;
+      const { style: targetStyle } = target;
+      // 垂直方向有重叠说明同一行左右排列，走左右边中点；
+      // 否则上下错开（即使水平也错开，如访问冷节点），一律从上游下边中点连到下游上边中点
+      const isSameRow = Math.abs(sourceStyle.y - targetStyle.y) < (sourceStyle.height + targetStyle.height) / 2;
+      if (!isSameRow) {
+        const isDown = targetStyle.y >= sourceStyle.y;
+        edge.type = 'cubic-vertical';
+        edge.style = {
+          sourcePort: isDown ? 'bottom' : 'top',
+          targetPort: isDown ? 'top' : 'bottom',
+        };
+      } else {
+        const isRight = targetStyle.x >= sourceStyle.x;
+        edge.type = 'cubic-horizontal';
+        edge.style = {
+          sourcePort: isRight ? 'right' : 'left',
+          targetPort: isRight ? 'left' : 'right',
+        };
+      }
+    }
   }
 
   /**
@@ -336,18 +405,21 @@ export class GraphData {
     const targetNodes = nodes.filter((node) => targetNodeIds.includes(node.id) || node.id.includes('分片'));
 
     const [referenceNode] = targetNodes;
-    const moveNodes = targetNodes.slice(1);
-    // 水平排列
-    for (let i = 0; i < moveNodes.length; i++) {
-      const node = moveNodes[i];
-      const { width, x } = referenceNode.style;
-      node.style.x = x + (width + this.nodeConfig.offsetX) * (i + 1);
-    }
-    // 整体向左偏移，让中间节点垂直对齐
-    for (const node of targetNodes) {
-      node.style.x = node.style.x - node.style.width - this.nodeConfig.offsetX;
-      for (const childNode of node.children) {
-        childNode.style.x = node.style.x;
+    // Mongo 合并分片组、副本集等没有需要横排的节点
+    if (referenceNode) {
+      const moveNodes = targetNodes.slice(1);
+      // 水平排列
+      for (let i = 0; i < moveNodes.length; i++) {
+        const node = moveNodes[i];
+        const { width, x } = referenceNode.style;
+        node.style.x = x + (width + this.nodeConfig.offsetX) * (i + 1);
+      }
+      // 整体向左偏移，让中间节点垂直对齐
+      for (const node of targetNodes) {
+        node.style.x = node.style.x - node.style.width - this.nodeConfig.offsetX;
+        for (const childNode of node.children) {
+          childNode.style.x = node.style.x;
+        }
       }
     }
 
@@ -391,77 +463,91 @@ export class GraphData {
   }
 
   /**
-   * 获取连线坐标
-   * @param lines 连线集合
-   * @param nodes 节点集合
-   */
-  calcLines(lines: GraphLine[], nodes: GraphNode[]) {
-    for (const line of lines) {
-      const source = nodes.find((node) => node.id === line.source);
-      const target = nodes.find((node) => node.id === line.target);
-
-      if (source) {
-        Object.assign(line.source, {
-          x: source.style.x || 0,
-          y: source.style.y || 0,
-        });
-      }
-      if (target) {
-        Object.assign(line.target, {
-          x: target.style.x || 0,
-          y: target.style.y || 0,
-        });
-      }
-    }
-  }
-
-  /**
-   * 计算节点坐标
-   * @param startNode 开始节点
-   * @param nodes 节点列表
+   * 计算节点坐标：从每个根节点出发沿连线深度遍历，先到先定位
+   * @param rootNodes 根节点（坐标已由 calcRootLocations 计算）
+   * @param nodes 非根节点列表
    * @param lines 连线列表
-   * @param calculatedNodes 存储已经计算过的节点
+   * @param avoidOverlap 是否避让重叠；有专属布局的集群类型会在之后重排节点，不做避让，避免临时位置把其它节点挤偏
    */
-  calcNodeLocations(startNode: GraphNode, nodes: GraphNode[], lines: GraphLine[]) {
-    const calculatedNodes: Map<string, GraphNode> = new Map<string, GraphNode>();
+  calcNodeLocations(rootNodes: GraphNode[], nodes: GraphNode[], lines: GraphLine[], avoidOverlap: boolean) {
+    const { offsetX, offsetY } = this.nodeConfig;
+    const calculatedNodes = new Map<string, GraphNode>(rootNodes.map((node) => [node.id, node]));
 
-    const updateNodeLocation = (startNode: GraphNode, nodes: GraphNode[], lines: GraphLine[]) => {
-      if (!startNode) {
-        return;
-      }
+    // 与已定位节点的矩形是否相交（坐标为中心点）
+    const isOverlap = (targetNode: GraphNode) =>
+      Array.from(calculatedNodes.values()).some(
+        (node) =>
+          Math.abs(node.style.x - targetNode.style.x) < (node.style.width + targetNode.style.width) / 2 &&
+          Math.abs(node.style.y - targetNode.style.y) < (node.style.height + targetNode.style.height) / 2,
+      );
 
-      calculatedNodes.set(startNode.id, startNode);
+    const updateNodeLocation = (startNode: GraphNode) => {
       const startLines = lines.filter((line) => line.source === startNode.id);
       for (const startLine of startLines) {
         const { isSameY, target } = startLine;
         const targetNode = nodes.find((node) => node.id === target);
 
-        if (targetNode && !calculatedNodes.get(targetNode.id)) {
-          const { height, width, x, y } = startNode.style;
-          const { groupTitle, offsetX, offsetY } = this.nodeConfig;
-          const heightDifference = (targetNode.style.height - height) / 2; // 渲染节点是以y值为中心，所以需要计算两个节点高度差的一半
-          targetNode.style.x = isSameY ? x + width + offsetX : x;
-          targetNode.style.y = isSameY ? y : y + height + offsetY + heightDifference;
-
-          // 计算 children nodes 坐标
-          targetNode.children.forEach((childNode, index) => {
-            const offet = (targetNode.style.height - childNode.style.height) / 2;
-            // eslint-disable-next-line no-param-reassign
-            childNode.style.x = targetNode.style.x;
-            // eslint-disable-next-line no-param-reassign
-            childNode.style.y =
-              index === 0
-                ? targetNode.style.y + groupTitle - offet
-                : targetNode.children[index - 1].style.y + targetNode.children[index - 1].style.height;
-          });
-
-          calculatedNodes.set(targetNode.id, targetNode);
-          updateNodeLocation(targetNode, nodes, lines);
+        if (!targetNode || calculatedNodes.has(targetNode.id)) {
+          continue;
         }
+
+        const { height, width, x, y } = startNode.style;
+        const heightDifference = (targetNode.style.height - height) / 2; // 渲染节点是以y值为中心，所以需要计算两个节点高度差的一半
+        targetNode.style.x = isSameY ? x + width + offsetX : x;
+        targetNode.style.y = isSameY ? y : y + height + offsetY + heightDifference;
+
+        // 同一上游的多个下游会落到同一位置，依次向右平移到空位
+        if (avoidOverlap) {
+          while (isOverlap(targetNode)) {
+            targetNode.style.x += targetNode.style.width + offsetX;
+          }
+        }
+
+        this.calcChildrenNodeLocations(targetNode);
+        calculatedNodes.set(targetNode.id, targetNode);
+        updateNodeLocation(targetNode);
       }
     };
 
-    updateNodeLocation(startNode, nodes, lines);
+    // 只能由其它根节点到达的分组也要定位，否则会停在原点
+    rootNodes.forEach((rootNode) => updateNodeLocation(rootNode));
+  }
+
+  /**
+   * 按文案计算节点宽度，去掉短文案右侧的大片空白
+   * 布局公式按节点等宽推导（如同行节点间距 x + width + offsetX），因此整张图取同一宽度，
+   * 由最长的分组标题或实例文案决定，并限制在 [minWidth, width] 之间，超出最大宽度仍折行
+   * Mongo 合并分片组文案特别长，单独计算，不拉宽其它节点
+   */
+  calcNodeWidths(data: ResourceTopo) {
+    const { minWidth, mongoShardsWidth, width } = this.nodeConfig;
+    const nodeMap = new Map(data.nodes.map((node) => [node.node_id, node]));
+    // 文案左侧为图标区，右侧留白与左侧文字边距对称
+    const getRequiredWidth = (textWidth: number) => Math.ceil(TEXT_LEFT_OFFSET + textWidth + TEXT_RIGHT_PADDING * 2);
+    const getChildrenTextWidth = (childrenId: string[]) =>
+      childrenId.reduce((maxWidth, id) => {
+        const node = nodeMap.get(id);
+        return node ? Math.max(maxWidth, measureTextWidth(formatTopoNodeName(node))) : maxWidth;
+      }, 0);
+
+    let textWidth = 0;
+    let shardsTextWidth = 0;
+    for (const group of data.groups) {
+      const titleWidth = measureTextWidth(group.group_name || group.node_id, GROUP_TITLE_FONT);
+      if (group.node_id === nodeTypes.MONGODB_SHARDS) {
+        shardsTextWidth = Math.max(titleWidth, getChildrenTextWidth(group.children_id));
+      } else {
+        textWidth = Math.max(textWidth, titleWidth, getChildrenTextWidth(group.children_id));
+      }
+    }
+
+    this.nodeWidth = _.clamp(getRequiredWidth(textWidth), minWidth, Math.max(minWidth, width));
+    // 分片组不窄于普通节点，避免同列对齐时显得突兀
+    this.mongoShardsNodeWidth = _.clamp(
+      getRequiredWidth(shardsTextWidth),
+      this.nodeWidth,
+      Math.max(this.nodeWidth, mongoShardsWidth),
+    );
   }
 
   /**
@@ -469,23 +555,12 @@ export class GraphData {
    * @param nodes 根节点
    */
   calcRootLocations(nodes: GraphNode[]) {
-    const { groupTitle, offsetX, startX, startY } = this.nodeConfig;
+    const { offsetX, startX, startY } = this.nodeConfig;
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i];
       node.style.x = (node.style.width + offsetX) * i + startX;
       node.style.y = startY;
-
-      // 计算 children nodes 坐标
-      node.children.forEach((childNode, index) => {
-        const offet = (node.style.height - childNode.style.height) / 2;
-        // eslint-disable-next-line no-param-reassign
-        childNode.style.x = node.style.x;
-        // eslint-disable-next-line no-param-reassign
-        childNode.style.y =
-          index === 0
-            ? node.style.y + groupTitle - offet
-            : node.children[index - 1].style.y + node.children[index - 1].style.height;
-      });
+      this.calcChildrenNodeLocations(node);
     }
   }
 
@@ -631,11 +706,11 @@ export class GraphData {
     // 开启 clb / 恢复主域名直连接入层
     if (masterDomainNode && proxyIpNode && clbDomainNode && clbIpNode) {
       clbDomainNode.style.y = masterDomainNode.style.y;
-      clbDomainNode.style.x = -masterDomainNode.style.width;
+      clbDomainNode.style.x = masterDomainNode.style.x - masterDomainNode.style.width - this.nodeConfig.offsetX;
       this.calcChildrenNodeLocations(clbDomainNode);
 
       clbIpNode.style.y = proxyIpNode.style.y;
-      clbIpNode.style.x = -proxyIpNode.style.width;
+      clbIpNode.style.x = proxyIpNode.style.x - proxyIpNode.style.width - this.nodeConfig.offsetX;
       this.calcChildrenNodeLocations(clbIpNode);
       return;
     }
@@ -643,7 +718,7 @@ export class GraphData {
     // 配置主域名指向 clb
     if (dnsDomainNode && clbDomainNode && clbIpNode) {
       clbDomainNode.style.y = dnsDomainNode.style.y;
-      clbDomainNode.style.x = -dnsDomainNode.style.width;
+      clbDomainNode.style.x = dnsDomainNode.style.x - dnsDomainNode.style.width - this.nodeConfig.offsetX;
       this.calcChildrenNodeLocations(clbDomainNode);
     }
   }
@@ -694,15 +769,15 @@ export class GraphData {
         type: 'node', // 节点类型 group | node
       }));
     } else {
+      this.calcNodeWidths(data);
       const rootGroups = this.getRootGroups(data, dbType);
       const groups = this.getGroups(data, rootGroups);
       const groupLines = getGroupLines(data);
       this.calcRootLocations(rootGroups);
-      const [firstRoot] = rootGroups;
-      this.calcNodeLocations(firstRoot, groups, groupLines);
+      this.calcNodeLocations(rootGroups, groups, groupLines, !CUSTOM_LAYOUT_CLUSTER_TYPES.includes(this.clusterType));
 
       // es hdfs mongo 集群特殊逻辑
-      if (([ClusterTypes.ES, ClusterTypes.HDFS, ClusterTypes.MONGODB] as string[]).includes(this.clusterType)) {
+      if (HORIZONTAL_ALIGN_CLUSTER_TYPES.includes(this.clusterType)) {
         this.calcHorizontalAlignLocations(rootGroups, groups);
       } else if (this.clusterType === ClusterTypes.TENDBCLUSTER) {
         this.calcSpiderNodeLocations(rootGroups, groups);
@@ -719,7 +794,7 @@ export class GraphData {
         (results, node) => results.concat([node], node.children),
         [],
       );
-      this.calcLines(edges, nodes);
+      this.calcEdgePorts(edges, nodes);
     }
     this.graphData = {
       edges,
@@ -741,8 +816,7 @@ export class GraphData {
     for (const group of groups) {
       const { children_id: childrenId, group_name: groupName, node_id: nodeId } = group;
       if (!rootIds.includes(nodeId)) {
-        const groupWidth =
-          nodeId === nodeTypes.MONGODB_SHARDS ? this.nodeConfig.mongoShardsWidth : this.nodeConfig.width;
+        const groupWidth = nodeId === nodeTypes.MONGODB_SHARDS ? this.mongoShardsNodeWidth : this.nodeWidth;
         // 子节点列表
         const children = childrenId
           .map((id) => {
@@ -854,8 +928,8 @@ export class GraphData {
               name,
               style: {
                 // 文案折行时行高相应加高
-                height: this.getNodeRowHeight(name, this.nodeConfig.width),
-                width: this.nodeConfig.width,
+                height: this.getNodeRowHeight(name, this.nodeWidth),
+                width: this.nodeWidth,
                 x: 0,
                 y: 0,
               },
@@ -872,7 +946,7 @@ export class GraphData {
           name: group.group_name || group.node_id,
           style: {
             height: this.getNodeHeight(children),
-            width: this.nodeConfig.width,
+            width: this.nodeWidth,
             x: 0,
             y: 0,
           },
@@ -923,7 +997,9 @@ export class GraphData {
       return [...extractedRoots, ...clbRoots];
     }
     // 排序根节点
-    roots.sort((a) => (a.children.find((node) => node.id === nodeId) ? -1 : 0));
+    // 包含集群主入口的根节点排最前，其余保持原顺序（sort 稳定）
+    const hasMainEntry = (root: GraphNode) => Number(root.children.some((node) => node.id === nodeId));
+    roots.sort((a, b) => hasMainEntry(b) - hasMainEntry(a));
     return roots;
   }
 }

@@ -53,6 +53,7 @@
         :loading="pageLoading">
         <div
           id="clusterTopoGraphMain"
+          ref="graphContainerRef"
           class="cluster-details-graph" />
       </BkLoading>
     </template>
@@ -62,7 +63,7 @@
       v-show="false"
       id="node-details-tips">
       <div class="node-details">
-        <BkLoading :loading="instState.isLoading">
+        <BkLoading :loading="isInstLoading">
           <h5 class="pb-12">
             {{ instState.activeId }}
           </h5>
@@ -124,7 +125,7 @@
 
   import DbStatus from '@components/db-status/index.vue';
 
-  import { useFullscreen } from '@vueuse/core';
+  import { useFullscreen, useResizeObserver } from '@vueuse/core';
 
   import { type NodeConfig } from './common/graphData';
   import { useRenderGraph } from './common/useRenderGraph';
@@ -178,9 +179,7 @@
       namespace?: string;
     };
     clusterType: keyof typeof apiMap | keyof typeof k8sApiMap;
-    // eslint-disable-next-line vue/no-unused-properties
     dbType: string;
-    // eslint-disable-next-line vue/no-unused-properties
     nodeConfig?: NodeConfig;
   }
 
@@ -188,10 +187,20 @@
 
   const { t } = useI18n();
 
-  const { destroyGraph, handleZoomIn, handleZoomOut, handleZoomReset, instDetails, instState, renderDraph } =
-    useRenderGraph(props);
+  const {
+    destroyGraph,
+    handleZoomIn,
+    handleZoomOut,
+    handleZoomReset,
+    instDetails,
+    instState,
+    isInstLoading,
+    renderDraph,
+    resizeGraph,
+  } = useRenderGraph(props);
 
   const clusterTopoRef = ref<HTMLDivElement>();
+  const graphContainerRef = ref<HTMLDivElement>();
   const pageLoading = ref(false);
 
   const { isFullscreen, toggle } = useFullscreen(clusterTopoRef);
@@ -201,7 +210,8 @@
     icon: isFullscreen.value ? 'un-full-screen' : 'full-screen',
     text: isFullscreen.value ? t('取消全屏') : t('全屏'),
   }));
-  const showEmpty = computed(() => props.clusterType.includes('k8s') && props.clusterData.isOffline);
+  // 禁用态集群不渲染拓扑（renderDraph 对所有禁用集群都跳过），统一展示空态
+  const showEmpty = computed(() => props.clusterData.isOffline);
 
   const detailColumns: DetailColumn[] = [
     {
@@ -264,14 +274,13 @@
     },
   ];
 
-  let topoData: ResourceTopo | null = null;
   let fetchTimer: ReturnType<typeof setTimeout> | undefined;
-  let renderTimer: ReturnType<typeof setTimeout> | undefined;
 
   watch(
     () => props.clusterData.id,
     () => {
-      if (props.clusterData.id) {
+      // 禁用态只展示空态，不请求拓扑
+      if (props.clusterData.id && !props.clusterData.isOffline) {
         clearTimeout(fetchTimer);
         fetchTimer = setTimeout(() => {
           fetchResourceTopo(props.clusterData.id);
@@ -281,18 +290,11 @@
     { immediate: true },
   );
 
-  watch(isFullscreen, () => {
-    if (topoData) {
-      clearTimeout(renderTimer);
-      renderTimer = setTimeout(() => {
-        renderDraph(topoData!);
-      });
-    }
-  });
+  // 全屏切换、窗口缩放时只同步画布尺寸，不重建整张图，保留用户的缩放
+  useResizeObserver(graphContainerRef, resizeGraph);
 
   onBeforeUnmount(() => {
     clearTimeout(fetchTimer);
-    clearTimeout(renderTimer);
     destroyGraph();
   });
 
@@ -319,7 +321,6 @@
         if (id !== props.clusterData.id) {
           return;
         }
-        topoData = data;
         renderDraph(data);
       })
       .finally(() => {

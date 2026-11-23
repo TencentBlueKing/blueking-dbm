@@ -224,7 +224,8 @@
     flowCanvasRef.value!.focusNode(node.id);
   };
 
-  const handleShowLog = (node: FlowNode, isShowAiLog = false) => {
+  // 画布节点与树节点都会走到这里，两者字段不同，只取用得到的
+  const handleShowLog = (node: Pick<FlowNode, 'id' | 'status'>, isShowAiLog = false) => {
     // 从画布点进来时树的高亮要跟着走；从树里点进来本来就是选中态，不会重复触发
     searchTreeRef.value!.setSelect(node.id);
     if (node.status === 'CREATED') {
