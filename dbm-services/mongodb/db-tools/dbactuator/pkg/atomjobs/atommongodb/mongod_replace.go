@@ -3,6 +3,7 @@ package atommongodb
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strconv"
@@ -68,6 +69,44 @@ type rsRemoveQuorumCheckResult struct {
 	Remaining []rsRemainingMember `json:"remaining"`
 }
 
+// rsRemoveResult is the JSON printed by buildReplicaSetRemoveEval.
+// Both mongosh (throws) and legacy mongo shell (returns cmd result) are
+// normalized into this shape so callers can decide retry by numeric code
+// without depending on stderr text that Run3 never puts into err.Error().
+type rsRemoveResult struct {
+	Ok       int    `json:"ok"`
+	Code     int    `json:"code"`
+	CodeName string `json:"codeName"`
+	Errmsg   string `json:"errmsg"`
+}
+
+// rsRemoveError is a typed rs.remove failure carried by removeWithRetry.
+type rsRemoveError struct {
+	Code     int
+	CodeName string
+	Errmsg   string
+}
+
+func (e *rsRemoveError) Error() string {
+	if e == nil {
+		return "rs.remove fail"
+	}
+	if e.CodeName != "" {
+		return fmt.Sprintf("rs.remove fail: code=%d codeName=%s errmsg=%s", e.Code, e.CodeName, e.Errmsg)
+	}
+	return fmt.Sprintf("rs.remove fail: code=%d errmsg=%s", e.Code, e.Errmsg)
+}
+
+const (
+	// MongoDB ErrorCodes::ConfigurationInProgress — replSetReconfig while a
+	// previous config change is still being applied.
+	errCodeConfigurationInProgress = 109
+	// MongoDB ErrorCodes::CurrentConfigNotCommittedYet — common right after
+	// rs.add when the newlyAdded flag has not been cleared by the automatic
+	// follow-up reconfig (MongoDB 4.4+).
+	errCodeCurrentConfigNotCommittedYet = 308
+)
+
 func buildReplicaSetConfigCheckEval(source string) string {
 	sourceJSON, _ := json.Marshal(source)
 	return fmt.Sprintf(`
@@ -113,13 +152,130 @@ func buildReplicaSetRemoveQuorumEval(source string) string {
 })();`, string(sourceJSON))
 }
 
+// buildReplicaSetRemoveEval runs rs.remove and always prints a JSON result.
+// mongosh throws on failure; legacy mongo shell returns the command document
+// with ok/code/errmsg and exit 0. Catching + printing covers both paths so
+// Go can retry on numeric codes instead of matching stderr strings that never
+// appear in Run3's error value.
+func buildReplicaSetRemoveEval(source string) string {
+	sourceJSON, _ := json.Marshal(source)
+	return fmt.Sprintf(`
+(function(){
+  var source = %s;
+  try {
+    var r = rs.remove(source);
+    if (r === undefined || r === null) {
+      print(JSON.stringify({ok:1, code:0, codeName:"", errmsg:""}));
+      return;
+    }
+    print(JSON.stringify({
+      ok: (typeof r.ok === "undefined" || r.ok === null) ? 1 : Number(r.ok),
+      code: r.code || 0,
+      codeName: r.codeName || "",
+      errmsg: r.errmsg || ""
+    }));
+  } catch (e) {
+    print(JSON.stringify({
+      ok: 0,
+      code: e.code || 0,
+      codeName: e.codeName || "",
+      errmsg: e.message || String(e)
+    }));
+  }
+})();`, string(sourceJSON))
+}
+
 const (
 	quorumCheckAttempts = 3
 	quorumCheckInterval = 2 * time.Second
+	// rsRemoveAttempts retries rs.remove when the replica set is still
+	// applying a previous reconfig (code 109) or the current config is not
+	// yet committed (code 308). Both commonly occur right after rs.add, when
+	// the newly added member just reached SECONDARY but config propagation /
+	// newlyAdded clearance has not fully settled.
+	rsRemoveAttempts = 5
+	rsRemoveInterval = 5 * time.Second
 )
 
 func isStrictMajorityRefuse(err error) bool {
 	return err != nil && strings.Contains(err.Error(), "no strict majority")
+}
+
+func isReconfigBusyCode(code int) bool {
+	return code == errCodeConfigurationInProgress || code == errCodeCurrentConfigNotCommittedYet
+}
+
+// isReconfigBusy reports whether err is a transient replSetReconfig rejection
+// (ConfigurationInProgress / CurrentConfigNotCommittedYet). Matching is by
+// typed *rsRemoveError code, not by stderr substrings — Run3 only returns
+// "exit status N" and never embeds mongosh stderr into err.Error().
+func isReconfigBusy(err error) bool {
+	var re *rsRemoveError
+	if errors.As(err, &re) {
+		return isReconfigBusyCode(re.Code)
+	}
+	return false
+}
+
+func parseRsRemoveResult(stdout string) (rsRemoveResult, error) {
+	var result rsRemoveResult
+	if err := json.Unmarshal([]byte(stdout), &result); err != nil {
+		return result, fmt.Errorf("parse rs.remove output %q fail: %w", stdout, err)
+	}
+	return result, nil
+}
+
+func rsRemoveResultError(result rsRemoveResult) error {
+	if result.Ok == 1 {
+		return nil
+	}
+	errmsg := result.Errmsg
+	if errmsg == "" {
+		errmsg = result.CodeName
+	}
+	if errmsg == "" {
+		errmsg = "rs.remove failed"
+	}
+	return &rsRemoveError{Code: result.Code, CodeName: result.CodeName, Errmsg: errmsg}
+}
+
+// removeWithRetry retries rs.remove only while the replica set is still
+// applying a previous reconfig. Any other error (auth, notPrimary, quorum,
+// dial, ...) is returned immediately without retry.
+func removeWithRetry(
+	exec func() error,
+	attempts int,
+	interval time.Duration,
+	sleep func(time.Duration),
+	warn func(string, ...interface{}),
+) error {
+	if attempts < 1 {
+		attempts = 1
+	}
+	if sleep == nil {
+		sleep = time.Sleep
+	}
+	var lastErr error
+	for i := 1; i <= attempts; i++ {
+		err := exec()
+		if err == nil {
+			return nil
+		}
+		lastErr = err
+		if !isReconfigBusy(err) {
+			return err
+		}
+		if warn != nil {
+			warn(
+				"rs.remove rejected, reconfig not settled, retry attempt=%d/%d err=%s",
+				i, attempts, err.Error(),
+			)
+		}
+		if i < attempts {
+			sleep(interval)
+		}
+	}
+	return lastErr
 }
 
 func isSingleVotingSurvivor(remaining []rsRemainingMember) bool {
@@ -262,6 +418,20 @@ func (r *MongoDReplace) runMongoEvalOutput(eval string) (string, error) {
 func (r *MongoDReplace) runMongoEval(eval string) error {
 	_, err := r.runMongoEvalOutput(eval)
 	return err
+}
+
+// execRsRemove runs the JSON-normalized rs.remove eval and returns a typed
+// *rsRemoveError when ok!=1 so removeWithRetry can match on error codes.
+func (r *MongoDReplace) execRsRemove(eval string) error {
+	stdout, err := r.runMongoEvalOutput(eval)
+	if err != nil {
+		return err
+	}
+	result, err := parseRsRemoveResult(stdout)
+	if err != nil {
+		return err
+	}
+	return rsRemoveResultError(result)
 }
 
 // sourceInReplicaSetConfig checks the authoritative config through the current primary.
@@ -644,14 +814,20 @@ func (r *MongoDReplace) removeSource() error {
 			[]string{r.ConfParams.SourceIP, strconv.Itoa(r.ConfParams.SourcePort)}, ":"))
 		return nil
 	}
-	if err := r.checkQuorumAfterRemove(); err != nil {
-		return err
-	}
-	removeSourceConfScript := strings.Join([]string{
-		"rs.remove(",
-		fmt.Sprintf("\"%s:%d\"", r.ConfParams.SourceIP, r.ConfParams.SourcePort),
-		")"}, "")
-	if err := r.runMongoEval(removeSourceConfScript); err != nil {
+	source := fmt.Sprintf("%s:%d", r.ConfParams.SourceIP, r.ConfParams.SourcePort)
+	removeEval := buildReplicaSetRemoveEval(source)
+	// Quorum is re-checked before every attempt: the retry window can span
+	// ~25s, during which another voting member may go down.
+	if err := removeWithRetry(
+		func() error {
+			if err := r.checkQuorumAfterRemove(); err != nil {
+				return err
+			}
+			return r.execRsRemove(removeEval)
+		},
+		rsRemoveAttempts, rsRemoveInterval, time.Sleep,
+		r.runtime.Logger.Warn,
+	); err != nil {
 		r.runtime.Logger.Error("execute remove source script fail, error:%s", err)
 		return fmt.Errorf("execute remove source script fail, error:%s", err)
 	}
