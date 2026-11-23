@@ -24,6 +24,7 @@
         {{ t('批量销毁') }}
       </BkButton>
       <BkButton
+        v-if="checkCommunityController(TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY)"
         class="ml-8"
         :disabled="!isIndeterminate"
         @click="handleBatchDataCopy">
@@ -79,6 +80,8 @@
   import Checkbox from '@components/tdesign-ui/checkbox';
 
   import useResetTableHeight from '@views/db-manage/redis/common/hooks/useResetTableHeight';
+
+  import { checkCommunityController } from '@utils';
 
   const { currentBizId } = useGlobalBizs();
   const { t } = useI18n();
@@ -360,13 +363,15 @@
             onClick={() => handleClickDestructItem(row as RedisRollbackModel)}>
             {t('销毁')}
           </bk-button>
-          <bk-button
-            style='margin-left:10px;'
-            text
-            theme='primary'
-            onClick={() => handleClickDataCopy(row as RedisRollbackModel)}>
-            {t('回写数据')}
-          </bk-button>
+          {checkCommunityController(TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY) && (
+            <bk-button
+              style='margin-left:10px;'
+              text
+              theme='primary'
+              onClick={() => handleClickDataCopy(row as RedisRollbackModel)}>
+              {t('回写数据')}
+            </bk-button>
+          )}
         </div>
       ),
       colKey: 'row-operation',
@@ -450,6 +455,9 @@
 
   // 批量回写
   const handleBatchDataCopy = () => {
+    if (!checkCommunityController(TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY)) {
+      return;
+    }
     const list = Object.values(checkedMap.value);
     router.push({
       name: TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY,
@@ -483,7 +491,7 @@
 
   // 回写数据
   const handleClickDataCopy = (data: RedisRollbackModel) => {
-    if (!data.isNotDestroyed) {
+    if (!checkCommunityController(TicketTypes.REDIS_CLUSTER_ROLLBACK_DATA_COPY) || !data.isNotDestroyed) {
       return;
     }
     router.push({

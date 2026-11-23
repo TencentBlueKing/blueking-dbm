@@ -22,6 +22,10 @@ import type { FlowItem, FlowItemTodo } from '@services/types/ticket';
 
 import { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
 
+import { checkCommunityController } from '@utils';
+
+import { t } from '@locales/index';
+
 import http, { type IRequestPayload } from '../http';
 import type { DetailClusters } from '../model/ticket/details/common';
 
@@ -65,6 +69,9 @@ export function createTicketNew<T>(params: {
   remark: string;
   ticket_type: TicketTypes;
 }) {
+  if (!checkCommunityController(params.ticket_type)) {
+    return Promise.reject(new Error(t('暂不支持')));
+  }
   return http.post<{ id: number }>(`${path}/`, params, {
     catchError: true,
     timeout: 300000,
@@ -83,6 +90,9 @@ export function createTicketBatch<T>(params: {
     ticket_type: TicketTypes;
   }[];
 }) {
+  if (params.tickets.some((ticket) => !checkCommunityController(ticket.ticket_type))) {
+    return Promise.reject(new Error(t('暂不支持')));
+  }
   return http.post<{ bk_biz_id: number; clusters: DetailClusters; id: number }[]>(
     `${path}/batch_create_ticket/`,
     params,
@@ -102,7 +112,7 @@ export function getTicketTypes(params?: { is_apply: 0 | 1 }) {
       key: string;
       value: string;
     }[]
-  >(`${path}/flow_types/`, params ?? {});
+  >(`${path}/flow_types/`, params ?? {}).then((data) => data.filter((item) => checkCommunityController(item.key)));
 }
 
 export function getTicketGroupTypes() {
@@ -121,6 +131,10 @@ export function getTicketGroupTypes() {
     {
       cache: true,
     },
+  ).then((data) =>
+    data
+      .map((item) => ({ ...item, children: item.children.filter((child) => checkCommunityController(child.value)) }))
+      .filter((item) => item.children.length > 0),
   );
 }
 

@@ -116,7 +116,7 @@
                 @edit="(e) => handleToDetails(data.id, e, 'alarmSubscription')" />
               <div
                 v-if="!data.isOnlineCLB"
-                v-db-console="'common.clb'">
+                v-db-console="'mysql.clb'">
                 <OperationBtnStatusTips
                   :data="data"
                   :disabled="!data.isOffline">
@@ -132,7 +132,7 @@
               </div>
               <div
                 v-if="data.isOnlineCLB"
-                v-db-console="'common.clb'">
+                v-db-console="'mysql.clb'">
                 <OperationBtnStatusTips
                   :data="data"
                   :disabled="!data.isOffline">

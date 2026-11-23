@@ -1,5 +1,7 @@
 import { match } from 'pinyin-pro';
 
+import { checkCommunityController } from '@utils';
+
 import type { ToolboxLeafNode, ToolboxMenuNode, ToolboxTreeNode } from './types';
 
 /**
@@ -32,6 +34,21 @@ export function hasChildGroups(node: ToolboxTreeNode): boolean {
 /** 获取树节点直接挂载的叶子节点 */
 export function getLeafChildren(node: ToolboxTreeNode): ToolboxLeafNode[] {
   return node.children.filter((item): item is ToolboxLeafNode => isLeafNode(item));
+}
+
+// 先过滤功能和单据，再移除空分组，收藏、最近使用与切换下拉共用同一菜单。
+export function filterControlledToolboxMenu(menuList: ToolboxTreeNode[]): ToolboxTreeNode[] {
+  return menuList
+    .map((item) => ({
+      ...item,
+      children: item.children.flatMap((child): ToolboxMenuNode[] => {
+        if (isTreeNode(child)) {
+          return filterControlledToolboxMenu([child]);
+        }
+        return checkCommunityController(child.dbConsoleValue) && checkCommunityController(child.id) ? [child] : [];
+      }),
+    }))
+    .filter((item) => item.children.length > 0);
 }
 
 /**

@@ -15,6 +15,7 @@ export * from './addJsonToFormData';
 export * from './bytePretty';
 export * from './calcTextWidth';
 export * from './charRelate';
+export * from './checkCommunityController';
 export * from './checkDbConsole';
 export * from './classes';
 export * from './compareVersions';

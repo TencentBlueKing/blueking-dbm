@@ -1,4 +1,8 @@
 {
+  "community": {
+    "is_enabled": false,
+    "children": {}
+  },
   "mysql": {
     "is_enabled": true,
     "children": {

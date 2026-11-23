@@ -14,17 +14,25 @@ import { type ExtractedControllerDataKeys } from '@services/model/function-contr
 
 import { useFunController, useSystemEnviron } from '@stores';
 
+import { checkCommunityController } from './checkCommunityController';
+
 /**
  * 检查 dbconsole 开关
  */
 export function checkDbConsole(key: ExtractedControllerDataKeys) {
+  if (!checkCommunityController(key)) {
+    return false;
+  }
+
   const { funControllerData } = useFunController();
 
-  const [firstKey, secondKey] = key.split('.');
+  // DB 级 CLB 判据仍复用原有公共开关，统一开关只影响 MySQL 和 Redis。
+  const controllerKey = key === 'mysql.clb' || key === 'redis.clb' ? 'common.clb' : key;
+  const [firstKey, secondKey] = controllerKey.split('.');
   if (firstKey === 'common') {
     return funControllerData.getFlatData('common')[secondKey as keyof Record<'common', boolean>];
   }
 
   const { ENABLE_EXTERNAL_PROXY } = useSystemEnviron().urls;
-  return !ENABLE_EXTERNAL_PROXY || funControllerData.getFlatData(key)[key];
+  return !ENABLE_EXTERNAL_PROXY || funControllerData.getFlatData(controllerKey)[controllerKey];
 }
