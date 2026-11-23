@@ -122,6 +122,23 @@ export default class CustomEdge extends Polyline {
     // 这两条边没有配 controlPoints，基类给的就是「起点 + 终点」两条指令
     const [, startX, startY] = keyPathStyle[0] as ['M', number, number];
     const [, endX, endY] = keyPathStyle[1] as ['L', number, number];
+    // 空分支（扇出网关直连汇聚网关）：先沿扇出干线落到布局给它留的那一行，横着走过去，
+    // 再沿汇聚干线回到网关，见 layout 的空分支占位节点。占位行就是首行时直接走直线
+    // routeY 是 layout 挂在边 style 上的自定义字段，基类的样式类型里没有
+    const routeY = (attributes as Record<string, unknown>).routeY as number | undefined;
+    if (routeY !== undefined && routeY !== startY) {
+      const forkTrunkX = startX + trunkGap;
+      const convergeTrunkX = endX - trunkGap;
+      keyPathStyle.splice(
+        1,
+        0,
+        ['L', forkTrunkX, startY],
+        ['L', forkTrunkX, routeY],
+        ['L', convergeTrunkX, routeY],
+        ['L', convergeTrunkX, endY],
+      );
+      return keyPathStyle;
+    }
     if (startY === endY) {
       return keyPathStyle;
     }
