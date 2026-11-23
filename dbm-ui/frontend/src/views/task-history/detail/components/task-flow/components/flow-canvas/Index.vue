@@ -646,6 +646,8 @@
       top: 56px !important;
       right: 16px !important;
       left: auto !important;
+      // 执行中节点的 gif 是叠在画布上的 DOM，层级要压过它
+      z-index: 1;
       display: none !important;
       border: none !important;
       border-radius: 4px;

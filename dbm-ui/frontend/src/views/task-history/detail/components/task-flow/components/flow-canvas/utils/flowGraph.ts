@@ -78,12 +78,10 @@ const targetNameHoverTypeMap: Record<string, string> = {
   skipWraper: 'skipHover',
 };
 
-// 右上角状态图标 hover 时加深，待执行的节点不画图标，没有对应状态
+// 右上角状态图标 hover 时加深。待执行的节点不画图标；执行中、准备中是自带底色的 gif，没有底色圆可加深
 const statusHoverStateMap: Partial<Record<NodeDisplayStatus, string>> = {
   FAILED: 'failedImageBackgroundColorHover',
   FINISHED: 'finishedImageBackgroundColorHover',
-  READY: 'loadingImageBackgroundColorHover',
-  RUNNING: 'loadingImageBackgroundColorHover',
   SKIPPED: 'skipImageBackgroundColorHover',
   TODO: 'todoImageBackgroundColorHover',
 };
@@ -266,9 +264,6 @@ export class FlowGraph {
           forceFailHover: {
             forceFailOptFill: '#DCDEE5',
           },
-          loadingImageBackgroundColorHover: {
-            loadingImageBackgroundColor: NODE_STATUS_META.RUNNING.canvasHoverFill,
-          },
           manualHover: {
             manualOptFill: '#DCDEE5',
           },
@@ -296,7 +291,6 @@ export class FlowGraph {
           finishedImageBackgroundColor: NODE_STATUS_META.FINISHED.canvasFill,
           focusNodeVisibility: 'hidden',
           forceFailOptFill: '#EAEBF0',
-          loadingImageBackgroundColor: NODE_STATUS_META.RUNNING.canvasFill,
           manualOptFill: '#EAEBF0',
           nodeBackgroundshadowColor: '#1919290d',
           ports: [{ placement: 'left' }, { placement: 'right' }],
