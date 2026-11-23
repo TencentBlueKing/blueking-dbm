@@ -37,7 +37,7 @@ curl -X 'PUT' \
       ],
       "manager": "string",
       "remark": "string",
-      "domain_type": "string",
+      "domain_type": 0,
       "extends": "string"
     }
   ]
@@ -60,7 +60,7 @@ curl -X 'PUT' \
         ],
         "manager": "string",
         "remark": "string",
-        "domain_type": "string",
+        "domain_type": 0,
         "extends": "string"
       }
     ]
@@ -81,5 +81,5 @@ curl -X 'PUT' \
 | instances       | list       | Instance list                       |
 | manager         | string     | Manager                         |
 | remark          | string     | Remark                           |
-| domain_type     | string     | Domain type                       |
+| domain_type     | int     | Domain type                       |
 | extends         | string     | Extended information                       |

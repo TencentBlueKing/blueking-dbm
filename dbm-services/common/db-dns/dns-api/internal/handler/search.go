@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"bk-dnsapi/internal/domain/entity"
 	"bk-dnsapi/internal/domain/repo/domain"
 	"bk-dnsapi/pkg/logger"
 	"fmt"
@@ -52,7 +51,7 @@ func (h *Handler) SearchDns(c *gin.Context) {
 	if s := strings.TrimSpace(c.Query("domain_type")); s != "" {
 		t, err := strconv.ParseInt(s, 10, 64)
 		if err != nil {
-			SendResponse(c, nil, Data{Detail: []entity.TbDnsBase{}, RowsNum: 0})
+			SendResponse(c, nil, Data{Detail: []domain.DomainSearchResult{}, RowsNum: 0})
 			return
 		}
 		q.DomainType = &t

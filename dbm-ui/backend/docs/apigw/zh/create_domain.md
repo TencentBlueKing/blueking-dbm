@@ -39,7 +39,7 @@ curl -X 'PUT' \
       ],
       "manager": "string",
       "remark": "string",
-      "domain_type": "string",
+      "domain_type": 0,
       "extends": "string"
     }
   ]
@@ -62,7 +62,7 @@ curl -X 'PUT' \
         ],
         "manager": "string",
         "remark": "string",
-        "domain_type": "string",
+        "domain_type": 0,
         "extends": "string"
       }
     ]
@@ -83,5 +83,5 @@ curl -X 'PUT' \
 | instances       | list       | 实例列表                       |
 | manager         | string     | 管理员                         |
 | remark          | string     | 备注                           |
-| domain_type     | string     | 域名类型                       |
+| domain_type     | int     | 域名类型                       |
 | extends         | string     | 扩展信息                       |

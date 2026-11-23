@@ -21,7 +21,11 @@ type DnsBasePostReqParam struct {
 	BkCloudId  int64  `json:"bk_cloud_id"`
 	Instance   string `json:"instance,required"`
 	DomainName string `json:"domain_name,required"`
-	Set        struct {
+	// Operator 操作人，记为域名的更新人；不传则记为 system
+	Operator string `json:"operator"`
+	// Manager 域名管理人，多个用英文逗号分隔；不传则不修改
+	Manager string `json:"manager"`
+	Set     struct {
 		Instance string `json:"instance,required"`
 	} `json:"set,required"`
 }
@@ -31,7 +35,11 @@ type DnsBaseBatchPostReqParam struct {
 	App        string `json:"app,required"`
 	DomainName string `json:"domain_name,required"`
 	BkCloudId  int64  `json:"bk_cloud_id"`
-	Sets       []struct {
+	// Operator 操作人，记为域名的更新人；不传则记为 system
+	Operator string `json:"operator"`
+	// Manager 域名管理人，多个用英文逗号分隔；不传则不修改
+	Manager string `json:"manager"`
+	Sets    []struct {
 		OldInstance string `json:"old_instance,required"`
 		NewInstance string `json:"new_instance,required"`
 	} `json:"sets,required"`
@@ -69,6 +77,10 @@ func (h *Handler) UpdateDns(c *gin.Context) {
 	if newIp, newPort, err = tools.GetIpPortByIns(updateParam.Set.Instance); err != nil {
 		errMsg += err.Error() + "\r\n"
 	}
+	var manager string
+	if manager, err = domain.ParseManagerParam(updateParam.Manager); err != nil {
+		errMsg += err.Error() + "\r\n"
+	}
 
 	// if ip,err = models.CheckIp(ip); err != nil{
 	//	errMsg += err.Error() + "\r\n"
@@ -94,7 +106,7 @@ func (h *Handler) UpdateDns(c *gin.Context) {
 	}{App: updateParam.App, DomainName: updateParam.DomainName, OIp: ip,
 		OPort: port, NIp: newIp, NPort: newPort, BkCloudId: updateParam.BkCloudId})
 
-	rowsAffected, err := domain.DnsDomainResource().UpdateDomainBatch(batchDnsBases)
+	rowsAffected, err := domain.DnsDomainResource().UpdateDomainBatch(batchDnsBases, updateParam.Operator, manager)
 	_, _ = domain.DnsConfigResource().UpdateLaseUpdateTime()
 	SendResponse(c, err, Data{
 		Detail:  nil,
@@ -129,6 +141,10 @@ func (h *Handler) UpdateBatchDns(c *gin.Context) {
 	if updateParam.DomainName, err = tools.CheckDomain(updateParam.DomainName); err != nil {
 		errMsg += err.Error() + "\r\n"
 	}
+	var manager string
+	if manager, err = domain.ParseManagerParam(updateParam.Manager); err != nil {
+		errMsg += err.Error() + "\r\n"
+	}
 	for _, s := range updateParam.Sets {
 		if ip, port, err = tools.GetIpPortByIns(s.OldInstance); err != nil {
 			errMsg += err.Error() + "\r\n"
@@ -153,7 +169,7 @@ func (h *Handler) UpdateBatchDns(c *gin.Context) {
 		return
 	}
 
-	rowsAffected, err := domain.DnsDomainResource().UpdateDomainBatch(batchDnsBases)
+	rowsAffected, err := domain.DnsDomainResource().UpdateDomainBatch(batchDnsBases, updateParam.Operator, manager)
 	_, _ = domain.DnsConfigResource().UpdateLaseUpdateTime()
 
 	SendResponse(c, err, Data{
@@ -200,9 +216,13 @@ type DnsBaseUpdateAppParam struct {
 	DomainName string `json:"domain_name,required"`
 	App        string `json:"app"`
 	NewApp     string `json:"new_app"`
+	// Operator 操作人，记为域名的更新人；不传则记为 system
+	Operator string `json:"operator"`
+	// Manager 域名管理人，多个用英文逗号分隔；不传则不修改
+	Manager string `json:"manager"`
 }
 
-// UpdateDomainApp 更新域名记录的app
+// UpdateDomainApp 更新域名记录的app，可同时更新域名管理人
 func (h *Handler) UpdateDomainApp(c *gin.Context) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -221,6 +241,11 @@ func (h *Handler) UpdateDomainApp(c *gin.Context) {
 	}
 	if !strings.HasSuffix(updateParam.DomainName, ".") {
 		updateParam.DomainName += "."
+	}
+	manager, err := domain.ParseManagerParam(updateParam.Manager)
+	if err != nil {
+		SendResponse(c, err, Data{})
+		return
 	}
 
 	// 先根据域名、app、bkID查询一遍
@@ -243,7 +268,7 @@ func (h *Handler) UpdateDomainApp(c *gin.Context) {
 	// 更新
 	logger.Info(fmt.Sprintf("update will exec. params[%+v]", updateParam))
 	rowsAffected, err := domain.DnsDomainResource().UpdateFieldsByDomain(updateParam.DomainName, updateParam.BkCloudId,
-		map[string]interface{}{"app": updateParam.NewApp})
+		map[string]interface{}{"app": updateParam.NewApp}, updateParam.Operator, manager)
 	SendResponse(c, err, Data{
 		Detail:  nil,
 		RowsNum: rowsAffected,
