@@ -40,22 +40,26 @@ func resolveUpdater(operator, fallback string) string {
 }
 
 // ensureDomainInfo 补全单个域名在 tb_dns_domain_info 中缺失的记录，已存在则不处理。
-// 管理人取该域名在 tb_dns_base 下所有记录管理人的并集，更新时间取 last_change_time 的最大值，更新人为 system。
+// 管理人取该域名在 tb_dns_base 下所有记录管理人的并集，备注为空，
+// 更新时间取 last_change_time 的最大值，更新人为 system。
 // 只在写操作中调用，按域名精确匹配（走 tb_dns_base 的 domain_name 索引）；并发时由唯一索引兜底
 func ensureDomainInfo(db *gorm.DB, domainName string) error {
-	return db.Exec(`insert ignore into tb_dns_domain_info (domain_name, manager, updater, update_time)
+	return db.Exec(`insert ignore into tb_dns_domain_info (domain_name, manager, remark, updater, update_time)
 select b.domain_name,
 coalesce(group_concat(distinct nullif(b.manager, '') order by b.manager separator ','), ''),
+'',
 ?, coalesce(max(b.last_change_time), now())
 from tb_dns_base b where b.domain_name = ? group by b.domain_name`,
 		defaultUpdater, domainName).Error
 }
 
-// upsertDomainInfo 写入域名公共属性；已存在则覆盖管理人、更新人、更新时间
-func upsertDomainInfo(db *gorm.DB, domainName, manager, updater string) error {
-	return db.Exec(`insert into tb_dns_domain_info (domain_name, manager, updater, update_time) values (?, ?, ?, ?)
-on duplicate key update manager = values(manager), updater = values(updater), update_time = values(update_time)`,
-		domainName, manager, updater, time.Now()).Error
+// upsertDomainInfo 写入域名公共属性；已存在则覆盖管理人、备注、更新人、更新时间
+func upsertDomainInfo(db *gorm.DB, domainName, manager, remark, updater string) error {
+	return db.Exec(`insert into tb_dns_domain_info (domain_name, manager, remark, updater, update_time)
+values (?, ?, ?, ?, ?)
+on duplicate key update manager = values(manager), remark = values(remark), updater = values(updater),
+update_time = values(update_time)`,
+		domainName, manager, remark, updater, time.Now()).Error
 }
 
 // touchDomainInfo 更新域名的更新人和更新时间。调用前需保证记录已存在（ensureDomainInfo）
@@ -86,14 +90,25 @@ func ParseManagerParam(raw string) (string, error) {
 }
 
 // applyDomainInfoChange 域名发生修改后同步 tb_dns_domain_info：
-// 先补全缺失记录，再更新更新人、更新时间；manager 非空时同时覆盖管理人，为空则管理人不变
-func applyDomainInfoChange(db *gorm.DB, domainName, updater, manager string) error {
+// 先补全缺失记录，再更新更新人、更新时间；manager 非空时同时覆盖管理人，为空则管理人不变；
+// remark 非 nil 时同时覆盖域名备注（空串表示清空），nil 则备注不变
+func applyDomainInfoChange(db *gorm.DB, domainName, updater, manager string, remark *string) error {
 	if err := ensureDomainInfo(db, domainName); err != nil {
 		return err
 	}
-	if manager == "" {
+	if manager == "" && remark == nil {
 		return touchDomainInfo(db, domainName, updater)
 	}
-	return db.Exec("update tb_dns_domain_info set manager = ?, updater = ?, update_time = ? where domain_name = ?",
-		manager, updater, time.Now(), domainName).Error
+	sets := []string{"updater = ?", "update_time = ?"}
+	args := []interface{}{updater, time.Now()}
+	if manager != "" {
+		sets = append(sets, "manager = ?")
+		args = append(args, manager)
+	}
+	if remark != nil {
+		sets = append(sets, "remark = ?")
+		args = append(args, *remark)
+	}
+	args = append(args, domainName)
+	return db.Exec("update tb_dns_domain_info set "+strings.Join(sets, ", ")+" where domain_name = ?", args...).Error
 }

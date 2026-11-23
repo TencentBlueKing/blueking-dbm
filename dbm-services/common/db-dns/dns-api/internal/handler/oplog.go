@@ -126,7 +126,7 @@ func parseOpLogQuery(c *gin.Context) (domain.DnsOpLogQuery, error) {
 	return q, err
 }
 
-// GetDomainOpLog 查询域名级别的操作日志，域名为模糊匹配
+// GetDomainOpLog 查询域名级别的操作日志，域名为精确匹配
 func (h *Handler) GetDomainOpLog(c *gin.Context) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -140,12 +140,16 @@ func (h *Handler) GetDomainOpLog(c *gin.Context) {
 		SendResponse(c, fmt.Errorf("param domain_name must not be empty"), Data{})
 		return
 	}
+	if !strings.HasSuffix(domainName, ".") {
+		domainName += "."
+	}
 	q, err := parseOpLogQuery(c)
 	if err != nil {
 		SendResponse(c, err, Data{})
 		return
 	}
 	q.DomainName = domainName
+	q.DomainExact = true
 
 	rs, total, err := domain.DnsOpLogResource().Query(q)
 	if err != nil {
@@ -155,7 +159,7 @@ func (h *Handler) GetDomainOpLog(c *gin.Context) {
 	SendResponse(c, nil, Data{Detail: rs, RowsNum: total})
 }
 
-// GetAllOpLog 查询全局操作日志
+// GetAllOpLog 查询全局操作日志，可选按域名模糊匹配
 func (h *Handler) GetAllOpLog(c *gin.Context) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -169,6 +173,8 @@ func (h *Handler) GetAllOpLog(c *gin.Context) {
 		SendResponse(c, err, Data{})
 		return
 	}
+	// domain_name 可选，传了按模糊匹配过滤，不传则查询所有域名
+	q.DomainName = strings.TrimSpace(c.Query("domain_name"))
 	rs, total, err := domain.DnsOpLogResource().Query(q)
 	if err != nil {
 		SendResponse(c, err, Data{})

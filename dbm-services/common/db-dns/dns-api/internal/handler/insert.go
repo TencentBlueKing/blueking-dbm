@@ -14,17 +14,32 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// FlexDomainType 兼容整数和字符串的 domain_type。
+// 传整数按该值处理；传字符串（或其他非整数类型）一律转换为 0
+type FlexDomainType int64
+
+// UnmarshalJSON 实现 json.Unmarshaler
+func (d *FlexDomainType) UnmarshalJSON(b []byte) error {
+	var n int64
+	if err := json.Unmarshal(b, &n); err != nil {
+		*d = 0
+		return nil
+	}
+	*d = FlexDomainType(n)
+	return nil
+}
+
 // DnsBasePutReqParam 插入结构体
 type DnsBasePutReqParam struct {
 	// Appid 	int64		`json:"appid"`
 	App       string `json:"app,required"`
 	BkCloudId int64  `json:"bk_cloud_id"`
 	Domains   []struct {
-		DomainName string   `json:"domain_name"`
-		Instances  []string `json:"instances,required"`
-		Manager    string   `json:"manager"`
-		Remark     string   `json:"remark"`
-		DomainType int64    `json:"domain_type"`
+		DomainName string         `json:"domain_name"`
+		Instances  []string       `json:"instances,required"`
+		Manager    string         `json:"manager"`
+		Remark     string         `json:"remark"`
+		DomainType FlexDomainType `json:"domain_type"`
 	} `json:"domains"`
 }
 
@@ -84,7 +99,7 @@ func (h *Handler) AddDns(c *gin.Context) {
 				LastChangeTime: time.Now(),
 				Manager:        domains.Manager,
 				Remark:         domains.Remark,
-				DomainType:     domains.DomainType,
+				DomainType:     int64(domains.DomainType),
 				Status:         "1",
 				BkCloudId:      addParam.BkCloudId,
 			}

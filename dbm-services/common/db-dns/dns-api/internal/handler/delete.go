@@ -17,9 +17,7 @@ type DnsBaseDelReqParam struct {
 	// Appid 	int64		`json:"appid"`
 	App       string `json:"app,required"`
 	BkCloudId int64  `json:"bk_cloud_id"`
-	// Operator 操作人，记为域名的更新人；不传则记为 system
-	Operator string `json:"operator"`
-	Domains  []struct {
+	Domains   []struct {
 		DomainName string   `json:"domain_name"`
 		Instances  []string `json:"instances,required"`
 	} `json:"domains"`
@@ -94,7 +92,7 @@ func (h *Handler) DelDns(c *gin.Context) {
 
 	for i := 0; i < len(domainList); i++ {
 		rowsNum, _ := domain.DnsDomainResource().Delete(dnsBase.TableName(), delParam.App,
-			domainList[i], delParam.BkCloudId, ipsList[i], delParam.Operator)
+			domainList[i], delParam.BkCloudId, ipsList[i])
 		rowsAffected += rowsNum
 	}
 	_, _ = domain.DnsConfigResource().UpdateLaseUpdateTime()

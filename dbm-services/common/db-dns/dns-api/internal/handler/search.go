@@ -2,9 +2,7 @@ package handler
 
 import (
 	"bk-dnsapi/internal/domain/repo/domain"
-	"bk-dnsapi/pkg/logger"
 	"fmt"
-	"runtime/debug"
 	"strconv"
 	"strings"
 
@@ -32,15 +30,10 @@ func parsePage(c *gin.Context) (limit, offset int, err error) {
 	return pageSize, (page - 1) * pageSize, nil
 }
 
-// SearchDns 检索域名记录。
-// 支持域名(模糊)、维护方式(domain_type: 0集群托管 1自主维护)、负责人(manager)，条件之间为 and 关系
+// SearchDns 检索域名，一行一个域名，返回维护方式、实例列表、管理人、更新人、更新时间。
+// 支持域名(模糊)、维护方式(domain_type: 0集群托管 1自主维护)、负责人(manager)，条件之间为 and 关系，都不传返回全部
 func (h *Handler) SearchDns(c *gin.Context) {
-	defer func() {
-		if r := recover(); r != nil {
-			logger.Error(fmt.Sprintf("panic error:%v,stack:%s", r, string(debug.Stack())))
-			SendResponse(c, fmt.Errorf("panic error:%v", r), Data{})
-		}
-	}()
+	defer recoverPanic(c)
 
 	q := domain.DomainSearchQuery{
 		DomainName: strings.TrimSpace(c.Query("domain_name")),
@@ -62,7 +55,7 @@ func (h *Handler) SearchDns(c *gin.Context) {
 		return
 	}
 
-	rs, total, err := domain.DnsDomainResource().Search(q)
+	rs, total, err := domain.DnsDomainMgrResource().Search(q)
 	if err != nil {
 		SendResponse(c, err, Data{})
 		return

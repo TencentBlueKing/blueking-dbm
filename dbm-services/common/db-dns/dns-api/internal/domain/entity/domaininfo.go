@@ -7,7 +7,9 @@ type TbDnsDomainInfo struct {
 	Uid        int64  `gorm:"column:uid;size:20;primary_key;AUTO_INCREMENT" json:"uid"`
 	DomainName string `gorm:"size:255;column:domain_name" json:"domain_name"`
 	// Manager 管理人，支持多个，英文逗号分隔，如 "zhangsan,lisi"
-	Manager    string    `gorm:"size:512;column:manager" json:"manager"`
+	Manager string `gorm:"size:512;column:manager" json:"manager"`
+	// Remark 域名维度的备注
+	Remark     string    `gorm:"size:512;column:remark" json:"remark"`
 	Updater    string    `gorm:"size:64;column:updater" json:"updater"`
 	UpdateTime time.Time `gorm:"column:update_time" json:"update_time"`
 }
@@ -19,7 +21,7 @@ func (t *TbDnsDomainInfo) TableName() string {
 
 // Columns tb_dns_domain_info col
 func (t *TbDnsDomainInfo) Columns() []string {
-	return []string{"uid", "domain_name", "manager", "updater", "update_time"}
+	return []string{"uid", "domain_name", "manager", "remark", "updater", "update_time"}
 }
 
 // TableUnique 唯一索引
