@@ -47,11 +47,11 @@
           <AuthButton
             v-if="runtimeEnabled"
             v-bk-tooltips="{
-              content: selectedRows.length ? t('所选参数均与运行值一致') : t('请勾选参数'),
-              disabled: applicableItems.length > 0,
+              content: t('全部参数的运行值均与设定值一致'),
+              disabled: canApplyConfig,
             }"
             :action-id="actionId"
-            :disabled="applicableItems.length === 0"
+            :disabled="!canApplyConfig"
             :permission="permissions[actionId]"
             :resource="resourceId"
             @click="handleShowApplyDialog">
@@ -333,8 +333,7 @@
         v-model:is-show="applyDialog.isShow"
         :cluster="String(levelValue)"
         :items="applyDialog.items"
-        :selected-count="applyDialog.selectedCount"
-        :skipped-count="applyDialog.skippedCount" />
+        :runtime-config-map="applyDialog.runtimeConfigMap" />
     </BkLoading>
   </ApplyPermissionCatch>
 </template>
@@ -475,16 +474,14 @@
   });
   const runtimeConfigMap = ref<Record<string, RuntimeConfig>>({});
   const runtimeDetailParameter = ref<ConfItem>();
-  const applicableItems = computed(() =>
-    selectedRows.value.filter(
-      (item) => item.flag_readonly !== 1 && runtimeConfigMap.value[item.conf_name]?.comparison !== 'consistent',
-    ),
+  // 应用范围是当前 Tab 全量参数，不受勾选、只读或表格筛选影响。
+  const canApplyConfig = computed(() =>
+    allConfItems.value.some((item) => runtimeConfigMap.value[item.conf_name]?.comparison !== 'consistent'),
   );
   const applyDialog = reactive({
     isShow: false,
     items: [] as ConfItem[],
-    selectedCount: 0,
-    skippedCount: 0,
+    runtimeConfigMap: {} as Record<string, RuntimeConfig>,
   });
 
   // 行唯一标识字段
@@ -1003,11 +1000,10 @@
   };
 
   const handleShowApplyDialog = () => {
-    if (!applicableItems.value.length) return;
-    // 待 PEER 确认：此处接后台最新运行值预检查；当前仅保留设定值快照供界面预览。
-    applyDialog.items = _.cloneDeep(applicableItems.value);
-    applyDialog.selectedCount = selectedRows.value.length;
-    applyDialog.skippedCount = selectedRows.value.length - applicableItems.value.length;
+    if (!canApplyConfig.value) return;
+    // 待 PEER 确认：以后台最新运行值预检查替换当前全量快照，预览不等于最终提交范围。
+    applyDialog.items = _.cloneDeep(allConfItems.value);
+    applyDialog.runtimeConfigMap = _.cloneDeep(runtimeConfigMap.value);
     applyDialog.isShow = true;
   };
 
@@ -1227,6 +1223,7 @@
     runtimeDetailParameter.value = undefined;
     applyDialog.isShow = false;
     applyDialog.items = [];
+    applyDialog.runtimeConfigMap = {};
     tippyInstances.forEach((inst) => inst.destroy());
     tippyInstances.length = 0;
   };
