@@ -283,6 +283,8 @@
     position: absolute;
     top: 16px;
     right: 16px;
+    // 执行中节点的 gif 是叠在画布上的 DOM（见 normalNode 的 loading 图标），层级要压过它
+    z-index: 1;
     width: 300px;
 
     .operations-main {
