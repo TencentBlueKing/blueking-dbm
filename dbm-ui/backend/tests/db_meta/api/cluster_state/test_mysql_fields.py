@@ -26,7 +26,15 @@ from backend.tests.db_meta.api.cluster_state.base import StateFieldTestCase, cre
 
 pytestmark = pytest.mark.django_db
 
-MYSQL_HA_FIELDS = ["phase", "status", "running_ticket", "dbha_disabled", "capacity", "portrait_report"]
+MYSQL_HA_FIELDS = [
+    "phase",
+    "status",
+    "running_ticket",
+    "dbha_disabled",
+    "capacity",
+    "portrait_report",
+    "independently_hosted",
+]
 
 
 @pytest.fixture

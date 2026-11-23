@@ -12,7 +12,8 @@ from typing import Dict, List, Set
 
 from django.utils.crypto import get_random_string
 
-from backend.db_meta.api.cluster_state import ClusterStateService, StateValue
+from backend.db_meta.api.cluster_state import ClusterStateService
+from backend.db_meta.api.cluster_state.fields.base import StateValue
 from backend.db_meta.api.cluster_state.filters import build_state_filter_q
 from backend.db_meta.models import Cluster
 

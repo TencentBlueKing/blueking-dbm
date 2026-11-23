@@ -17,13 +17,12 @@ from backend.db_meta.api.cluster_state import (
     ClusterStateSchema,
     ClusterStateService,
     CommonClusterStateSchema,
-    NativeStateField,
-    StoredStateField,
     register_state_schema,
     registry,
 )
 from backend.db_meta.api.cluster_state.checks import check_cluster_state_schemas
 from backend.db_meta.api.cluster_state.fields import CapacityField, PhaseField
+from backend.db_meta.api.cluster_state.fields.base import NativeStateField, StoredStateField
 from backend.db_meta.api.cluster_state.schemas.mysql import MySQLHAStateSchema
 from backend.db_meta.enums import ClusterType, DrillDownType, StateFilterOperator, StateValueType
 from backend.db_meta.exceptions import ClusterStateException

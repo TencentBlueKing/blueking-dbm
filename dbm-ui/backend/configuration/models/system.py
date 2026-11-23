@@ -124,9 +124,7 @@ class BizSettings(AbstractSettings):
     bk_biz_id = models.IntegerField(help_text=_("业务ID"))
 
     class Meta:
-        indexes = [
-            models.Index(fields=["bk_biz_id"]),
-        ]
+        indexes = [models.Index(fields=["bk_biz_id"]), models.Index(fields=["key"])]
         unique_together = (
             "bk_biz_id",
             "key",

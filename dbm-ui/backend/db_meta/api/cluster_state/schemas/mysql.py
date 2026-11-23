@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from backend.db_meta.api.cluster_state.fields.common import CapacityField, DBHADisabledField, PortraitReportField
+from backend.db_meta.api.cluster_state.fields.common.independently_hosted import IndependentlyHostedField
 from backend.db_meta.api.cluster_state.registry import register_state_schema
 from backend.db_meta.api.cluster_state.schemas.common import CommonClusterStateSchema
 from backend.db_meta.enums import ClusterType
@@ -25,6 +26,7 @@ class MySQLHAStateSchema(CommonClusterStateSchema):
     dbha_disabled = DBHADisabledField()
     capacity = CapacityField()
     portrait_report = PortraitReportField()
+    independently_hosted = IndependentlyHostedField()
 
 
 @register_state_schema(cluster_types=[ClusterType.TenDBHA.value])
