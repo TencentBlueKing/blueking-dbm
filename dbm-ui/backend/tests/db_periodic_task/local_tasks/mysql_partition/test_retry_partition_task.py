@@ -30,7 +30,7 @@ def _dispatch_page(mod, config_ids, conf_cnt_map=None, clocks=None):
         cluster_type=_ha(mod),
         config_ids=config_ids,
         since=SINCE,
-        conf_cnt_map=conf_cnt_map if conf_cnt_map is not None else {9: 100},
+        conf_cnt_map=conf_cnt_map if conf_cnt_map is not None else {9: 100, 8: 1},
         clocks=clocks if clocks is not None else {},
         start=START,
     )
@@ -77,35 +77,27 @@ class TestBuildClusterClock:
         assert clock.interval_seconds == retry_mod.MIN_WAVE_INTERVAL_SECONDS
 
 
-class TestNormalizeExecuteConfig:
-    def test_id_is_copied_to_config_id(self, retry_mod):
-        cluster_id, config = retry_mod.normalize_execute_config({"id": "12", "cluster_id": "3", "dblike": "db%"})
-        assert cluster_id == 3
-        assert config["config_id"] == 12
-        assert config["dblike"] == "db%"
-
-    def test_existing_config_id_is_kept(self, retry_mod):
-        cluster_id, config = retry_mod.normalize_execute_config({"config_id": 8, "id": 9, "cluster_id": 2})
-        assert cluster_id == 2
-        assert config["config_id"] == 8
-
-    def test_missing_cluster_or_id_returns_none(self, retry_mod):
-        assert retry_mod.normalize_execute_config({"id": 1}) is None
-        assert retry_mod.normalize_execute_config({"cluster_id": 1}) is None
-        assert retry_mod.normalize_execute_config({}) is None
-        assert retry_mod.normalize_execute_config(None) is None
-
-
 class TestDispatchPageRetries:
-    def test_success_is_not_dispatched(self, retry_mod):
+    def test_success_is_not_fetched(self, retry_mod):
+        failed = {"config_id": 2, "dblike": "db%", "phase": "online"}
+        not_run = {"config_id": 3, "dblike": "other"}
+
+        def by_id(_cluster_id, config_id, _cluster_type):
+            body = {2: failed, 3: not_run}[config_id]
+            return {"cluster_id": 9, "configs": [body]}
+
         with patch.object(retry_mod, "_fetch_execution_sets_for_config_ids", return_value=({1}, {2})), patch.object(
             retry_mod, "query_conf_by_ids", return_value=[{"id": 2, "cluster_id": 9}, {"id": 3, "cluster_id": 9}]
-        ) as query, patch.object(retry_mod, "dispatch_retry_group") as dispatched:
+        ) as query, patch.object(retry_mod, "get_partition_by_config_id", side_effect=by_id) as fetched, patch.object(
+            retry_mod, "dispatch_retry_group"
+        ) as dispatched:
             fail_cnt, not_run_cnt, group_cnt = _dispatch_page(retry_mod, [1, 2, 3])
         assert (fail_cnt, not_run_cnt, group_cnt) == (1, 1, 1)
         assert query.call_args[0][2] == [2, 3]
-        configs = dispatched.call_args[0][2]
-        assert [item["config_id"] for item in configs] == [2, 3]
+        assert fetched.call_count == 2
+        sent = dispatched.call_args[0][2]
+        assert sent[0] is failed
+        assert sent[1] is not_run
 
     def test_groups_by_cluster_and_hundred(self, retry_mod):
         config_ids = list(range(1, 152))
@@ -113,9 +105,14 @@ class TestDispatchPageRetries:
         def query(_bk_biz_id, _cluster_type, ids):
             return [{"id": config_id, "cluster_id": 9 if config_id <= 150 else 8} for config_id in ids]
 
+        def by_id(cluster_id, config_id, _cluster_type):
+            return {"cluster_id": cluster_id, "configs": [{"config_id": config_id}]}
+
         with patch.object(
             retry_mod, "_fetch_execution_sets_for_config_ids", return_value=(set(), set())
         ), patch.object(retry_mod, "query_conf_by_ids", side_effect=query), patch.object(
+            retry_mod, "get_partition_by_config_id", side_effect=by_id
+        ), patch.object(
             retry_mod, "dispatch_retry_group"
         ) as dispatched:
             _fail, not_run_cnt, group_cnt = _dispatch_page(retry_mod, config_ids, conf_cnt_map={9: 150, 8: 1})
@@ -133,9 +130,14 @@ class TestDispatchPageRetries:
                 raise RuntimeError("partition api down")
             return [{"id": config_id, "cluster_id": 9} for config_id in ids]
 
+        def by_id(cluster_id, config_id, _cluster_type):
+            return {"cluster_id": cluster_id, "configs": [{"config_id": config_id}]}
+
         with patch.object(
             retry_mod, "_fetch_execution_sets_for_config_ids", return_value=(set(), set())
         ), patch.object(retry_mod, "query_conf_by_ids", side_effect=query), patch.object(
+            retry_mod, "get_partition_by_config_id", side_effect=by_id
+        ), patch.object(
             retry_mod, "dispatch_retry_group"
         ) as dispatched:
             _fail, not_run_cnt, group_cnt = _dispatch_page(retry_mod, config_ids)
@@ -155,6 +157,7 @@ class TestRetryOneBiz:
     def _run(self, retry_mod, conf_cnt_map):
         built = {}
         real_build = retry_mod.build_cluster_clock
+        page = {"config_id": 1, "dblike": "db%", "phase": "online"}
 
         def spy(*args, **kwargs):
             clock = real_build(*args, **kwargs)
@@ -162,15 +165,21 @@ class TestRetryOneBiz:
             built["conf_cnt"] = args[2]
             return clock
 
+        def by_id(cluster_id, _config_id, _cluster_type):
+            return {"cluster_id": cluster_id, "configs": [page]}
+
         with patch.object(retry_mod, "_iter_biz_config_ids", return_value=[[1]]), patch.object(
             retry_mod, "_fetch_execution_sets_for_config_ids", return_value=(set(), set())
         ), patch.object(retry_mod, "query_conf_by_ids", return_value=[{"id": 1, "cluster_id": 9}]), patch.object(
+            retry_mod, "get_partition_by_config_id", side_effect=by_id
+        ), patch.object(
             retry_mod, "dispatch_retry_group"
         ) as dispatched, patch.object(
             retry_mod, "build_cluster_clock", side_effect=spy
         ):
             retry_mod.retry_one_biz_partition_task(1, _ha(retry_mod), conf_cnt_map)
         assert dispatched.call_count == 1
+        assert dispatched.call_args[0][2][0] is page
         return built
 
     def test_string_keys_are_coerced_and_used(self, retry_mod):
