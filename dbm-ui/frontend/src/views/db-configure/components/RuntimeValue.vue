@@ -12,24 +12,27 @@
 -->
 
 <template>
-  <button
+  <Component
+    :is="readonly ? 'span' : 'button'"
     class="param-runtime-value"
     :class="{
-      'param-runtime-value-has-value': hasValues,
-      'param-runtime-value-inconsistent': comparison === 'inconsistent',
+      'param-runtime-value-has-value': hasValues && !readonly,
+      'param-runtime-value-inconsistent': comparison === 'inconsistent' && !readonly,
+      'param-runtime-value-readonly': readonly,
     }"
-    type="button"
-    @click="emit('click')">
+    :type="readonly ? undefined : 'button'"
+    @click="!readonly && emit('click')">
     <span
       v-bk-tooltips="{ content: tooltip, allowHTML: false, disabled: !tooltip }"
       class="param-runtime-value-text">
       {{ displayValue }}
     </span>
     <DbIcon
-      v-if="comparison === 'unknown' && hasValues"
+      v-if="comparison === 'unknown'"
+      v-bk-tooltips="{ content: tooltip, allowHTML: false, disabled: !tooltip }"
       class="param-runtime-value-warning"
-      type="alert" />
-  </button>
+      type="attention" />
+  </Component>
 </template>
 
 <script setup lang="ts">
@@ -39,11 +42,13 @@
 
   interface Props {
     encrypted?: boolean;
+    readonly?: boolean;
     runtime?: RuntimeConfig;
   }
 
   const props = withDefaults(defineProps<Props>(), {
     encrypted: false,
+    readonly: false,
     runtime: undefined,
   });
 
@@ -70,13 +75,12 @@
     return visibleValues.value.length > 3 ? `${text}…（${t('共n种', { n: visibleValues.value.length })}）` : text;
   });
   const tooltip = computed(() => {
-    if (!hasValues.value) return props.runtime?.error ?? '';
     const lines = visibleValues.value.length > 1 ? [visibleValues.value.join('，')] : [];
     if (comparison.value === 'inconsistent') {
       lines.push(t('与设定值不一致'));
       if (props.runtime?.hasFailedInstances) lines.push(t('部分实例运行值获取失败'));
     } else if (comparison.value === 'unknown') {
-      lines.push(t('实例运行值未完全获取，无法判断是否全部与设定值一致'));
+      lines.push(t('部分实例未获取运行值，无法判断是否全部与设定值一致'));
     } else if (props.runtime?.equivalentExpressions) {
       lines.push(t('表达不同，语义一致'));
     }
@@ -107,7 +111,7 @@
     }
 
     .param-runtime-value-warning {
-      color: #ff9c01;
+      color: #979ba5;
       flex-shrink: 0;
     }
   }
@@ -124,5 +128,9 @@
 
   .param-runtime-value-inconsistent {
     color: #ff9c01;
+  }
+
+  .param-runtime-value-readonly {
+    cursor: default;
   }
 </style>
