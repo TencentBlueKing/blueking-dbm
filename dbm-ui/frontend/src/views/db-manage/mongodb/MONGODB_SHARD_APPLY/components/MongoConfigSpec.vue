@@ -350,12 +350,11 @@
         bk_cloud_region: props.params.region,
         spec_ids: specList.value.map((item) => item.spec_id),
       };
+
       if (zoneNames.length) {
+        countParams.bk_cloud_zone_list = zoneNames;
         // 指定可用区为单选：按单可用区查询；跨可用区为多选：按多可用区查询并按可用区分组
-        if (props.params.disaster_tolerance_level === Affinity.SAME_SUBZONE_CROSS_SWTICH) {
-          countParams.bk_cloud_zone = zoneNames[0];
-        } else {
-          countParams.sub_zone_ids = zoneNames;
+        if (props.params.disaster_tolerance_level !== Affinity.SAME_SUBZONE_CROSS_SWTICH) {
           countParams.group_by_cloud_zone = true;
         }
       }

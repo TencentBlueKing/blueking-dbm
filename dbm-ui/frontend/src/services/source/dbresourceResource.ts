@@ -249,10 +249,8 @@ interface SpecResourceCountGrouped {
 export function getSpecResourceCount(params: {
   bk_biz_id: number;
   bk_cloud_id: number;
-  /** 地域标识 */
   bk_cloud_region?: string;
-  /** 单个可用区名称 */
-  bk_cloud_zone?: string;
+  bk_cloud_zone_list?: string[];
   /** 多个可用区查询时传 true，返回按可用区分组结构 */
   group_by_cloud_zone?: boolean;
   resource_type?: string;

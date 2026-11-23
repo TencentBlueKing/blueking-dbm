@@ -162,11 +162,9 @@
       params.bk_cloud_region = props.region;
     }
     if (zoneNames.length) {
+      params.bk_cloud_zone_list = zoneNames;
       // 指定可用区为单选：按单可用区查询；跨可用区（含强/弱）为多选：按多可用区查询并按可用区分组
-      if (props.disasterToleranceLevel === Affinity.SAME_SUBZONE_CROSS_SWTICH) {
-        params.bk_cloud_zone = zoneNames[0];
-      } else {
-        params.sub_zone_ids = zoneNames;
+      if (props.disasterToleranceLevel !== Affinity.SAME_SUBZONE_CROSS_SWTICH) {
         params.group_by_cloud_zone = true;
       }
     }
