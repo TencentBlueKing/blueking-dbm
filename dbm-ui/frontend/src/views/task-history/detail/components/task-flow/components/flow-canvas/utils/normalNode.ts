@@ -13,6 +13,8 @@
 
 import _ from 'lodash';
 
+import { useSystemEnviron } from '@stores';
+
 import { getNodeDisplayStatus, NODE_STATUS_META } from '@views/task-history/detail/utils';
 
 import { getCostTimeDisplay } from '@utils';
@@ -257,11 +259,14 @@ export class NormalNode extends Rect {
 
     let y = 8;
 
+    // 搜索树按不区分大小写过滤，这里口径保持一致：先按小写找位置，再取出原文里实际命中的那一段。
     // 换行只按第一处命中调整，后面的命中留在第二段原文里，下面逐行高亮时一并处理
-    const keyIndex = searchKey ? name!.indexOf(searchKey) : -1;
+    const keyIndex = searchKey ? name!.toLowerCase().indexOf(searchKey.toLowerCase()) : -1;
+    const matchedText = keyIndex > -1 ? name!.slice(keyIndex, keyIndex + searchKey.length) : '';
+    const searchRegex = searchKey ? new RegExp(`(${_.escapeRegExp(searchKey)})`, 'i') : null;
     let lines = [name!];
     if (keyIndex > -1) {
-      lines = adjustLinesText([name!.slice(0, keyIndex), name!.slice(keyIndex + searchKey.length)], searchKey);
+      lines = adjustLinesText([name!.slice(0, keyIndex), name!.slice(keyIndex + searchKey.length)], matchedText);
     } else if (getTextWidth(name!) > LINE_WIDTH) {
       y = 16;
     }
@@ -284,9 +289,9 @@ export class NormalNode extends Rect {
 
     nodeTitleStyleList.forEach((nodeTitleStyle, index) => {
       const lineText = nodeTitleStyle.text;
-      if (searchKey && lineText.includes(searchKey)) {
-        // 每两段原文之间都补回关键字，一行里命中多处时才不会丢
-        const textList = lineText.split(searchKey).flatMap((text, i) => (i ? [searchKey, text] : [text]));
+      if (searchRegex && searchRegex.test(lineText)) {
+        // 带捕获组切分，命中的原文按原大小写留在结果里，一行里命中多处时才不会丢
+        const textList = lineText.split(new RegExp(searchRegex.source, 'gi'));
         textList.forEach((text, textIndex) => {
           if (!text) {
             return;
@@ -296,10 +301,10 @@ export class NormalNode extends Rect {
           if (textIndex > 0) {
             const formalTextWidth = getTextWidth(textList.slice(0, textIndex).join(''));
             style.x = style.x + formalTextWidth;
-            style.wordWrapWidth = LINE_WIDTH - formalTextWidth - getTextWidth(searchKey);
+            style.wordWrapWidth = LINE_WIDTH - formalTextWidth - getTextWidth(matchedText || searchKey);
             style.maxLines = 1;
           }
-          if (text === searchKey) {
+          if (text.toLowerCase() === searchKey.toLowerCase()) {
             style.fill = 'orange';
           }
           this.upsertShape(`nodeTitle_${index}_${textIndex}`, GText, style, container);
@@ -322,12 +327,14 @@ export class NormalNode extends Rect {
     const { retryable, skippable, status, todoId } = this.data;
     if (status === 'FAILED') {
       if (this.isSuperUserMode) {
+        // 专家模式下一排三个按钮，每个 68 宽、间距 4，整排收在卡片宽度内：
+        // 伸出卡片右边缘的话，会被下一列汇聚干线的竖线压住
         // 强制重试
         const forceRetryWraperStyle = {
           fill: '#F59500',
           height: 24,
           radius: 2,
-          width: 80,
+          width: 68,
           x: -width / 2 + 4,
           y: 30,
         };
@@ -339,7 +346,7 @@ export class NormalNode extends Rect {
           height: 12,
           src: ForceRetryImage,
           width: 12,
-          x: rwX + 5,
+          x: rwX + 4,
           y: rwY + 6,
         };
         this.upsertShape('forceRetryIcon', GImage, forceRetryIconStyle, container);
@@ -350,7 +357,7 @@ export class NormalNode extends Rect {
           fill: '#FFFFFF',
           fontSize: 12,
           text: t('强制重试'),
-          x: riX + 16,
+          x: riX + 15,
           y: riY + 14,
         };
         this.upsertShape('forceRetryText', GText, forceRetryTextStyle, container);
@@ -360,8 +367,8 @@ export class NormalNode extends Rect {
           fill: '#FDEED8',
           height: 24,
           radius: 2,
-          width: 80,
-          x: -width / 2 + 92,
+          width: 68,
+          x: -width / 2 + 76,
           y: 30,
         };
         this.upsertShape('forceSkipWraper', GRect, forceSkipWraperStyle, container);
@@ -457,8 +464,8 @@ export class NormalNode extends Rect {
           this.upsertShape('skipText', GText, skipTextStyle, container);
         }
       }
-      // ai日志分析
-      if (window.PROJECT_CONFIG.AI_LOG_ANALYSIS_OPEN) {
+      // ai日志分析，开关口径与节点详情一致
+      if (useSystemEnviron().urls.ENABLE_DBM_AI && window.PROJECT_CONFIG.AI_LOG_ANALYSIS_OPEN) {
         const aiLogAnalysisWraperStyleX = () => {
           const count = [retryable, skippable].filter(Boolean).length;
           return -width / 2 + 64 * count + 4;
@@ -467,8 +474,8 @@ export class NormalNode extends Rect {
           fill: attributes.aiLogOptFill,
           height: 24,
           radius: 2,
-          width: 76,
-          x: this.isSuperUserMode ? -width / 2 + 180 : aiLogAnalysisWraperStyleX(),
+          width: this.isSuperUserMode ? 68 : 76,
+          x: this.isSuperUserMode ? -width / 2 + 148 : aiLogAnalysisWraperStyleX(),
           y: 30,
         };
         this.upsertShape('aiLogAnalysisWraper', GRect, aiLogAnalysisWraperStyle, container);

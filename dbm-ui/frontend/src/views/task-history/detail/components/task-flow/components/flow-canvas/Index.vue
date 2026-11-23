@@ -60,7 +60,7 @@
 
   import NodeOperation, { type NodeOperationType } from './components/node-operation/Index.vue';
   import Tools from './components/Tools.vue';
-  import { FlowGraph, getEventNode, type Node, ZOOM_MAX, ZOOM_MIN, ZOOM_STEP } from './utils';
+  import { FlowGraph, getEventNode, isStatusIconShape, type Node, ZOOM_MAX, ZOOM_MIN, ZOOM_STEP } from './utils';
 
   interface Props {
     /** 左侧浮动面板宽度，画布铺满整个容器，定位时要让流程图起点避开被面板遮住的那一段 */
@@ -95,8 +95,6 @@
   const emits = defineEmits<Emits>();
   const expandedIds = defineModel<string[]>('expandedIds', { required: true });
 
-  // 缩放动画只给工具栏按钮和快捷键用，滚轮要跟手，不能排队等动画
-  const ZOOM_ANIMATION = { duration: 500, easing: 'ease' };
   // 节点上操作按钮的图形 key 都是「操作名 + Wraper / Icon / Text」（见 normalNode 的 drawOperationShape）。
   // 必须整名匹配：重试次数角标 retryDisplayText 之类的图形也以操作名开头，按前缀判会被当成按钮
   const OPERATION_SHAPE_REG =
@@ -122,6 +120,8 @@
   // 聚焦要等这一轮的建图 / 重新布局落地，否则节点还没进画布就去取它的位置
   let syncTask: Promise<void> = Promise.resolve();
   let statusTooltip: Instance | null = null;
+  // 状态提示当前挂在哪个节点上
+  let statusTooltipNodeId = '';
   // 操作气泡锚点的画布坐标。屏幕位置每次现算，锚点本身在画布上是固定的
   let operationAnchor: [number, number] | null = null;
 
@@ -142,13 +142,13 @@
   });
 
   // origin 传视口坐标，只有滚轮缩放需要锚在指针上，按钮与快捷键仍按视口中心缩放
-  const applyZoom = (value: number, animate = true, origin?: [number, number]) => {
+  const applyZoom = (value: number, origin?: [number, number]) => {
     const nextZoom = _.clamp(value, ZOOM_MIN, ZOOM_MAX);
     if (nextZoom === canvasZoomValue.value) {
       return;
     }
     canvasZoomValue.value = nextZoom;
-    flowGraphInstance?.zoomTo(nextZoom / 100, animate ? ZOOM_ANIMATION : undefined, origin);
+    flowGraphInstance?.zoomTo(nextZoom / 100, origin);
   };
 
   /**
@@ -173,6 +173,7 @@
     x += style.width / 2;
     y -= 36;
     statusTooltip?.destroy();
+    statusTooltipNodeId = id;
     statusTooltip = dbTippy(document.body, {
       allowHTML: true,
       appendTo: () => flowCanvasContainerRef.value!,
@@ -407,10 +408,19 @@
       focusNode(node.id);
     });
 
-    graph.on(NodeEvent.POINTER_ENTER, (e: IElementEvent) => {
-      if (e.originalTarget.className === 'rightTopBackground') {
-        handleShowTooltip(e);
+    // 与 hover 加深一样用 pointerover：指针进节点时多半先落在卡片上，再挪到状态图标，
+    // pointerenter 只在跨进节点那一刻触发一次，等挪到图标上已经收不到了
+    graph.on(NodeEvent.POINTER_OVER, (e: IElementEvent) => {
+      if (!isStatusIconShape(e.originalTarget.className)) {
+        statusTooltip?.destroy();
+        statusTooltip = null;
+        return;
       }
+      // 图标由三层叠成，在层与层之间移动会连续收到事件，已经为这个节点弹出就不再重建
+      if (statusTooltip && statusTooltipNodeId === getEventNode(e).id) {
+        return;
+      }
+      handleShowTooltip(e);
     });
 
     graph.on(NodeEvent.POINTER_LEAVE, () => {
@@ -460,7 +470,6 @@
       const step = Math.max(ZOOM_STEP, Math.round(Math.abs(e.deltaY) * scale * ZOOM_WHEEL_SENSITIVITY));
       applyZoom(
         canvasZoomValue.value + direction * step,
-        false,
         flowGraphInstance?.getViewportByClient([e.clientX, e.clientY]),
       );
       return;
@@ -572,8 +581,8 @@
 
   const handleResetGraph = () => {
     applyZoom(100);
-    // 有聚焦节点优先定位到聚焦节点
-    if (flowGraphInstance?.focusNodeId) {
+    // 有聚焦节点优先定位到聚焦节点。它可能已随子流程收起被移除，这时回到起点
+    if (flowGraphInstance?.hasNode(flowGraphInstance.focusNodeId)) {
       flowGraphInstance.focusElement(flowGraphInstance.focusNodeId, canvasLeftOffset.value);
       return;
     }
