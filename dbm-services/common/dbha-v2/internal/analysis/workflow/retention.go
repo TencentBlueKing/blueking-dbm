@@ -151,6 +151,9 @@ type retentionTableState struct {
 	passScanned    int64
 	lastProgressAt time.Time
 	evidence       bool
+	// loggedStalled records whether the last stall log reported this table as stalled.
+	// It only suppresses repeated logs and does not affect cleanup decisions.
+	loggedStalled bool
 }
 
 // retainer physically deletes stale rows from t_dbm_metadata and t_dbha_status while it holds the
@@ -176,7 +179,9 @@ type realRetentionClock struct{}
 // the etcd election of this workflow.
 func (w *Workflow) startRetention(ctx context.Context) {
 	cli := w.discoveryCli
-	w.startRetentionWith(ctx, config.NormalizeRetention(config.Cfg.Workflow), newApmRetentionMetrics(w.myServiceID),
+	w.startRetentionWith(ctx,
+		config.NormalizeRetention(config.Cfg.Workflow),
+		newApmRetentionMetrics(w.myServiceID),
 		func() (discovery.ConcurrencyElection, error) {
 			return cli.CreateElection(retentionElectionName)
 		})
@@ -312,7 +317,10 @@ func (r *retainer) onElected() {
 		st.nextRunAt = now.Add(retentionFirstRunMin + time.Duration(r.randInt64N(span)))
 		st.passStale, st.passScanned = 0, 0
 		st.lastProgressAt, st.evidence = now, false
+		st.loggedStalled = false
 		tables = append(tables, st.target.table())
+		logger.Info("retention first run scheduled, table: %s, next_run: %s",
+			st.target.table(), st.nextRunAt.Format(time.DateTime))
 	}
 
 	r.metrics.elected(tables, now)
@@ -382,6 +390,7 @@ func (r *retainer) switchCheckPasses(ctx context.Context, due []*retentionTableS
 			continue
 		}
 		r.metrics.skipped(table, retentionReasonSwitching)
+		logRetentionSkippedUntil(table, retentionReasonSwitching, st.nextRunAt)
 	}
 
 	return false
@@ -454,6 +463,7 @@ func (r *retainer) checkHealth(ctx context.Context, st *retentionTableState,
 	if !found {
 		r.metrics.skipped(table, retentionReasonUnhealthy)
 		st.nextRunAt = now.Add(r.cfg.Interval)
+		logRetentionSkippedUntil(table, retentionReasonUnhealthy, st.nextRunAt)
 		return false, retentionOutcomeNeutral
 	}
 
@@ -546,10 +556,12 @@ func (r *retainer) shouldYield(ctx context.Context, done <-chan struct{}, table 
 	now := r.clock.Now()
 	if now.Sub(started) >= r.cfg.RoundTimeBudget {
 		r.metrics.skipped(table, retentionReasonBudget)
+		logRetentionSkipped(table, retentionReasonBudget)
 		return true
 	}
 	if lastSlow {
 		r.metrics.skipped(table, retentionReasonBackpressure)
+		logRetentionSkipped(table, retentionReasonBackpressure)
 		return true
 	}
 	if batchNo == 0 || batchNo%retentionSwitchCheckBatches != 0 {
@@ -565,6 +577,7 @@ func (r *retainer) shouldYield(ctx context.Context, done <-chan struct{}, table 
 	}
 	if found {
 		r.metrics.skipped(table, retentionReasonSwitching)
+		logRetentionSkipped(table, retentionReasonSwitching)
 		return true
 	}
 
@@ -591,10 +604,14 @@ func (r *retainer) advanceCursor(st *retentionTableState, rows, candidates []ret
 
 	if len(rows) < r.cfg.ScanWindowRows {
 		st.passScanned += int64(len(rows))
-		r.metrics.passCompleted(st.target.table(), st.passStale, st.passScanned, now)
+		staleRows, scannedRows := st.passStale, st.passScanned
+		nextRun := now.Add(r.cfg.Interval)
+		r.metrics.passCompleted(st.target.table(), staleRows, scannedRows, now)
+		logger.Info("retention pass completed, table: %s, stale_rows: %d, scanned_rows: %d, next_run: %s",
+			st.target.table(), staleRows, scannedRows, nextRun.Format(time.DateTime))
 		st.cursor = retentionCursor{}
 		st.passStale, st.passScanned = 0, 0
-		st.nextRunAt = now.Add(r.cfg.Interval)
+		st.nextRunAt = nextRun
 		return
 	}
 
@@ -624,7 +641,18 @@ func (r *retainer) trackStall(st *retentionTableState, outcome retentionOutcome)
 		st.evidence = true
 	}
 
-	r.metrics.stalled(st.target.table(), st.evidence && now.Sub(st.lastProgressAt) >= r.cfg.StallAlertAfter)
+	stalled := st.evidence && now.Sub(st.lastProgressAt) >= r.cfg.StallAlertAfter
+	r.metrics.stalled(st.target.table(), stalled)
+	if stalled == st.loggedStalled {
+		return
+	}
+
+	active := 0
+	if stalled {
+		active = 1
+	}
+	logger.Info("retention stalled, table: %s, active: %d", st.target.table(), active)
+	st.loggedStalled = stalled
 }
 
 // recordError reports a failed statement. Statements cancelled because analysis is shutting down are
@@ -815,4 +843,15 @@ func isRetentionDone(done <-chan struct{}) bool {
 	default:
 		return false
 	}
+}
+
+// logRetentionSkippedUntil reports a skip whose next run time has already been stored.
+func logRetentionSkippedUntil(table, reason string, next time.Time) {
+	logger.Info("retention skipped, table: %s, reason: %s, next_run: %s",
+		table, reason, next.Format(time.DateTime))
+}
+
+// logRetentionSkipped reports a skip whose next run time is not final yet.
+func logRetentionSkipped(table, reason string) {
+	logger.Info("retention skipped, table: %s, reason: %s", table, reason)
 }
