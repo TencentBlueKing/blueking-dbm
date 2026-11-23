@@ -506,7 +506,7 @@ class Services:
 
     @classmethod
     def auto_create_bkjob_service(cls):
-        """初始化文件源和凭证"""
+        """初始化文件源、凭证，以及业务集上的 mysql 执行账号"""
 
         BkJobFileSourceManager.get_or_create_file_source(
             bk_biz_id=env.JOB_BLUEKING_BIZ_ID,
@@ -518,6 +518,7 @@ class Services:
             },
             access_params={"base_url": settings.BKREPO_ENDPOINT_URL},
         )
+        cls.auto_create_job_user(["mysql"])
         logger.info("auto_create_bkjob_service success")
 
     @classmethod

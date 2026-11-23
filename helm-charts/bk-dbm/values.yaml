@@ -159,6 +159,7 @@ dbm:
     bkAppCode: "bk_dbm"
     bkAppToken: "bk_dbm_token"
     bkSaasUrl: "https://bkdbm.example.com/"
+    bkSaasBackendUrl: ""
     brokerUrl: "redis://localhost:6379/0"
     # 蓝鲸数据库管理平台
     dbaAppBkBizId: "dba_biz"
