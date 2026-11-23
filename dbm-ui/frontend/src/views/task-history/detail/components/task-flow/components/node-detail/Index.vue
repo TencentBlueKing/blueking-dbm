@@ -389,7 +389,7 @@
   watch(
     () => [props.autoOpenAiLog, logVersion.value],
     () => {
-      if (props.autoOpenAiLog && logVersion.value) {
+      if (isAiLogAnalysisOpen.value && props.autoOpenAiLog && logVersion.value) {
         handleAiLogAnalysis();
       }
     },

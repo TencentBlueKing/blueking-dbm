@@ -11,6 +11,8 @@
  * the specific language governing permissions and limitations under the License.
  */
 
+import _ from 'lodash';
+
 import { FlowTypes } from '@services/source/taskflow';
 
 import { type FlowModel, type FlowNode, forkGatewayTypes, getewayTypes } from '@views/task-history/detail/utils';
@@ -21,11 +23,16 @@ import { AntVDagreLayout } from '@antv/g6';
  * 画布节点：解析结果加上布局算出的位置。
  *
  * 搜索关键字与专家模式挂在每个节点上，而不是走模块级变量：自定义节点拿不到组件作用域，
- * 只有落到节点数据里，G6 的 setData 差异计算才能看到它们变了并触发重绘
+ * 只有落到节点数据里，G6 的 setData 差异计算才能看到它们变了并触发重绘。
+ *
+ * 只保留标量字段：G6 判断节点数据变没变是逐个顶层字段做 === 比较，incoming / outgoing / hosts /
+ * pipeline 这类对象每次轮询都是新引用，带着它们的话所有节点每轮都会被判成已变化而整张重绘。
+ * pipeline 只用来区分是不是子流程，折成布尔值
  */
 export type Node = {
   isExpand: boolean;
   isSuperUserMode: boolean;
+  pipeline: boolean;
   searchKey: string;
   style: {
     height: number;
@@ -33,7 +40,7 @@ export type Node = {
     x: number;
     y: number;
   };
-} & FlowNode;
+} & Omit<FlowNode, 'component' | 'hosts' | 'incoming' | 'outgoing' | 'pipeline'>;
 
 /** 网关与首尾节点画成圆形，其余画成圆角矩形，尺寸与圆角都按它区分 */
 export const roundFlowTypes = [FlowTypes.EmptyEndEvent, FlowTypes.EmptyStartEvent, ...getewayTypes];
@@ -41,7 +48,9 @@ export const roundFlowTypes = [FlowTypes.EmptyEndEvent, FlowTypes.EmptyStartEven
 const layoutConfig = {
   childOffset: 62, // 展开的子流程内容相对父节点的横向缩进，与节点标题的左缩进对齐
   horizontalSep: 40, // 列与列的间距
-  verticalSep: 42, // 同一列内相邻节点的间距，取 3 的倍数让 dagre 的 nodesep 不出小数
+  // 同一列内相邻节点的间距。节点下方的操作按钮伸出卡片 30px，下一行卡片上方的耗时标签伸出 17px，
+  // 间距要大于两者之和才不会叠在一起；取 3 的倍数让 dagre 的 nodesep 不出小数
+  verticalSep: 51,
 };
 
 /**
@@ -56,16 +65,29 @@ const dagreSep = {
 };
 
 /**
+ * 空分支的占位节点。扇出网关直连汇聚网关的分支没有节点，dagre 不会给它留行，
+ * 连线只能贴着首行横穿第一条分支的卡片。布局时插一个占位节点占住一行，连线按它的高度绕行，
+ * 占位节点本身不进画布
+ */
+const EMPTY_BRANCH_PREFIX = '__empty_branch__';
+const EMPTY_BRANCH_SIZE: [number, number] = [48, 48];
+
+const isEmptyBranchId = (id: string) => id.startsWith(EMPTY_BRANCH_PREFIX);
+
+/**
  * 节点尺寸的唯一来源。布局按它算间距、G6 按它渲染，两边必须取同一个值，
  * 否则算出来的间距和实际占位对不上
  */
-export const getNodeSize = (node: Pick<FlowNode, 'pipeline' | 'type'>): [number, number] => {
+export const getNodeSize = (node: { pipeline?: unknown; type: FlowNode['type'] }): [number, number] => {
   if (roundFlowTypes.includes(node.type)) {
     return [48, 48];
   }
   // 子流程节点左侧多留一段空档，放横跨在卡片左边框上的展开收起图标
   return node.pipeline ? [238, 48] : [224, 48];
 };
+
+const getSizeById = (id: string, model: FlowModel) =>
+  isEmptyBranchId(id) ? EMPTY_BRANCH_SIZE : getNodeSize(model.nodeMap.get(id)!);
 
 /**
  * 扇出与汇聚的共用干线到网关的距离。布局按它给网关侧留净空，连线按它落干线，
@@ -79,16 +101,30 @@ interface Placement {
   width: number;
 }
 
+/** 跨行连线的竖直干线落在哪一侧，与 CustomEdge.getKeyPath 的走法一一对应 */
+type EdgeKind = 'converge' | 'fork' | 'plain';
+
+interface SkeletonEdge {
+  kind: EdgeKind;
+  source: string;
+  target: string;
+}
+
 /** 单个 pipeline 层的骨架，只由拓扑决定，与展开状态无关 */
 interface Skeleton {
-  /** 节点中心坐标，已做过汇聚网关提顶 */
+  /** 本层连线，空分支已拆成「扇出网关 → 占位节点 → 汇聚网关」两段 */
+  edges: SkeletonEdge[];
+  /** 节点中心坐标，已做过汇聚网关提顶，含空分支占位节点 */
   points: Map<string, { x: number; y: number }>;
-  /** 每个节点所在的行往右占到哪一列为止 */
-  rowReach: Map<string, number>;
-  /** 每个节点所在的行从哪一列开始 */
-  rowStart: Map<string, number>;
-  /** 跨行连线的竖直干线：所在列与竖直跨过的行区间 */
-  trunks: { bottom: number; column: number; top: number }[];
+  /** 节点所在的行。同一行的节点由水平连线串起来，整行一起上下移动 */
+  rowOf: Map<string, string>;
+}
+
+interface Rect {
+  bottom: number;
+  left: number;
+  right: number;
+  top: number;
 }
 
 /**
@@ -99,12 +135,28 @@ interface Skeleton {
  */
 async function buildSkeleton(ids: string[], model: FlowModel): Promise<Skeleton> {
   const idSet = new Set(ids);
-  const localEdges = model.edges.filter((edge) => idSet.has(edge.source) && idSet.has(edge.target));
+  const types = new Map(ids.map((id) => [id, model.nodeMap.get(id)!.type]));
+
+  const rawEdges: { source: string; target: string }[] = [];
+  model.edges.forEach((edge) => {
+    if (!idSet.has(edge.source) || !idSet.has(edge.target)) {
+      return;
+    }
+    if (forkGatewayTypes.includes(types.get(edge.source)!) && types.get(edge.target) === FlowTypes.ConvergeGateway) {
+      const placeholderId = `${EMPTY_BRANCH_PREFIX}${edge.id}`;
+      types.set(placeholderId, FlowTypes.ServiceActivity);
+      rawEdges.push({ source: edge.source, target: placeholderId }, { source: placeholderId, target: edge.target });
+      return;
+    }
+    rawEdges.push({ source: edge.source, target: edge.target });
+  });
+  const nodeIds = [...types.keys()];
+
   const layout = new AntVDagreLayout();
   await layout.execute(
     {
-      edges: localEdges.map((edge) => ({ id: edge.id, source: edge.source, target: edge.target })),
-      nodes: ids.map((id) => ({ id })),
+      edges: rawEdges.map((edge, index) => ({ id: `${index}`, source: edge.source, target: edge.target })),
+      nodes: nodeIds.map((id) => ({ id })),
     },
     {
       // 默认的坐标分配会把节点在它的后继组里垂直居中：扇出网关会掉到分支扇形的正中间，
@@ -113,7 +165,7 @@ async function buildSkeleton(ids: string[], model: FlowModel): Promise<Skeleton>
       // 汇聚网关对齐的是前驱中位数，仍会居中，布局完再单独提到顶部
       align: 'UL',
       nodesep: dagreSep.nodesep,
-      nodeSize: (node) => getNodeSize(model.nodeMap.get(node.id as string)!),
+      nodeSize: (node) => getSizeById(node.id as string, model),
       rankdir: 'LR',
       ranksep: dagreSep.ranksep,
     },
@@ -126,94 +178,80 @@ async function buildSkeleton(ids: string[], model: FlowModel): Promise<Skeleton>
   });
   layout.destroy();
 
-  // 每个节点的入边源节点与出边目标节点，保持 model.edges 里的顺序
-  const sourcesMap = new Map<string, string[]>(ids.map((id) => [id, []]));
-  const targetsMap = new Map<string, string[]>(ids.map((id) => [id, []]));
-  localEdges.forEach((edge) => {
+  // 每个节点的入边源节点，保持 model.edges 里的顺序
+  const sourcesMap = new Map<string, string[]>(nodeIds.map((id) => [id, []]));
+  rawEdges.forEach((edge) => {
     sourcesMap.get(edge.target)!.push(edge.source);
-    targetsMap.get(edge.source)!.push(edge.target);
   });
-
-  // 边总是从左列连向右列，下面几步都按列序逐个传递。汇聚网关提顶只改 y，x 的次序排一次即可
-  const idsByX = [...ids].sort((a, b) => points.get(a)!.x - points.get(b)!.x);
 
   // UL 让节点对齐前驱的中位数，汇聚网关有三条及以上分支时会落到中间那条，后面的主干跟着下沉。
   // 这里把汇聚网关提到最上面那条分支的高度，与扇出网关贴顶一致；其余节点跟着入边的源节点移同样的距离，
   // 下游整体上移，dagre 排好的相对位置不变。除汇聚网关外节点只有一条入边。
-  // 按 x 从左往右算，源节点必定已经算好
+  // 边总是从左列连向右列，按 x 从左往右算，源节点必定已经算好
   const alignOffset = new Map<string, number>();
-  idsByX.forEach((id) => {
-    const point = points.get(id)!;
-    const sources = sourcesMap.get(id)!;
-    if (sources.length === 0) {
-      alignOffset.set(id, 0);
-      return;
-    }
-    if (model.nodeMap.get(id)!.type === FlowTypes.ConvergeGateway) {
-      const top = Math.min(...sources.map((source) => points.get(source)!.y));
-      alignOffset.set(id, top - point.y);
-      point.y = top;
-      return;
-    }
-    const offset = alignOffset.get(sources[0])!;
-    alignOffset.set(id, offset);
-    point.y += offset;
-  });
-
-  // 每个节点所在的行往右占到哪一列为止：同一行的连线一路往右传递；连去别的行的边（分支汇进
-  // 汇聚网关）要先在自己这一行横着走到目标跟前才拐弯，所以只算目标那一列，不再往后传。
-  // 于是并行分支的行尾停在汇聚网关，主干行一路排到最后。
-  // 按 x 从右往左算，同行的后继必定已经算好；同一行的节点取到的行尾一致，不会被拆开
-  const rowReach = new Map<string, number>(ids.map((id) => [id, points.get(id)!.x]));
-  [...idsByX].reverse().forEach((id) => {
-    const { x, y } = points.get(id)!;
-    const reach = targetsMap.get(id)!.reduce((max, targetId) => {
-      const target = points.get(targetId)!;
-      return Math.max(max, target.y === y ? rowReach.get(targetId)! : target.x);
-    }, x);
-    rowReach.set(id, reach);
-  });
-
-  // 每个节点所在的行从哪一列开始：沿同一行的入边往左传，与 rowReach 一起圈出这一行横跨的范围
-  const rowStart = new Map<string, number>(ids.map((id) => [id, points.get(id)!.x]));
-  idsByX.forEach((id) => {
-    const { y } = points.get(id)!;
-    sourcesMap.get(id)!.forEach((sourceId) => {
-      if (points.get(sourceId)!.y === y) {
-        rowStart.set(id, Math.min(rowStart.get(id)!, rowStart.get(sourceId)!));
+  [...nodeIds]
+    .sort((a, b) => points.get(a)!.x - points.get(b)!.x)
+    .forEach((id) => {
+      const point = points.get(id)!;
+      const sources = sourcesMap.get(id)!;
+      if (sources.length === 0) {
+        alignOffset.set(id, 0);
+        return;
       }
+      if (types.get(id) === FlowTypes.ConvergeGateway) {
+        const top = Math.min(...sources.map((source) => points.get(source)!.y));
+        alignOffset.set(id, top - point.y);
+        point.y = top;
+        return;
+      }
+      const offset = alignOffset.get(sources[0])!;
+      alignOffset.set(id, offset);
+      point.y += offset;
     });
-  });
 
-  // 跨行的边都有一段竖直干线，同一行的边是一条直线，没有干线。
-  // 干线只有汇聚边贴在目标那一侧，扇出边与普通跨行边都落在源节点这一侧（见 CustomEdge.getKeyPath）。
-  // 记下每条干线所在的列，以及它竖直跨过的行区间
-  const trunks: Skeleton['trunks'] = [];
-  localEdges.forEach((edge) => {
-    const source = points.get(edge.source)!;
-    const target = points.get(edge.target)!;
-    if (source.y === target.y) {
-      return;
+  // 同一高度上水平相连的节点归为一行。只按 y 分行是不够的：前后两个并行块的分支会落在同一组 y 上，
+  // 它们是互不相干的两行，展开时各自的下移量不同
+  const parentMap = new Map(nodeIds.map((id) => [id, id]));
+  const findRoot = (id: string): string => {
+    const parent = parentMap.get(id)!;
+    if (parent === id) {
+      return id;
     }
-    const isConverge =
-      !forkGatewayTypes.includes(model.nodeMap.get(edge.source)!.type) &&
-      model.nodeMap.get(edge.target)!.type === FlowTypes.ConvergeGateway;
-    trunks.push({
-      bottom: Math.max(source.y, target.y),
-      column: isConverge ? target.x : source.x,
-      top: Math.min(source.y, target.y),
-    });
+    const root = findRoot(parent);
+    parentMap.set(id, root);
+    return root;
+  };
+  rawEdges.forEach((edge) => {
+    if (points.get(edge.source)!.y === points.get(edge.target)!.y) {
+      parentMap.set(findRoot(edge.source), findRoot(edge.target));
+    }
+  });
+  const rowOf = new Map(nodeIds.map((id) => [id, findRoot(id)]));
+
+  const edges = rawEdges.map((edge) => {
+    let kind: EdgeKind = 'plain';
+    if (forkGatewayTypes.includes(types.get(edge.source)!)) {
+      kind = 'fork';
+    } else if (types.get(edge.target) === FlowTypes.ConvergeGateway) {
+      kind = 'converge';
+    }
+    return { ...edge, kind };
   });
 
-  return { points, rowReach, rowStart, trunks };
+  return { edges, points, rowOf };
 }
+
+const isOverlapX = (a: Rect, b: Rect) => a.left < b.right && b.left < a.right;
 
 /**
  * 布局单个 pipeline 层，返回以该层内容左上角为原点的相对坐标，含所有已展开的下层节点。
  *
- * 骨架由 buildSkeleton 给出，按层缓存在 skeletonCache 里。展开只做一件事：把子流程内容摆到父节点下方并缩进，
- * 再把这块内容的高度加到骨架里排在它后面的节点上。父节点自身、它上方的节点、以及所有节点的
- * x 都不会动，展开就是纯粹往下插入一段空间。
+ * 骨架由 buildSkeleton 给出，按层缓存在 skeletonCache 里。展开只往骨架里插空间，节点之间的
+ * 相对次序不变：
+ * 1. 纵向：逐行自上而下摆放，每一行与上方已摆好的所有矩形（行带、展开内容块）比对，
+ *    横向有重叠就让到它下面。比的是真实矩形而不是骨架里的 y，前后并行块落在同一组 y 上的行才不会互相压住
+ * 2. 横向：展开内容比父节点宽，纵向让位之后仍可能有跨行连线的竖直干线穿过内容块，
+ *    这时把内容右侧的列整体往右推出多出来的宽度，再重排一次纵向，直到没有干线穿过为止
  */
 async function layoutPipeline(
   ownerId: string,
@@ -226,7 +264,7 @@ async function layoutPipeline(
     return { height: 0, positions: new Map(), width: 0 };
   }
 
-  // 先递归展开的子流程，拿到各自内容块的高度
+  // 先递归展开的子流程，拿到各自内容块的尺寸
   const childPlacements = new Map<string, Placement>();
   for (const id of ids) {
     if (expandNodes.has(id) && model.pipelineMap.has(id)) {
@@ -239,107 +277,190 @@ async function layoutPipeline(
     skeleton = await buildSkeleton(ids, model);
     skeletonCache.set(ownerId, skeleton);
   }
-  const { points, rowReach, rowStart, trunks } = skeleton;
+  const { edges, points, rowOf } = skeleton;
+  const nodeIds = [...points.keys()];
+  const sizeOf = (id: string) => getSizeById(id, model);
 
-  // 每块展开内容会在它所在的纵向位置插入一段高度，横向从父节点左边缘占到内容右边缘
+  const rowMembers = new Map<string, string[]>();
+  nodeIds.forEach((id) => {
+    const row = rowOf.get(id)!;
+    if (!rowMembers.has(row)) {
+      rowMembers.set(row, []);
+    }
+    rowMembers.get(row)!.push(id);
+  });
+  const rowY = (row: string) => points.get(rowMembers.get(row)![0])!.y;
+  const rowMinX = (row: string) => Math.min(...rowMembers.get(row)!.map((id) => points.get(id)!.x));
+  // 自上而下、同高度从左往右：内容块只往右下伸，排在后面的行只会被前面的推，不会反过来
+  const rowOrder = [...rowMembers.keys()].sort((a, b) => rowY(a) - rowY(b) || rowMinX(a) - rowMinX(b));
+
   const expansions = ids
     .filter((id) => childPlacements.has(id))
     .map((id) => {
-      const { x, y } = points.get(id)!;
-      const [width] = getNodeSize(model.nodeMap.get(id)!);
-      const left = x - width / 2;
+      const [width] = sizeOf(id);
+      const child = childPlacements.get(id)!;
       return {
-        height: layoutConfig.verticalSep + childPlacements.get(id)!.height,
+        // 内容块纵向占的高度，含它与父节点之间的间距
+        height: layoutConfig.verticalSep + child.height,
         id,
-        left,
-        right: left + layoutConfig.childOffset + childPlacements.get(id)!.width,
-        x,
-        y,
+        // 内容块比父节点宽出来的那一段
+        overhang: layoutConfig.childOffset + child.width - width,
+        row: rowOf.get(id)!,
+        width: layoutConfig.childOffset + child.width,
+        x: points.get(id)!.x,
       };
     });
 
-  // 同一行可能有多个节点各自展开，它们插入的高度落在同一个纵向位置上，彼此推不动对方，
-  // 横向范围挨得比列间距还近的就要自己往下摞开，否则几块内容会叠在一起；离得够远的各自贴着父节点。
-  // 次序按 x 从右往左：每块内容都从父节点左边缘往下引一条竖线，靠右的父节点引线 x 更大，
-  // 压在靠左那块上方就会横穿它，所以让靠右的贴着父节点这一行，靠左的依次往下让
-  const stackOffset = new Map<string, number>();
-  const stackOrder = [...expansions].sort((a, b) => b.x - a.x);
-  stackOrder.forEach((item, index) => {
-    const offset = stackOrder.slice(0, index).reduce((max, other) => {
-      const isOverlap =
-        other.y === item.y &&
-        item.left < other.right + layoutConfig.horizontalSep &&
-        other.left < item.right + layoutConfig.horizontalSep;
-      return isOverlap ? Math.max(max, stackOffset.get(other.id)! + other.height) : max;
-    }, 0);
-    stackOffset.set(item.id, offset);
-  });
+  // 列的横向让位：key 是骨架列的 x，在它右边的列都往右推 value
+  const columnPush = new Map<number, number>();
+  const pushAt = (x: number) => [...columnPush].reduce((sum, [columnX, push]) => (columnX < x ? sum + push : sum), 0);
 
-  // 行尾再算上本行展开内容的右边缘：内容可能比这一行的节点宽，伸到上方另一块内容底下
-  const rowEnd = new Map<string, number>(
-    ids.map((id) => {
-      const { y } = points.get(id)!;
-      const end = expansions.reduce((max, item) => {
-        if (item.y !== y || item.x < rowStart.get(id)! || item.x > rowReach.get(id)!) {
-          return max;
-        }
-        return Math.max(max, item.right);
-      }, rowReach.get(id)!);
-      return [id, end];
-    }),
-  );
+  const place = () => {
+    const xOf = (id: string) => points.get(id)!.x + pushAt(points.get(id)!.x);
+    const leftOf = (id: string) => xOf(id) - sizeOf(id)[0] / 2;
+    const rightOf = (id: string) => xOf(id) + sizeOf(id)[0] / 2;
 
-  // 自上而下逐行算下移量，每一行取两类约束的最大值：
-  // 1. 上方展开内容落在本行范围内，要让开它的底边。行尾停在展开点左边的行不在内容底下，不用让；
-  //    同一行摞着的多块内容各按自己的底边算，压住自己的那块最靠下的决定下移量
-  // 2. 上方与本行横向重叠的行，本行至少跟着它下移同样的距离。只看第 1 条的话，被更上方内容推下去的行
-  //    会压到下方没被推的行上，比如嵌套并行里先收口的那条分支
-  // 同一行的节点行首、行尾、纵坐标都一致，算出的下移量相同，整行不会被拆开
-  const shiftMap = new Map<string, number>();
-  [...ids]
-    .sort((a, b) => points.get(a)!.y - points.get(b)!.y)
-    .forEach((id) => {
-      const { y } = points.get(id)!;
-      const start = rowStart.get(id)!;
-      const end = rowEnd.get(id)!;
-      let shift = 0;
-      expansions.forEach((item) => {
-        if (item.y < y && item.x <= end) {
-          shift = Math.max(shift, shiftMap.get(item.id)! + stackOffset.get(item.id)! + item.height);
-        }
-      });
-      shiftMap.forEach((aboveShift, aboveId) => {
-        if (points.get(aboveId)!.y < y && rowStart.get(aboveId)! <= end && start <= rowEnd.get(aboveId)!) {
-          shift = Math.max(shift, aboveShift);
-        }
-      });
-      shiftMap.set(id, shift);
+    // 每块内容的横向范围：从父节点左边缘（引出竖线就在这一段）到内容右边缘
+    const expansionRange = new Map(
+      expansions.map((item) => [item.id, { left: leftOf(item.id), right: leftOf(item.id) + item.width }]),
+    );
+
+    // 同一行有多个节点各自展开时，插入的高度落在同一个位置上，横向挨得比列间距还近的要自己往下摞开。
+    // 次序按 x 从右往左：每块内容都从父节点左边缘往下引一条竖线，靠右的父节点引线 x 更大，
+    // 压在靠左那块上方就会横穿它，所以让靠右的贴着父节点这一行，靠左的依次往下让
+    const stackOffset = new Map<string, number>();
+    const stackOrder = [...expansions].sort((a, b) => b.x - a.x);
+    stackOrder.forEach((item, index) => {
+      const range = expansionRange.get(item.id)!;
+      const offset = stackOrder.slice(0, index).reduce((max, other) => {
+        const otherRange = expansionRange.get(other.id)!;
+        const isOverlap =
+          other.row === item.row &&
+          range.left < otherRange.right + layoutConfig.horizontalSep &&
+          otherRange.left < range.right + layoutConfig.horizontalSep;
+        return isOverlap ? Math.max(max, stackOffset.get(other.id)! + other.height) : max;
+      }, 0);
+      stackOffset.set(item.id, offset);
     });
 
-  // 骨架按折叠尺寸算，不知道展开内容比父节点宽出来的那一段。会被这一段压住的只有干线：它竖直跨过中间
-  // 每一行下方的空档，而内容块正插在空档里。其余节点各占自己的行，内容块所在的行已被 shiftMap 腾空，
-  // 碰不上，为它们让位纯属浪费横向空间。
-  // 只看列在展开点右边的干线：pushAt 推的就是这些列，左边的干线原地不动，也够不到内容。
-  // 同列取最宽的一块，跨列累加：右边的列要让开左边每一列多出来的宽度
-  const columnOverhang = new Map<number, number>();
-  expansions.forEach((item) => {
-    const underTrunk = trunks.some((trunk) => trunk.column > item.x && trunk.top <= item.y && trunk.bottom > item.y);
-    if (!underTrunk) {
-      return;
-    }
-    const [width] = getNodeSize(model.nodeMap.get(item.id)!);
-    const overhang = layoutConfig.childOffset + childPlacements.get(item.id)!.width - width;
-    columnOverhang.set(item.x, Math.max(columnOverhang.get(item.x) || 0, overhang, 0));
-  });
-  const pushAt = (x: number) =>
-    [...columnOverhang].reduce((sum, [columnX, overhang]) => (columnX < x ? sum + overhang : sum), 0);
+    // 行带：行内节点加上跨行连线落在这一行的水平段
+    const rowBand = new Map(
+      rowOrder.map((row) => {
+        const members = rowMembers.get(row)!;
+        const halfHeight = Math.max(...members.map((id) => sizeOf(id)[1])) / 2;
+        return [
+          row,
+          {
+            bottom: rowY(row) + halfHeight,
+            left: Math.min(...members.map(leftOf)),
+            right: Math.max(...members.map(rightOf)),
+            top: rowY(row) - halfHeight,
+          },
+        ];
+      }),
+    );
+    const trunks: { bottomId: string; topId: string; x: number }[] = [];
+    edges.forEach(({ kind, source, target }) => {
+      if (rowOf.get(source) === rowOf.get(target)) {
+        return;
+      }
+      let x = xOf(target) > xOf(source) ? rightOf(source) : leftOf(source);
+      if (kind === 'fork') {
+        x = rightOf(source) + trunkGap;
+      } else if (kind === 'converge') {
+        x = leftOf(target) - trunkGap;
+      }
+      // 干线之前那段水平线在源节点这一行，之后那段在目标节点这一行
+      const sourceBand = rowBand.get(rowOf.get(source)!)!;
+      const targetBand = rowBand.get(rowOf.get(target)!)!;
+      sourceBand.right = Math.max(sourceBand.right, x);
+      targetBand.left = Math.min(targetBand.left, x);
+      const isSourceAbove = points.get(source)!.y < points.get(target)!.y;
+      trunks.push({ bottomId: isSourceAbove ? target : source, topId: isSourceAbove ? source : target, x });
+    });
+
+    // 每行要避让的矩形，坐标按骨架、下移量为 0 时算。gap 是它与上方矩形之间至少要留的距离：
+    // 行带之间留行距；内容块自身已含与父节点之间的间距，贴着上方矩形即可
+    const rowRects = new Map(
+      rowOrder.map((row) => {
+        const band = rowBand.get(row)!;
+        const rects = [{ ...band, gap: layoutConfig.verticalSep }];
+        expansions.forEach((item) => {
+          if (item.row === row) {
+            const range = expansionRange.get(item.id)!;
+            rects.push({
+              ...range,
+              bottom: band.bottom + stackOffset.get(item.id)! + item.height,
+              gap: 0,
+              top: band.bottom,
+            });
+          }
+        });
+        return [row, rects];
+      }),
+    );
+
+    // 逐行求下移量。与上方矩形骨架里本来就隔得够远的，只需保持原有间距中超出 gap 的那部分可以被吃掉；
+    // 隔得不够远的（行距本身就是 gap）至少跟着它下移同样的距离，保持相对次序；本来就压在一起的
+    // （上方是展开内容块）要整个让到它下面
+    const shiftMap = new Map<string, number>();
+    const placed: { rect: Rect; shift: number }[] = [];
+    rowOrder.forEach((row) => {
+      const rects = rowRects.get(row)!;
+      let shift = 0;
+      placed.forEach(({ rect: above, shift: aboveShift }) => {
+        rects.forEach((rect) => {
+          if (!isOverlapX(above, rect)) {
+            return;
+          }
+          const distance = rect.top - above.bottom;
+          const gap = distance >= 0 ? Math.min(rect.gap, distance) : rect.gap;
+          shift = Math.max(shift, aboveShift + gap - distance);
+        });
+      });
+      shiftMap.set(row, shift);
+      rects.forEach((rect) => {
+        placed.push({ rect, shift });
+      });
+    });
+
+    const yOf = (id: string) => points.get(id)!.y + shiftMap.get(rowOf.get(id)!)!;
+
+    // 纵向让位之后仍穿过内容块的干线：只能靠把内容右侧的列往右推来解开
+    const pushItems = expansions.filter((item) => {
+      if (item.overhang <= 0 || (columnPush.get(item.x) || 0) >= item.overhang) {
+        return false;
+      }
+      const range = expansionRange.get(item.id)!;
+      const top = yOf(item.id) + sizeOf(item.id)[1] / 2;
+      const bottom = top + stackOffset.get(item.id)! + item.height;
+      return trunks.some(
+        (trunk) =>
+          trunk.x > range.left + 1 &&
+          trunk.x < range.right - 1 &&
+          yOf(trunk.topId) < bottom - 1 &&
+          yOf(trunk.bottomId) > top + 1,
+      );
+    });
+
+    return { pushItems, stackOffset, xOf, yOf };
+  };
+
+  let result = place();
+  // 每轮至少新推开一列，轮数不超过展开块的数量
+  for (let round = 0; round < expansions.length && result.pushItems.length > 0; round++) {
+    result.pushItems.forEach((item) => {
+      columnPush.set(item.x, Math.max(columnPush.get(item.x) || 0, item.overhang));
+    });
+    result = place();
+  }
+  const { stackOffset, xOf, yOf } = result;
 
   const positions = new Map<string, { x: number; y: number }>();
-  ids.forEach((id) => {
-    const point = points.get(id)!;
-    const [width, height] = getNodeSize(model.nodeMap.get(id)!);
-    const x = point.x + pushAt(point.x);
-    const y = point.y + shiftMap.get(id)!;
+  nodeIds.forEach((id) => {
+    const [width, height] = sizeOf(id);
+    const x = xOf(id);
+    const y = yOf(id);
     positions.set(id, { x, y });
 
     const child = childPlacements.get(id);
@@ -359,7 +480,7 @@ async function layoutPipeline(
   let maxX = -Infinity;
   let maxY = -Infinity;
   positions.forEach((point, id) => {
-    const [width, height] = getNodeSize(model.nodeMap.get(id)!);
+    const [width, height] = sizeOf(id);
     minX = Math.min(minX, point.x - width / 2);
     minY = Math.min(minY, point.y - height / 2);
     maxX = Math.max(maxX, point.x + width / 2);
@@ -420,12 +541,18 @@ export const createGraphDataBuilder = () => {
 
     const nodes: Node[] = [];
     positions.forEach((point, id) => {
-      const node = model.nodeMap.get(id)!;
-      const [width, height] = getNodeSize(node);
+      // 空分支占位节点只用来占行，不进画布
+      if (isEmptyBranchId(id)) {
+        return;
+      }
+      const { pipeline, ...rawNode } = model.nodeMap.get(id)!;
+      const node = _.omit(rawNode, 'component', 'hosts', 'incoming', 'outgoing');
+      const [width, height] = getNodeSize({ pipeline, type: node.type });
       nodes.push({
         ...node,
         isExpand: expandNodes.has(id),
         isSuperUserMode,
+        pipeline: !!pipeline,
         searchKey,
         style: { height, width, x: point.x, y: point.y },
       });
@@ -433,10 +560,14 @@ export const createGraphDataBuilder = () => {
 
     return {
       // 端点坐标的校正由 CustomEdge.getEndpoints 负责，这里只筛可见性。
-      // 同一份解析结果会随展开 / 折叠反复渲染，复制一份避免 G6 往边上挂内部状态污染模型
+      // 同一份解析结果会随展开 / 折叠反复渲染，复制一份避免 G6 往边上挂内部状态污染模型。
+      // 空分支的连线带上占位节点的高度，CustomEdge 按它绕行
       edges: model.edges
         .filter((edge) => positions!.has(edge.source) && positions!.has(edge.target))
-        .map((edge) => ({ ...edge })),
+        .map((edge) => {
+          const placeholder = positions!.get(`${EMPTY_BRANCH_PREFIX}${edge.id}`);
+          return placeholder ? { ...edge, style: { routeY: placeholder.y } } : { ...edge };
+        }),
       nodes,
     };
   };

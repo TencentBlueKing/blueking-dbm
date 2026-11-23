@@ -94,6 +94,12 @@ const statusHoverStateMap: Partial<Record<NodeDisplayStatus, string>> = {
  */
 export const getEventNode = (e: IElementEvent) => (e.target as unknown as { data: Node }).data;
 
+/**
+ * 右上角状态图标由白底、彩色圆底、图标三层叠成（见 normalNode 的 drawStatusShape），
+ * 指针落在哪一层都算在图标上。白底被彩色圆底盖住只剩一圈细边，只认白底的话几乎指不中
+ */
+export const isStatusIconShape = (className: string) => /^rightTop(Background|\w+Image(Background)?)$/.test(className);
+
 register(ExtensionCategory.NODE, FlowTypes.ConditionalParallelGateway, GatewayNode);
 register(ExtensionCategory.NODE, FlowTypes.ConvergeGateway, GatewayNode);
 register(ExtensionCategory.NODE, FlowTypes.ParallelGateway, GatewayNode);
@@ -109,6 +115,8 @@ export class FlowGraph {
   focusRetryTimer: ReturnType<typeof setTimeout> | undefined = undefined;
   graph: Graph | null = null;
   hoverNodeId = '';
+  /** 当前 hover 节点上已设置的 hover 态，指针在同一图形上移动时不重复设置 */
+  hoverStateKey = '';
   input: GraphInput | null = null;
   /** 上一次记下的视口中心，用于补偿容器尺寸变化带来的位移。视口要等首次渲染才建起来，在那之前取不到 */
   oldviewCenterPointer: [number, number] | null = null;
@@ -173,6 +181,11 @@ export class FlowGraph {
    * 布局还没稳定），这里重试有限次，避免出现无终止的递归定时器
    */
   async focusElement(nodeId: string, leftOffset = 0, retryCount = FOCUS_MAX_RETRY) {
+    clearTimeout(this.focusRetryTimer);
+    // 节点可能已随子流程收起而不在画布上，G6 取不到元素会直接抛错
+    if (!this.hasNode(nodeId)) {
+      return;
+    }
     await this.graph?.focusElement(nodeId);
     clearTimeout(this.focusRetryTimer);
     if (retryCount <= 0) {
@@ -216,6 +229,11 @@ export class FlowGraph {
    */
   getViewportByClient(client: [number, number]) {
     return this.graph!.getViewportByCanvas(this.graph!.getCanvasByClient(client)) as [number, number];
+  }
+
+  /** 节点是否还在画布上。子流程收起后其中的节点会被移除，对它们设状态或定位 G6 都会抛错 */
+  hasNode(nodeId: string) {
+    return !!nodeId && !!this.graph?.hasNode(nodeId);
   }
 
   async initGraph(input: GraphInput) {
@@ -330,36 +348,35 @@ export class FlowGraph {
       zoom: this.viewZoom,
     });
 
-    this.graph.on(NodeEvent.POINTER_ENTER, (e: IElementEvent) => {
+    // 用 pointerover 而不是 pointerenter：G6 的 node:pointerenter 由指针跨进另一个节点时合成，
+    // 在节点内部从卡片挪到按钮上不会再触发；pointerover 逐个图形冒泡，指到哪个图形都能收到
+    this.graph.on(NodeEvent.POINTER_OVER, (e: IElementEvent) => {
       const targetName = e.originalTarget.className;
       const node = getEventNode(e);
+      // 指针在节点任何位置都加深背景，落在状态图标或操作按钮上时再加深对应图形
+      let hoverState = '';
+      if (isStatusIconShape(targetName)) {
+        hoverState = statusHoverStateMap[getNodeDisplayStatus(node)] || '';
+      } else {
+        hoverState = targetNameHoverTypeMap[targetName] || '';
+      }
+      const stateKey = `${node.id}:${hoverState}`;
+      if (stateKey === this.hoverStateKey) {
+        return;
+      }
       this.hoverNodeId = node.id;
-      const state = this.graph!.getElementState(node.id) || [];
-      if (targetName === 'backgroundShape') {
-        // 背景加深
-        this.graph!.setElementState(node.id, [...state, 'nodeBackgroundHover']);
-        return;
-      }
-      if (targetName === 'rightTopBackground') {
-        // 右上角背景加深
-        const hoverState = statusHoverStateMap[getNodeDisplayStatus(node)];
-        if (hoverState) {
-          this.graph!.setElementState(node.id, [...state, hoverState]);
-        }
-        return;
-      }
-      const hoverType = targetNameHoverTypeMap[targetName];
-      // 操作按钮背景加深
-      if (hoverType) {
-        this.graph!.setElementState(node.id, [...state, hoverType]);
-      }
+      this.hoverStateKey = stateKey;
+      // setElementState 是整体替换，聚焦态要一并带上
+      const states = this.focusNodeId === node.id ? ['focusNode', 'nodeBackgroundHover'] : ['nodeBackgroundHover'];
+      this.graph!.setElementState(node.id, hoverState ? [...states, hoverState] : states);
     });
 
     this.graph.on(NodeEvent.POINTER_LEAVE, () => {
-      if (this.hoverNodeId) {
-        this.graph?.setElementState(this.hoverNodeId, this.focusNodeId === this.hoverNodeId ? 'focusNode' : '');
-        this.hoverNodeId = '';
+      if (this.hoverNodeId && this.hasNode(this.hoverNodeId)) {
+        this.graph!.setElementState(this.hoverNodeId, this.focusNodeId === this.hoverNodeId ? 'focusNode' : []);
       }
+      this.hoverNodeId = '';
+      this.hoverStateKey = '';
     });
 
     this.graph.on(
@@ -462,25 +479,30 @@ export class FlowGraph {
       return;
     }
 
-    if (!isForce && this.focusNodeId) {
-      const node = this.getNodeData().find((item) => item.id === this.focusNodeId);
-      if (node) {
-        this.graph?.setElementState(this.focusNodeId, []);
-      }
+    if (!isForce && this.hasNode(this.focusNodeId)) {
+      this.graph?.setElementState(this.focusNodeId, []);
+    }
+    // 聚焦节点可能已随子流程收起被移除，不再记着它：否则复位会去定位一个不存在的节点
+    if (!this.hasNode(nodeId)) {
+      this.focusNodeId = '';
+      return;
     }
     this.focusNodeId = nodeId;
+    // setElementState 整体替换状态，hover 态随之被抹掉，记录一并清掉，指针再动一下就能重新加深
+    this.hoverStateKey = '';
     this.graph?.setElementState(nodeId, 'focusNode');
   }
 
-  // origin 是缩放锚点的视口坐标，不传则按视口中心缩放
-  zoomTo(zoom: number, animate?: ViewportAnimationEffectTiming, origin?: [number, number]) {
+  // origin 是缩放锚点的视口坐标，不传则按视口中心缩放。
+  // 建图时 animation 是 false，G6 会忽略逐次传入的动画配置，这里不再接收动画参数
+  zoomTo(zoom: number, origin?: [number, number]) {
     // AFTER_TRANSFORM 是防抖的，这里同步记一份，避免这段时间里的视口补偿按旧倍率算
     this.viewZoom = zoom;
-    this.graph!.zoomTo(zoom, animate, origin);
+    this.graph!.zoomTo(zoom, false, origin);
     // 按视口中心缩放时中心点不动，锚在指针上则会挪动，同理不能等防抖：
     // 否则这段时间里落地的 render 会拿旧中心算出一段偏移，补偿成一次跳动。
     // G6 对「有 origin 且无动画」走同步快路径，这里读到的已经是缩放后的值
-    if (origin && !animate) {
+    if (origin) {
       this.oldviewCenterPointer = this.graph!.getViewportCenter() as [number, number];
     }
   }
