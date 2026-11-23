@@ -56,8 +56,9 @@ class StateField:
     - get_display：展示文本。默认展示不合适时覆盖
     其余方法由框架使用，子类不需要覆盖。声明是否完整由 check 在 manage.py check 时校验。
 
-    参考实现见 fields/common.py：PhaseField（最简单的 Native）、DBHADisabledField（可过滤、可写的 Native）、
-    RunningTicketField（MULTI 取值 + 下钻）、CapacityField（Stored + extra_class）。
+    参考实现见 fields/common/：cluster.py 的 PhaseField（最简单的 Native）、dbha.py 的 DBHADisabledField
+    （可过滤、可写的 Native）、ticket.py 的 RunningTicketField（MULTI 取值 + 下钻）、
+    capacity.py 的 CapacityField（Stored + extra_class）。
     """
 
     # 数据来源，见 StateSource，由 NativeStateField / StoredStateField 固定

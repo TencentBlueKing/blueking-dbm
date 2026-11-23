@@ -15,8 +15,6 @@ specific language governing permissions and limitations under the License.
 # - 把字段挂到集群类型：在 schemas/<组件>.py 中声明 ClusterStateSchema 并用 register_state_schema 注册，
 #   见 schemas/base.py；列表默认展示列在 DEFAULT_CLUSTER_STATE_DISPLAY_FIELDS 配置
 # - 声明自检：manage.py check（checks.py）；测试基类：backend/tests/db_meta/api/cluster_state/base.py
-from .fields import NativeStateField, StateField, StoredStateField
 from .registry import register_state_schema
 from .schemas import ClusterStateSchema, CommonClusterStateSchema
 from .service import ClusterStateService
-from .values import StateDetail, StateValue
