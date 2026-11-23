@@ -21,7 +21,7 @@ from backend.db_meta.models import Group
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.influxdb import InfluxdbController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import format_bigdata_resource_spec
+from backend.ticket.builders.common.base import DeployClusterTagsField, format_bigdata_resource_spec
 from backend.ticket.builders.common.bigdata import BaseInfluxDBTicketFlowBuilder, BigDataDetailsSerializer
 from backend.ticket.constants import TicketType
 
@@ -29,6 +29,7 @@ logger = logging.getLogger("root")
 
 
 class InfluxDBApplyDetailSerializer(BigDataDetailsSerializer):
+    tags = DeployClusterTagsField()
     city_code = serializers.CharField(
         help_text=_("城市代码"), required=False, allow_blank=True, allow_null=True, default=""
     )

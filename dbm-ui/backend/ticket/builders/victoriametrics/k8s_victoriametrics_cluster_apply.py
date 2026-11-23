@@ -17,13 +17,14 @@ from backend.flow.engine.controller.k8s_vm import K8sVmController
 from backend.flow.utils.k8s_db.vm.consts import COMPONENT_VMSTORAGE
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.common.base import TicketBaseValidateSerializerMixin
+from backend.ticket.builders.common.base import DeployClusterTagsField, TicketBaseValidateSerializerMixin
 from backend.ticket.builders.victoriametrics.base import BaseK8sVmTicketFlowBuilder
 from backend.ticket.builders.victoriametrics.enums import VictoriaMetricsOperationType
 from backend.ticket.constants import TicketType
 
 
 class K8sVictoriaMetricsApplyDetailSerializer(TicketBaseValidateSerializerMixin, serializers.Serializer):
+    tags = DeployClusterTagsField()
     created_by = serializers.CharField(help_text=_("申请人"), required=False)
     creator = serializers.CharField(help_text=_("申请人"), required=False)
     remark = serializers.CharField(help_text=_("备注"), required=False, allow_blank=True, default="")

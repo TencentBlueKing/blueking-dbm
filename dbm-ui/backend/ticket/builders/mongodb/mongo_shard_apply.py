@@ -19,6 +19,7 @@ from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import (
+    DeployClusterTagsField,
     TicketBaseValidateSerializerMixin,
     get_mongodb_cluster_tolerance,
     get_ticket_zone_list,
@@ -43,6 +44,7 @@ from backend.ticket.constants import TicketType
 class MongoShardedClusterApplyDetailSerializer(TicketBaseValidateSerializerMixin, serializers.Serializer):
     """分片集群部署单据 details。改动时须同步 mongodb-bill MCP（见文件头 NOTE）。"""
 
+    tags = DeployClusterTagsField()
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
     db_app_abbr = serializers.CharField(help_text=_("业务英文缩写"))
     city_code = serializers.CharField(

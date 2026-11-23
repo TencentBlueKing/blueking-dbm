@@ -20,6 +20,7 @@ from backend.flow.engine.controller.mongodb import MongoDBController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
 from backend.ticket.builders.common.base import (
+    DeployClusterTagsField,
     TicketBaseValidateSerializerMixin,
     get_mongodb_cluster_tolerance,
     get_ticket_zone_list,
@@ -48,6 +49,7 @@ class MongoReplicaSetApplyDetailSerializer(TicketBaseValidateSerializerMixin, se
         set_id = serializers.CharField(help_text=_("复制集群ID（英文数字及下划线）"))
         name = serializers.CharField(help_text=_("集群别名"), allow_blank=True, allow_null=True)
         domain = serializers.CharField(help_text=_("集群域名"))
+        tags = DeployClusterTagsField()
 
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
     db_app_abbr = serializers.CharField(help_text=_("业务英文缩写"))

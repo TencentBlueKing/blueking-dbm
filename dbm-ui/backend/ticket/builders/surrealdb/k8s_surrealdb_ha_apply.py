@@ -16,13 +16,14 @@ from backend.db_meta.enums import ClusterType
 from backend.flow.engine.controller.surrealdb import SurrealdbHaController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.common.base import TicketBaseValidateSerializerMixin
+from backend.ticket.builders.common.base import DeployClusterTagsField, TicketBaseValidateSerializerMixin
 from backend.ticket.builders.surrealdb.base import BaseSurrealDBTicketFlowBuilder
 from backend.ticket.builders.surrealdb.enums import SurrealDBOperationType
 from backend.ticket.constants import TicketType
 
 
 class K8sSurrealDBApplyDetailSerializer(TicketBaseValidateSerializerMixin, serializers.Serializer):
+    tags = DeployClusterTagsField()
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
     city_code = serializers.CharField(
         help_text=_("城市代码"), required=False, allow_blank=True, allow_null=True, default=""

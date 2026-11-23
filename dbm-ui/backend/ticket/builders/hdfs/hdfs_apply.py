@@ -18,12 +18,15 @@ from backend.db_services.dbbase.constants import HDFS_DEFAULT_HTTP_PORT, HDFS_DE
 from backend.flow.engine.controller.hdfs import HdfsController
 from backend.ticket import builders
 from backend.ticket.builders.common import constants
+from backend.ticket.builders.common.base import DeployClusterTagsField
 from backend.ticket.builders.common.bigdata import BaseHdfsTicketFlowBuilder, BigDataApplyDetailsSerializer
 from backend.ticket.builders.common.constants import BigDataRole
 from backend.ticket.constants import TicketType
 
 
 class HdfsApplyDetailSerializer(BigDataApplyDetailsSerializer):
+    tags = DeployClusterTagsField()
+
     def validate(self, attrs):
         """
         hdfs上架限制：

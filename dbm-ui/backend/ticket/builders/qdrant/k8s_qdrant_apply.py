@@ -19,7 +19,7 @@ from backend.db_meta.enums import ClusterType
 from backend.flow.engine.controller.qdrant import QdrantController
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.common.base import TicketBaseValidateSerializerMixin
+from backend.ticket.builders.common.base import DeployClusterTagsField, TicketBaseValidateSerializerMixin
 from backend.ticket.builders.qdrant.base import BaseQdrantTicketFlowBuilder
 from backend.ticket.builders.qdrant.enums import QdrantOperationType
 from backend.ticket.constants import TicketType
@@ -66,6 +66,7 @@ class K8sQdrantApplyDetailSerializer(TicketBaseValidateSerializerMixin, serializ
 
             return attrs
 
+    tags = DeployClusterTagsField()
     creator = serializers.CharField(help_text=_("申请人"))
     remark = serializers.CharField(help_text=_("备注"), required=False, allow_blank=True, default="")
     db_app_abbr = serializers.CharField(help_text=_("应用名称"))

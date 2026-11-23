@@ -20,6 +20,7 @@ from backend.db_meta.enums import ClusterType
 from backend.flow.engine.controller.pulsar import PulsarController
 from backend.ticket import builders
 from backend.ticket.builders.common import constants
+from backend.ticket.builders.common.base import DeployClusterTagsField
 from backend.ticket.builders.common.bigdata import BasePulsarTicketFlowBuilder, BigDataApplyDetailsSerializer
 from backend.ticket.builders.common.constants import BigDataRole
 from backend.ticket.constants import TicketType
@@ -28,6 +29,7 @@ logger = logging.getLogger("root")
 
 
 class PulsarApplyDetailSerializer(BigDataApplyDetailsSerializer):
+    tags = DeployClusterTagsField()
     replication_num = serializers.IntegerField(help_text=_("副本数量"))
     partition_num = serializers.IntegerField(help_text=_("分区数量"))
     retention_hours = serializers.IntegerField(help_text=_("保留时长（小时）"))
