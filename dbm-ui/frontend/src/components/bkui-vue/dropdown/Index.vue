@@ -19,8 +19,7 @@
       ref="referenceRef"
       class="dbm-dropdown-reference"
       :class="{ 'is-disabled': disabled }"
-      @mouseenter="handleMouseenter"
-      @mouseleave="handleMouseleave">
+      @click="handleReferenceClick">
       <slot :popover-show="isPopoverShow" />
     </div>
     <!-- 弹层内容：作为 tippy.js 挂载源，展示时被移动到 body -->
@@ -37,18 +36,13 @@
   </div>
 </template>
 
-<script lang="ts">
+<script setup lang="ts">
   import tippy, { type Instance, type Placement, type SingleTarget } from 'tippy.js';
   import type { VNode } from 'vue';
 
-  // 鼠标移出不再收起，需记录当前展开的菜单，hover 另一个下拉时将其收起，避免同屏多个菜单同时展开
-  let activeHide: (() => void) | undefined;
-</script>
-
-<script setup lang="ts">
   /**
-   * 交互：鼠标移入触发元素展开；点击菜单内容、点击外部时收起。
-   * 鼠标移出不收起，避免菜单项触发的侧滑、二次确认被误关
+   * 交互：点击触发元素展开，再次点击触发元素、点击菜单内容、点击外部时收起。
+   * 点击另一个下拉属于点击外部，当前菜单会自动收起，同屏只保留一个展开
    */
   export interface Props {
     disabled?: boolean;
@@ -73,9 +67,6 @@
     default?: (props: { popoverShow: boolean }) => VNode;
   }>();
 
-  // hover 展开延迟，比 bk-popover 默认的 100ms 更钝，避免鼠标划过时误弹出
-  const HOVER_DELAY = 200;
-
   const rootRef = useTemplateRef('rootRef');
   const referenceRef = useTemplateRef('referenceRef');
   const contentRef = useTemplateRef('contentRef');
@@ -83,7 +74,6 @@
   let tippyInstance: Instance | undefined;
   let resizeObserver: ResizeObserver | undefined;
   let referenceObserver: ResizeObserver | undefined;
-  let hoverTimer: ReturnType<typeof setTimeout> | undefined;
 
   const isPopoverShow = ref(false);
   // 首次展开才渲染内容，之后常驻：菜单项里打开的侧滑、弹窗不会因菜单收起被卸载
@@ -100,29 +90,13 @@
     isPopoverShow.value = false;
   };
 
-  const clearHoverTimer = () => {
-    if (hoverTimer) {
-      clearTimeout(hoverTimer);
-      hoverTimer = undefined;
-    }
-  };
-
-  // 移入触发元素延迟展开，中途移走则取消，避免划过时闪现
-  const handleMouseenter = () => {
-    clearHoverTimer();
-    if (props.disabled || isPopoverShow.value) {
+  // 点击触发元素切换展开状态
+  const handleReferenceClick = () => {
+    if (isPopoverShow.value) {
+      hide();
       return;
     }
-    // 移到别的下拉上时，先收起上一个展开的菜单
-    if (activeHide) {
-      activeHide();
-    }
-    hoverTimer = setTimeout(show, HOVER_DELAY);
-  };
-
-  const handleMouseleave = () => {
-    // 移出只取消未触发的展开计时，已展开的菜单保持展开，交由点击外部收起
-    clearHoverTimer();
+    show();
   };
 
   // 菜单里的子弹层（如 DbPopconfirm）被 tippy 挂到 body 上，点击它不算点击外部
@@ -149,18 +123,13 @@
   };
 
   watch(isPopoverShow, (isShow) => {
-    clearHoverTimer();
     if (isShow) {
       isContentMounted.value = true;
-      activeHide = hide;
       tippyInstance?.show();
       // 捕获阶段监听，避免内容区内阻止冒泡导致无法判断
       document.addEventListener('click', handleDocumentClick, true);
       emits('show');
       return;
-    }
-    if (activeHide === hide) {
-      activeHide = undefined;
     }
     tippyInstance?.hide();
     document.removeEventListener('click', handleDocumentClick, true);
@@ -220,11 +189,7 @@
   });
 
   onBeforeUnmount(() => {
-    clearHoverTimer();
     document.removeEventListener('click', handleDocumentClick, true);
-    if (activeHide === hide) {
-      activeHide = undefined;
-    }
     resizeObserver?.disconnect();
     resizeObserver = undefined;
     referenceObserver?.disconnect();
