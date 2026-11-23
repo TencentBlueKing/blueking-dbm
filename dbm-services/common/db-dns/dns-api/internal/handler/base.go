@@ -16,21 +16,27 @@ type Handler struct {
 func (h *Handler) Routes() []*gin.RouteInfo {
 	return []*gin.RouteInfo{
 		{Method: http.MethodPut, Path: "/domain", HandlerFunc: h.AddDns},
-		{Method: http.MethodPut, Path: "/oplog", HandlerFunc: h.AddOpLog},
-
 		{Method: http.MethodDelete, Path: "/domain", HandlerFunc: h.DelDns},
-
 		{Method: http.MethodPost, Path: "/domain", HandlerFunc: h.UpdateDns},
 		{Method: http.MethodPost, Path: "/domain/batch", HandlerFunc: h.UpdateBatchDns},
 		{Method: http.MethodPost, Path: "/config", HandlerFunc: h.UpdateConfig},
 		{Method: http.MethodPost, Path: "/domain/app", HandlerFunc: h.UpdateDomainApp},
-
 		{Method: http.MethodGet, Path: "/domain", HandlerFunc: h.GetDns},
 		{Method: http.MethodGet, Path: "/domain/all", HandlerFunc: h.GetAllDns},
-		{Method: http.MethodGet, Path: "/domain/search", HandlerFunc: h.SearchDns},
-		{Method: http.MethodGet, Path: "/oplog/domain", HandlerFunc: h.GetDomainOpLog},
-		{Method: http.MethodGet, Path: "/oplog/all", HandlerFunc: h.GetAllOpLog},
 		{Method: http.MethodGet, Path: "/config/all", HandlerFunc: h.GetAllConfig},
+
+		// 域名管理(新功能页面)接口：同步维护域名管理人、更新人、更新时间，原 /domain 接口行为不变
+		// 针对非db域名的域名管理页面的接口
+		{Method: http.MethodGet, Path: "/domain/nodb", HandlerFunc: h.GetDns},
+		{Method: http.MethodPut, Path: "/domain/nodb", HandlerFunc: h.AddDnsV2},
+		{Method: http.MethodDelete, Path: "/domain/nodb", HandlerFunc: h.DelDnsV2},
+		{Method: http.MethodPost, Path: "/domain/nodb", HandlerFunc: h.UpdateDnsV2},
+		{Method: http.MethodGet, Path: "/domain/nodb/search", HandlerFunc: h.SearchDns},
+		{Method: http.MethodGet, Path: "/oplog/nodb/domain", HandlerFunc: h.GetDomainOpLog},
+		{Method: http.MethodGet, Path: "/oplog/nodb/all", HandlerFunc: h.GetAllOpLog},
+
+		// {Method: http.MethodPost, Path: "/domain/nodb/batch", HandlerFunc: h.UpdateBatchDnsV2},
+		// {Method: http.MethodPut, Path: "/oplog/nodb", HandlerFunc: h.AddOpLog},
 	}
 }
 

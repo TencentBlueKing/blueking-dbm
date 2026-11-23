@@ -10,14 +10,16 @@ import (
 
 // DnsOpLogQuery 操作日志查询条件
 type DnsOpLogQuery struct {
-	// DomainName 域名，模糊匹配
+	// DomainName 域名，空则不过滤
 	DomainName string
-	Operator   string
-	OpType     string
-	StartTime  *time.Time
-	EndTime    *time.Time
-	Limit      int
-	Offset     int
+	// DomainExact 为 true 时 DomainName 精确匹配，否则模糊匹配
+	DomainExact bool
+	Operator    string
+	OpType      string
+	StartTime   *time.Time
+	EndTime     *time.Time
+	Limit       int
+	Offset      int
 }
 
 // DnsOpLogRepo 操作日志方法接口
@@ -56,7 +58,11 @@ func (o *DnsOpLogImpl) Insert(logs []*entity.TbDnsOpLog) (num int64, err error) 
 func (o *DnsOpLogImpl) Query(q DnsOpLogQuery) (rs []entity.TbDnsOpLog, total int64, err error) {
 	db := dao.DnsDB.Model(&entity.TbDnsOpLog{})
 	if q.DomainName != "" {
-		db = db.Where("domain_name like ?", "%"+escapeLike(q.DomainName)+"%")
+		if q.DomainExact {
+			db = db.Where("domain_name = ?", q.DomainName)
+		} else {
+			db = db.Where("domain_name like ?", "%"+escapeLike(q.DomainName)+"%")
+		}
 	}
 	if q.Operator != "" {
 		db = db.Where("operator = ?", q.Operator)
