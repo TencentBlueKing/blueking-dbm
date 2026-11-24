@@ -226,7 +226,7 @@ def test_read_conversion_preserves_legacy_days_and_model_data():
 
 @pytest.mark.parametrize("bk_biz_id, expected_pause", [(0, 24), (1, 1)])
 @pytest.mark.parametrize("has_optional_nodes", [False, True])
-def test_query_returns_capabilities_with_switches_off(bk_biz_id, expected_pause, has_optional_nodes):
+def test_query_excludes_disabled_optional_expire_types(bk_biz_id, expected_pause, has_optional_nodes):
     cfg = make_config(
         bk_biz_id=bk_biz_id,
         need_itsm=False,
@@ -252,8 +252,6 @@ def test_query_returns_capabilities_with_switches_off(bk_biz_id, expected_pause,
     assert result[0]["configs"]["expire_config"] == {"pause": expected_pause, "itsm_expire": -1}
     assert result[0]["flow_desc"] == []
     expected_types = {"confirm_modify", "inner_flow_expire", "flow_todo_expire"}
-    if has_optional_nodes:
-        expected_types.update({"itsm_expire", "pause"})
     assert {item["value"] for item in result[0]["supported_expire_types"]} == expected_types
     assert cfg.configs["need_itsm"] is False
     assert cfg.configs["need_manual_confirm"] is False
