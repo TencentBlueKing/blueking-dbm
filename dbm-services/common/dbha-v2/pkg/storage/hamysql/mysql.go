@@ -129,17 +129,21 @@ func NewGormDB(opts ...Option) (*GormDB, error) {
 // open creates a connection pool and then establishes one connection.
 func (db *GormDB) open(trace *connectTrace) (*GormDB, error) {
 	mysqlCfg := db.opts.Config()
-	// GORM's own version query uses context.Background and cannot be cancelled.
-	mysqlCfg.SkipInitializeWithVersion = true
-
 	dialector := &mysql.Dialector{Config: &mysqlCfg}
-	// gorm.Open must not contact the server. Version initialization is forced off
-	// above and automatic ping is disabled, so this only creates a connection pool.
-	// The timeout below does not cover this call. A dial here would escape it.
+	// When SkipInitializeWithVersion is false, GORM runs SELECT VERSION() here with
+	// context.Background(). That query cannot be cancelled, so OptionTimeout does not
+	// cover it. The dial, handshake, and SET NAMES of that same Connect are uncovered
+	// as well. We trust SELECT VERSION() not to block.
 	gdb, err := gorm.Open(dialector, db.gormConfig())
 	trace.opened = time.Now()
 	if err != nil {
 		return nil, gerrors.Newf(gerrors.MysqlFailure, "failed to open the db:%s errmsg: %s", db.opts.dbName, err)
+	}
+	// GORM already queried the version. Reuse it so Version() does not query again.
+	// The slow-connect "version" segment stays 0; this time is included in open.
+	if dialector.ServerVersion != "" {
+		db.version = dialector.ServerVersion
+		db.versionOK = true
 	}
 	db.attach(gdb)
 
@@ -152,7 +156,9 @@ func (db *GormDB) open(trace *connectTrace) (*GormDB, error) {
 	return db, nil
 }
 
-// connect connects to the database within the given timeout.
+// connect checks out one connection within the timeout.
+// When version initialization was skipped, this is the first dial, so the timeout
+// covers the handshake and SET NAMES. Otherwise GORM already connected during Open.
 func (db *GormDB) connect(gdb *gorm.DB, trace *connectTrace) error {
 	ctx := context.Background()
 	var cancel context.CancelFunc
@@ -173,9 +179,10 @@ func (db *GormDB) connect(gdb *gorm.DB, trace *connectTrace) error {
 	}
 	defer conn.Close()
 
-	if db.opts.skipInitializeWithVersion {
+	if !db.opts.skipInitializeWithVersion || !db.opts.autoSelectVersion {
 		return nil
 	}
+
 	var version string
 	err = conn.QueryRowContext(ctx, "SELECT VERSION()").Scan(&version)
 	trace.versioned = time.Now()

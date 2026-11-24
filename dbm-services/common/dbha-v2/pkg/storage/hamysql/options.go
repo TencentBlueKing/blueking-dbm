@@ -50,6 +50,7 @@ var defaultOptions = options{
 	dontSupportRenameIndex:    true,
 	dontSupportRenameColumn:   true,
 	skipInitializeWithVersion: false,
+	autoSelectVersion:         false,
 	disableAutomaticPing:      true,
 	logSlowThreshold:          5 * time.Second,
 	logSlowConnect:            3 * time.Second,
@@ -91,6 +92,8 @@ type options struct {
 
 	// Automatically configure based on the current MySQL version.
 	skipInitializeWithVersion bool
+	// When skipInitializeWithVersion is true, query SELECT VERSION() ourselves after connect.
+	autoSelectVersion bool
 
 	// The slow query threshold for SQL.
 	logger                       logger.Logger
@@ -306,6 +309,18 @@ func OptionSkipInitializeWithVersion(val bool) *funcOptions {
 	}
 }
 
+// OptionAutoSelectVersion queries SELECT VERSION() after connect when version init is skipped.
+// It applies only to NewGormDB. NewSqlxDB always runs select version() itself.
+// Ignored when SkipInitializeWithVersion is false, because GORM already queried the version.
+func OptionAutoSelectVersion(val bool) *funcOptions {
+	return &funcOptions{
+		f: func(opt *options) error {
+			opt.autoSelectVersion = val
+			return nil
+		},
+	}
+}
+
 // OptionLogSlowConnect sets the duration at which connection establishment is logged.
 // Zero or negative disables the log.
 func OptionLogSlowConnect(val time.Duration) *funcOptions {
@@ -327,7 +342,17 @@ func OptionLogSlowThreshold(val time.Duration) *funcOptions {
 	}
 }
 
-// OptionTimeout sets mysql connection timeout in DSN.
+// OptionTimeout sets the connect timeout.
+// A positive value is written into the DSN as timeout, which bounds only the TCP dial.
+// It is also the context deadline for the connect we control:
+//   - GORM with SkipInitializeWithVersion true: Conn, including handshake and SET NAMES,
+//     and SELECT VERSION() when AutoSelectVersion is true.
+//   - GORM with SkipInitializeWithVersion false: gorm.Open runs SELECT VERSION() with
+//     context.Background(). That connect, including its handshake and SET NAMES, is not
+//     cancelled by this deadline.
+//   - sqlx: the select version() call, including the dial, handshake, and SET NAMES inside it.
+//
+// Zero or negative sets no deadline. The DSN then also omits timeout.
 func OptionTimeout(val time.Duration) *funcOptions {
 	return &funcOptions{
 		f: func(opt *options) error {
