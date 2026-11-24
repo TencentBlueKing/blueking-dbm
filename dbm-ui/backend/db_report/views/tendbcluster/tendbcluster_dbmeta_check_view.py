@@ -11,7 +11,7 @@ specific language governing permissions and limitations under the License.
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType
-from backend.db_report.enums import ReportType
+from backend.db_report.enums import MetaCheckSubType, ReportType
 from backend.db_report.models import MetaCheckReport
 from backend.db_report.register import register_report
 from backend.db_report.views.meta_check_view import MetaCheckReportBaseViewSet
@@ -20,4 +20,8 @@ from backend.db_report.views.meta_check_view import MetaCheckReportBaseViewSet
 @register_report(DBType.TenDBCluster)
 class TendbClusterMetaCheckReportViewSet(MetaCheckReportBaseViewSet):
     report_type = ReportType.META_CHECK
-    queryset = MetaCheckReport.objects.filter(cluster_type=ClusterType.TenDBCluster).order_by("-create_at")
+    queryset = (
+        MetaCheckReport.objects.filter(cluster_type=ClusterType.TenDBCluster)
+        .exclude(subtype=MetaCheckSubType.MysqlEntryInconsistent.value)
+        .order_by("-create_at")
+    )
