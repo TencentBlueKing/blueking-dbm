@@ -58,11 +58,22 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
     serializer_class = PackageSerializer
 
     def get_action_permission_map(self):
+        list_permissions = []
+        if self.action == "list":
+            db_type = self.request.query_params.get("db_type", "").strip()
+            if not db_type:
+                raise ValidationError({"db_type": _("请指定 DB 类型")})
+            pkg_type = self.request.query_params.get("pkg_type", "").strip()
+            if not pkg_type:
+                list_permissions = [
+                    ResourceActionPermission([ActionEnum.PACKAGE_VIEW], ResourceEnum.DBTYPE, self.instance_getter)
+                ]
         return {
+            "list": list_permissions,
             (
                 "list_install_pkg_types",
                 "list_install_packages",
-            ): []
+            ): [],
         }
 
     def get_default_permission_class(self):
@@ -71,11 +82,8 @@ class DBPackageViewSet(viewsets.AuditedModelViewSet):
     @staticmethod
     def instance_getter(request, view):
         if view.action == "list":
-            db_type = request.query_params.get("db_type", "").strip()
-            if not db_type:
-                raise ValidationError({"db_type": _("请指定 DB 类型")})
-            return [db_type]
-        elif view.action == "destroy":
+            return [request.query_params.get("db_type", "").strip()]
+        if view.action == "destroy":
             return [Package.objects.get(id=view.kwargs["pk"]).db_type]
         elif view.action == "bulk_create":
             return list(set([data["db_type"] for data in request.data["packages"]]))
