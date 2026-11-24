@@ -285,7 +285,7 @@ SYMMETRIC_CIPHER_TYPE = get_type_env(key="SYMMETRIC_CIPHER_TYPE", _type=str, def
 
 # 数据平台应用 token。敏感文本分类已改走插件网关，不再读取该 token
 BKDATA_DATA_TOKEN = get_type_env(key="BKDATA_DATA_TOKEN", _type=str, default="")
-# 敏感文本分类插件网关，形如 http://bp-sens-text.apigw.o.woa.com/prod/
+# 敏感文本分类插件网关，形如 http://xxx.apigw.example.com/prod/
 BKDATA_SENSI_TEXT_APIGW_DOMAIN = get_type_env(key="BKDATA_SENSI_TEXT_APIGW_DOMAIN", _type=str, default="")
 # 敏感信息检测 agent 网关地址，形如 https://xxx.apigw.example.com/stag/，配置后走 V2 检测
 BKDATA_SENSI_AGENT_URL = get_type_env(key="BKDATA_SENSI_AGENT_URL", _type=str, default="")
