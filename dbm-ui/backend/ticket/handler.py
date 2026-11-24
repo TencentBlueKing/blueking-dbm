@@ -49,7 +49,8 @@ from backend.ticket.exceptions import AppBaseException, TicketFlowsConfigExcepti
 from backend.ticket.flow_config import (
     FLOW_CONFIG_CHECK_ERROR_DISPLAY,
     flow_config_days_to_hours,
-    get_configurable_expire_types,
+    get_described_flow_types,
+    get_supported_expire_types,
     plan_flow_config_update,
 )
 from backend.ticket.flow_manager.manager import TicketFlowManager
@@ -837,7 +838,7 @@ class TicketHandler:
                 flow_desc=[node.label for node in flow_nodes],
                 supported_expire_types=[
                     {"value": expire_type, "label": TICKET_EXPIRE_TYPE_DISPLAY[expire_type]}
-                    for expire_type in get_configurable_expire_types(builder, flow_config.ticket_type, config_map)
+                    for expire_type in get_supported_expire_types(get_described_flow_types(flow_nodes))
                 ],
                 clusters=cluster_info,
                 update_at=flow_config.update_at,
