@@ -100,7 +100,10 @@ class CloudServiceActPayload(object):
         return {}
 
     def get_dns_apply_payload(self):
-        return {}
+        # bind 的 forwarders 取自 resolv.conf，而部署 drs 后 resolv.conf 会包含本云区域的 dns，需排除以免转发回自身
+        dns_ips = {ext.details["ip"] for ext in DBExtension.get_extension_in_cloud(self.cloud_id, ExtensionType.DNS)}
+        dns_ips.update(host["ip"] for host in self.ticket_data.get("dns", {}).get("host_infos", []))
+        return {"exclude_dns_ips": " ".join(sorted(dns_ips))}
 
     def get_dns_pull_crond_conf_payload(self):
         db_cloud_token = self.__generate_service_token(service_type=CloudServiceName.DNS.value)
@@ -165,12 +168,8 @@ class CloudServiceActPayload(object):
 
     def get_drs_env_conf_payload(self):
         dns_nameserver = [f"nameserver {ip}" for ip in self.__get_dns_ip()]
-        # 格式转义为:
-        # nameserver 127.0.0.1\
-        # nameserver 127.0.0.2\
-        # ...
-        # nameserver 127.0.0.n
-        dns_nameserver_str = "\\\n".join(dns_nameserver)
+        # 模板中以 echo "..." 逐行读取，行尾不能带反斜杠，否则 bash 会当作续行把多行拼成一行
+        dns_nameserver_str = "\n".join(dns_nameserver)
         return {
             "drs_port": self.kwargs["exec_ip"]["drs_port"],
             "drs_user": self.kwargs["plain_user"],

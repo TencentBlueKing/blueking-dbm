@@ -29,7 +29,7 @@ rm -rf $path/bind;
 tar -xvf /data/install/bind.tar.gz -C $path;
 ln -s $path/bind9 $path/bind;
 
-NAMESERVERS=$(grep -E '^nameserver\s+[0-9]' /etc/resolv.conf | awk '{print $2}' | grep -v -E '^(127\.|0\.0\.0\.0|::1)' | head -3 | sed 's/$/;/' | tr '\n' ' ' | sed 's/ $//')
+NAMESERVERS=$(grep -E '^nameserver\s+[0-9]' /etc/resolv.conf | awk '{print $2}' | grep -v -E '^(127\.|0\.0\.0\.0|::1)' | awk -v ex="{{exclude_dns_ips}}" 'BEGIN{n=split(ex,a," "); for(i=1;i<=n;i++) skip[a[i]]=1} !($1 in skip)' | head -3 | sed 's/$/;/' | tr '\n' ' ' | sed 's/ $//')
 if [[ ! -z "$NAMESERVERS" ]]; then
     FORWARDERS="forwarders { $NAMESERVERS };"
     sed -i '/forwarders\s*{/,/};/c'"$FORWARDERS" $path/bind/etc/named.conf
@@ -59,6 +59,10 @@ fi
 available_ips=""
 for ip in $DNS_LIST
 do
+  # pull-crond 会用 forward_ip 重新生成 named.conf 的 forwarders，同样要排除本云区域的 dns
+  if [[ " {{exclude_dns_ips}} " == *" $ip "* ]]; then
+    continue
+  fi
   if timeout 2 ping -c 1 "$ip" >/dev/null 2>&1; then
     available_ips+="$ip "
   fi
