@@ -27,6 +27,8 @@
 | 权限 / 开关 | `Auth*` / `FunController` | 裸按钮 `disabled`、散落 `v-if` |
 | 状态点 / 实例状态 / 属性 | `DbStatus` / `ClusterInstanceStatus` / `DbTag`（表格用 `MiniTag`） | 三种串台 |
 | 表单 | `DbForm`（脏检查、校验滚动） | 裸 `BkForm` 漏 `changeConfirm` |
+| 表单项 | `DbFormItem` | `BkFormItem` |
+| 输入框 / 多行文本 | `DbInput`（`type="textarea"`） | `BkInput` |
 | 主按钮宽 | `w-88` | 每处手写还漏 |
 
 图标 `<DbIcon type="copy" />`。
