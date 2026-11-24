@@ -23,6 +23,8 @@
 - 基础组件优先用 `src/components/bkui-vue/` 下的本地实现（如 `DbInput`，在 `src/common/importComps.ts`
   全局注册）；该目录没有的组件再用 bkui-vue 包（`main.ts` 已全局注册）；element-plus 仅存量日期类组件在用，
   新代码不要再引入
+- 表单项一律 `DbFormItem`、输入框（含 `type="textarea"`）一律 `DbInput`，不写 `BkFormItem` / `BkInput`；
+  两者全局注册、属性透传，直接替换标签名即可，细节见 `known-issues` 的 `doc/db-form-item-db-input.md`
 - 具体场景该用哪个组件、视觉与反馈规范见 `dbm-designer` skill
 
 ## 样式

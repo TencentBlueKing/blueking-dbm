@@ -12,19 +12,24 @@
 -->
 
 <template>
-  <!-- 与 DbForm 一致：以点击判定用户主动修改，避免控件初始化回写被当成修改 -->
-  <div @click="handleUserAction">
+  <!-- 以用户点击 / 按键判定主动修改，避免控件初始化回写被当成修改 -->
+  <!-- 必须用捕获阶段：冒泡阶段时子组件的删除已同步改值，监听回调结束后的微任务里 watch 先跑，标记还没打上 -->
+  <!-- 原生 input 冒泡：IP 输入框的文本回车或失焦才落成标签，键入时即视为修改 -->
+  <div
+    @click.capture="handleUserAction"
+    @input="handleUserInput"
+    @keydown.capture="handleUserAction">
     <DbForm
       ref="form"
       :model="formData"
       :rules="rules">
-      <BkFormItem :label="t('域名')">
+      <DbFormItem :label="t('域名')">
         {{ data.domain }}
-      </BkFormItem>
-      <BkFormItem :label="t('维护方式')">
+      </DbFormItem>
+      <DbFormItem :label="t('维护方式')">
         {{ data.maintain_type_display || '--' }}
-      </BkFormItem>
-      <BkFormItem
+      </DbFormItem>
+      <DbFormItem
         :description="t('至少保留一个 IP，重复地址自动去重')"
         label="IP"
         property="ips"
@@ -34,22 +39,22 @@
           allow-create
           multiple
           :placeholder="t('请输入 IP，按 Enter 确认')" />
-      </BkFormItem>
-      <BkFormItem
+      </DbFormItem>
+      <DbFormItem
         :label="t('负责人')"
         property="owners"
         required>
         <DbMemberSelector v-model="formData.owners" />
-      </BkFormItem>
-      <BkFormItem
+      </DbFormItem>
+      <DbFormItem
         :label="t('备注')"
         property="remark">
-        <BkInput
+        <DbInput
           v-model="formData.remark"
           :maxlength="500"
           :rows="4"
           type="textarea" />
-      </BkFormItem>
+      </DbFormItem>
     </DbForm>
   </div>
 </template>
@@ -111,6 +116,12 @@
   let isUserAction = false;
   const handleUserAction = () => {
     isUserAction = true;
+  };
+
+  // 键盘输入一定是用户操作，不必等值写回 formData
+  const handleUserInput = () => {
+    isUserAction = true;
+    emits('change');
   };
 
   watch(

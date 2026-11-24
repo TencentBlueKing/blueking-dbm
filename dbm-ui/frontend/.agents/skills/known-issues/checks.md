@@ -38,6 +38,8 @@
   `v-if="$slots.xxx"` 容器，或给自研基础组件新增插槽出口
 - [BkComposeFormItem 里放本地 Db* 组件，第二个控件会掉到下一行](doc/compose-form-item-db-component.md) —— 往
   `<BkComposeFormItem>` 里放 `DbSelect` / `DbInput` / `DbTagInput`，或用它做「输入 + 单位」这类并排布局
+- [表单项用 DbFormItem、输入框用 DbInput](doc/db-form-item-db-input.md) —— 本次新增或改到的模板里有
+  `BkFormItem` / `bk-form-item` / `BkInput` / `bk-input`（ESLint 只报 warn，不拦提交）
 - [单据详情里的改单数据（内容版本、改单记录）走 props，不用 provide / inject](doc/ticket-modify-data-props.md) —— 改
   `views/ticket-center/common/action-confirm/**` 或 `views/ticket-center/common/ticket-detail/**` 里提交
   `version`、使用改单记录的代码，或新增流程类型入口 / 流程状态组件 / 待办类型

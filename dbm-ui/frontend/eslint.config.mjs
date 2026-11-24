@@ -435,6 +435,20 @@ export default defineConfigWithVueTs(
           message: 'DbQuickSearch 不要传 placeholder，未配置时组件会用 data.name 用顿号拼成「请输入或选择 n」。',
         },
       ],
+      // 存量 BkInput / BkFormItem 文件较多，先用 warn 不阻塞提交；新代码与本次改动到的标签必须换成 Db* 版本
+      'vue/no-restricted-syntax': [
+        'warn',
+        {
+          selector: 'VElement[rawName=/^(BkInput|bk-input)$/]',
+          message:
+            '用全局注册的 DbInput 替换 BkInput（属性、事件、textarea 用法一致）。见 .agents/skills/known-issues/doc/db-form-item-db-input.md',
+        },
+        {
+          selector: 'VElement[rawName=/^(BkFormItem|bk-form-item)$/]',
+          message:
+            '用全局注册的 DbFormItem 替换 BkFormItem（属性透传，额外提供 DBMFormItem 注入）。见 .agents/skills/known-issues/doc/db-form-item-db-input.md',
+        },
+      ],
     },
   },
   {
