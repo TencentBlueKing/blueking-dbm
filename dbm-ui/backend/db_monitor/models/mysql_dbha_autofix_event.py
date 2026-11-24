@@ -78,7 +78,13 @@ class MySQLDBHAAutofixTicketStageQueue(AuditedModel):
     error_message = models.TextField(help_text=_("提单失败的错误信息"), default="", blank=True)
 
     class Meta:
-        indexes = [models.Index(fields=["status", "cluster_id"])]
+        indexes = [
+            models.Index(fields=["status", "cluster_id"]),
+            # 提单、超时都按 queue_uuid 更新，一张单据一行或多行
+            models.Index(fields=["queue_uuid"]),
+            # 集群状态字段按 af_uuid + check_id 取 queue 行
+            models.Index(fields=["af_uuid", "check_id"]),
+        ]
 
 
 class MySQLDBHAEvent(AuditedModel):
@@ -98,8 +104,6 @@ class MySQLDBHAEvent(AuditedModel):
     new_master_log_file = models.CharField(max_length=255, default="", null=True)
     new_master_log_pos = models.IntegerField(default=0, null=True)
     event_create_time = models.DateTimeField()
-    # 自愈调度相关部分, 多个原始 event 可能对应同一个 ticket
-    # ticket = models.ForeignKey(MySQLDBHAAutofixTicketStageQueue, on_delete=models.PROTECT, blank=True, null=True)
     # 只有未调度, 也就是 ticket__is_null == True 的 event 需要关注这个
     # validated == False 时会被放弃
     validated = models.BooleanField(null=True, blank=True, help_text=_("校验状态"), default=True)
@@ -115,22 +119,17 @@ class MySQLDBHAEvent(AuditedModel):
             self.bk_biz_id,
             self.immute_domain,
             self.machine_type,
-            # self.instance_role,
             self.ip,
             self.port,
         )
 
     class Meta:
         indexes = [
-            #     models.Index(fields=["inplace_ticket_status", "current_step", "inplace_ticket_id"]),
-            #     models.Index(fields=["replace_ticket_status", "current_step", "replace_ticket_id"]),
-            #     models.Index(fields=["inplace_ticket_id"]),
             models.Index(fields=["af_uuid", "event_create_time"]),
-            #     # 为查询优化建的索引
-            #     models.Index(fields=["current_step", "replace_ticket_id", "check_id", "ip"]),
-            #     models.Index(fields=["current_step", "inplace_ticket_id", "check_id", "ip"]),
-            #     models.Index(fields=["inplace_ticket_status", "current_step", "check_id"]),
-            #     models.Index(fields=["replace_ticket_status", "current_step", "check_id"]),
+            # 集群状态字段按 cluster_id + ip 取候选事件
+            models.Index(fields=["cluster_id", "ip"]),
+            # 未报齐的事件按 check_id + af_uuid 重置 af_uuid
+            models.Index(fields=["af_uuid", "check_id"]),
         ]
         unique_together = [
             (
