@@ -34,6 +34,7 @@ MYSQL_HA_FIELDS = [
     "capacity",
     "portrait_report",
     "independently_hosted",
+    "dbha_af_state",
 ]
 
 

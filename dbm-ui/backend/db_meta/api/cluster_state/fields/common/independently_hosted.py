@@ -8,9 +8,9 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import Any, Dict, List
+from typing import Dict, List
 
-from django.db.models import Q, QuerySet
+from django.db.models import QuerySet
 from django.utils.translation import gettext_lazy as _
 
 from backend.configuration.constants import BizSettingsEnum
@@ -19,6 +19,9 @@ from backend.db_meta.api.cluster_state.fields.base import NativeStateField
 from backend.db_meta.api.cluster_state.values import StateValue
 from backend.db_meta.enums import ClusterType, StateValueType
 from backend.db_meta.models import Cluster
+
+# 集群状态的查询全部走 dbmeta 只读通道
+DBMETA_READONLY = "dbmeta-readonly"
 
 
 class IndependentlyHostedField(NativeStateField):
@@ -30,10 +33,14 @@ class IndependentlyHostedField(NativeStateField):
 
     @classmethod
     def query_set(cls) -> QuerySet:
-        return BizSettings.objects.filter(key=BizSettingsEnum.INDEPENDENT_HOSTING_DB_TYPES.value)
+        return BizSettings.objects.using(DBMETA_READONLY).filter(
+            key=BizSettingsEnum.INDEPENDENT_HOSTING_DB_TYPES.value
+        )
 
     def batch_get(self, cluster_ids: List[int]) -> Dict[int, StateValue]:
-        cluster_objs = list(Cluster.objects.filter(id__in=cluster_ids).values("id", "bk_biz_id", "cluster_type"))
+        cluster_objs = list(
+            Cluster.objects.using(DBMETA_READONLY).filter(id__in=cluster_ids).values("id", "bk_biz_id", "cluster_type")
+        )
         bk_biz_ids = list(set(cluster_obj["bk_biz_id"] for cluster_obj in cluster_objs))
 
         independently_config = {
@@ -54,12 +61,3 @@ class IndependentlyHostedField(NativeStateField):
             )
 
         return res
-
-    def filter_q(self, op: str, values: List[Any]) -> Q:
-        raise Exception(_("当前未支持"))
-
-    def mark(self, cluster: Cluster, value: Any, extra: Any = None, operator: str = "") -> None:
-        raise Exception(_("当前未支持"))
-
-    def unmark(self, cluster: Cluster, operator: str = "") -> None:
-        raise Exception(_("当前未支持"))
