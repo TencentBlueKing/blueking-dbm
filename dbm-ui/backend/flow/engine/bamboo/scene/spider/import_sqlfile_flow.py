@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 import itertools
 import logging.config
 import os
@@ -188,6 +189,7 @@ class ImportSQLFlow(object):
                 sub_pipeline.add_act(
                     act_name=_("使用工具在线变更DDL"),
                     act_component_code=ExecuteDBActuatorScriptComponent.code,
+                    retryable=False,
                     kwargs=asdict(
                         ExecActuatorKwargs(
                             job_timeout=LONG_JOB_TIMEOUT,
@@ -202,6 +204,7 @@ class ImportSQLFlow(object):
                 sub_pipeline.add_act(
                     act_name=_("执行SQL导入"),
                     act_component_code=ExecuteDBActuatorScriptWithBkJobRecordComponent.code,
+                    retryable=False,
                     kwargs=asdict(
                         ExecActuatorKwargs(
                             job_timeout=LONG_JOB_TIMEOUT,
