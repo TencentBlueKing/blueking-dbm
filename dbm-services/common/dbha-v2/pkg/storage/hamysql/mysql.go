@@ -126,6 +126,37 @@ func NewGormDB(opts ...Option) (*GormDB, error) {
 	return opened, err
 }
 
+// NewGormDBWithTimeout creates a GormDB whose OptionTimeout covers the whole connect.
+// GORM's own SELECT VERSION() is always skipped, and we run it after connect instead.
+// An explicit SkipInitializeWithVersion(false) or AutoSelectVersion(false) is rejected.
+func NewGormDBWithTimeout(opts ...Option) (*GormDB, error) {
+	applied := defaultOptions
+	// Required so OptionTimeout covers the whole connect. GORM must not run its own
+	// uncancellable SELECT VERSION(), and we query the version after connect instead.
+	// Caller options are applied next; flipping either value is rejected below.
+	applied.skipInitializeWithVersion = true
+	applied.autoSelectVersion = true
+	for _, opt := range opts {
+		if err := opt.apply(&applied); err != nil {
+			return nil, err
+		}
+	}
+	if !applied.skipInitializeWithVersion {
+		return nil, gerrors.New(gerrors.InvalidParameter,
+			"NewGormDBWithTimeout requires SkipInitializeWithVersion true")
+	}
+	if !applied.autoSelectVersion {
+		return nil, gerrors.New(gerrors.InvalidParameter,
+			"NewGormDBWithTimeout requires AutoSelectVersion true")
+	}
+
+	opts = append(opts,
+		OptionSkipInitializeWithVersion(true),
+		OptionAutoSelectVersion(true),
+	)
+	return NewGormDB(opts...)
+}
+
 // open creates a connection pool and then establishes one connection.
 func (db *GormDB) open(trace *connectTrace) (*GormDB, error) {
 	mysqlCfg := db.opts.Config()

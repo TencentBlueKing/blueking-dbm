@@ -108,14 +108,13 @@ func (c *collector) open() (*haprobe.DbEvent, error) {
 		hamysql.OptionPort(c.endpoint.Port),
 		hamysql.OptionUser(c.user),
 		hamysql.OptionPassword(c.password),
-		hamysql.OptionSkipInitializeWithVersion(false),
 		hamysql.OptionDisableDatetimePrecision(true),
 		hamysql.OptionCharset(""),
 	}
 	if c.timeout > 0 {
 		opts = append(opts, hamysql.OptionTimeout(c.timeout))
 	}
-	db, err := hamysql.NewGormDB(opts...)
+	db, err := hamysql.NewGormDBWithTimeout(opts...)
 
 	if err != nil {
 		logger.Warn("create mysql db operator failed, errmsg: %s", err)
@@ -125,7 +124,7 @@ func (c *collector) open() (*haprobe.DbEvent, error) {
 	return c.adoptOpenedDB(db)
 }
 
-// adoptOpenedDB configures the connection pool and assigns c.db after NewGormDB succeeds.
+// adoptOpenedDB configures the connection pool and assigns c.db after NewGormDBWithTimeout succeeds.
 // On failure it closes db and returns a connection-exception DbEvent; c.db is left unset.
 func (c *collector) adoptOpenedDB(db *hamysql.GormDB) (*haprobe.DbEvent, error) {
 	sqlDb, err := db.DB().DB()

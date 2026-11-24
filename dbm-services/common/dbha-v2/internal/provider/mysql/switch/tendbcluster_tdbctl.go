@@ -494,14 +494,13 @@ func (op *TdbctlOperator) ConnectTdbctlNode(
 	tdbctlUser := config.Cfg.Database.Mysql.User
 	tdbctlPassword := config.Cfg.Database.Mysql.Password
 
-	tdbctlDB, connErr := hamysql.NewGormDB(
+	tdbctlDB, connErr := hamysql.NewGormDBWithTimeout(
 		hamysql.OptionProto(DefaultMySQLProtocol),
 		hamysql.OptionIP(tdbctlHost),
 		hamysql.OptionPort(tdbctlPort),
 		hamysql.OptionUser(tdbctlUser),
 		hamysql.OptionPassword(tdbctlPassword),
 		hamysql.OptionTimeout(switchcore.DbConnectTimeout()),
-		hamysql.OptionSkipInitializeWithVersion(false),
 		hamysql.OptionDisableDatetimePrecision(true),
 		hamysql.OptionCharset(""),
 	)

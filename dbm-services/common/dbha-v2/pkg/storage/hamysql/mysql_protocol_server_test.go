@@ -428,6 +428,37 @@ func protocolVersion(t *testing.T, db protocolDB) string {
 	}
 }
 
+func assertNewGormDBWithTimeoutTimesOut(t *testing.T, stall protocolStall, extra ...hamysql.Option) {
+	t.Helper()
+	srv := startProtocolServer(t, stall)
+	host, port := srv.hostPort(t)
+
+	const timeout = 3 * time.Second
+	opts := []hamysql.Option{
+		hamysql.OptionProto("tcp"),
+		hamysql.OptionIP(host),
+		hamysql.OptionPort(port),
+		hamysql.OptionUser("u"),
+		hamysql.OptionPassword("p"),
+		hamysql.OptionTimeout(timeout),
+	}
+	opts = append(opts, extra...)
+
+	start := time.Now()
+	db, err := hamysql.NewGormDBWithTimeout(opts...)
+	elapsed := time.Since(start)
+	if db != nil {
+		db.Close()
+		t.Fatal("expected no database after timeout")
+	}
+	if err == nil {
+		t.Fatal("expected timeout error")
+	}
+	if elapsed > 2*timeout {
+		t.Fatalf("did not time out, elapsed=%s, err=%v", elapsed, err)
+	}
+}
+
 // GORM runs SELECT VERSION() inside gorm.Open. OptionTimeout does not cover that connect.
 func TestGormInitBeforeHandshakeMiss(t *testing.T) {
 	runConnectCase(t, connectCase{kind: kindGorm, stall: stallBeforeHandshake, skipVersion: false, result: resultMiss})
@@ -484,4 +515,55 @@ func TestSqlxVersionTimeout(t *testing.T) {
 
 func TestSqlxConnect(t *testing.T) {
 	runConnectCase(t, connectCase{kind: kindSqlx, stall: stallNone, result: resultConnect})
+}
+
+func TestNewGormDBWithTimeoutBeforeHandshake(t *testing.T) {
+	assertNewGormDBWithTimeoutTimesOut(t, stallBeforeHandshake)
+}
+
+func TestNewGormDBWithTimeoutAfterHandshake(t *testing.T) {
+	assertNewGormDBWithTimeoutTimesOut(t, stallAfterHandshake)
+}
+
+func TestNewGormDBWithTimeoutSetNames(t *testing.T) {
+	assertNewGormDBWithTimeoutTimesOut(t, stallOnQuery, hamysql.OptionCharset("utf8mb4"))
+}
+
+func TestNewGormDBWithTimeoutVersion(t *testing.T) {
+	assertNewGormDBWithTimeoutTimesOut(t, stallOnQuery, hamysql.OptionCharset(""))
+}
+
+func TestNewGormDBWithTimeoutMaxAllowedPacket(t *testing.T) {
+	assertNewGormDBWithTimeoutTimesOut(t, stallOnQuery,
+		hamysql.OptionCharset(""),
+		hamysql.OptionAutoMaxAllowedPacket(true),
+	)
+}
+
+func TestNewGormDBWithTimeoutConnect(t *testing.T) {
+	srv := startProtocolServer(t, stallNone)
+	host, port := srv.hostPort(t)
+
+	db, err := hamysql.NewGormDBWithTimeout(
+		hamysql.OptionProto("tcp"),
+		hamysql.OptionIP(host),
+		hamysql.OptionPort(port),
+		hamysql.OptionUser("u"),
+		hamysql.OptionPassword("p"),
+		hamysql.OptionTimeout(3*time.Second),
+		hamysql.OptionCharset("utf8mb4"),
+		hamysql.OptionAutoMaxAllowedPacket(true),
+	)
+	if err != nil {
+		t.Fatalf("connect: %s", err)
+	}
+	defer db.Close()
+
+	version, err := db.Version(context.Background())
+	if err != nil {
+		t.Fatalf("version: %s", err)
+	}
+	if version != "5.7.0-fake" {
+		t.Fatalf("version: got %q", version)
+	}
 }
