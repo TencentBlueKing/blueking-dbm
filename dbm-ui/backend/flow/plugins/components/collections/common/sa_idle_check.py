@@ -15,7 +15,9 @@ from pipeline.component_framework.component import Component
 from backend import env
 from backend.components import CCApi
 from backend.components.sops.client import BkSopsApi
+from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.flow.plugins.components.collections.common.base_service import BkSopsService
+from backend.flow.plugins.components.collections.common.sops_ip import format_sops_ip
 
 
 class CheckMachineIdleCheck(BkSopsService):
@@ -46,13 +48,15 @@ class CheckMachineIdleCheck(BkSopsService):
         kwargs = data.get_one_of_inputs("kwargs")
         trans_data = data.get_one_of_inputs("trans_data")
 
-        ips = kwargs["ips"]
+        kwargs_cloud_id = kwargs.get("bk_cloud_id", DEFAULT_BK_CLOUD_ID)
+        ip_entries = [(ip, kwargs_cloud_id) for ip in kwargs["ips"]]
         template_id = env.SA_CHECK_TEMPLATE_ID
         if kwargs.get("strict_idle_check"):
             template_id = env.SA_RECYCLE_IDLE_CHECK_TEMPLATE_ID
         # 从上下文中获取ip列表
         if isinstance(trans_data, dict) and trans_data.get("hosts"):
-            ips = [host["ip"] for host in trans_data["hosts"]] + ips
+            ip_entries = [(host["ip"], host.get("bk_cloud_id")) for host in trans_data["hosts"]] + ip_entries
+        ips = [ip for ip, _ in ip_entries]
 
         # 获取业务id
         if kwargs.get("bk_biz_id"):
@@ -70,7 +74,7 @@ class CheckMachineIdleCheck(BkSopsService):
             "constants": {
                 "${biz_cc_id}": bk_biz_id,
                 "${bk_biz_id}": bk_biz_id,
-                "${job_ip_list}": "\n".join(ips),
+                "${job_ip_list}": "\n".join(format_sops_ip(ip, cloud_id) for ip, cloud_id in ip_entries),
                 "${job_account}": kwargs.get("account_name", "root"),
             },
         }

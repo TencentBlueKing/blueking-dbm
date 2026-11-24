@@ -15,6 +15,7 @@ from backend import env
 from backend.components.sops.client import BkSopsApi
 from backend.constants import DEFAULT_BK_CLOUD_ID
 from backend.flow.plugins.components.collections.common.base_service import BkSopsService
+from backend.flow.plugins.components.collections.common.sops_ip import format_sops_ip
 
 
 class SaInit(BkSopsService):
@@ -24,11 +25,9 @@ class SaInit(BkSopsService):
         bk_biz_id = kwargs["bk_biz_id"]
 
         # 从上下文中获取ip列表，标准运维要求管控区域非 0 时使用「管控区域:IP」格式
-        iplist = [f"{DEFAULT_BK_CLOUD_ID}:{ip}" for ip in kwargs["ips"]]
+        iplist = [format_sops_ip(ip, DEFAULT_BK_CLOUD_ID) for ip in kwargs["ips"]]
         if isinstance(trans_data, dict) and trans_data.get("hosts"):
-            iplist = [
-                f"{host.get('bk_cloud_id') or DEFAULT_BK_CLOUD_ID}:{host['ip']}" for host in trans_data["hosts"]
-            ] + iplist
+            iplist = [format_sops_ip(host["ip"], host.get("bk_cloud_id")) for host in trans_data["hosts"]] + iplist
 
         param = {
             "template_id": env.SA_INIT_TEMPLATE_ID,
