@@ -149,8 +149,56 @@ class RedisFailoverDrill(BaseFailoverDrill):
         except Exception:  # pylint: disable=broad-except
             return UNKNOWN_CITY
 
+    def get_roles(self) -> List[str]:
+        return FailoverDrillTargetType.expand_roles(self.instance_type)
+
     def get_drill_logical_city_id(self):
-        return self.failover_drill_info["drill_infos"][0][self.instance_type]["logical_city_id"]
+        for drill_info in self.failover_drill_info["drill_infos"]:
+            if self.instance_type in drill_info:
+                return drill_info[self.instance_type]["logical_city_id"]
+            roles = drill_info.get("types") or self.get_roles()
+            for role in roles:
+                if role in drill_info:
+                    return drill_info[role]["logical_city_id"]
+        raise KeyError(self.instance_type)
+
+    def get_drill_logical_city_ids(self) -> List[int]:
+        if not self.failover_drill_info:
+            return [self.get_drill_logical_city_id()]
+        city_ids: List[int] = []
+        for drill_info in self.failover_drill_info.get("drill_infos", []):
+            roles = drill_info.get("types") or self.get_roles()
+            for role in roles:
+                if role in drill_info:
+                    city_id = drill_info[role]["logical_city_id"]
+                    if city_id not in city_ids:
+                        city_ids.append(city_id)
+        return city_ids or [self.get_drill_logical_city_id()]
+
+    def get_drill_ips_by_role(self) -> Dict[str, str]:
+        if not self.failover_drill_info:
+            return {}
+        ips_by_role: Dict[str, str] = {}
+        for drill_info in self.failover_drill_info.get("drill_infos", []):
+            roles = drill_info.get("types") or self.get_roles()
+            for role in roles:
+                if role in drill_info:
+                    ips_by_role[role] = drill_info[role]["ip"]
+        return ips_by_role
+
+    def get_drill_ip_list(self) -> List[str]:
+        ips_by_role = self.get_drill_ips_by_role()
+        if ips_by_role:
+            return list(dict.fromkeys(ips_by_role.values()))
+        raw_ip = self.get_drill_ip()
+        if not raw_ip or raw_ip == "<IP not set>":
+            return []
+        parsed = []
+        for part in raw_ip.split(","):
+            ip = part.split(":", 1)[-1].strip()
+            if ip and ip not in parsed:
+                parsed.append(ip)
+        return parsed
 
     def cluster_filters(self) -> Dict:
         """
@@ -184,37 +232,48 @@ class RedisFailoverDrill(BaseFailoverDrill):
             )
         self.adopt_cluster_cloud(cluster)
 
-        self.failover_drill_info.update(
-            {
-                "drill_infos": [
-                    {
-                        "main_task_id": self.main_task_id,
-                        "cluster_id": cluster.id,
-                        "bk_cloud_id": cluster.bk_cloud_id,
-                        "cluster_type": cluster.cluster_type,
-                        "dbha_version": self.version,
-                        "types": [self.instance_type],
-                        self.instance_type: self.get_instance_info(cluster, self.instance_type),
-                    }
-                ]
-            }
-        )
+        roles = self.get_roles()
+        # FailoverDrillFlow 按 drill_infos 列表并行编排、单条内的 types 串行编排；
+        # 双角色同时故障时拆分为两条 drill_info 即可复用外层并行能力，无需在公共 Flow 中做特殊分支
+        drill_infos = []
+        for role in roles:
+            drill_infos.append(
+                {
+                    "main_task_id": self.main_task_id,
+                    "cluster_id": cluster.id,
+                    "bk_cloud_id": cluster.bk_cloud_id,
+                    "cluster_type": cluster.cluster_type,
+                    "dbha_version": self.version,
+                    "types": [role],
+                    role: self.get_instance_info(cluster, role),
+                }
+            )
+
+        self.failover_drill_info.update({"drill_infos": drill_infos})
 
         if self.resolve_city:
-            self.city = self.resolve_city_by_ip(self.get_drill_ip())
+            cities: List[str] = []
+            for item in drill_infos:
+                for role in item["types"]:
+                    resolved = self.resolve_city_by_ip(item[role]["ip"])
+                    if resolved and resolved != UNKNOWN_CITY and resolved not in cities:
+                        cities.append(resolved)
+            self.city = ",".join(cities) if cities else UNKNOWN_CITY
             FailoverDrillReport.objects.filter(main_task_id=self.main_task_id).update(city=self.city)
 
     def get_drill_ip(self):
         """
-        获取演练目标主机的ip
-        目前Redis演练只对一台Proxy或Backend进行
+        获取演练目标主机的ip展示字符串（单角色返回 IP，双角色返回角色+IP摘要）
         """
         if not self.failover_drill_info:
             return "<IP not set>"
         if self.instance_type not in FailoverDrillTargetType.valid_types():
             raise ValueError(_(f"Invalid instance_type: {self.instance_type}"))
 
-        return self.failover_drill_info["drill_infos"][0][self.instance_type]["ip"]
+        ips_by_role = self.get_drill_ips_by_role()
+        if self.instance_type in (FailoverDrillTargetType.PROXY, FailoverDrillTargetType.BACKEND):
+            return ips_by_role[self.instance_type]
+        return ", ".join(f"{role}:{ip}" for role, ip in ips_by_role.items())
 
     def create_run_failover_drill_ticket(self):
         """
@@ -239,28 +298,38 @@ class RedisFailoverDrill(BaseFailoverDrill):
 
     def get_drill_instances(self):
         """
-        获取演练实例
+        获取全部目标角色的待观察演练实例集合
         """
-        drill_ip = self.get_drill_ip()
-
-        try:
-            machine = Machine.objects.get(ip=drill_ip, bk_cloud_id=self.bk_cloud_id)
-        except Machine.DoesNotExist:
-            raise Machine.DoesNotExist(f"Machine with IP {drill_ip} and cloud_id {self.bk_cloud_id} does not exist")
+        if self.instance_type not in FailoverDrillTargetType.valid_types():
+            raise ValueError(
+                f"Invalid instance type: {self.instance_type}. "
+                f"Valid types: {FailoverDrillTargetType.valid_types()}"
+            )
 
         instance_model_map = {
             FailoverDrillTargetType.PROXY: ProxyInstance,
             FailoverDrillTargetType.BACKEND: StorageInstance,
         }
 
-        instance_model = instance_model_map.get(self.instance_type)
-        if not instance_model:
-            raise ValueError(
-                f"Invalid instance type: {self.instance_type}. " f"Valid types: {list(instance_model_map.keys())}"
-            )
+        ips_by_role = self.get_drill_ips_by_role()
+        if not ips_by_role and self.instance_type in instance_model_map:
+            ips_by_role = {self.instance_type: self.get_drill_ip()}
 
-        instances = instance_model.objects.filter(machine=machine)
-        return {f"{instance.machine.ip}:{instance.port}" for instance in instances}
+        target_instances = set()
+        for role, drill_ip in ips_by_role.items():
+            instance_model = instance_model_map.get(role)
+            if not instance_model:
+                raise ValueError(f"Invalid instance role: {role}. Valid roles: {list(instance_model_map.keys())}")
+            try:
+                machine = Machine.objects.get(ip=drill_ip, bk_cloud_id=self.bk_cloud_id)
+            except Machine.DoesNotExist:
+                raise Machine.DoesNotExist(
+                    f"Machine with IP {drill_ip} and cloud_id {self.bk_cloud_id} does not exist"
+                )
+            instances = instance_model.objects.filter(machine=machine)
+            target_instances.update(f"{instance.machine.ip}:{instance.port}" for instance in instances)
+
+        return target_instances
 
     def get_dbha_info(self):
         """
@@ -272,7 +341,9 @@ class RedisFailoverDrill(BaseFailoverDrill):
         }
         """
         drill_instances = deepcopy(self.target_instances)
-        drill_ip = self.get_drill_ip()
+        target_ips = set(self.get_drill_ip_list())
+        if not target_ips and self.target_instances:
+            target_ips = {inst.split(":")[0] for inst in self.target_instances if ":" in inst}
         dbha_infos = {
             "error": "",
             "query_failed": False,
@@ -285,12 +356,14 @@ class RedisFailoverDrill(BaseFailoverDrill):
             if code == 0:
                 resp_data = resp["data"]
                 for d in resp_data:
-                    if drill_ip in (d.get("ip"), d.get("slave_ip")):
-                        key = "{}:{}".format(drill_ip, d["port"])  # slave_port == port
-                        drill_instances.discard(key)
+                    matched_ips = dict.fromkeys(ip for ip in (d.get("ip"), d.get("slave_ip")) if ip in target_ips)
+                    for matched_ip in matched_ips:
+                        key = "{}:{}".format(matched_ip, d["port"])  # slave_port == port
                         # 同一实例可能有多条切换记录，优先保留成功的那条
                         if dbha_infos.get(key, {}).get("status") != DBHASwitchResult.SUCC:
                             dbha_infos[key] = d
+                        if d.get("status") == DBHASwitchResult.SUCC:
+                            drill_instances.discard(key)
             else:
                 dbha_infos["query_failed"] = True
                 dbha_infos["error"] += "HADB service query failed. code:{} msg:{}\n".format(code, msg)
@@ -298,8 +371,8 @@ class RedisFailoverDrill(BaseFailoverDrill):
             dbha_infos["query_failed"] = True
             dbha_infos["error"] += "HADB service query error:{}\n".format(e)
 
-        queue_status = len(drill_instances) == 0
-        if not queue_status:
+        queue_status = (not dbha_infos["query_failed"]) and len(drill_instances) == 0
+        if len(drill_instances) > 0:
             dbha_infos["error"] += "Not all instances is in the switch queue: {}\n".format(drill_instances)
 
         return dbha_infos, queue_status
@@ -331,8 +404,13 @@ class RedisFailoverDrill(BaseFailoverDrill):
         if len(dbha_infos["error"]) != 0:
             rpt.dbha_info += f"error found: {dbha_infos['error']}\n"
 
-        # 查询失败或切换队列无匹配记录时没有切换结果，不能记为成功
-        dbha_status = bool(switch_results) and all(switch_results)
+        # 查询失败或任一目标实例缺失/未成功切换时均记为失败
+        dbha_status = (
+            bool(instances)
+            and len(switch_results) == len(instances)
+            and all(switch_results)
+            and not dbha_infos.get("query_failed")
+        )
         rpt.dbha_status = DBHASwitchResult.SUCC if dbha_status else DBHASwitchResult.FAIL
         rpt.switch_start_time = min(start_times) if start_times else None
         rpt.switch_finished_time = max(finished_times) if finished_times else None

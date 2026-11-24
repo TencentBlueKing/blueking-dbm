@@ -61,9 +61,10 @@ class FailoverDrillFlow:
         self.data = data
         self.data["uid"] = self.data.get("uid") or self.root_id
         self.uid = self.data["uid"]
+        # 兼容外部无参调用 get_clean_shell_script() 的旧路径（如 mysql_failover_drill_v1_flow）
         self.hadb_ip_info = set()
 
-    def get_dbha_ip_info(self, db_type: str, bk_cloud_id: int, logical_city_id: int):
+    def get_dbha_ip_info(self, db_type: str, bk_cloud_id: int, logical_city_id: int) -> List[str]:
         params = {
             "query_args": {"db_type": db_type, "city_id": logical_city_id, "cloud_id": bk_cloud_id},
         }
@@ -71,8 +72,7 @@ class FailoverDrillFlow:
         params["query_args"].pop("db_type")
         params["query_args"].pop("city_id")
         gm_ip = self.get_dbha_ip(params=params, name="agent_get_GM_info", module="gm")
-        self.hadb_ip_info.update(agent_ip)
-        self.hadb_ip_info.update(gm_ip)
+        return self._unique_ips(agent_ip + gm_ip)
 
     def get_dbha_ip(self, params: dict, name: str, module: str) -> list:
         params["name"] = name
@@ -87,16 +87,19 @@ class FailoverDrillFlow:
 
         return [info["ip"] for info in hadb_results["data"]]
 
-    def get_add_shell_script(self, exec_info: dict):
-        self.get_dbha_ip_info(
-            db_type=exec_info["cluster_type"],
-            bk_cloud_id=exec_info["bk_cloud_id"],
-            logical_city_id=exec_info["logical_city_id"],
-        )
-        return ";".join(["iptables -I INPUT -s {} -j DROP".format(ip) for ip in self.hadb_ip_info])
+    def get_add_shell_script(self, exec_info: dict, hadb_ips: Optional[List[str]] = None) -> str:
+        if hadb_ips is None:
+            hadb_ips = self.get_dbha_ip_info(
+                db_type=exec_info["cluster_type"],
+                bk_cloud_id=exec_info["bk_cloud_id"],
+                logical_city_id=exec_info["logical_city_id"],
+            )
+            self.hadb_ip_info.update(hadb_ips)
+        return ";".join(["iptables -I INPUT -s {} -j DROP".format(ip) for ip in hadb_ips])
 
-    def get_clean_shell_script(self):
-        return ";".join(["iptables -D INPUT -s {} -j DROP".format(ip) for ip in self.hadb_ip_info])
+    def get_clean_shell_script(self, hadb_ips: Optional[List[str]] = None) -> str:
+        target_ips = self.hadb_ip_info if hadb_ips is None else hadb_ips
+        return ";".join(["iptables -D INPUT -s {} -j DROP".format(ip) for ip in target_ips])
 
     @staticmethod
     def _unique_ips(ips: List[str]) -> List[str]:
@@ -121,9 +124,13 @@ class FailoverDrillFlow:
     def report_trigger_time(self, main_task_id, instance_type):
         utc8_timezone = timezone(timedelta(hours=8))
         trigger_time = datetime.now().astimezone(utc8_timezone)
-        FailoverDrillReport.objects.filter(main_task_id=main_task_id, instance_type=instance_type).update(
+        updated = FailoverDrillReport.objects.filter(main_task_id=main_task_id, instance_type=instance_type).update(
             trigger_dbha_time=trigger_time
         )
+        if not updated:
+            FailoverDrillReport.objects.filter(main_task_id=main_task_id, instance_type__contains="+").update(
+                trigger_dbha_time=trigger_time
+            )
 
     def failover_drill(self):
         pipeline = Builder(root_id=self.root_id, data=self.data)
@@ -131,8 +138,8 @@ class FailoverDrillFlow:
         sub_pipelines = []
         for drill_info in self.data["drill_infos"]:
             sub_pipeline = SubBuilder(root_id=self.root_id, data=self.data)
-            for role in drill_info.get("types"):
-                sub_pipeline.add_sub_pipeline(sub_flow=self._create_sub_pipeline(drill_info, role))
+            for instance_role in drill_info["types"]:
+                sub_pipeline.add_sub_pipeline(sub_flow=self._create_sub_pipeline(drill_info, instance_role))
             sub_pipelines.append(sub_pipeline.build_sub_process(sub_name=(_("容灾演练触发DBHA"))))
         pipeline.add_parallel_sub_pipeline(sub_flow_list=sub_pipelines)
 
@@ -159,7 +166,12 @@ class FailoverDrillFlow:
         2. 监测DBHA切换 或 超时
         3. 恢复目标主机iptables规则
         """
-        add_shell_command = self.get_add_shell_script(exec_info=exec_info)
+        v1_ips = self.get_dbha_ip_info(
+            db_type=exec_info["cluster_type"],
+            bk_cloud_id=exec_info["bk_cloud_id"],
+            logical_city_id=exec_info["logical_city_id"],
+        )
+        add_shell_command = self.get_add_shell_script(exec_info=exec_info, hadb_ips=v1_ips)
         sub_pipeline.add_act(
             act_name=_("在目标{}添加iptables禁用规则".format(exec_info.get("ip"))),
             act_component_code=ExecuteShellScriptComponent.code,
@@ -186,7 +198,7 @@ class FailoverDrillFlow:
             },
         )
 
-        clean_shell_command = self.get_clean_shell_script()
+        clean_shell_command = self.get_clean_shell_script(hadb_ips=v1_ips)
         sub_pipeline.add_act(
             act_name=_("清理目标{}的iptables禁用规则".format(exec_info.get("ip"))),
             act_component_code=ExecuteShellScriptComponent.code,
@@ -229,13 +241,11 @@ su - mysql -c "cd {PROBE_DIR} && ./stop-probe.sh"
         versions = parse_failover_drill_versions(drill_info.get("dbha_version", FailoverDrillVersion.V2.value))
         v1_ips: List[str] = []
         if FailoverDrillVersion.V1.value in versions:
-            self.hadb_ip_info = set()
-            self.get_dbha_ip_info(
+            v1_ips = self.get_dbha_ip_info(
                 db_type=exec_info["cluster_type"],
                 bk_cloud_id=bk_cloud_id,
                 logical_city_id=exec_info["logical_city_id"],
             )
-            v1_ips = list(self.hadb_ip_info)
             if not v1_ips:
                 raise AppBaseException(_("拿不到 dbha v1 GM/agent IP，退出演练"))
         service_ips = get_dbha_v2_service_ips(bk_cloud_id, exec_info.get("logical_city_id"))
