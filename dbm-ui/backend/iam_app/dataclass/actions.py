@@ -1530,16 +1530,16 @@ class ActionEnum:
         common_labels=[CommonActionLabel.BIZ_MAINTAIN],
     )
 
-    VM_ENABLE_DISABLE = ActionMeta(
-        id="vm_enable_disable",
-        name=_("VictoriaMetrics 集群禁用/启用"),
-        name_en="vm_enable_disable",
-        type="execute",
-        related_actions=[VM_VIEW.id],
-        related_resource_types=[ResourceEnum.VM],
-        group=_("VictoriaMetrics"),
-        subgroup=_("集群管理")
-    )
+    # VM_ENABLE_DISABLE = ActionMeta(
+    #     id="vm_enable_disable",
+    #     name=_("VictoriaMetrics 集群禁用/启用"),
+    #     name_en="vm_enable_disable",
+    #     type="execute",
+    #     related_actions=[VM_VIEW.id],
+    #     related_resource_types=[ResourceEnum.VM],
+    #     group=_("VictoriaMetrics"),
+    #     subgroup=_("集群管理")
+    # )
 
     DORIS_APPLY = ActionMeta(
         id=TicketType.DORIS_APPLY.lower(),

@@ -30,7 +30,9 @@ class VmDisableFlowParamBuilder(builders.FlowParamBuilder):
     controller = VmController.vm_disable_scene
 
 
-@builders.BuilderFactory.register(TicketType.VM_DISABLE, phase=ClusterPhase.OFFLINE, iam=ActionEnum.VM_ENABLE_DISABLE)
+@builders.BuilderFactory.register(
+    TicketType.VM_DISABLE, phase=ClusterPhase.OFFLINE, iam=ActionEnum.K8S_VICTORIAMETRICS_ENABLE_DISABLE
+)
 class VmDisableFlowBuilder(BaseVmTicketFlowBuilder):
     serializer = VmDisableDetailSerializer
     inner_flow_builder = VmDisableFlowParamBuilder
