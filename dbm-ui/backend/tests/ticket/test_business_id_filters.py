@@ -1,4 +1,4 @@
-from unittest.mock import Mock, patch
+from unittest.mock import ANY, Mock, patch
 
 import pytest
 from rest_framework.exceptions import ValidationError
@@ -8,36 +8,60 @@ from backend.db_package.models import Package
 from backend.db_package.views import DBPackageViewSet
 from backend.db_services.risk_memo.filters import RiskOpRecordListFilter
 from backend.db_services.risk_memo.models.risk_memo import RiskMemo, RiskOperateRecord
+from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.iam_app.handlers.drf_perm.ticket import TicketListPermission
 from backend.ticket.filters import TicketListFilter
 from backend.ticket.models import Ticket
 
 
-@pytest.mark.parametrize("db_type", [None, "", "   "])
-def test_package_list_requires_db_type(db_type):
-    request = Mock(query_params={} if db_type is None else {"db_type": db_type})
-    with pytest.raises(ValidationError):
-        DBPackageViewSet.instance_getter(request, Mock(action="list"))
-
-
-def test_package_list_checks_manage_permission_for_db_type():
+@pytest.mark.parametrize("pkg_params", [{}, {"pkg_type": ""}, {"pkg_type": "   "}])
+def test_package_list_requires_package_view_with_db_type_only(pkg_params):
     view = DBPackageViewSet()
     view.action = "list"
-    assert all("list" not in actions for actions in view.get_action_permission_map())
-    permission = view.get_default_permission_class()[0]
-    assert permission.actions == [ActionEnum.PACKAGE_MANAGE]
-    assert permission.instance_ids_getter(Mock(query_params={"db_type": "mysql"}), view) == ["mysql"]
+    view.request = Mock(method="GET", query_params={"db_type": "mysql", **pkg_params}, user=Mock(is_superuser=False))
+
+    with (
+        patch("backend.iam_app.handlers.drf_perm.base.Permission") as iam,
+        patch("backend.iam_app.handlers.drf_perm.base.env.BK_IAM_SKIP", False),
+    ):
+        view.check_permissions(view.request)
+
+    iam.return_value.is_allowed.assert_called_once_with(
+        action=ActionEnum.PACKAGE_VIEW,
+        resources=[ANY],
+        is_raise_exception=True,
+    )
+    [resource] = iam.return_value.is_allowed.call_args.kwargs["resources"]
+    assert resource.type == ResourceEnum.DBTYPE.id
+    assert resource.id == "mysql"
+
+
+@pytest.mark.parametrize("query_params", [{}, {"db_type": ""}, {"db_type": "   "}])
+def test_package_list_requires_db_type(query_params):
+    view = DBPackageViewSet()
+    view.action = "list"
+    view.request = Mock(method="GET", query_params=query_params, user=Mock(is_superuser=False))
+
     with patch("backend.iam_app.handlers.drf_perm.base.Permission") as iam:
-        request = Mock(query_params={"db_type": "mysql"})
-        request.user.is_superuser = False
-        request.method = "GET"
-        view.kwargs = {}
-        with patch("backend.iam_app.handlers.drf_perm.base.env.BK_IAM_SKIP", False):
-            assert permission.has_permission(request, view)
-        iam.return_value.is_allowed.assert_called_once_with(
-            action=ActionEnum.PACKAGE_MANAGE, resources=permission.resources[0], is_raise_exception=True
-        )
+        with pytest.raises(ValidationError) as exc:
+            view.check_permissions(view.request)
+
+    iam.assert_not_called()
+    assert "db_type" in exc.value.detail
+
+
+def test_package_list_skips_iam_with_both_filters():
+    view = DBPackageViewSet()
+    view.action = "list"
+    view.request = Mock(
+        method="GET", query_params={"db_type": "mysql", "pkg_type": "mysql"}, user=Mock(is_superuser=False)
+    )
+
+    with patch("backend.iam_app.handlers.drf_perm.base.Permission") as iam:
+        view.check_permissions(view.request)
+
+    iam.assert_not_called()
 
 
 @pytest.mark.parametrize("filter_class,model", [(RiskOpRecordListFilter, RiskOperateRecord)])
