@@ -173,11 +173,6 @@ class KubernetesBaseListRetrieveResource(query.ListRetrieveResource, KubernetesB
         offset: int,
         **kwargs,
     ):
-        """
-        在父类序列化集群前，批量调用 get_component_spec 构建 cluster_id -> spec 映射并注入 kwargs，
-        供 _to_cluster_representation 复用，避免逐集群 N+1 调用。
-        """
-        bk_username = kwargs.get("bk_username") if kwargs.get("bk_username") else "admin"
         cluster_map = {}
         # 注意：必须迭代 cluster_queryset 的副本(.all())，避免提前评估传入父类的同一 QuerySet 对象，
         # 否则父类 _filter_cluster_hook 中对 cluster_queryset 切片会得到 list 而非 QuerySet，导致 prefetch_related 报错
@@ -186,15 +181,8 @@ class KubernetesBaseListRetrieveResource(query.ListRetrieveResource, KubernetesB
         page_queryset = page_queryset[offset:] if limit == -1 else page_queryset[offset : offset + limit]
         for cluster in page_queryset:
             cluster_detail = KubernetesApi.cluster_detail({"cluster_id": cluster.id}, use_admin=True)
-            component_params = {
-                "clusterName": cluster.name,
-                "k8sClusterName": cluster_detail.get("k8sClusterConfig", {}).get("clusterName", ""),
-                "namespace": cluster_detail.get("namespace", ""),
-                "bk_username": bk_username,
-            }
             cluster_map[cluster.name] = {}
             cluster_map[cluster.name]["detail"] = cluster_detail
-            cluster_map[cluster.name]["spec"] = cls.get_component_spec(component_params).get("spec")
         kwargs["cluster_map"] = cluster_map
         return super()._filter_cluster_hook(
             bk_biz_id, cluster_queryset, proxy_queryset, storage_queryset, limit, offset, **kwargs
@@ -225,15 +213,12 @@ class KubernetesBaseListRetrieveResource(query.ListRetrieveResource, KubernetesB
         k8s_cluster_name = cluster_detail.get("k8sClusterConfig", {}).get("clusterName", "")
         namespace = cluster_detail.get("namespace", "")
         components = cluster_detail.get("addonInfo", {}).get("topology", {}).get("components", [])
-        # 复用外层批量构建的 cluster_name -> cluster_spec 映射，避免逐集群重复调用
-        cluster_spec = cluster_info_map.get("spec")
 
         cluster_extra_info = {
             "k8s_cluster_name": k8s_cluster_name,
             "namespace": namespace,
             "components": components,
             "major_version": cluster_detail.get("serviceVersion", ""),
-            "cluster_spec": cluster_spec,
         }
         cluster_info = super()._to_cluster_representation(
             cluster,

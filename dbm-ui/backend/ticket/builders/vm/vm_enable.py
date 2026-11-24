@@ -30,7 +30,9 @@ class VmEnableFlowParamBuilder(builders.FlowParamBuilder):
     controller = VmController.vm_enable_scene
 
 
-@builders.BuilderFactory.register(TicketType.VM_ENABLE, phase=ClusterPhase.ONLINE, iam=ActionEnum.VM_ENABLE_DISABLE)
+@builders.BuilderFactory.register(
+    TicketType.VM_ENABLE, phase=ClusterPhase.ONLINE, iam=ActionEnum.K8S_VICTORIAMETRICS_ENABLE_DISABLE
+)
 class VmEnableFlowBuilder(BaseVmTicketFlowBuilder):
     serializer = VmEnableDetailSerializer
     inner_flow_builder = VmEnableFlowParamBuilder
