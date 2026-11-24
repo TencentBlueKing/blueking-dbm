@@ -9,6 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import importlib
+from contextlib import ExitStack, contextmanager
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -379,7 +380,19 @@ class TestSendDrillAlert:
 
 @pytest.fixture
 def no_alert():
-    with patch.object(drill_mod, "send_drill_alert_to_qywx") as alert:
+    shield_detail = {
+        "description": "drill",
+        "begin_time": "2026-11-24 09:00:00",
+        "cycle_config": {"type": 1},
+        "shield_notice": False,
+        "notice_config": {},
+        "category": "dimension",
+    }
+    with patch.object(drill_mod, "send_drill_alert_to_qywx") as alert, patch.object(
+        utils_mod.BKMonitorV3Api, "add_shield", return_value={"id": 1}
+    ), patch.object(utils_mod.BKMonitorV3Api, "get_shield", return_value=shield_detail), patch.object(
+        utils_mod.BKMonitorV3Api, "edit_shield"
+    ):
         yield alert
 
 
@@ -585,7 +598,8 @@ class TestFailoverDrillUnitResult:
             assert "dbha-v2 自愈未发生" in rpt.task_info
 
     @pytest.mark.usefixtures("multi_db")
-    def test_query_failed_is_not_switch_failed(self, no_alert):
+    @pytest.mark.parametrize("autofix_generated, autofix_done", [(False, False), (True, True)])
+    def test_query_failed_is_not_switch_failed(self, no_alert, autofix_generated, autofix_done):
         _create_cluster()
         with patch.object(RedisFailoverDrill, "get_failover_drill_params"), patch.object(
             RedisFailoverDrill, "get_drill_logical_city_id", return_value=1
@@ -596,7 +610,9 @@ class TestFailoverDrillUnitResult:
         ), patch.object(
             unit_mod, "get_dbha_v2_service_ips", return_value=["2.2.2.2"]
         ), patch.object(
-            unit_mod, "autofix_ticket_polling", return_value=(False, -1)
+            unit_mod, "autofix_ticket_polling", return_value=(autofix_generated, 1 if autofix_generated else -1)
+        ), patch.object(
+            unit_mod, "autofix_done_polling", return_value=autofix_done
         ):
             unit_mod.failover_drill_unit(
                 {"city": "", "immute_domain": V2_DOMAIN}, _conf(version="v2", max_retry=1, interval=0)
@@ -605,6 +621,7 @@ class TestFailoverDrillUnitResult:
         rpt = _report()
         assert (rpt.state, rpt.task_status) == (ReportStateType.ABNORMAL, TaskStatus.DBHA_QUERY_FAILED)
         assert rpt.dbha_status == DBHASwitchResult.FAIL
+        no_alert.assert_called_once()
         assert "dbha-v2 down" in no_alert.call_args.kwargs["failure_reason"]
 
 
@@ -719,6 +736,7 @@ class TestDispatch:
         "target_type, task_name, expected",
         [
             ("proxy", "proxy_failover_drill_task", {"v2-predixy", "v2-plus-ins", "v1-predixy"}),
+            ("proxy+backend", "proxy_backend_failover_drill_task", {"v2-predixy", "v2-plus-ins", "v1-predixy"}),
             (
                 "backend",
                 "redis_failover_drill_task",
@@ -801,3 +819,288 @@ class TestMysqlConfigRead:
             mysql_unit_mod.ha_failover_drill_unit("深圳")
 
         drill.assert_not_called()
+
+
+class TestAlarmShieldAndAutofixPolling:
+    def test_alarm_shield_lifecycle_and_fail_open(self):
+        with patch.object(utils_mod.BKMonitorV3Api, "add_shield", return_value={"id": 99}) as add_s:
+            assert utils_mod.create_drill_alarm_shield(BIZ_ID, V2_DOMAIN, ["2.2.2.2", "1.1.1.1"]) == 99
+        conds = {c["key"]: c["value"] for c in add_s.call_args.args[0]["dimension_config"]["dimension_conditions"]}
+        assert conds == {"appid": [str(BIZ_ID)], "cluster_domain": [V2_DOMAIN], "bk_target_ip": ["1.1.1.1", "2.2.2.2"]}
+
+        detail = {
+            "description": "d",
+            "begin_time": "2026-11-24 09:00:00",
+            "cycle_config": {"type": 1},
+            "shield_notice": False,
+            "notice_config": {},
+        }
+        with patch.object(utils_mod.BKMonitorV3Api, "get_shield", return_value=detail) as get_s, patch.object(
+            utils_mod.BKMonitorV3Api, "edit_shield"
+        ) as edit_s:
+            utils_mod.disable_drill_alarm_shield(99, delay_minutes=15)
+            utils_mod.disable_drill_alarm_shield(None)
+        get_s.assert_called_once()
+        assert edit_s.call_args.args[0]["id"] == 99
+
+        with patch.object(utils_mod.BKMonitorV3Api, "add_shield", side_effect=RuntimeError("boom")):
+            assert utils_mod.create_drill_alarm_shield(BIZ_ID, V2_DOMAIN, ["1.1.1.1"]) is None
+        with patch.object(utils_mod.BKMonitorV3Api, "get_shield", side_effect=RuntimeError("boom")):
+            utils_mod.disable_drill_alarm_shield(101)
+
+    @pytest.mark.parametrize(
+        "ticket_specs, expected",
+        [
+            ([(10, ["1.1.1.1"], ["2.2.2.2"])], (True, [10])),
+            ([(11, ["1.1.1.1"], []), (12, [], ["2.2.2.2"])], (True, [11, 12])),
+            ([(11, ["1.1.1.1"], [])], (False, [11])),
+        ],
+    )
+    def test_autofix_tickets_polling(self, ticket_specs, expected):
+        from datetime import datetime, timezone
+
+        now = datetime(2026, 11, 24, 9, 15, tzinfo=timezone.utc)
+        tickets = [
+            SimpleNamespace(
+                id=tid,
+                create_at=now,
+                details={"infos": [{"proxy": [{"ip": ip} for ip in p], "redis_slave": [{"ip": ip} for ip in s]}]},
+            )
+            for tid, p, s in ticket_specs
+        ]
+        with patch.object(utils_mod.Ticket.objects, "filter") as mock_filter:
+            mock_filter.return_value.order_by.return_value = tickets
+            res = utils_mod.autofix_tickets_polling(
+                {"bk_biz_id": BIZ_ID, "ips": ["1.1.1.1", "2.2.2.2"], "earliest_create_allowed": now},
+                max_retries=1,
+                interval=0,
+            )
+        assert res == expected
+
+    def test_autofix_tickets_done_polling_all_or_partial(self):
+        from backend.ticket.constants import TicketStatus
+
+        tickets = {
+            11: SimpleNamespace(status=TicketStatus.SUCCEEDED.value),
+            12: SimpleNamespace(status=TicketStatus.SUCCEEDED.value),
+            13: SimpleNamespace(status=TicketStatus.FAILED.value),
+        }
+        with patch.object(utils_mod.Ticket.objects, "get", side_effect=lambda id: tickets[id]):
+            assert utils_mod.autofix_tickets_done_polling([11, 12], max_retries=1, interval=0) is True
+            assert utils_mod.autofix_tickets_done_polling([11, 13], max_retries=1, interval=0) is False
+            assert utils_mod.autofix_tickets_done_polling([], max_retries=1, interval=0) is False
+
+
+class TestDualFailoverDrill:
+    PROXY_IP = "1.1.1.1"
+    BACKEND_IP = "2.2.2.2"
+
+    @contextmanager
+    def _dual_unit_env(self, switch_success=True, query_failed=False, extra_patches=()):
+        def mock_inst(_cluster, role):
+            return {"ip": self.PROXY_IP if role == "proxy" else self.BACKEND_IP, "logical_city_id": 1}
+
+        dbha_info = {
+            "error": "HADB query timeout" if query_failed else "",
+            "query_failed": query_failed,
+        }
+        with ExitStack() as stack:
+            stack.enter_context(patch.object(RedisFailoverDrill, "get_instance_info", side_effect=mock_inst))
+            stack.enter_context(patch.object(RedisFailoverDrill, "resolve_city_by_ip", return_value="深圳"))
+            stack.enter_context(
+                patch.object(
+                    RedisFailoverDrill,
+                    "get_drill_instances",
+                    return_value={f"{self.PROXY_IP}:50000", f"{self.BACKEND_IP}:30000"},
+                )
+            )
+            stack.enter_context(
+                patch.object(RedisFailoverDrill, "get_dbha_info", return_value=(dbha_info, switch_success))
+            )
+            stack.enter_context(patch.object(RedisFailoverDrill, "update_drill_report"))
+            stack.enter_context(patch.object(unit_mod, "get_dbha_v2_service_ips", return_value=["3.3.3.3"]))
+            for p in extra_patches:
+                stack.enter_context(p)
+            yield
+
+    @pytest.mark.usefixtures("multi_db")
+    def test_dual_params_instances_and_combined_report(self):
+        cluster = _create_cluster()
+        proxy_m, backend_m = SimpleNamespace(ip=self.PROXY_IP), SimpleNamespace(ip=self.BACKEND_IP)
+        with patch.object(
+            RedisFailoverDrill,
+            "get_instance_info",
+            side_effect=[
+                {"ip": self.PROXY_IP, "logical_city_id": 1},
+                {"ip": self.BACKEND_IP, "logical_city_id": 2},
+            ],
+        ), patch.object(
+            RedisFailoverDrill, "resolve_city_by_ip", side_effect=lambda ip: "深圳" if ip == self.PROXY_IP else "上海"
+        ), patch.object(
+            drill_mod.Machine.objects,
+            "get",
+            side_effect=lambda ip, bk_cloud_id: proxy_m if ip == self.PROXY_IP else backend_m,
+        ), patch.object(
+            drill_mod.ProxyInstance.objects, "filter", return_value=[SimpleNamespace(machine=proxy_m, port=50000)]
+        ), patch.object(
+            drill_mod.StorageInstance.objects,
+            "filter",
+            return_value=[
+                SimpleNamespace(machine=backend_m, port=30000),
+                SimpleNamespace(machine=backend_m, port=30001),
+            ],
+        ):
+            rfod = RedisFailoverDrill(
+                city="",
+                labels=[],
+                bk_biz_id=BIZ_ID,
+                bk_cloud_id=CLOUD_ID,
+                instance_type="proxy+backend",
+                version="v2",
+                immute_domain=V2_DOMAIN,
+            )
+            rfod.get_failover_drill_params()
+            instances = rfod.get_drill_instances()
+
+        assert (rfod.city, rfod.get_drill_ip()) == ("深圳,上海", f"proxy:{self.PROXY_IP}, backend:{self.BACKEND_IP}")
+        assert (rfod.get_drill_ip_list(), rfod.get_drill_logical_city_ids()) == (
+            [self.PROXY_IP, self.BACKEND_IP],
+            [1, 2],
+        )
+        assert [item["types"] for item in rfod.failover_drill_info["drill_infos"]] == [["proxy"], ["backend"]]
+        assert all(item["cluster_id"] == cluster.id for item in rfod.failover_drill_info["drill_infos"])
+        assert instances == {f"{self.PROXY_IP}:50000", f"{self.BACKEND_IP}:30000", f"{self.BACKEND_IP}:30001"}
+        rpt = FailoverDrillReport.objects.get(main_task_id=rfod.main_task_id)
+        assert (rpt.instance_type, rpt.city) == ("proxy+backend", "深圳,上海")
+
+    @pytest.mark.usefixtures("multi_db")
+    def test_dual_alarm_shield_created_before_ticket_and_disabled_in_finally(self, no_alert):
+        _create_cluster()
+        call_order = []
+
+        def fake_create_ticket(*args, **kwargs):
+            call_order.append(("create_ticket",))
+            raise RuntimeError("ticket fail")
+
+        with self._dual_unit_env(
+            extra_patches=[
+                patch.object(
+                    unit_mod,
+                    "create_drill_alarm_shield",
+                    side_effect=lambda **kw: call_order.append(("create_shield", kw["ips"])) or 777,
+                ),
+                patch.object(
+                    unit_mod,
+                    "disable_drill_alarm_shield",
+                    side_effect=lambda sid: call_order.append(("disable_shield", sid)),
+                ),
+                patch.object(drill_mod.Ticket, "create_ticket", side_effect=fake_create_ticket),
+            ]
+        ):
+            with pytest.raises(RuntimeError, match="ticket fail"):
+                unit_mod.failover_drill_unit(
+                    {"city": "", "immute_domain": V2_DOMAIN},
+                    _conf(version="v1", target_type="proxy+backend", max_retry=1, interval=0),
+                )
+
+        assert call_order == [
+            ("create_shield", [self.PROXY_IP, self.BACKEND_IP]),
+            ("create_ticket",),
+            ("disable_shield", 777),
+        ]
+
+    @pytest.mark.usefixtures("multi_db")
+    @pytest.mark.parametrize("ticket_mode", ["merged", "split"])
+    def test_dual_succeeds_with_merged_or_split_autofix_tickets(self, no_alert, ticket_mode):
+        from datetime import datetime, timedelta, timezone
+
+        from backend.ticket.constants import TicketStatus
+
+        _create_cluster()
+        future_time = datetime.now(timezone.utc) + timedelta(seconds=5)
+        specs = (
+            [(101, [self.PROXY_IP], [self.BACKEND_IP])]
+            if ticket_mode == "merged"
+            else [(101, [self.PROXY_IP], []), (102, [], [self.BACKEND_IP])]
+        )
+        ticket_list = [
+            SimpleNamespace(
+                id=tid,
+                create_at=future_time,
+                status=TicketStatus.SUCCEEDED.value,
+                details={"infos": [{"proxy": [{"ip": ip} for ip in p], "redis_slave": [{"ip": ip} for ip in s]}]},
+            )
+            for tid, p, s in specs
+        ]
+        ticket_by_id = {t.id: t for t in ticket_list}
+
+        with self._dual_unit_env(
+            extra_patches=[
+                patch.object(drill_mod.Ticket, "create_ticket"),
+                patch.object(utils_mod.BKMonitorV3Api, "add_shield", side_effect=RuntimeError("monitor down")),
+                patch.object(utils_mod.Ticket.objects, "get", side_effect=lambda id: ticket_by_id[id]),
+            ]
+        ), patch.object(utils_mod.Ticket.objects, "filter") as mock_filter:
+            mock_filter.return_value.order_by.return_value = ticket_list
+            unit_mod.failover_drill_unit(
+                {"city": "", "immute_domain": V2_DOMAIN},
+                _conf(version="v1", target_type="proxy+backend", max_retry=1, interval=0),
+            )
+
+        rpt = _report()
+        assert (rpt.instance_type, rpt.state, rpt.task_status) == (
+            "proxy+backend",
+            ReportStateType.NORMAL,
+            TaskStatus.SUCCESS,
+        )
+        no_alert.assert_not_called()
+
+    @pytest.mark.usefixtures("multi_db")
+    @pytest.mark.parametrize(
+        "version, switch_success, query_failed, autofix_generated, autofix_done, expected_state, expected_status",
+        [
+            ("v1", True, False, False, False, ReportStateType.ABNORMAL, TaskStatus.SWITCHED_NO_AUTOFIX),
+            ("v2", True, False, False, False, ReportStateType.WARNING, TaskStatus.SWITCHED_NO_AUTOFIX),
+            ("v2", True, False, True, False, ReportStateType.WARNING, TaskStatus.SWITCHED_AUTOFIX_ERROR),
+            ("v1", False, False, True, True, ReportStateType.ABNORMAL, TaskStatus.SWITCH_FAILED),
+            ("v1", False, True, True, True, ReportStateType.ABNORMAL, TaskStatus.DBHA_QUERY_FAILED),
+        ],
+    )
+    def test_dual_partial_switch_or_autofix_failure_classification(
+        self,
+        no_alert,
+        version,
+        switch_success,
+        query_failed,
+        autofix_generated,
+        autofix_done,
+        expected_state,
+        expected_status,
+    ):
+        _create_cluster()
+        with self._dual_unit_env(
+            switch_success=switch_success,
+            query_failed=query_failed,
+            extra_patches=[
+                patch.object(drill_mod.Ticket, "create_ticket"),
+                patch.object(
+                    unit_mod,
+                    "autofix_tickets_polling",
+                    return_value=(autofix_generated, [101, 102] if autofix_generated else [101]),
+                ),
+                patch.object(unit_mod, "autofix_tickets_done_polling", return_value=autofix_done),
+            ],
+        ):
+            unit_mod.failover_drill_unit(
+                {"city": "", "immute_domain": V2_DOMAIN},
+                _conf(version=version, target_type="proxy+backend", max_retry=1, interval=0),
+            )
+
+        rpt = _report()
+        assert (rpt.instance_type, rpt.state, rpt.task_status) == ("proxy+backend", expected_state, expected_status)
+        no_alert.assert_called_once()
+        assert no_alert.call_args.kwargs["instance_type"] == "proxy+backend"
+        assert self.PROXY_IP in no_alert.call_args.kwargs["drill_ip"]
+        assert self.BACKEND_IP in no_alert.call_args.kwargs["drill_ip"]
+        if query_failed:
+            assert "HADB query timeout" in no_alert.call_args.kwargs["failure_reason"]

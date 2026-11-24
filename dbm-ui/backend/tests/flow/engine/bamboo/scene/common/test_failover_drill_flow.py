@@ -29,6 +29,7 @@ class RecordingSubBuilder:
 
     def __init__(self, root_id, data):
         self.acts = []
+        self.parallel_sub_flows = []
         RecordingSubBuilder.instances.append(self)
 
     def add_act(self, act_name, act_component_code, kwargs):
@@ -37,8 +38,22 @@ class RecordingSubBuilder:
     def add_sub_pipeline(self, sub_flow):
         self.acts.append(("sub", sub_flow))
 
+    def add_parallel_sub_pipeline(self, sub_flow_list):
+        self.parallel_sub_flows.append(sub_flow_list)
+        self.acts.append(("parallel_sub", sub_flow_list))
+
     def build_sub_process(self, sub_name):
         return {"sub_name": sub_name, "acts": self.acts}
+
+
+class RecordingBuilder(RecordingSubBuilder):
+    def __init__(self, root_id, data):
+        super().__init__(root_id, data)
+        self.run_called = False
+
+    def run_pipeline(self, **kwargs):
+        self.run_called = True
+        return True
 
 
 def _drill_info(**extra):
@@ -220,3 +235,115 @@ class TestCombinedActs:
         assert V1_IPS[0] not in script
         for ip in SERVICE_IPS:
             assert ip in script
+
+
+class TestDualRoleParallelAndIsolation:
+    def _dual_drill_infos(self, dbha_version="v1"):
+        return [
+            {
+                "main_task_id": "dual-1",
+                "cluster_id": 7,
+                "bk_cloud_id": 0,
+                "cluster_type": "TwemproxyRedisInstance",
+                "dbha_version": dbha_version,
+                "types": ["proxy"],
+                "proxy": {"ip": "1.1.1.1", "logical_city_id": 1},
+            },
+            {
+                "main_task_id": "dual-1",
+                "cluster_id": 7,
+                "bk_cloud_id": 0,
+                "cluster_type": "TwemproxyRedisInstance",
+                "dbha_version": dbha_version,
+                "types": ["backend"],
+                "backend": {"ip": "2.2.2.2", "logical_city_id": 2},
+            },
+        ]
+
+    def test_multi_drill_infos_run_parallel_and_isolate_v1_ips_by_city(self):
+        RecordingSubBuilder.instances = []
+        city_hadb_map = {
+            (1, "agent"): ["1.1.1.9"],
+            (2, "agent"): ["3.3.3.3"],
+        }
+
+        def fake_ha_status(params, raw=True):
+            q = params["query_args"]
+            if q["module"] == "agent":
+                return {"data": [{"ip": ip} for ip in city_hadb_map[(q["city_id"], "agent")]]}
+            return {"data": [{"ip": "2.2.2.2"}]}
+
+        data = {
+            "bk_biz_id": 3,
+            "ticket_type": "REDIS_FAILOVER_DRILL",
+            "drill_infos": self._dual_drill_infos(dbha_version="v1"),
+        }
+        with patch.object(mod, "Builder", RecordingBuilder), patch.object(
+            mod, "SubBuilder", RecordingSubBuilder
+        ), patch.object(mod.HADBApi, "ha_status", side_effect=fake_ha_status), patch.object(
+            mod.FailoverDrillFlow, "report_trigger_time"
+        ):
+            flow_obj = mod.FailoverDrillFlow(root_id=ROOT_ID, data=data)
+            flow_obj.failover_drill()
+
+        root_builder = [b for b in RecordingSubBuilder.instances if isinstance(b, RecordingBuilder)][0]
+        assert len(root_builder.parallel_sub_flows) == 1
+        parallel_branches = root_builder.parallel_sub_flows[0]
+        assert len(parallel_branches) == 2
+
+        proxy_acts = parallel_branches[0]["acts"][0][1]["acts"]
+        backend_acts = parallel_branches[1]["acts"][0][1]["acts"]
+        proxy_add = proxy_acts[0][3]["cluster"]["shell_command"]
+        proxy_clean = proxy_acts[2][3]["cluster"]["shell_command"]
+        backend_add = backend_acts[0][3]["cluster"]["shell_command"]
+        backend_clean = backend_acts[2][3]["cluster"]["shell_command"]
+
+        assert "1.1.1.9" in proxy_add and "3.3.3.3" not in proxy_add
+        assert "1.1.1.9" in proxy_clean and "3.3.3.3" not in proxy_clean
+        assert "3.3.3.3" in backend_add and "1.1.1.9" not in backend_add
+        assert "3.3.3.3" in backend_clean and "1.1.1.9" not in backend_clean
+
+    def test_report_trigger_time_falls_back_to_combined_report(self, request):
+        from django.test import TestCase
+
+        from backend.db_meta.enums import ClusterType
+        from backend.db_report.models import FailoverDrillReport
+        from backend.flow.plugins.components.collections.common.failover_status_check import FailoverStatusCheckService
+
+        old = TestCase.databases
+        TestCase.databases = {"default", "report_db"}
+        try:
+            request.getfixturevalue("db")
+            rpt = FailoverDrillReport.objects.create(
+                bk_biz_id=3,
+                cluster_type=ClusterType.TendisTwemproxyRedisInstance,
+                main_task_id="m-dual-trigger",
+                instance_type="proxy+backend",
+            )
+            flow_obj = mod.FailoverDrillFlow(root_id=ROOT_ID, data={"bk_biz_id": 3, "drill_infos": []})
+            flow_obj.report_trigger_time("m-dual-trigger", "proxy")
+            rpt.refresh_from_db()
+            assert rpt.trigger_dbha_time is not None
+
+            FailoverDrillReport.objects.filter(id=rpt.id).update(trigger_dbha_time=None)
+            FailoverStatusCheckService().report_trigger_time("m-dual-trigger", "backend")
+            rpt.refresh_from_db()
+            assert rpt.trigger_dbha_time is not None
+        finally:
+            TestCase.databases = old
+
+    def test_legacy_mysql_v1_build_dbha_iptables_scripts_clean_not_empty(self):
+        from backend.flow.engine.bamboo.scene.mysql.mysql_failover_drill_v1_flow import build_dbha_iptables_scripts
+
+        def fake_ha_status(params, raw=True):
+            if params["query_args"]["module"] == "agent":
+                return {"data": [{"ip": "1.1.1.9"}]}
+            return {"data": [{"ip": "2.2.2.2"}]}
+
+        with patch.object(mod.HADBApi, "ha_status", side_effect=fake_ha_status):
+            add_cmd, clean_cmd = build_dbha_iptables_scripts(bk_cloud_id=0, logical_city_id=1, cluster_type="tendbha")
+
+        assert "iptables -I INPUT -s 1.1.1.9 -j DROP" in add_cmd
+        assert "iptables -I INPUT -s 2.2.2.2 -j DROP" in add_cmd
+        assert "iptables -D INPUT -s 1.1.1.9 -j DROP || true" in clean_cmd
+        assert "iptables -D INPUT -s 2.2.2.2 -j DROP || true" in clean_cmd

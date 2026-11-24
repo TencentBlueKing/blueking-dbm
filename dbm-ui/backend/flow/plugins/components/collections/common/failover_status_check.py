@@ -44,9 +44,13 @@ class FailoverStatusCheckService(BaseService):
     def report_trigger_time(self, main_task_id, instance_type):
         utc8_timezone = timezone(timedelta(hours=8))
         trigger_time = datetime.now().astimezone(utc8_timezone)
-        FailoverDrillReport.objects.filter(main_task_id=main_task_id, instance_type=instance_type).update(
+        updated = FailoverDrillReport.objects.filter(main_task_id=main_task_id, instance_type=instance_type).update(
             trigger_dbha_time=trigger_time
         )
+        if not updated:
+            FailoverDrillReport.objects.filter(main_task_id=main_task_id, instance_type__contains="+").update(
+                trigger_dbha_time=trigger_time
+            )
 
     def _execute(self, data, parent_data) -> bool:
         kwargs = data.get_one_of_inputs("kwargs")

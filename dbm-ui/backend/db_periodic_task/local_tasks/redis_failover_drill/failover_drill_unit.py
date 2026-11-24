@@ -21,7 +21,15 @@ from backend.db_report.enums import ReportStateType
 from backend.flow.utils.failover_drill_dbha import get_dbha_v2_service_ips
 
 from .failover_drill import RedisFailoverDrill, RedisFailoverDrillTaskStatus
-from .utils import autofix_done_polling, autofix_ticket_polling, log_with_context
+from .utils import (
+    autofix_done_polling,
+    autofix_ticket_polling,
+    autofix_tickets_done_polling,
+    autofix_tickets_polling,
+    create_drill_alarm_shield,
+    disable_drill_alarm_shield,
+    log_with_context,
+)
 
 TaskStatus = RedisFailoverDrillTaskStatus
 
@@ -110,17 +118,12 @@ def failover_drill_unit(target: Union[Dict[str, str], str], conf: Dict[str, Any]
         handle_drill_error(rfod, error_info, TaskStatus.CLUSTER_ERROR)
         return
 
-    if failover_drill_has_v2(rfod.version) and not get_dbha_v2_service_ips(
-        rfod.bk_cloud_id, rfod.get_drill_logical_city_id()
-    ):
-        error_info = _("拿不到 dbha-v2 服务 IP，退出演练")
-        handle_drill_error(rfod, error_info, TaskStatus.NO_DBHA_V2_SERVICE_IP)
-        return
-
-    # 创建容灾单据触发 DBHA
-    log_with_context("info", rfod.city, _("开始触发DBHA"))
-    drill_start_time = datetime.now().astimezone(timezone.utc)
-    rfod.create_run_failover_drill_ticket()
+    if failover_drill_has_v2(rfod.version):
+        for logical_city_id in rfod.get_drill_logical_city_ids():
+            if not get_dbha_v2_service_ips(rfod.bk_cloud_id, logical_city_id):
+                error_info = _("拿不到 dbha-v2 服务 IP，退出演练")
+                handle_drill_error(rfod, error_info, TaskStatus.NO_DBHA_V2_SERVICE_IP)
+                return
 
     # 配置自愈和HADB API切换队列检查参数
     retry_settings = {
@@ -128,36 +131,65 @@ def failover_drill_unit(target: Union[Dict[str, str], str], conf: Dict[str, Any]
         "interval": conf["interval"],
     }
     timeout_minutes = (conf["max_retry"] - 1) * conf["interval"]
+    shield_duration_seconds = max(timeout_minutes * 60 + 3600, 7200)
+    alarm_shield_id = create_drill_alarm_shield(
+        bk_biz_id=rfod.bk_biz_id,
+        immute_domain=rfod.get_immute_domain(),
+        ips=rfod.get_drill_ip_list(),
+        duration_seconds=shield_duration_seconds,
+    )
 
-    # 设置轮询限制条件
-    polling_restriction = {
-        "bk_biz_id": rfod.bk_biz_id,
-        "ip": rfod.get_drill_ip(),
-        "earliest_create_allowed": drill_start_time,
-    }
+    try:
+        # 创建容灾单据触发 DBHA
+        log_with_context("info", rfod.city, _("开始触发DBHA"))
+        drill_start_time = datetime.now().astimezone(timezone.utc)
+        rfod.create_run_failover_drill_ticket()
 
-    autofix_generated, ticket_id = autofix_ticket_polling(polling_restriction, **retry_settings)
-
-    dbha_info, switch_success = rfod.get_dbha_info()
-    rfod.update_drill_report(dbha_info)
-
-    switch_status_info = _("DBHA切换状态: {}").format(switch_success)
-    log_with_context("info", rfod.city, switch_status_info)
-    rfod.update_drill_task_report(switch_status_info)
-
-    if autofix_generated and autofix_done_polling(ticket_id, **retry_settings):
-        succ_info = _("自愈成功，演练正常结束")
-        log_with_context("info", rfod.city, succ_info)
-        rfod.update_drill_task_report(succ_info, ReportStateType.NORMAL, TaskStatus.SUCCESS)
-    elif dbha_info.get("query_failed"):
-        # 查不到切换队列时无法判断是否切换，不能记为"未切换"
-        error_info = _("DBHA({}) 切换队列查询失败，无法判断是否切换: {}").format(rfod.version, dbha_info["error"].strip())
-        handle_drill_error(rfod, error_info, TaskStatus.DBHA_QUERY_FAILED)
-    elif autofix_generated:
-        handle_autofix_failure(rfod, _("自愈结果异常"), TaskStatus.SWITCHED_AUTOFIX_ERROR, switch_success)
-    else:
-        no_autofix_info = _("没有监测到Redis自愈发生, timeout: {}min".format(timeout_minutes))
-        if not switch_success:
-            handle_drill_error(rfod, no_autofix_info, TaskStatus.SWITCH_FAILED)
+        target_ips = rfod.get_drill_ip_list()
+        if len(rfod.get_roles()) == 1:
+            target_ip = target_ips[0] if target_ips else rfod.get_drill_ip()
+            polling_restriction = {
+                "bk_biz_id": rfod.bk_biz_id,
+                "ip": target_ip,
+                "earliest_create_allowed": drill_start_time,
+            }
+            autofix_generated, ticket_id = autofix_ticket_polling(polling_restriction, **retry_settings)
+            autofix_done = autofix_done_polling(ticket_id, **retry_settings) if autofix_generated else False
         else:
+            polling_restriction = {
+                "bk_biz_id": rfod.bk_biz_id,
+                "ips": target_ips,
+                "earliest_create_allowed": drill_start_time,
+            }
+            autofix_generated, ticket_ids = autofix_tickets_polling(polling_restriction, **retry_settings)
+            autofix_done = autofix_tickets_done_polling(ticket_ids, **retry_settings) if autofix_generated else False
+
+        dbha_info, switch_success = rfod.get_dbha_info()
+        rfod.update_drill_report(dbha_info)
+
+        switch_status_info = _("DBHA切换状态: {}").format(switch_success)
+        log_with_context("info", rfod.city, switch_status_info)
+        rfod.update_drill_task_report(switch_status_info)
+
+        if dbha_info.get("query_failed"):
+            # 查不到切换队列时无法判断是否切换，不能记为"未切换"或"演练成功"
+            error_info = _("DBHA({}) 切换队列查询失败，无法判断是否切换: {}").format(rfod.version, dbha_info["error"].strip())
+            handle_drill_error(rfod, error_info, TaskStatus.DBHA_QUERY_FAILED)
+        elif not switch_success:
+            fail_info = (
+                _("存在演练实例未完成DBHA切换")
+                if autofix_generated
+                else _("没有监测到Redis自愈发生, timeout: {}min".format(timeout_minutes))
+            )
+            handle_drill_error(rfod, fail_info, TaskStatus.SWITCH_FAILED)
+        elif autofix_generated and autofix_done:
+            succ_info = _("自愈成功，演练正常结束")
+            log_with_context("info", rfod.city, succ_info)
+            rfod.update_drill_task_report(succ_info, ReportStateType.NORMAL, TaskStatus.SUCCESS)
+        elif autofix_generated:
+            handle_autofix_failure(rfod, _("自愈结果异常"), TaskStatus.SWITCHED_AUTOFIX_ERROR, switch_success)
+        else:
+            no_autofix_info = _("没有监测到Redis自愈发生, timeout: {}min".format(timeout_minutes))
             handle_autofix_failure(rfod, no_autofix_info, TaskStatus.SWITCHED_NO_AUTOFIX, switch_success)
+    finally:
+        disable_drill_alarm_shield(alarm_shield_id)

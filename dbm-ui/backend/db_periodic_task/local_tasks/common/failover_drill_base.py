@@ -24,10 +24,19 @@ from backend.utils.basic import generate_root_id
 class FailoverDrillTargetType:
     PROXY = "proxy"
     BACKEND = "backend"
+    PROXY_BACKEND = "proxy+backend"
 
     @classmethod
     def valid_types(cls):
-        return [cls.PROXY, cls.BACKEND]
+        return [cls.PROXY, cls.BACKEND, cls.PROXY_BACKEND]
+
+    @classmethod
+    def expand_roles(cls, target_type: str) -> List[str]:
+        if target_type == cls.PROXY_BACKEND:
+            return [cls.PROXY, cls.BACKEND]
+        if target_type in (cls.PROXY, cls.BACKEND):
+            return [target_type]
+        raise ValueError(f"Invalid target_type: {target_type}, available types: {cls.valid_types()}")
 
 
 @dataclass
