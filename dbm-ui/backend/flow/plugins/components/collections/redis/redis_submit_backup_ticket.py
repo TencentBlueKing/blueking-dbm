@@ -49,6 +49,7 @@ class RedisSubmitBackupTicketService(BaseService):
         auto_terminate_seconds: int  DBA 未触发执行的超时秒数，默认 3 小时
         remark:         str        单据备注（可选）
         parent_ticket_id: int      发起该子单据的父单据 ID（可选），用于关联展示
+        helpers:        List[str]  单据协助人（可选，缺省取业务 Redis DBA 的备DBA与二线DBA）
     """
 
     @staticmethod
@@ -109,6 +110,7 @@ class RedisSubmitBackupTicketService(BaseService):
         auto_terminate_seconds = int(kwargs.get("auto_terminate_seconds", DEFAULT_AUTO_TERMINATE_SECONDS))
         remark = kwargs.get("remark") or _("自动提交 Redis 备份单据")
         parent_ticket_id = kwargs.get("parent_ticket_id") or global_data.get("uid")
+        helpers = kwargs.get("helpers")
 
         if not cluster_ids:
             self.log_warning(_("cluster_ids 为空，跳过 Redis 备份单据自动提交"))
@@ -118,10 +120,13 @@ class RedisSubmitBackupTicketService(BaseService):
             self.log_error(_("bk_biz_id 缺失，无法自动提交 Redis 备份单据"))
             return False
 
-        # 缺省 creator：取业务 Redis DBA 首位
+        # 缺省 creator/helpers：统一取业务 Redis DBA 列表
+        redis_dbas = DBAdministrator.get_biz_db_type_admins(bk_biz_id=int(bk_biz_id), db_type=DBType.Redis.value)
         if not creator:
-            redis_dbas = DBAdministrator.get_biz_db_type_admins(bk_biz_id=int(bk_biz_id), db_type=DBType.Redis.value)
             creator = redis_dbas[0] if redis_dbas else "admin"
+        # 协助人取业务 Redis DBA 列表剔除提单人，避免漏掉主DBA或提单人重复出现
+        if helpers is None:
+            helpers = [user for user in redis_dbas if user != creator]
 
         # 组装 rules
         clusters = Cluster.objects.filter(id__in=cluster_ids, bk_biz_id=bk_biz_id)
@@ -165,6 +170,7 @@ class RedisSubmitBackupTicketService(BaseService):
             bk_biz_id=bk_biz_id,
             remark=remark,
             details=details,
+            helpers=helpers,
         )
         self.log_info(_("Redis 备份子单据创建成功，ticket_id={}").format(child_ticket.id))
 
