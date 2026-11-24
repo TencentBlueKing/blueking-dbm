@@ -135,6 +135,7 @@ class SystemSettingsEnum(StrStructuredEnum):
     EXCLUSIVE_TICKET_MAP = EnumField("EXCLUSIVE_TICKET_MAP", _("单据互斥表(全局)"))
     # 巡检配置
     DB_REPORT_EXCLUDE_BIZS = EnumField("DB_REPORT_EXCLUDE_BIZS", _("巡检报告排除业务列表"))
+    MYSQL_CONFIG_CONSISTENCY_CHECK = EnumField("MYSQL_CONFIG_CONSISTENCY_CHECK", _("MySQL配置一致性巡检配置"))
     # ITSM配置
     BK_ITSM_SERVICE_ID = EnumField("BK_ITSM_SERVICE_ID", _("DBM的流程服务ID"))
     ITSM_APPROVAL_KEY = EnumField("ITSM_APPROVAL_KEY", _("ITSM审批意见key"))

@@ -9,7 +9,7 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 from collections import defaultdict
-from typing import Dict
+from typing import Dict, Optional
 
 from django.db.models import Count
 from django.utils import timezone
@@ -27,7 +27,7 @@ from backend.bk_web.viewsets import AuditedModelViewSet
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import DBAdministrator, SystemSettings
 from backend.db_report.enums import SWAGGER_TAG, ReportStateType, ReportType
-from backend.db_report.filters import DrillReportFilterBackend, ReportFilterBackend, ReportListFilter
+from backend.db_report.filters import DrillReportFilterBackend, ReportFilterBackend, apply_min_time_range_filter
 from backend.db_report.register import db_report_maps, report_kind_register_map
 from backend.db_report.serializers import GetReportCountSerializer, GetReportOverviewSerializer
 from backend.iam_app.handlers.drf_perm.db_report import DBReportPermission
@@ -56,13 +56,25 @@ class ReportBaseViewSet(AuditedModelViewSet):
     ordering_fields = ["create_at", "failed_days"]
     # 鉴权类
     action_permission_map = {("list",): [DBReportPermission()]}
+    # 低频（如周频）巡检报表可声明最小默认时间窗天数，避免前端默认 now -1d 在非执行日查空
+    min_time_range_days: Optional[int] = None
 
     def filter_queryset(self, queryset):
         # 先调用父类的过滤逻辑，应用 filter_backends 中配置的过滤器
         queryset = super().filter_queryset(queryset)
+        # 未显式传 time_range 且未传精确区间时，对声明了 min_time_range_days 的低频报表兜底时间窗
+        if self.min_time_range_days is not None:
+            params = self.request.query_params
+            if not (params.get("time_range") or params.get("create_at__gte") or params.get("create_at__lte")):
+                queryset = apply_min_time_range_filter(queryset, "", min_days=self.min_time_range_days)
         # 全局过滤排除掉特定业务
         exclude_bk_biz_ids = SystemSettings.get_setting_value(SystemSettingsEnum.DB_REPORT_EXCLUDE_BIZS, default=[])
         return queryset.exclude(bk_biz_id__in=exclude_bk_biz_ids)
+
+    @classmethod
+    def apply_time_range_filter(cls, queryset, time_range: str):
+        """统一应用 time_range 过滤，兼容低频报表的 min_time_range_days 兜底窗口。"""
+        return apply_min_time_range_filter(queryset, time_range, min_days=cls.min_time_range_days)
 
     @staticmethod
     def _to_aware_datetime(value):
@@ -89,12 +101,7 @@ class ReportBaseViewSet(AuditedModelViewSet):
             return queryset
 
         time_range = self.request.query_params.get("time_range", "")
-        filter_instance = ReportListFilter(
-            data=self.request.query_params,
-            queryset=queryset,
-            request=self.request,
-        )
-        return filter_instance.filter_time_range(queryset, "time_range", time_range)
+        return self.apply_time_range_filter(queryset, time_range)
 
     def _get_time_filtered_queryset(self):
         """
@@ -229,14 +236,9 @@ class ReportCommonViewSet(viewsets.SystemViewSet):
             for cls in report_classes:
                 # 基础过滤：状态为异常或预警（与列表页面统计逻辑一致）
                 queryset = cls.queryset.filter(state__in=[ReportStateType.ABNORMAL, ReportStateType.WARNING])
-                # 应用 time_range 过滤
-                if time_range:
-                    filter_instance = ReportListFilter(
-                        data=request.query_params,
-                        queryset=queryset,
-                        request=request,
-                    )
-                    queryset = filter_instance.filter_time_range(queryset, "time_range", time_range)
+                # 应用 time_range 过滤（低频报表同步按 min_time_range_days 兜底最小窗口）
+                if time_range or getattr(cls, "min_time_range_days", None) is not None:
+                    queryset = cls.apply_time_range_filter(queryset, time_range)
                 if bk_biz_id:
                     queryset = queryset.filter(bk_biz_id=bk_biz_id)
                 report_count_map[db_type][cls.report_type].update(

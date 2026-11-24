@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import functools
 import operator
 import re
+from typing import Optional
 
 from django.db.models import Q
 from django.utils import timezone
@@ -20,8 +21,61 @@ from django_filters.rest_framework import DjangoFilterBackend
 
 from backend.configuration.models import DBAdministrator
 
+_UNLIMITED_TIME_RANGES = frozenset({"-0d", "-0h", "now -0d", "now -0h"})
+_TIME_DELTA_PATTERN = re.compile(r"^(-?\d+)([dh]|days?|hours?)$")
+
+
+def parse_time_range_delta(value: str) -> Optional[timezone.timedelta]:
+    """解析 time_range 为 timedelta；返回 None 表示不限时间范围（-0d/-0h）。"""
+    default_delta = timezone.timedelta(hours=24)
+    if not value:
+        return default_delta
+    time_input = value.strip().lower()
+    if time_input in _UNLIMITED_TIME_RANGES:
+        return None
+    try:
+        if time_input.startswith("now"):
+            parts = time_input.split()
+            if len(parts) < 2:
+                return default_delta
+            time_str = parts[1]
+        else:
+            time_str = time_input
+        match = _TIME_DELTA_PATTERN.match(time_str)
+        if not match:
+            return default_delta
+        number = int(match.group(1))
+        unit = match.group(2)
+        if unit in ["d", "day", "days"]:
+            return timezone.timedelta(days=abs(number))
+        if unit in ["h", "hour", "hours"]:
+            return timezone.timedelta(hours=abs(number))
+    except (ValueError, IndexError):
+        return default_delta
+    return default_delta
+
+
+def apply_min_time_range_filter(
+    queryset,
+    value: str,
+    min_days: Optional[int] = None,
+):
+    """按 time_range 过滤 queryset；若配置了 min_days 且时间窗更短，则至少放宽至 min_days 天。"""
+    delta = parse_time_range_delta(value)
+    if delta is None:
+        return queryset
+    if min_days is not None:
+        min_delta = timezone.timedelta(days=min_days)
+        if delta < min_delta:
+            delta = min_delta
+    return queryset.filter(create_at__gte=timezone.now() - delta)
+
 
 class ReportListFilter(filters.FilterSet):
+    def __init__(self, *args, min_time_range_days: Optional[int] = None, **kwargs):
+        self.min_time_range_days = min_time_range_days
+        super().__init__(*args, **kwargs)
+
     select_biz_id = filters.NumberFilter(field_name="select_biz_id", method="filter_select_biz_id", label=_("业务ID"))
     bk_biz_id = filters.NumberFilter(field_name="bk_biz_id", method="filter_bk_biz_id", label=_("业务ID"))
     manage = filters.CharFilter(
@@ -82,52 +136,7 @@ class ReportListFilter(filters.FilterSet):
         - 7d / 24h (简写格式)
         - 7days / 24hours (完整格式)
         """
-        now = timezone.now()
-        # 解析时间范围参数
-        delta = timezone.timedelta(hours=24)  # 默认使用最近24小时
-        if value:
-            try:
-                # 统一处理输入格式
-                time_input = value.strip().lower()
-                # 检查是否为-0d或-0h格式
-                if time_input in ["-0d", "-0h", "now -0d", "now -0h"]:
-                    return queryset
-                # 支持多种格式：
-                # 1. "now -7d" 格式
-                if time_input.startswith("now"):
-                    parts = time_input.split()
-                    if len(parts) >= 2:
-                        time_str = parts[1]
-                        delta = self._parse_time_delta(time_str)
-                # 2. 直接时间格式 "7d", "24h"
-                else:
-                    delta = self._parse_time_delta(time_input)
-
-            except (ValueError, IndexError):
-                delta = timezone.timedelta(hours=24)
-
-        start_time = now - delta
-        return queryset.filter(create_at__gte=start_time)
-
-    def _parse_time_delta(self, time_str):
-        """解析时间字符串为timedelta对象"""
-        # 匹配数字和单位
-        pattern = r"^(-?\d+)([dh]|days?|hours?)$"
-        match = re.match(pattern, time_str)
-
-        if not match:
-            raise ValueError(f"Invalid time format: {time_str}")
-
-        number = int(match.group(1))
-        unit = match.group(2)
-
-        # 处理单位
-        if unit in ["d", "day", "days"]:
-            return timezone.timedelta(days=abs(number))
-        elif unit in ["h", "hour", "hours"]:
-            return timezone.timedelta(hours=abs(number))
-        else:
-            raise ValueError(f"Unsupported time unit: {unit}")
+        return apply_min_time_range_filter(queryset, value, min_days=self.min_time_range_days)
 
 
 class DrillReportFilter(ReportListFilter):
@@ -138,6 +147,13 @@ class DrillReportFilter(ReportListFilter):
 
 class ReportFilterBackend(DjangoFilterBackend):
     filterset_base = ReportListFilter
+
+    def get_filterset_kwargs(self, request, queryset, view):
+        kwargs = super().get_filterset_kwargs(request, queryset, view)
+        min_days = getattr(view, "min_time_range_days", None)
+        if min_days is not None:
+            kwargs["min_time_range_days"] = min_days
+        return kwargs
 
 
 class DrillReportFilterBackend(DjangoFilterBackend):

@@ -33,6 +33,7 @@ from .mysql_backup_progress import MysqlBackupProgress
 from .mysql_cluster_skew_report import MysqlClusterSkewReport
 from .mysql_config_ai_inspect import MysqlConfigAiInspect, MysqlConfigAiInspectStatus
 from .mysql_config_check_result import MysqlConfigCheckResult
+from .mysql_config_consistency_report import MysqlConfigConsistencyReport
 from .mysql_db_table_size import MysqlDbTableSize
 from .mysql_inspect_ignore import MysqlInspectIgnore
 from .mysql_proxy_connlog import MysqlProxyConnlog

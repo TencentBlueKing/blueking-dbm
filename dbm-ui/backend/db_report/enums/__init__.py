@@ -16,6 +16,7 @@ from .ai_analysis_sub_type import AiAnalysisSubType
 from .dbmon_heartbeat_report_sub_type import DbmonHeartbeatReportSubType
 from .kafka_affinity_check_sub_type import KafkaAffinityCheckSubType
 from .meta_check_sub_type import MetaCheckSubType
+from .mysql_config_consistency_sub_type import MysqlConfigConsistencySubType
 from .mysqlbackup_check_sub_type import MysqlBackupCheckSubType
 from .portrait import SummaryFetchStrategy
 from .redis_rollback_exercise_task_stage import FAILED_STAGES as REDIS_ROLLBACK_EXER_FAILED_STAGES
@@ -56,6 +57,7 @@ class ReportType(StrStructuredEnum):
     ALONE_INSTANCE_CHECK = EnumField("alone_instance_check", _("孤立实例检查"))
     STATUS_ABNORMAL_CHECK = EnumField("status_abnormal_check", _("实例异常状态检查"))
     AFFINITY_CHECK = EnumField("affinity_check", _("亲和性检查"))
+    CONFIG_CONSISTENCY_CHECK = EnumField("config_consistency_check", _("配置一致性巡检"))
     CONF_CHECK = EnumField("conf_check", _("配置检查"))
     ENTRY_CHECK = EnumField("entry_check", _("访问入口一致性检查"))
     REDIS_DBMON_HEARTBEAT_CHECK = EnumField("dbmon_heartbeat_check", _("dbmon心跳超时检查"))
