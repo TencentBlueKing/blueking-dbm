@@ -107,7 +107,7 @@
           children,
           count: total,
           id: currentBizId,
-          name: currentBizInfo?.display_name || '--',
+          name: currentBizInfo?.name || '--',
           obj: 'biz',
         },
       ];

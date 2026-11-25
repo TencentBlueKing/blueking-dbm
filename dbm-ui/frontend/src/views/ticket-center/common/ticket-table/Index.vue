@@ -308,7 +308,7 @@
 </template>
 <script setup lang="tsx">
   import { type TableSort } from 'tdesign-vue-next';
-  import { onBeforeUnmount, shallowRef, type UnwrapRef, useTemplateRef, type VNode } from 'vue';
+  import { shallowRef, type UnwrapRef, useTemplateRef, type VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { useRequest } from 'vue-request';
   import { useRoute, useRouter } from 'vue-router';
@@ -659,10 +659,6 @@
     // 搜索条件为空时 DbQuickSearch 首次回显的值与 quickSearchValue 相等，不会回写触发上面的 watch，首屏数据在这里拉取
     isInited = true;
     fetchData();
-  });
-
-  onBeforeUnmount(() => {
-    eventBus.off('refreshTicketStatus', fetchRefresh);
   });
 
   defineExpose({

@@ -15,7 +15,6 @@
   <!-- <BkLoading :loading="isEditLoading"> -->
   <SmartAction>
     <div class="sqlserver-sql-execute-page">
-      <TaskTips :db-type="DBTypes.SQLSERVER" />
       <DbForm
         :key="resetFormKey"
         ref="formRef"
@@ -70,7 +69,6 @@
 
   import RenderCharset from '@views/db-manage/common/sql-execute/charset/Index.vue';
   import ClusterIds from '@views/db-manage/common/sql-execute/cluster-ids/Index.vue';
-  import TaskTips from '@views/db-manage/common/sql-execute/task-tips/Index.vue';
   import TicketMode from '@views/db-manage/common/sql-execute/ticket-mode/Index.vue';
   import TicketPayload, {
     createTicketPayload,

@@ -22,8 +22,6 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { useLocation } from '@hooks';
-
   import { systemSearchCache } from '@common/cache';
 
   import TextHighlight from '@components/text-highlight/Index.vue';
@@ -45,17 +43,18 @@
   defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const location = useLocation();
+  const router = useRouter();
 
   const handleGo = (data: Props['data'][number]) => {
     systemSearchCache.appendItem(data.ip);
 
-    location({
+    const { href } = router.resolve({
       name: 'allHost',
       query: {
         ips: data.ip,
       },
     });
+    window.open(href);
   };
 
   const handleToResult = () => {

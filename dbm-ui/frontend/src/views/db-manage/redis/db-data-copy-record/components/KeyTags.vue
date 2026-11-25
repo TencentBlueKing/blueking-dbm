@@ -41,7 +41,7 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { useTagsOverflow } from '@hooks';
+  import { useTagsOverflow } from '@views/db-manage/redis/db-data-copy-record/hooks/useTagsOverflow';
 
   interface Props {
     data?: string[];
