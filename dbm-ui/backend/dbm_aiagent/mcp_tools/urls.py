@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 from django.urls import include, path
 
 # common mcp tools
@@ -23,4 +24,5 @@ urlpatterns = [
     path("es/", include("backend.dbm_aiagent.mcp_tools.es.urls")),
     path("doris/", include("backend.dbm_aiagent.mcp_tools.doris.urls")),
     path("oracle/", include("backend.dbm_aiagent.mcp_tools.oracle.urls")),
+    path("hdfs/", include("backend.dbm_aiagent.mcp_tools.hdfs.urls")),
 ]

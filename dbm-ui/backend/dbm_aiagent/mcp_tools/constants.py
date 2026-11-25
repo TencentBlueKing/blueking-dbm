@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 from django.utils.translation import gettext_lazy as _
 
 from blue_krill.data_types.enum import EnumField, StrStructuredEnum
@@ -79,6 +80,9 @@ class DBMMcpTools(StrStructuredEnum):
     DORIS_METRICS = EnumField("doris-metrics", "doris-metrics")
     DORIS_QUERY_META = EnumField("doris-query-meta", "doris-query-meta")
     ORACLE_QUERY = EnumField("oracle-query", _("Oracle 查询"))
+    HDFS_METRICS = EnumField("hdfs-metrics", "hdfs-metrics")
+    HDFS_QUERY_META = EnumField("hdfs-query-meta", "hdfs-query-meta")
+    HDFS_TOOLBOX = EnumField("hdfs-toolbox", "hdfs-toolbox")
 
 
 class DBMMCPTags(StrStructuredEnum):

@@ -730,6 +730,57 @@ BK_APIGW_STAGE_MCP_SERVERS = [
         "tools": [],
     },
     {
+        "name": "hdfs-metrics",
+        "description": """HDFS cluster monitoring metrics query services, covering NameNode/DataNode system
+        resources and HDFS internal metrics such as filesystem capacity usage, corrupt and missing blocks,
+        uncheckpointed transactions, DataNode last contact, NameNode active/standby state, DataNode JVM heap,
+        Xceiver connections and RPC queue time. NameNode specific metrics are pinned to the active NameNode""",
+        # 主动授权 app_code
+        "target_app_codes": [env.APP_CODE, "ai-dbm"],
+        "labels": ["hdfs-metrics"],
+        # 是否启用：1-启用，0-停止
+        "status": 1,
+        # 是否公开
+        "is_public": False,
+        # 自动发现并填充该 MCP 服务器对应的工具
+        "tools": [],
+    },
+    {
+        "name": "hdfs-query-meta",
+        "description": """HDFS cluster meta information query services, covering business and cluster
+        discovery, cluster overview with per-role node counts across namenode/datanode/journalnode/zookeeper
+        and machine specs, per-node details (ip, port, instance_id, bk_host_id, bk_cloud_id) filtered by role
+        or ip, and spec search. Meta data only, no monitoring metrics: use hdfs-metrics for usage and capacity""",
+        # 主动授权 app_code
+        "target_app_codes": [env.APP_CODE, "ai-dbm"],
+        "labels": ["hdfs-query-meta"],
+        # 是否启用：1-启用，0-停止
+        "status": 1,
+        # 是否公开
+        "is_public": False,
+        # 自动发现并填充该 MCP 服务器对应的工具
+        "tools": [],
+    },
+    {
+        "name": "hdfs-toolbox",
+        "description": """HDFS toolbox for iceberg directory statistics. Runs hdfs commands on a DataNode and
+        only covers /data/iceberg/warehouse (database dirs are its children, table dirs are their children).
+        Lists database dirs (at most the first 100 by name), lists table dirs of one database (at most the
+        first 100 by name), and reports the size of up to 20 named table dirs, including replica disk usage.
+        All tools are asynchronous: each submit tool returns a job_instance_id, and hdfs_toolbox_query_result
+        returns running, succeeded with the result, or failed. Only one toolbox task per cluster at a time;
+        the cluster lock and the job timeout are both 5 minutes""",
+        # 主动授权 app_code
+        "target_app_codes": [env.APP_CODE, "ai-dbm"],
+        "labels": ["hdfs-toolbox"],
+        # 是否启用：1-启用，0-停止
+        "status": 1,
+        # 是否公开
+        "is_public": False,
+        # 自动发现并填充该 MCP 服务器对应的工具
+        "tools": [],
+    },
+    {
         "name": "kafka-rebalance-control",
         "description": """Kafka rebalance ticket progress query and throttle control services""",
         # 主动授权 app_code

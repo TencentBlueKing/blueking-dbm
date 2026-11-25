@@ -10,7 +10,7 @@
     "type": "monitor",
     "items": [
       {
-        "name": "AVG(hadoop_namenode_capacity_used)/AVG(hadoop_namenode_capacity_total)*MIN(hadoop_namenode_State)*100",
+        "name": "100*AVG(hadoop_namenode_capacity_used)/AVG(hadoop_namenode_capacity_total) [Active NameNode only]",
         "no_data_config": {
           "level": 2,
           "continuous": 10,
@@ -23,72 +23,19 @@
           ]
         },
         "target": [],
-        "expression": "a/b*c*100",
+        "expression": "a",
         "functions": [],
         "origin_sql": "",
         "query_configs": [
           {
-            "data_source_label": "bk_monitor",
+            "data_source_label": "prometheus",
             "data_type_label": "time_series",
             "alias": "a",
-            "metric_id": "bk_monitor.exporter_dbm_hdfs_exporter.__default__.hadoop_namenode_capacity_used",
+            "metric_id": "",
             "functions": [],
-            "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
-            "data_label": "exporter_dbm_hdfs_exporter",
-            "agg_method": "AVG",
+            "promql": "(100 * avg by (app, appid, cluster_domain, bk_target_service_instance_id) (avg_over_time(bkmonitor:exporter_dbm_hdfs_exporter:hadoop_namenode_capacity_used{instance_role=\"hdfs_namenode\"}[1m])) / avg by (app, appid, cluster_domain, bk_target_service_instance_id) (avg_over_time(bkmonitor:exporter_dbm_hdfs_exporter:hadoop_namenode_capacity_total{instance_role=\"hdfs_namenode\"}[1m]))) and on (app, appid, cluster_domain, bk_target_service_instance_id) (min by (app, appid, cluster_domain, bk_target_service_instance_id) (min_over_time(bkmonitor:exporter_dbm_hdfs_exporter:hadoop_namenode_State{instance_role=\"hdfs_namenode\"}[1m])) == 1)",
             "agg_interval": 60,
-            "agg_dimension": [
-              "app",
-              "cluster_domain",
-              "bk_target_service_instance_id",
-              "appid"
-            ],
-            "agg_condition": [],
-            "metric_field": "hadoop_namenode_capacity_used",
-            "unit": "",
-            "name": "hadoop_namenode_capacity_used"
-          },
-          {
-            "data_source_label": "bk_monitor",
-            "data_type_label": "time_series",
-            "alias": "b",
-            "metric_id": "bk_monitor.exporter_dbm_hdfs_exporter.__default__.hadoop_namenode_capacity_total",
-            "functions": [],
-            "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
-            "data_label": "exporter_dbm_hdfs_exporter",
-            "agg_method": "AVG",
-            "agg_interval": 60,
-            "agg_dimension": [
-              "app",
-              "cluster_domain",
-              "bk_target_service_instance_id",
-              "appid"
-            ],
-            "agg_condition": [],
-            "metric_field": "hadoop_namenode_capacity_total",
-            "unit": "",
-            "name": "hadoop_namenode_capacity_total"
-          },
-          {
-            "data_source_label": "bk_monitor",
-            "data_type_label": "time_series",
-            "alias": "c",
-            "metric_id": "bk_monitor.exporter_dbm_hdfs_exporter.__default__.hadoop_namenode_State",
-            "functions": [],
-            "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
-            "data_label": "exporter_dbm_hdfs_exporter",
-            "agg_method": "MIN",
-            "agg_interval": 60,
-            "agg_dimension": [
-              "app",
-              "cluster_domain",
-              "bk_target_service_instance_id",
-              "appid"
-            ],
-            "agg_condition": [],
-            "metric_field": "hadoop_namenode_State",
-            "unit": "",
-            "name": "hadoop_namenode_State"
+            "name": ""
           }
         ],
         "algorithms": [
@@ -331,8 +278,8 @@
     "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "AVG(hadoop_namenode_capacity_used)/AVG(hadoop_namenode_capacity_total)*MIN(hadoop_namenode_State)*100",
-  "version": 22,
+  "monitor_indicator": "100*AVG(hadoop_namenode_capacity_used)/AVG(hadoop_namenode_capacity_total) [Active NameNode only]",
+  "version": 23,
   "alert_source": "time_series",
   "custom_conditions": []
 }
