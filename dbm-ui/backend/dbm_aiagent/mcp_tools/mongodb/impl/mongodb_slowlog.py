@@ -7,6 +7,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 from typing import Dict, Optional
 
 from django.utils import timezone
@@ -19,6 +20,20 @@ from backend.utils.time import datetime2str
 
 # cluster_domain 与 instance_host 不能同时为空
 SLOWLOG_CLUSTER_OR_HOST_REQUIRED = "cluster_domain and instance_host cannot both be empty"
+
+
+# Lucene query_string 短语里只有 \ 与 " 有特殊含义。
+# ns / queryHash 可能含这些字符，拼进短语前转义。
+# cluster_domain / instance_host / instance_role / instance 是标识符，合法值不含 \ 与 "，直接校验并拒绝。
+def _escape_lucene_phrase(value: str) -> str:
+    """转义 Lucene query_string 双引号短语内的 \\ 与 "。用于 ns、queryHash。"""
+    return value.replace("\\", "\\\\").replace('"', '\\"')
+
+
+def _require_plain_identifier(field: str, value: str) -> None:
+    """标识符不能含 \\ 或 "，否则会破坏 Lucene 短语或被转义成非法值。"""
+    if "\\" in value or '"' in value:
+        raise DBMMcpBaseException(msg=f"{field} is invalid: backslash and double quote are not allowed")
 
 
 def _require_cluster_or_host(cluster_domain: str, instance_host: str) -> None:
@@ -187,24 +202,28 @@ def get_query_params(
     domain = cluster_domain or ""
     query_parts = []
     if domain:
+        _require_plain_identifier("cluster_domain", domain)
         query_parts.append(f'meta.cluster_domain:"{domain}"')
     if instance_host:
+        _require_plain_identifier("instance_host", instance_host)
         query_parts.append(f'meta.instance_host:"{instance_host}"')
     if instance_role:
+        _require_plain_identifier("instance_role", instance_role)
         query_parts.append(f'meta.instance_role:"{instance_role}"')
     if instance:
+        _require_plain_identifier("instance", instance)
         query_parts.append(f'meta.instance:"{instance}"')
     if ns:
-        query_parts.append(f'attr.ns:"{ns}"')
+        query_parts.append(f'attr.ns:"{_escape_lucene_phrase(ns)}"')
     if query_hash:
-        query_parts.append(f'attr.queryHash:"{query_hash}"')
+        query_parts.append(f'attr.queryHash:"{_escape_lucene_phrase(query_hash)}"')
     query_params = {
         "indices": f"{env.DBA_APP_BK_BIZ_ID}_bklog.mongodb_log",
         "start_time": datetime2str(start_time),
         "end_time": datetime2str(end_time),
-        "query_string": MONGO_SLOWLOG_INITIAL_QUERY_STRING + " AND " + " AND ".join(query_parts)
-        if query_parts
-        else "*",
+        "query_string": (
+            MONGO_SLOWLOG_INITIAL_QUERY_STRING + " AND " + " AND ".join(query_parts) if query_parts else "*"
+        ),
         "start": 0,
         "size": size,
         "sort_list": [["durationMillis", "desc"]],
