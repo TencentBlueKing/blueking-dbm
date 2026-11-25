@@ -37,7 +37,7 @@ type Request struct {
 	Statuses       []string `json:"statuses,omitempty"`
 	ClusterTypes   []string `json:"cluster_types,omitempty"`
 	HashCnt        int      `json:"hash_cnt,omitempty"`
-	HashValue      int      `json:"hash_value,omitempty"`
+	HashValue      int      `json:"hash_value"`
 	MachineOnly    bool     `json:"machine_only,omitempty"`
 }
 
