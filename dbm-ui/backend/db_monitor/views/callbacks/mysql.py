@@ -20,7 +20,7 @@ from django.utils.translation import gettext as _
 from backend import env
 from backend.configuration.constants import DBType
 from backend.core.notify.handlers import NotifyAdapter
-from backend.db_meta.enums import ClusterType, InstanceRole, TenDBClusterSpiderRole
+from backend.db_meta.enums import ClusterStatus, ClusterType, InstanceRole, TenDBClusterSpiderRole
 from backend.db_meta.models import Cluster
 from backend.db_monitor.views.callbacks.base import AlarmCallback
 from backend.db_report.portrait import MysqlPortraitDimensionCode, ingest_summary
@@ -228,6 +228,13 @@ class MySQLAlarm(AlarmCallback):
     }
 
     @classmethod
+    def _is_ignored_cluster(cls, cluster: Cluster) -> bool:
+        """判断集群是否为需要忽略告警 AI 分析的临时/演练集群"""
+        if cluster.status == ClusterStatus.TEMPORARY.value:
+            return True
+        return Cluster.objects.filter(id=cluster.id).filter_builtin_cluster_tags().exists()
+
+    @classmethod
     def callback(cls, callback_data: dict):
         """根据策略名、告警级别、集群类型分发到对应的异步处理任务"""
         callback_message = callback_data.get("callback_message", {})
@@ -243,10 +250,15 @@ class MySQLAlarm(AlarmCallback):
         cluster_domain = dimensions.get("cluster_domain")
         cluster_type = dimensions.get("cluster_type", "")
         bk_biz_id = int(dimensions.get("appid", 0))
-        if (not cluster_type or not bk_biz_id) and cluster_domain:
-            cluster = Cluster.objects.filter(immute_domain=cluster_domain).first()
-            cluster_type = cluster.cluster_type if cluster else None
-            bk_biz_id = cluster.bk_biz_id
+        cluster = Cluster.objects.filter(immute_domain=cluster_domain).first() if cluster_domain else None
+        if cluster:
+            if cls._is_ignored_cluster(cluster):
+                logger.info(_("[MySQLAlarm] 集群 {} 为临时/演练集群，跳过告警 AI 分析").format(cluster_domain))
+                return
+            if not cluster_type:
+                cluster_type = cluster.cluster_type
+            if not bk_biz_id:
+                bk_biz_id = cluster.bk_biz_id
 
         alarm_base_info = {
             "bk_biz_id": bk_biz_id,
