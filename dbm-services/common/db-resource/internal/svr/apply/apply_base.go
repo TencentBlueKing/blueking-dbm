@@ -441,8 +441,10 @@ func (a *ObjectDetail) GetDiskMatchInfo() (message string) {
 			if cmutil.IsNotEmpty(d.MountPoint) {
 				message += fmt.Sprintf("disk: mount point: %s", d.MountPoint)
 			}
-			if !cmutil.IsNotEmpty(d.DiskType) {
-				message += " disk type: " + d.DiskType
+			if !cmutil.IsNotEmpty(strings.TrimSpace(d.DiskType)) {
+				message += " disk_type: " + d.DiskType
+			} else {
+				message += " disk_type: 任意磁盘类型"
 			}
 			switch {
 			case d.MaxSize > 0 && d.MinSize > 0:
@@ -457,12 +459,21 @@ func (a *ObjectDetail) GetDiskMatchInfo() (message string) {
 	}
 	return
 }
+func (a *ObjectDetail) getOsMatchInfo() (message string) {
+	if cmutil.IsNotEmpty(a.OsType) {
+		message += fmt.Sprintf("os_type: %s\n", a.OsType)
+	}
+	if len(a.OsNames) > 0 {
+		message += fmt.Sprintf("os_names: %v\n", a.OsNames)
+	}
+	return
+}
 
 // GetMessage return apply failed message
 func (a *ObjectDetail) GetMessage() (message string) {
 	message += fmt.Sprintf(" group: %s\n", a.GroupMark)
 	if len(a.DeviceClass) > 0 {
-		message += fmt.Sprintf("CC机型: %v\n", a.DeviceClass)
+		message += fmt.Sprintf("匹配的机型: %v\n", a.DeviceClass)
 	}
 	if len(a.Labels) > 0 {
 		message += fmt.Sprintf("标签: %v\n", a.Labels)
@@ -477,7 +488,10 @@ func (a *ObjectDetail) GetMessage() (message string) {
 			message += fmt.Sprintf("mem: %d ~ %d M\n", a.Spec.Mem.Min, a.Spec.Mem.Max)
 		}
 	}
+	// disk info
 	message += a.GetDiskMatchInfo()
+	// os info
+	message += a.getOsMatchInfo()
 	if !a.LocationSpec.IsEmpty() {
 		message += fmt.Sprintf("城市: %s \n", a.LocationSpec.City)
 		if len(a.LocationSpec.SubZoneIds) > 0 {
