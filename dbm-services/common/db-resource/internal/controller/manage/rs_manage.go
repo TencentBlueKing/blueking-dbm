@@ -218,7 +218,10 @@ type SubZoneMeta struct {
 func (v UpdateRsMeta) getUpdateMap() (updateMap map[string]interface{}, err error) {
 	var labelJson, storageJson []byte
 	updateMap = make(map[string]interface{})
-	if v.Labels != nil {
+	// for_biz=0 表示公共资源池，不允许带业务标签，无论 API 是否传了 labels 都清空
+	if v.ForBiz != nil && *v.ForBiz == model.PUBLIC_RESOURCE_BIZ {
+		updateMap["labels"] = []byte("[]")
+	} else if v.Labels != nil {
 		labelJson, err = json.Marshal(lo.Uniq(*v.Labels))
 		if err != nil {
 			logger.Error(fmt.Sprintf("Conversion LabelToJsonStr Failed,Error:%s", err.Error()))
