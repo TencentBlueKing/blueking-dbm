@@ -555,7 +555,7 @@ def build_redis_role_check_script(instances: list) -> str:
 # REDIS_CONF_CHECK: on-host script snippets
 #
 # Predixy INFO Servers is read via DRS; storage instance state is read on the host
-# through redis-cmd.sh. Each checker contributes a self-contained snippet that
+# through local redis-cli. Each checker contributes a self-contained snippet that
 # prints tagged blocks:
 #   <CONFCHK checker="<name>" port="<port>">{json}</CONFCHK>
 # The collect component concatenates all snippets for a host into one script and
@@ -606,24 +606,53 @@ def build_predixy_conf_check_snippet(ports: List[int]) -> str:
     return _PREDIXY_CONF_READ_FUNC + "\n" + calls + "\n"
 
 
-REDIS_CMD_SH = "/home/mysql/dbtools/redis-cmd.sh"
+REDIS_CLI_CANDIDATES = ("/usr/local/redis/bin/redis-cli", "/home/mysql/dbtools/redis-cli")
 STORAGE_CONF_DATA_DIRS = ("/data1", "/data")
 STORAGE_CONF_INCLUDE_MAX_DEPTH = 8
 STORAGE_CONF_CMD_TIMEOUT = 5
 
 # Bash helpers for the storage_conf checker (bash 3.2 compatible, no python on host).
 # BK-Job keeps job logs, so nothing printed here may carry a credential:
-#   - redis-cmd.sh echoes "redis-cli -a <password> ..." before running; that line and
-#     the redis-cli password warning are dropped before any further processing.
+#   - redis-cli is invoked directly with quoted argv (no redis-cmd.sh wrapper); any
+#     stderr password warning or echoed `redis-cli -a ...` line is dropped before
+#     further processing.
 #   - requirepass/masterauth/masteruser/user values are dropped from runtime config
 #     by key name regardless of key/value position; blank lines stay because an empty
 #     value is a blank line.
 #   - failures are reported as fixed tokens, never as captured output.
-# Commands are fed to redis-cmd.sh on stdin: it runs `$REDIS $@` unquoted, so a `*`
-# passed as an argument is glob-expanded against the working directory. It is run via
-# `bash <path>` because its shebang is not on the first line.
 _STORAGE_CONF_FUNCS = r"""
-__DBM_SCC_REDIS_CMD=__DBM_SCC_REDIS_CMD_VALUE__
+__DBM_SCC_HOST_IP=__DBM_SCC_HOST_IP_VALUE__
+__DBM_SCC_REDIS_CLI=__DBM_SCC_REDIS_CLI_VALUE__
+__DBM_SCC_CLI_RESOLVED=0
+__DBM_SCC_CLI_BIN=""
+
+__dbm_scc_resolve_cli() {
+    if [ "$__DBM_SCC_CLI_RESOLVED" -eq 1 ]; then
+        return
+    fi
+    __DBM_SCC_CLI_RESOLVED=1
+    if [ -n "$__DBM_SCC_REDIS_CLI" ]; then
+        if [ -x "$__DBM_SCC_REDIS_CLI" ]; then
+            __DBM_SCC_CLI_BIN="$__DBM_SCC_REDIS_CLI"
+        else
+            __DBM_SCC_CLI_BIN=""
+        fi
+        return
+    fi
+    local c
+    for c in __DBM_SCC_CLI_CANDIDATES__; do
+        if [ -x "$c" ]; then
+            __DBM_SCC_CLI_BIN="$c"
+            return
+        fi
+    done
+    c=$(command -v redis-cli 2>/dev/null || true)
+    if [ -n "$c" ] && [ -x "$c" ]; then
+        __DBM_SCC_CLI_BIN="$c"
+    else
+        __DBM_SCC_CLI_BIN=""
+    fi
+}
 
 __dbm_scc_b64() {
     gzip -c 2>/dev/null | base64 2>/dev/null | tr -d '\n\r'
@@ -710,17 +739,109 @@ __dbm_scc_strip_mem() {
     }'
 }
 
-# Sets __DBM_SCC_BODY (wrapper lines removed, trailing newlines kept) and __DBM_SCC_ERR.
+__dbm_scc_disk_pass() {
+    LC_ALL=C awk '
+    function hval(ch,    p) {
+        p = index("0123456789abcdefABCDEF", ch)
+        if (p == 0) return -1
+        if (p > 16) return p - 7
+        return p - 1
+    }
+    {
+        l = $0
+        sub(/\r$/, "", l)
+        sub(/^[ \t]+/, "", l)
+        if (l == "" || substr(l, 1, 1) == "#") next
+        sp = match(l, /[ \t]/)
+        if (sp == 0) {
+            if (tolower(l) == "requirepass") { found = 1; last = "" }
+            next
+        }
+        if (tolower(substr(l, 1, sp - 1)) != "requirepass") next
+        rest = substr(l, sp)
+        sub(/^[ \t]+/, "", rest)
+        found = 1
+        if (rest == "") { last = ""; next }
+        n = length(rest)
+        mode = 0
+        cur = ""
+        for (i = 1; i <= n; i++) {
+            c = substr(rest, i, 1)
+            if (mode == 1) {
+                if (c == "\\" && i + 3 <= n && substr(rest, i + 1, 1) == "x") {
+                    h1 = hval(substr(rest, i + 2, 1))
+                    h2 = hval(substr(rest, i + 3, 1))
+                    if (h1 >= 0 && h2 >= 0) {
+                        v = h1 * 16 + h2
+                        if (v > 0) cur = cur sprintf("%c", v)
+                        i += 3
+                        continue
+                    }
+                }
+                if (c == "\\" && i + 1 <= n) {
+                    i++
+                    nc = substr(rest, i, 1)
+                    if (nc == "n") cur = cur "\n"
+                    else if (nc == "r") cur = cur "\r"
+                    else if (nc == "t") cur = cur "\t"
+                    else if (nc == "b") cur = cur "\010"
+                    else if (nc == "a") cur = cur "\007"
+                    else cur = cur nc
+                } else if (c == "\"") {
+                    break
+                } else {
+                    cur = cur c
+                }
+            } else if (mode == 2) {
+                if (c == "\\" && i + 1 <= n && substr(rest, i + 1, 1) == "\047") {
+                    i++
+                    cur = cur "\047"
+                } else if (c == "\047") {
+                    break
+                } else {
+                    cur = cur c
+                }
+            } else {
+                if (c == " " || c == "\t" || c == "\r" || c == "\n") break
+                else if (c == "\"") mode = 1
+                else if (c == "\047") mode = 2
+                else cur = cur c
+            }
+        }
+        last = cur
+    }
+    END {
+        if (found) printf "1:%sx", last
+        else printf "0:x"
+    }'
+}
+
+# Usage: __dbm_scc_query <host_ip> <port> <pass> <arg1> [arg2 ...]
+# Sets __DBM_SCC_BODY (warning/echo lines removed, trailing newlines kept) and __DBM_SCC_ERR.
 __dbm_scc_query() {
-    local port="$1" cmd="$2" raw rc first
+    local host_ip="$1" port="$2" pass="$3" raw rc first
+    shift 3
     __DBM_SCC_BODY=""
     __DBM_SCC_ERR=""
+    __dbm_scc_resolve_cli
+    if [ -z "$__DBM_SCC_CLI_BIN" ]; then
+        __DBM_SCC_ERR="redis_cli_not_found"
+        return
+    fi
     raw=$(
         if command -v timeout >/dev/null 2>&1; then
-            printf '%s\n' "$cmd" | timeout __DBM_SCC_TIMEOUT__ bash "$__DBM_SCC_REDIS_CMD" "$port" 2>&1
+            if [ -n "$pass" ]; then
+                timeout __DBM_SCC_TIMEOUT__ "$__DBM_SCC_CLI_BIN" --raw -h "$host_ip" -p "$port" -a "$pass" "$@" 2>&1
+            else
+                timeout __DBM_SCC_TIMEOUT__ "$__DBM_SCC_CLI_BIN" --raw -h "$host_ip" -p "$port" "$@" 2>&1
+            fi
         else
             # without timeout(1) the Job script timeout (10800s) is the only bound
-            printf '%s\n' "$cmd" | bash "$__DBM_SCC_REDIS_CMD" "$port" 2>&1
+            if [ -n "$pass" ]; then
+                "$__DBM_SCC_CLI_BIN" --raw -h "$host_ip" -p "$port" -a "$pass" "$@" 2>&1
+            else
+                "$__DBM_SCC_CLI_BIN" --raw -h "$host_ip" -p "$port" "$@" 2>&1
+            fi
         fi
         echo "__DBM_SCC_RC=$?"
     )
@@ -736,7 +857,7 @@ __dbm_scc_query() {
     first=$(printf '%s' "$__DBM_SCC_BODY" | head -n 1 | tr -d '\r' | tr '[:upper:]' '[:lower:]')
     case "$first" in
         *"unknown command"*) __DBM_SCC_ERR="unknown_command" ;;
-        err*|noauth*|wrongpass*|auth*|"(error)"*|"could not connect"*|*"unkown redis server type"*)
+        err*|noauth*|wrongpass*|auth*|"(error)"*|"could not connect"*)
             __DBM_SCC_ERR="redis_cmd_failed" ;;
     esac
     if [ -z "$__DBM_SCC_ERR" ] && [ "$rc" != "0" ]; then
@@ -749,7 +870,8 @@ __dbm_scc_query() {
 
 __dbm_scc_port() {
     local port="$1" d p canon conf="" found="" conf_paths="" disk="" repl="" mem="" mem_cmd=""
-    local disk_err="" repl_err="" mem_err=""
+    local disk_err="" repl_err="" mem_err="" host_ip="$__DBM_SCC_HOST_IP" pass=""
+    local expanded="" pass_raw=""
     for d in "${REDIS_DATA_DIR:-}" __DBM_SCC_DATA_DIRS__; do
         [ -n "$d" ] || continue
         p="${d%/}/redis/$port/redis.conf"
@@ -768,31 +890,49 @@ __dbm_scc_port() {
     elif [ ! -r "$conf" ]; then
         disk_err="conf_unreadable"
     else
-        disk=$(__dbm_scc_expand "$conf" 1 ":$(__dbm_scc_canon "$conf"):" "$(dirname "$conf")" \
-            | __dbm_scc_strip_disk | __dbm_scc_b64)
+        expanded=$(__dbm_scc_expand "$conf" 1 ":$(__dbm_scc_canon "$conf"):" "$(dirname "$conf")"; echo x)
+        expanded="${expanded%x}"
+        disk=$(printf '%s' "$expanded" | __dbm_scc_strip_disk | __dbm_scc_b64)
+        pass_raw=$(printf '%s' "$expanded" | __dbm_scc_disk_pass)
+        case "$pass_raw" in
+            1:*)
+                pass="${pass_raw#1:}"
+                pass="${pass%x}"
+                ;;
+        esac
+        expanded=""
+        pass_raw=""
     fi
 
-    __dbm_scc_query "$port" "info replication"
-    if [ -n "$__DBM_SCC_ERR" ]; then
-        repl_err="$__DBM_SCC_ERR"
-        [ "$repl_err" = "unknown_command" ] && repl_err="redis_cmd_failed"
+    if [ -n "$disk_err" ]; then
+        repl_err="$disk_err"
+        mem_err="$disk_err"
     else
-        repl=$(printf '%s' "$__DBM_SCC_BODY" | __dbm_scc_b64)
-    fi
+        [ -n "$host_ip" ] || host_ip="127.0.0.1"
 
-    mem_cmd="confxx"
-    __dbm_scc_query "$port" "confxx get *"
-    if [ "$__DBM_SCC_ERR" = "unknown_command" ]; then
-        mem_cmd="config"
-        __dbm_scc_query "$port" "config get *"
+        __dbm_scc_query "$host_ip" "$port" "$pass" info replication
+        if [ -n "$__DBM_SCC_ERR" ]; then
+            repl_err="$__DBM_SCC_ERR"
+            [ "$repl_err" = "unknown_command" ] && repl_err="redis_cmd_failed"
+        else
+            repl=$(printf '%s' "$__DBM_SCC_BODY" | __dbm_scc_b64)
+        fi
+
+        mem_cmd="confxx"
+        __dbm_scc_query "$host_ip" "$port" "$pass" confxx get '*'
+        if [ "$__DBM_SCC_ERR" = "unknown_command" ]; then
+            mem_cmd="config"
+            __dbm_scc_query "$host_ip" "$port" "$pass" config get '*'
+        fi
+        if [ -n "$__DBM_SCC_ERR" ]; then
+            mem_err="$__DBM_SCC_ERR"
+            [ "$mem_err" = "unknown_command" ] && mem_err="redis_cmd_failed"
+        else
+            mem=$(printf '%s' "$__DBM_SCC_BODY" | __dbm_scc_strip_mem | __dbm_scc_b64)
+        fi
+        __DBM_SCC_BODY=""
+        pass=""
     fi
-    if [ -n "$__DBM_SCC_ERR" ]; then
-        mem_err="$__DBM_SCC_ERR"
-        [ "$mem_err" = "unknown_command" ] && mem_err="redis_cmd_failed"
-    else
-        mem=$(printf '%s' "$__DBM_SCC_BODY" | __dbm_scc_strip_mem | __dbm_scc_b64)
-    fi
-    __DBM_SCC_BODY=""
 
     local fmt='<CONFCHK checker="storage_conf" port="%s">{"conf_path":"%s","conf_paths":[%s],'
     fmt="$fmt"'"disk":"%s","repl":"%s","mem":"%s","mem_cmd":"%s",'
@@ -805,7 +945,10 @@ __dbm_scc_port() {
 
 
 def build_storage_conf_check_snippet(
-    ports: List[int], redis_cmd: str = REDIS_CMD_SH, data_dirs: Optional[Sequence[str]] = None
+    ports: List[int],
+    ip: str = "",
+    redis_cli: str = "",
+    data_dirs: Optional[Sequence[str]] = None,
 ) -> str:
     """
     Build the storage_conf checker's on-host snippet for the given storage ports.
@@ -813,15 +956,17 @@ def build_storage_conf_check_snippet(
     Per port, prints one <CONFCHK checker="storage_conf"> block whose disk (include-expanded
     redis.conf), repl (INFO REPLICATION) and mem (CONFIG GET *) sections are gzip+base64
     encoded raw text; parsing happens in dbm-ui. ``$REDIS_DATA_DIR`` is always probed
-    first, then ``data_dirs``. ``redis_cmd`` and ``data_dirs`` exist so tests can point
-    the script at a stub wrapper and a temp config tree.
+    first, then ``data_dirs``. ``ip``, ``redis_cli`` and ``data_dirs`` let callers specify
+    the target host IP and let tests inject stub binaries and temp config trees.
     """
     calls = "\n".join('__dbm_scc_port "{}"'.format(int(p)) for p in ports if str(p).isdigit())
     if not calls:
         return ""
     dirs = data_dirs if data_dirs is not None else STORAGE_CONF_DATA_DIRS
     funcs = (
-        _STORAGE_CONF_FUNCS.replace("__DBM_SCC_REDIS_CMD_VALUE__", shlex.quote(redis_cmd))
+        _STORAGE_CONF_FUNCS.replace("__DBM_SCC_HOST_IP_VALUE__", shlex.quote(ip))
+        .replace("__DBM_SCC_REDIS_CLI_VALUE__", shlex.quote(redis_cli))
+        .replace("__DBM_SCC_CLI_CANDIDATES__", " ".join(shlex.quote(c) for c in REDIS_CLI_CANDIDATES))
         .replace("__DBM_SCC_DATA_DIRS__", " ".join(shlex.quote(d) for d in dirs))
         .replace("__DBM_SCC_MAX_DEPTH__", str(STORAGE_CONF_INCLUDE_MAX_DEPTH))
         .replace("__DBM_SCC_TIMEOUT__", str(STORAGE_CONF_CMD_TIMEOUT))
