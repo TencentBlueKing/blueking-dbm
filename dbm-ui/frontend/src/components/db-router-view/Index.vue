@@ -7,7 +7,7 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { onBeforeUnmount, ref } from 'vue';
+  import { ref } from 'vue';
   import { useRoute } from 'vue-router';
 
   import ApplyDataModel from '@services/model/iam/apply-data';
@@ -51,10 +51,6 @@
   };
 
   eventBus.on('permission-page', handlePermissionPage);
-
-  onBeforeUnmount(() => {
-    eventBus.off('permission-page', handlePermissionPage);
-  });
 </script>
 <style lang="less">
   .dbm-router-view {

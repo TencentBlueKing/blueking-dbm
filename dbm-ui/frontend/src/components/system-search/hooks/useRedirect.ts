@@ -11,12 +11,12 @@
  * the specific language governing permissions and limitations under the License.
  */
 
-import { useLocation } from '@hooks';
-
 import { clusterTypeInfos } from '@common/const';
 
+import { getBusinessHref } from '@utils';
+
 export const useRedirect = () => {
-  const location = useLocation();
+  const router = useRouter();
 
   const routerNameMap = Object.fromEntries(
     Object.values(clusterTypeInfos).map((item) => [item.id, item.listRouteName]),
@@ -27,12 +27,11 @@ export const useRedirect = () => {
       return;
     }
 
-    location(
-      {
-        name: routerNameMap[clusterType],
-        query: queryParams,
-      },
-      bizId,
-    );
+    const { href } = router.resolve({
+      name: routerNameMap[clusterType],
+      query: queryParams,
+    });
+    // 业务 id 为空时保持原地址，不替换成当前业务
+    window.open(bizId ? getBusinessHref(href, bizId) : href);
   };
 };

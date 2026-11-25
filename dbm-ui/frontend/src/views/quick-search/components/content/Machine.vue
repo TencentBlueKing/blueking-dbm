@@ -94,8 +94,6 @@
   import FaultOrRecycleMachineModel from '@services/model/db-resource/FaultOrRecycleMachine';
   import { quickSearchResult } from '@services/source/quickSearch';
 
-  import { useLocation } from '@hooks';
-
   import { batchSplitRegex } from '@common/regex';
 
   import DbIcon from '@components/db-icon/';
@@ -125,7 +123,7 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const location = useLocation();
+  const router = useRouter();
 
   const tableRef = useTemplateRef('table');
 
@@ -163,12 +161,13 @@
   };
 
   const handleGo = (data: FaultOrRecycleMachineModel) => {
-    location({
+    const { href } = router.resolve({
       name: 'allHost',
       query: {
         ips: data.ip,
       },
     });
+    window.open(href);
   };
 
   const handleClearSearch = () => {

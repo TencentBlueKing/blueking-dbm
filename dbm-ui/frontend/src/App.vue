@@ -76,15 +76,13 @@
 <script setup lang="ts">
   import InfoBox from 'bkui-vue/lib/info-box';
   import urlJoin from 'url-join';
-  import { onMounted, watch } from 'vue';
+  import { watch } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   import BkLoginUserinfo, { ActionItem } from '@blueking/login-userinfo';
   import NoticeComponent from '@blueking/notice-component';
 
   import { getLogout } from '@services/source/logout';
-
-  import { useSQLTaskNotify } from '@hooks';
 
   import { useSystemEnviron, useUserProfile } from '@stores';
 
@@ -96,8 +94,6 @@
   import SystemVersionLog from '@components/system-version-log/Index.vue';
 
   import('@blueking/login-userinfo/vue3/vue3.css');
-
-  import { checkDbConsole } from '@utils';
 
   import Layout from './layout/Index.vue';
 
@@ -155,12 +151,6 @@
       title: t('确认退出登录'),
     });
   };
-
-  onMounted(() => {
-    if (checkDbConsole('mysql.toolbox.sqlExecute') || checkDbConsole('tendbCluster.toolbox.sqlExecute')) {
-      useSQLTaskNotify();
-    }
-  });
 </script>
 <style lang="less">
   .bk-popover[data-theme~='top-action-menu-theme'] {

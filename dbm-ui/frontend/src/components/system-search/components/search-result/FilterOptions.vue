@@ -21,7 +21,7 @@
           v-for="bizItem in bizList"
           :id="bizItem.bk_biz_id"
           :key="bizItem.bk_biz_id"
-          :name="bizItem.display_name" />
+          :name="bizItem.name" />
       </DbSelect>
     </div>
     <div class="filter-item">

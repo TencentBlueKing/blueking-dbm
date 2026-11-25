@@ -14,7 +14,6 @@
 <template>
   <SmartAction>
     <div class="mongo-script-execute-page">
-      <!-- <TaskTips /> -->
       <BkAlert
         closable
         theme="info"
@@ -63,7 +62,6 @@
 
   import SqlFile from './components/sql-file/Index.vue';
   import TargetCluster from './components/TargetCluster.vue';
-  // import TaskTips from './components/TaskTips.vue';
 
   const createDefaultData = () => ({
     backup: [],

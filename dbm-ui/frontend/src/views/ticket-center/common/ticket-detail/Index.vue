@@ -214,11 +214,6 @@
 
   eventBus.on('refreshTicketData', refreshTicketData);
   eventBus.on('refreshTicketStatus', refreshTicketStatus);
-
-  onBeforeUnmount(() => {
-    eventBus.off('refreshTicketData', refreshTicketData);
-    eventBus.off('refreshTicketStatus', refreshTicketStatus);
-  });
 </script>
 
 <style lang="less">

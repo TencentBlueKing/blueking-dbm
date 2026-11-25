@@ -20,7 +20,6 @@ export default class BizDba implements BizItem, DBAdminModel {
   bk_biz_id: number;
   db_type: string;
   db_type_display: string;
-  display_name: string;
   english_name: string;
   is_edit: boolean;
   is_show: boolean;
@@ -29,8 +28,6 @@ export default class BizDba implements BizItem, DBAdminModel {
   managed_time: string;
   name: string;
   permission: DBAdminModel['permission'];
-  pinyin_head: string;
-  pinyin_name: string;
   primary_dba: string;
   primary_dba_edit: string[];
   standby_dba: string;
@@ -45,7 +42,6 @@ export default class BizDba implements BizItem, DBAdminModel {
     this.bk_biz_id = payload.bk_biz_id;
     this.db_type = payload.db_type;
     this.db_type_display = payload.db_type_display;
-    this.display_name = payload.display_name;
     this.english_name = payload.english_name;
     this.is_edit = payload.is_edit;
     this.is_show = payload.is_show;
@@ -54,8 +50,6 @@ export default class BizDba implements BizItem, DBAdminModel {
     this.managed_time = payload.managed_time;
     this.name = payload.name;
     this.permission = payload.permission || {};
-    this.pinyin_head = payload.pinyin_head;
-    this.pinyin_name = payload.pinyin_name;
     this.primary_dba = payload.primary_dba;
     this.primary_dba_edit = payload.primary_dba_edit;
     this.standby_dba = payload.standby_dba;

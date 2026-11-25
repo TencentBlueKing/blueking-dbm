@@ -13,16 +13,47 @@
 
 import { t } from '@locales/index';
 
-import { messageSuccess } from './message';
+import { messageError, messageSuccess, messageWarn } from './message';
 
-export const execCopy = (value: string, message = t('复制成功')) => {
+// 浏览器拒绝复制时可能返回 false，也可能直接抛错，统一成布尔值
+const copyText = (value: string) => {
+  // 记下复制前的焦点，复制完还回去，避免焦点丢失影响弹层、终端的键盘操作
+  const prevActiveElement = document.activeElement;
   const textarea = document.createElement('textarea');
-  document.body.appendChild(textarea);
   textarea.value = value;
-  textarea.select();
-  if (document.execCommand('copy')) {
-    document.execCommand('copy');
-    messageSuccess(message);
+  // 固定定位并置于底层，避免页面滚动和闪现
+  textarea.style.position = 'fixed';
+  textarea.style.top = '0';
+  textarea.style.zIndex = '-99999';
+  document.body.appendChild(textarea);
+
+  try {
+    textarea.focus({ preventScroll: true });
+    textarea.select();
+    return document.execCommand('copy');
+  } catch {
+    return false;
+  } finally {
+    document.body.removeChild(textarea);
+    if (prevActiveElement instanceof HTMLElement) {
+      prevActiveElement.focus({ preventScroll: true });
+    }
   }
-  document.body.removeChild(textarea);
+};
+
+/**
+ * 复制文本到剪贴板，并提示复制结果
+ * @param value 复制内容，为空时提示没有可复制数据
+ * @param message 复制成功的提示文案
+ */
+export const execCopy = (value: string, message = t('复制成功')) => {
+  if (!value) {
+    messageWarn(t('没有可复制数据'));
+    return;
+  }
+  if (copyText(value)) {
+    messageSuccess(message);
+    return;
+  }
+  messageError(t('复制失败'));
 };

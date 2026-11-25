@@ -98,9 +98,9 @@ export default {
   },
   for_biz: {
     component: 'for_biz',
-    getNameByKey: (value: string, item: { bk_biz_id: number; display_name: string }) => {
+    getNameByKey: (value: string, item: { bk_biz_id: number; name: string }) => {
       if (value === `${item.bk_biz_id}`) {
-        return item.display_name;
+        return item.name;
       }
       return undefined;
     },
