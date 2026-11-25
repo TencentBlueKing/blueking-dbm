@@ -2,10 +2,29 @@
 from unittest.mock import patch
 
 from backend.flow.plugins.components.collections.mongodb.mongo_autofix_pre_triage import (
+    _gse_ip_result_brief,
     _parse_drs_is_master_ok,
     _probe_drs_login,
     _probe_gse_alive,
 )
+
+
+def test_gse_ip_result_brief_prefers_target_ip():
+    data = {
+        "step_instance_list": [
+            {
+                "step_ip_result_list": [
+                    {"ip": "127.0.0.2", "status": 9, "exit_code": 0, "error_code": 0},
+                    {"ip": "127.0.0.1", "status": 11, "exit_code": 1, "error_code": 100},
+                ]
+            }
+        ]
+    }
+    brief = _gse_ip_result_brief(data, "127.0.0.1")
+    assert "127.0.0.1" in brief
+    assert "status=11" in brief
+    assert "error_code=100" in brief
+    assert "127.0.0.2" not in brief
 
 
 class TestParseDrsIsMasterOk:

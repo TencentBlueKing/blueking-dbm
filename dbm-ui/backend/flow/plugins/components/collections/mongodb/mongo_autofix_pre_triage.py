@@ -103,6 +103,37 @@ def _parse_drs_is_master_ok(rpc_results) -> Optional[float]:
     return last_ok
 
 
+def _preview_text(value, limit: int = 300) -> str:
+    text = str(value)
+    if len(text) > limit:
+        return text[:limit] + "..."
+    return text
+
+
+def _gse_ip_result_brief(data: dict, ip: str) -> str:
+    """压缩作业 IP 结果，方便在流程日志里看出 GSE 为何失败。"""
+    matched = []
+    others = []
+    for step in (data or {}).get("step_instance_list") or []:
+        for item in step.get("step_ip_result_list") or []:
+            if not isinstance(item, dict):
+                continue
+            brief = "ip={} status={} exit_code={} error_code={}".format(
+                item.get("ip"), item.get("status"), item.get("exit_code"), item.get("error_code")
+            )
+            if item.get("ip") == ip:
+                matched.append(brief)
+            else:
+                others.append(brief)
+    chosen = matched or others
+    if not chosen:
+        return "no_ip_result"
+    text = "; ".join(chosen[:3])
+    if len(chosen) > 3:
+        text += "; ..."
+    return text
+
+
 def _probe_gse_alive_once(
     ip: str,
     bk_cloud_id: int,
@@ -138,14 +169,23 @@ def _probe_gse_alive_once(
             resp = JobApi.fast_execute_script(body, raw=True, use_admin=True)
         except Exception as exc:  # noqa: BLE001
             logger.warning("mongo autofix pre gse issue fail ip=%s err=%s", ip, exc)
+            _probe_log(log_fn, "mongo gse issue fail ip={} bk_cloud_id={} err={}".format(ip, bk_cloud_id, exc))
             return None
 
         if not resp.get("result") or not resp.get("data"):
             logger.warning("mongo autofix pre gse issue bad resp ip=%s resp=%s", ip, resp)
+            _probe_log(
+                log_fn,
+                "mongo gse issue bad resp ip={} bk_cloud_id={} resp={}".format(ip, bk_cloud_id, _preview_text(resp)),
+            )
             return None
 
         job_instance_id = resp["data"]["job_instance_id"]
         bk_biz_id = resp["data"].get("bk_biz_id") or env.JOB_BLUEKING_BIZ_ID
+        _probe_log(
+            log_fn,
+            "mongo gse job issued ip={} bk_cloud_id={} job_instance_id={}".format(ip, bk_cloud_id, job_instance_id),
+        )
         for _i in range(JOB_POLL_MAX_RETRIES):
             try:
                 status_resp = JobApi.get_job_instance_status(
@@ -161,6 +201,10 @@ def _probe_gse_alive_once(
                 )
             except Exception as exc:  # noqa: BLE001
                 logger.warning("mongo autofix pre gse poll fail ip=%s err=%s", ip, exc)
+                _probe_log(
+                    log_fn,
+                    "mongo gse poll fail ip={} job_instance_id={} err={}".format(ip, job_instance_id, exc),
+                )
                 return None
 
             data = (status_resp or {}).get("data") or {}
@@ -168,10 +212,24 @@ def _probe_gse_alive_once(
                 # job status: 3 success, others fail
                 job_status = (data.get("job_instance") or {}).get("status")
                 result = job_status == 3
+                ip_result = _gse_ip_result_brief(data, ip)
+                _probe_log(
+                    log_fn,
+                    "mongo gse job finished ip={} bk_cloud_id={} job_instance_id={} "
+                    "job_status={} success={} ip_result={}".format(
+                        ip, bk_cloud_id, job_instance_id, job_status, result, ip_result
+                    ),
+                )
                 return result
             time.sleep(JOB_POLL_INTERVAL)
 
         logger.warning("mongo autofix pre gse timeout ip=%s job=%s", ip, job_instance_id)
+        _probe_log(
+            log_fn,
+            "mongo gse poll timeout ip={} bk_cloud_id={} job_instance_id={} polls={}".format(
+                ip, bk_cloud_id, job_instance_id, JOB_POLL_MAX_RETRIES
+            ),
+        )
         return None
     finally:
         _probe_log(
