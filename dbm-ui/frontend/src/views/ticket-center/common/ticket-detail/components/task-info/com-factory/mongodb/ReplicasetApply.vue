@@ -61,6 +61,14 @@
             {{ row.name || '--' }}
           </template>
         </TicketInfoTableColumn>
+        <!-- <TicketInfoTableColumn
+          col-key="tags"
+          :min-width="160"
+          :title="t('集群标签')">
+          <template #default="{ row }: { row: RowData }">
+            <TagDisplay direction="vertical" :tags="row.tags" />
+          </template>
+        </TicketInfoTableColumn> -->
       </TicketInfoTable>
     </InfoItem>
     <InfoItem :label="t('后端存储规格')">
@@ -109,6 +117,7 @@
 
   import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
+  // import TagDisplay from '@views/db-manage/common/deploy-cluster-tag/Index.vue';
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
   import NotifyRelatedPersons from '../components/NotifyRelatedPersons.vue';
   import RegionRequirements from '../components/RegionRequirementsMongodb.vue';

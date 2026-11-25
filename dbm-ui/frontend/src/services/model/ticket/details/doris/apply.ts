@@ -31,4 +31,5 @@ export interface Apply extends DetailBase {
     observer?: ApplySpecInfo;
     warm?: ApplySpecInfo;
   };
+  // tags: Record<string, string>[];
 }

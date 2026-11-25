@@ -37,6 +37,14 @@
           v-model="formData.details.cluster_alias"
           :biz-id="formData.bk_biz_id"
           cluster-type="es" />
+        <BkFormItem :label="t('集群标签')">
+          <TagOperation
+            :key="tagEditorKey"
+            ref="tagOperationRef"
+            :allow-key-value-empty="false"
+            :biz-id="formData.bk_biz_id"
+            :data="tagEditorData" />
+        </BkFormItem>
       </DbCard>
       <RegionRequirements
         ref="regionRequirements"
@@ -256,6 +264,7 @@
                 </BkFormItem>
                 <BkFormItem
                   v-if="isLoadBalanceShow && Number(formData.details.resource_spec.client.count) > 0"
+                  class="no-required-mark"
                   :label="t('负载均衡')"
                   :required="false">
                   <BkCheckbox
@@ -270,6 +279,13 @@
                     :disabled="modifyState.isAdjustApply">
                     {{ t('北极星') }}
                   </BkCheckbox>
+                  <div class="load-balance-tips">
+                    {{
+                      t(
+                        '集群默认通过域名访问。如需流量分发更均衡，可启用 CLB、北极星；未启用的，之后也可在集群列表启用。',
+                      )
+                    }}
+                  </div>
                 </BkFormItem>
               </div>
             </BkFormItem>
@@ -440,6 +456,8 @@
     type IHostTableDataWithInstance,
   } from '@views/db-manage/common/big-data-host-table/es-host-table/index.vue';
   import RenderHostTable from '@views/db-manage/common/big-data-host-table/RenderHostTable.vue';
+  import TagOperation from '@views/db-manage/common/cluster-batch-add-tag/components/tag-operation/Index.vue';
+  import { useDeployClusterTags } from '@views/db-manage/common/deploy-cluster-tag/hooks/useDeployClusterTags';
   import { serviceApplyKey } from '@views/service-apply/const.ts';
 
   import { checkDbConsole } from '@utils';
@@ -452,6 +470,9 @@
     onSuccess(ticketDetail) {
       const { config, details } = ticketDetail;
       const { send_msg_config: sendMsgConfig } = config;
+
+      // 集群标签按单键对象数组存储，转 key/value 行回显
+      initEditorTags(details.tags);
 
       Object.assign(formData, {
         bk_biz_id: ticketDetail.bk_biz_id,
@@ -590,6 +611,9 @@
   const specColdRef = ref();
 
   const formData = reactive(genDefaultFormData());
+
+  const { getSubmitTags, initEditorTags, resetEditorTags, tagEditorData, tagEditorKey, tagOperationRef } =
+    useDeployClusterTags();
 
   const totalCapacity = ref(0);
 
@@ -913,10 +937,16 @@
   // 提交
   const handleSubmit = () => {
     isClickSubmit.value = true;
-    formRef.value.validate().then(() => {
+    // 表单校验与标签校验并行，错误同时展示；标签半填返回 null 阻断提交
+    Promise.all([formRef.value.validate(), getSubmitTags()]).then(([, tags]) => {
       if (tipTheme.value === 'danger' && formData.details.ip_source === 'resource_pool') {
         return Promise.reject(t('请确保冷节点和热节点的总数至少为一台'));
       }
+
+      if (tags === null) {
+        return;
+      }
+
       baseState.isSubmitting = true;
 
       const params = {
@@ -924,7 +954,10 @@
         config: {
           send_msg_config: notifyRelatedPersonsRef.value!.getValue(),
         },
-        details: getDetails(),
+        details: {
+          ...getDetails(),
+          tags,
+        },
       };
       // 若业务没有英文名称则先创建业务英文名称再创建单据，否则直接创建单据
       if (bizState.hasEnglishName) {
@@ -944,6 +977,8 @@
     }
     isClickSubmit.value = false;
     Object.assign(formData, genDefaultFormData());
+    // 标签编辑器随重建回到默认空白行
+    resetEditorTags();
     formRef.value.clearValidate();
     nextTick(() => {
       window.changeConfirm = false;
@@ -963,6 +998,17 @@
   });
 </script>
 <style lang="less">
+  .bk-form-item.no-required-mark .bk-form-label::after {
+    display: none !important;
+  }
+
+  .load-balance-tips {
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 20px;
+    color: #979ba5;
+  }
+
   .apply-es-page {
     display: block;
 

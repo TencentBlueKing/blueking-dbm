@@ -27,6 +27,7 @@ export interface InsApply extends DetailBase {
     };
     cluster_name: string;
     databases: number;
+    tags: Record<string, string>[];
   }[];
   ip_source: string;
   port?: number; // 追加就非必填

@@ -53,7 +53,7 @@
   </div>
   <ClusterAddTag
     v-model:is-show="isShowAddTag"
-    :bk-biz-id="data.bk_biz_id"
+    :biz-id="data.bk_biz_id"
     :cluster-id="data.id"
     :data="data.availableTags"
     :domain="data.masterDomain"

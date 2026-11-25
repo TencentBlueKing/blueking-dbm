@@ -55,6 +55,7 @@
   </div>
   <ClusterAddTag
     v-model:is-show="isShowAddTag"
+    :biz-id="data.bk_biz_id"
     :cluster-id="data.id"
     :cluster-type="data.cluster_type"
     :data="data.availableTags"

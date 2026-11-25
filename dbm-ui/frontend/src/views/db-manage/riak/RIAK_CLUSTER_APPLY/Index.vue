@@ -44,6 +44,14 @@
           v-model="formData.details.cluster_alias"
           :biz-id="formData.bk_biz_id"
           cluster-type="riak" />
+        <!-- <BkFormItem :label="t('集群标签')">
+          <TagOperation
+            :key="tagEditorKey"
+            ref="tagOperationRef"
+            :allow-key-value-empty="false"
+            :biz-id="formData.bk_biz_id"
+            :data="tagEditorData" />
+        </BkFormItem> -->
       </DbCard>
       <RegionRequirements
         ref="regionRequirements"
@@ -234,6 +242,8 @@
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
   import TicketModifyAlert from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyAlert.vue';
   import TicketModifyRemark from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyRemark.vue';
+  // import TagOperation from '@views/db-manage/common/cluster-batch-add-tag/components/tag-operation/Index.vue';
+  // import { useDeployClusterTags } from '@views/db-manage/common/deploy-cluster-tag/hooks/useDeployClusterTags';
   import { serviceApplyKey } from '@views/service-apply/const.ts';
 
   // 目前固定为此版本
@@ -278,6 +288,9 @@
   const riakTicketDetail = useTicketDetail<Riak.Apply>(TicketTypes.RIAK_CLUSTER_APPLY, {
     onSuccess(ticketDetail) {
       const { details } = ticketDetail;
+
+      // // 集群标签按单键对象数组存储，转 key/value 行回显
+      // initEditorTags(details.tags);
 
       Object.assign(formData, {
         bk_biz_id: ticketDetail.bk_biz_id,
@@ -334,6 +347,9 @@
   });
   const moduleAliasName = ref('');
   const formData = reactive(genDefaultFormData());
+
+  // const { getSubmitTags, initEditorTags, resetEditorTags, tagEditorData, tagEditorKey, tagOperationRef } =
+  //   useDeployClusterTags();
 
   const formRules = {
     'details.nodes': [
@@ -435,12 +451,20 @@
   });
 
   const handleSubmit = () => {
+    // // 表单校验与标签校验并行，错误同时展示；标签半填返回 null 阻断提交
+    // Promise.all([formRef.value.validate(), getSubmitTags()]).then(([, tags]) => {
+    // if (tags === null) {
+    //   return;
+    // }
     formRef.value.validate().then(() => {
       baseState.isSubmitting = true;
 
       const params = {
         ...formData,
-        details: getDetails(),
+        details: {
+          ...getDetails(),
+          // tags,
+        },
       };
 
       // 若业务没有英文名称则先创建业务英文名称再创建单据，否则直接创建单据
@@ -459,6 +483,8 @@
       return;
     }
     Object.assign(formData, genDefaultFormData());
+    // // 标签编辑器随重建回到默认空白行
+    // resetEditorTags();
     formRef.value.clearValidate();
     nextTick(() => {
       window.changeConfirm = false;

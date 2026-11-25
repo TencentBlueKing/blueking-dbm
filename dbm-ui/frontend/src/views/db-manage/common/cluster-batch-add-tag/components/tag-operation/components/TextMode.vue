@@ -4,6 +4,7 @@
       ref="inputRef"
       v-model="localValue"
       :autosize="{ minRows: 8, maxRows: 20 }"
+      :disabled="disabled"
       :over-max-length-limit="false"
       :placeholder="placeholder"
       :resize="false"
@@ -32,7 +33,11 @@
   import type { KeyValueMapType, TagsPairType } from '../Index.vue';
 
   interface Props {
+    /** 标签候选查询的业务 ID（本组件未使用，与 KeyValueMode 保持同参） */
+    // eslint-disable-next-line vue/no-unused-properties
+    bizId?: number | '';
     data?: TagsPairType[];
+    disabled?: boolean;
     keyValueMap: KeyValueMapType;
   }
 
@@ -44,6 +49,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     data: undefined,
+    disabled: false,
   });
 
   const emit = defineEmits<Emits>();
@@ -64,13 +70,14 @@
   watch(
     () => props.data,
     () => {
+      // 业务切换等场景 data 被清空时，文本框同步清空
+      let tmpStr = '';
       if (props.data && props.data.length > 0) {
-        let tmpStr = '';
         props.data.forEach((item) => {
           tmpStr += `${item.key}:${item.value}\n`;
         });
-        localValue.value = tmpStr.trim();
       }
+      localValue.value = tmpStr.trim();
     },
     { immediate: true },
   );

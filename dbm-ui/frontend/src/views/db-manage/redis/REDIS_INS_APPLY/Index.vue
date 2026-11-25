@@ -396,6 +396,7 @@
             databases: infoItem.databases,
             masterHost: infoItem.backend_group?.master,
             slaveHost: infoItem.backend_group?.slave,
+            tags: infoItem.tags,
           })),
         });
       }
@@ -636,6 +637,7 @@
         infos: details.infos!.map((infoItem) => ({
           cluster_name: infoItem.cluster_name,
           databases: infoItem.databases,
+          tags: infoItem.tags,
         })),
         resource_spec: {
           backend_group: {
@@ -662,6 +664,7 @@
           },
           cluster_name: infoItem.cluster_name,
           databases: infoItem.databases,
+          tags: infoItem.tags,
         })),
       });
     }

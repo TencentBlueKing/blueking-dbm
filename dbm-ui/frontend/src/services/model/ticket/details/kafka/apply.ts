@@ -32,4 +32,5 @@ export interface Apply extends DetailBase {
   retention_bytes: number;
   retention_hours: number;
   specs: DetailSpecs;
+  tags: Record<string, string>[];
 }

@@ -18,4 +18,5 @@ export interface Apply extends DetailBase {
   resource_spec: {
     influxdb: ApplySpecInfo;
   };
+  // tags: Record<string, string>[];
 }

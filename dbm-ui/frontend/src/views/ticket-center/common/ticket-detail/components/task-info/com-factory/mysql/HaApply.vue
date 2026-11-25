@@ -136,6 +136,16 @@
           :title="t('字符集')">
           {{ ticketDetails.details.charset }}
         </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="tags"
+          :min-width="160"
+          :title="t('集群标签')">
+          <template #default="{ row }: { row: Props['ticketDetails']['details']['domains'][number] }">
+            <TagDisplay
+              direction="vertical"
+              :tags="row.tags" />
+          </template>
+        </TicketInfoTableColumn>
       </TicketInfoTable>
     </InfoItem>
   </InfoList>
@@ -153,6 +163,8 @@
   import { clusterTypeInfos, ClusterTypes, TicketTypes } from '@common/const';
 
   import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
+
+  import TagDisplay from '@views/db-manage/common/deploy-cluster-tag/Index.vue';
 
   import { checkDbConsole } from '@utils';
 

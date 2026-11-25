@@ -436,7 +436,10 @@
       db_app_abbr: '', // 业务 Code
       db_module_id: null as null | number,
       disaster_tolerance_level: isSingleType ? Affinity.NONE : Affinity.CROS_SUBZONE, // 容灾
-      domains: [{ key: '' }],
+      domains: [{ key: '' }] as Array<{
+        key: string;
+        // tags?: Record<string, string>[];
+      }>,
       inst_num: 1,
       ip_source: 'resource_pool',
       nodes: {

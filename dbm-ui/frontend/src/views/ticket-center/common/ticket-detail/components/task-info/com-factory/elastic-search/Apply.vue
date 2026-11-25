@@ -26,6 +26,11 @@
     <InfoItem :label="t('集群别名')">
       {{ ticketDetails.details.cluster_alias || '--' }}
     </InfoItem>
+    <InfoItem :label="t('集群标签')">
+      <TagDisplay
+        direction="horizontal"
+        :tags="ticketDetails.details.tags" />
+    </InfoItem>
   </InfoList>
   <RegionRequirements :details="ticketDetails.details" />
   <div class="ticket-details-info-title mt-20">{{ t('部署需求') }}</div>
@@ -219,6 +224,8 @@
 
   import HostPreview from '@components/host-preview/HostPreview.vue';
   import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
+
+  import TagDisplay from '@views/db-manage/common/deploy-cluster-tag/Index.vue';
 
   import { checkDbConsole, firstLetterToUpper } from '@utils';
 

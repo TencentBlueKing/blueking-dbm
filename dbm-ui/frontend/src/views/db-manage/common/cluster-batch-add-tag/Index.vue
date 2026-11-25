@@ -41,6 +41,7 @@
             <TagOperation
               ref="tagOperationRef"
               :allow-key-value-empty="false"
+              :biz-id="bizId"
               @change="checkValidTags" />
           </div>
         </div>
@@ -175,6 +176,8 @@
 
   const tagOperationRef = ref<InstanceType<typeof TagOperation>>();
   const selectedClusters = ref<NonNullable<Props['selected']>>([]);
+  // 批量弹窗的候选标签按选中集群所属业务查询
+  const bizId = computed(() => selectedClusters.value[0]?.bk_biz_id ?? window.PROJECT_CONFIG.BIZ_ID);
   /** 无权限跳过的集群ID（基于 getEditable 即时计算，打开弹窗即生效） */
   const noPermissionIds = computed(() =>
     selectedClusters.value.filter((item) => !props.getEditable(item)).map((item) => item.id),
@@ -228,7 +231,7 @@
     return new Promise<{ clusterIds: number[]; tags: Record<string, string>[] } | null>((resolve) => {
       setTimeout(async () => {
         const tagsInfo = await tagOperationRef.value!.getValue();
-        if (!tagsInfo) {
+        if (!tagsInfo?.length) {
           isAbleToAddTags.value = false;
           resolve(null);
           return;

@@ -5,9 +5,10 @@
         ref="keySelectRef"
         v-model="pairInfo.key"
         class="key-select"
+        :disabled="disabled"
         :options="keyList"
         :placeholder="t('请选择或输入name', { name: t('标签键') })"
-        required
+        :required="hasAnyValue"
         :rules="keyRules"
         @change="handleKeyChange">
         <template #extension>
@@ -29,14 +30,17 @@
         ref="valueSelectRef"
         v-model="pairInfo.value"
         class="value-input"
+        :disabled="disabled"
         :options="valueList"
         :placeholder="t('请选择或输入name', { name: t('标签值') })"
-        required
+        :required="hasAnyValue"
         :rules="valueRules"
         @change="handleValueChange">
       </CreateValidateSelect>
     </div>
-    <div class="operation-icon-main">
+    <div
+      v-if="!disabled"
+      class="operation-icon-main">
       <DbIcon
         class="add-icon"
         type="plus-fill"
@@ -52,12 +56,17 @@
   import type { ComponentExposed } from 'vue-component-type-helpers';
   import { useI18n } from 'vue-i18n';
 
+  import { getBusinessHref } from '@utils';
+
   import type { TagsPairType } from '../../../Index.vue';
 
   import CreateValidateSelect from './CreateValidateSelect.vue';
 
   interface Props {
+    /** 标签候选查询的业务 ID，管理页跳转链接跟随该业务 */
+    bizId: number;
     data: typeof pairInfo.value;
+    disabled?: boolean;
     excludeKeys: string[];
     keyValueMap: Record<string, string[]>;
   }
@@ -96,28 +105,48 @@
   const keyList = ref<KeyOptionType[]>([]);
   const valueList = ref<Array<{ value: string } & OptionType>>([]);
 
+  // 整行任一有值才要求成对填写；全空行是选填标签的空行，应放行
+  const hasAnyValue = computed(() => Boolean(pairInfo.value.key || pairInfo.value.value));
+  // 只在「自己是空的那一侧」报错：key 空但 value 有值 → key 报错，反之亦然；
+  // 有值的一侧不报错，避免 key 有值时 key 上反而显示错误
+  const keyPairRule = {
+    message: t('集群标签的键和值需同时填写'),
+    trigger: 'blur',
+    // 读父级 pairInfo（已随 v-model 同步），避免子组件 formData 的 watch 时序
+    validator: () => Boolean(pairInfo.value.key) || !pairInfo.value.value,
+  };
+  const valuePairRule = {
+    message: t('集群标签的键和值需同时填写'),
+    trigger: 'blur',
+    validator: () => Boolean(pairInfo.value.value) || !pairInfo.value.key,
+  };
+
   const keyRules = [
     {
       message: t('格式不正确，请勿使用空格或特殊符号'),
       trigger: 'blur',
-      // 支持中文、字母、数字、连字符、下划线、点号
-      validator: (value: string) => /^[\u4e00-\u9fa5a-zA-Z0-9\-_.]+$/.test(value),
+      // 支持中文、字母、数字、连字符、下划线、点号；空行放行，必填交给 keyPairRule
+      validator: (value: string) => !value || /^[\u4e00-\u9fa5a-zA-Z0-9\-_.]+$/.test(value),
     },
     {
       message: t('name不能重复', { name: t('标签键') }),
       trigger: 'blur',
       validator: (value: string) =>
-        props.excludeKeys.filter((item) => item === value).length <= 1 && (isKeyNewCreated || props.data.key === value),
+        !value ||
+        (props.excludeKeys.filter((item) => item === value).length <= 1 &&
+          (isKeyNewCreated || props.data.key === value)),
     },
+    keyPairRule,
   ];
 
   const valueRules = [
     {
       message: t('格式不正确，请勿使用空格或特殊符号'),
       trigger: 'blur',
-      // 支持中文、字母、数字、连字符、下划线、点号
-      validator: (value: string) => /^[\u4e00-\u9fa5a-zA-Z0-9\-_.]+$/.test(value),
+      // 支持中文、字母、数字、连字符、下划线、点号；空行放行，必填交给 valuePairRule
+      validator: (value: string) => !value || /^[\u4e00-\u9fa5a-zA-Z0-9\-_.]+$/.test(value),
     },
+    valuePairRule,
   ];
 
   let isKeyNewCreated = false;
@@ -186,11 +215,24 @@
     },
   );
 
+  // 配对规则读 pairInfo，key/value 任一变化都要让两侧重新校验才能刷新错误态
+  const revalidatePair = () => {
+    nextTick(() => {
+      keySelectRef.value?.validate();
+      valueSelectRef.value?.validate();
+    });
+  };
+
   const handleKeyChange = (_: string, isNew: boolean) => {
     isKeyNewCreated = isNew;
     pairInfo.value.value = '';
     emits('selectKey');
     emits('change');
+    // 换 key 会清空 value，先清掉旧的配对错误，不要一选 key 就提示半填
+    nextTick(() => {
+      keySelectRef.value?.clearValidate();
+      valueSelectRef.value?.clearValidate();
+    });
   };
 
   const handleValueChange = (value: string, isNew: boolean) => {
@@ -202,6 +244,7 @@
       pairInfo.value.value = valueItem.value;
     }
     emits('change');
+    revalidatePair();
   };
 
   const handleAdd = () => {
@@ -213,10 +256,11 @@
   };
 
   const handleGoTagManagePage = () => {
-    const pageUrl = router.resolve({
+    const pageRoute = router.resolve({
       name: 'businessClusterTag',
     });
-    window.open(pageUrl.href);
+    const pageUrl = getBusinessHref(pageRoute.href, props.bizId);
+    window.open(pageUrl);
   };
 
   defineExpose<Exposes>({

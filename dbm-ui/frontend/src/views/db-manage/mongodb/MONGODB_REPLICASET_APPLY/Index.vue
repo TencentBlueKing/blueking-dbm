@@ -112,7 +112,8 @@
             required>
             <DomainTable
               v-model:domains="formData.details.replica_sets"
-              :app-abbr="formData.details.db_app_abbr" />
+              :app-abbr="formData.details.db_app_abbr"
+              :biz-id="formData.bk_biz_id" />
           </BkFormItem>
           <BkFormItem
             :label="t('后端存储规格')"
@@ -279,6 +280,7 @@
         domain: string;
         name: string;
         set_id: string;
+        // tags: Record<string, string>[];
       }>,
       resource_spec: {
         mongo_machine_set: {

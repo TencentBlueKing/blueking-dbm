@@ -26,4 +26,5 @@ export interface Apply extends DetailBase {
     namenode: ApplySpecInfo;
     zookeeper: ApplySpecInfo;
   };
+  // tags: Record<string, string>[];
 }

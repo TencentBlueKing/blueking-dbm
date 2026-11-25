@@ -53,14 +53,17 @@ const COMMON_IGNORE_PATHS = [
 // 顶层字段公共中文名：各类型 DIFF 未单独登记 label 时兜底
 const COMMON_LABELS: Record<string, string> = {
   bk_cloud_region: t('地域'),
+  tags: t('集群标签'),
 };
 
 // 只在一侧出现也要对比：location_spec.bk_cloud_zone_list 随机时不传；
-// disaster_tolerance_level / bk_cloud_region 部分单据 details 顶层未存，改动要能比出来
+// disaster_tolerance_level / bk_cloud_region 部分单据 details 顶层未存，改动要能比出来；
+// tags 是标签新能力，存量单据 details 顶层没有该字段，改单加标签要能比出来
 const COMMON_UNION_PATHS = [
   'resource_spec.*.location_spec.bk_cloud_zone_list',
   'disaster_tolerance_level',
   'bk_cloud_region',
+  'tags',
 ];
 
 // 路径与登记项逐段比较，登记项中的 * 匹配任意一段
@@ -99,6 +102,50 @@ export const formatValue = (value: unknown): string => {
     return JSON.stringify(value);
   }
   return String(value);
+};
+
+/**
+ * 集群标签（单键对象数组，如 [{"env": "prod"}]）转 "key: value" 逗号串；
+ * 空返回空串，由调用方决定空值占位
+ */
+export const formatClusterTags = (value: unknown): string =>
+  (Array.isArray(value) ? value : [])
+    .map((item) => {
+      const [key, val] = Object.entries(item as Record<string, string>)[0] ?? [];
+      return val === undefined ? (key ?? '') : `${key}: ${val}`;
+    })
+    .filter(Boolean)
+    .join(', ');
+
+const CLUSTER_TAG_ROW_PATHS = ['domains', 'replica_sets', 'infos'];
+
+/**
+ * 域名表类单据把集群标签存在每行上，改单对比时提到顶层单独算「集群标签」变更项，
+ * 避免拼进「域名设置」里；不修改原始 details。
+ */
+export const normalizeClusterTagsForDiff = (details: unknown) => {
+  if (!_.isPlainObject(details)) {
+    return details;
+  }
+  const result = _.cloneDeep(details as Record<string, unknown>);
+  const tags: Record<string, string>[] = [];
+  CLUSTER_TAG_ROW_PATHS.forEach((path) => {
+    const rows = result[path];
+    if (!Array.isArray(rows)) {
+      return;
+    }
+    rows.forEach((row) => {
+      if (_.isPlainObject(row) && Array.isArray(row.tags)) {
+        tags.push(...(row.tags as Record<string, string>[]));
+        // eslint-disable-next-line no-param-reassign
+        delete row.tags;
+      }
+    });
+  });
+  if (tags.length && !result.tags) {
+    result.tags = tags;
+  }
+  return result;
 };
 
 /**

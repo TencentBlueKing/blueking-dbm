@@ -26,6 +26,9 @@
     <InfoItem :label="t('集群别名')">
       {{ ticketDetails.details.cluster_alias || '--' }}
     </InfoItem>
+    <!-- <InfoItem :label="t('集群标签')">
+      <TagDisplay direction="horizontal" :tags="ticketDetails.details.tags" />
+    </InfoItem> -->
   </InfoList>
   <RegionRequirements :details="ticketDetails.details" />
   <div class="info-title mt-20">{{ t('部署配置') }}</div>
@@ -161,6 +164,7 @@
 
   import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
+  // import TagDisplay from '@views/db-manage/common/deploy-cluster-tag/Index.vue';
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
   import NotifyRelatedPersons from '../components/NotifyRelatedPersons.vue';
   import RegionRequirements from '../components/RegionRequirementsMongodb.vue';
