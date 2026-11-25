@@ -269,17 +269,15 @@ def get_twemproxy_cluster_server_shards(bk_biz_id: int, cluster_id: int, other_t
         ipport_to_segment[ipport] = row.seg_range
 
     for master_obj in cluster.storageinstance_set.filter(instance_role=InstanceRole.REDIS_MASTER.value):
-        if master_obj.as_ejector and master_obj.as_ejector.first():
-            slave_obj = master_obj.as_ejector.get().receiver
+        ejector_tuples = list(master_obj.as_ejector.select_related("receiver__machine").all())
+        if ejector_tuples:
             master_ipport = master_obj.machine.ip + IP_PORT_DIVIDER + str(master_obj.port)
-            slave_ipport = slave_obj.machine.ip + IP_PORT_DIVIDER + str(slave_obj.port)
-
-            twemproxy_server_shards[master_obj.machine.ip][master_ipport] = ipport_to_segment.get(
-                master_ipport, "switched-0"
-            )
-            twemproxy_server_shards[slave_obj.machine.ip][slave_ipport] = ipport_to_segment.get(
-                master_ipport, "switched-0"
-            )
+            seg_range = ipport_to_segment.get(master_ipport, "switched-0")
+            twemproxy_server_shards[master_obj.machine.ip][master_ipport] = seg_range
+            for tuple_obj in ejector_tuples:
+                slave_obj = tuple_obj.receiver
+                slave_ipport = slave_obj.machine.ip + IP_PORT_DIVIDER + str(slave_obj.port)
+                twemproxy_server_shards[slave_obj.machine.ip][slave_ipport] = seg_range
 
     for other_ipport, master_ipport in other_to_master.items():
         if master_ipport not in ipport_to_segment:

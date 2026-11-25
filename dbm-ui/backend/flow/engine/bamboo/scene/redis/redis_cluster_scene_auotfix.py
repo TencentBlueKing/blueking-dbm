@@ -37,6 +37,7 @@ from backend.flow.engine.bamboo.scene.common.builder import Builder, SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.redis.atom_jobs import (
     AccessManagerAtomJob,
+    ClusterIPsDbmonInstallAtomJob,
     ClusterPredixyConfigServersRewriteAtomJob,
     ProxyBatchInstallAtomJob,
     RedisBatchInstallAtomJob,
@@ -52,6 +53,7 @@ from backend.flow.plugins.components.collections.redis.get_redis_payload import 
 from backend.flow.plugins.components.collections.redis.redis_db_meta import RedisDBMetaComponent
 from backend.flow.plugins.components.collections.redis.redis_ticket import RedisTicketComponent
 from backend.flow.plugins.components.collections.redis.redis_update_version import RedisUpdateVersionComponent
+from backend.flow.plugins.components.collections.redis.trans_flies import TransFileComponent
 from backend.flow.utils.base.payload_handler import PayloadHandler
 from backend.flow.utils.redis.redis_act_playload import RedisActPayload
 from backend.flow.utils.redis.redis_context_dataclass import ActKwargs, CommonContext, DnsKwargs
@@ -233,9 +235,11 @@ class RedisClusterAutoFixSceneFlow(object):
                         "cluster_ids": cluster_fix["cluster_ids"],
                         "immute_domain": cluster_fix["immute_domain"],
                         "ticket_type": TicketType.REDIS_CLUSTER_INSTANCE_SHUTDOWN.value,
-                        "ticket_details": {
-                            "infos": self.shutdown_clusters,
-                        },
+                        "ticket_details": self._build_shutdown_ticket_details(
+                            immediate_recycle=cluster_fix.get("immediate_recycle", False),
+                            infos=self.shutdown_clusters,
+                            fix_info=cluster_fix,
+                        ),
                     },
                 )
             # # #### 下架旧实例 ###################################################################### 完毕 ###
@@ -374,8 +378,9 @@ class RedisClusterAutoFixSceneFlow(object):
                 "cluster_id": act_kwargs.cluster["cluster_id"],
                 "immute_domain": act_kwargs.cluster["immute_domain"],
                 "ticket_type": TicketType.REDIS_CLUSTER_INSTANCE_SHUTDOWN.value,
-                "ticket_details": {
-                    "infos": [
+                "ticket_details": self._build_shutdown_ticket_details(
+                    immediate_recycle=flow_data["fix_info"].get("immediate_recycle", False),
+                    infos=[
                         {
                             "cluster_id": act_kwargs.cluster["cluster_id"],
                             "immute_domain": act_kwargs.cluster["immute_domain"],
@@ -384,11 +389,74 @@ class RedisClusterAutoFixSceneFlow(object):
                             "need_manual_confirm": flow_data["fix_info"].get("need_manual_confirm", True),
                         }
                     ],
-                },
+                    fix_info=flow_data["fix_info"],
+                ),
             },
         )
 
         return sub_pipeline.build_sub_process(sub_name=_("Proxy自愈-{}").format(act_kwargs.cluster["immute_domain"]))
+
+    def _build_shutdown_ticket_details(self, immediate_recycle: bool, infos: list, fix_info: dict = None) -> dict:
+        ticket_details = {
+            "immediate_recycle": bool(immediate_recycle),
+            "infos": infos,
+        }
+        send_msg_config = self.data.get("send_msg_config") or (fix_info or {}).get("send_msg_config")
+        if send_msg_config:
+            ticket_details["send_msg_config"] = send_msg_config
+        return ticket_details
+
+    def _add_dbmon_reinstall_acts(self, sub_pipeline, flow_data, sub_kwargs, slave_fix_detail):
+        """校准关联 master 与 new_slave 的 bk-dbmon（DBHA 切主不会刷新本机 dbmon meta_role），跳过待下架故障机"""
+        immute_domain = sub_kwargs.cluster["immute_domain"]
+        old_slaves = {fix_link["ip"] for fix_link in slave_fix_detail}
+        dbmon_ips = []
+        for fix_link in slave_fix_detail:
+            master_ip = sub_kwargs.cluster["slave_master_map"].get(fix_link["ip"])
+            if master_ip and master_ip not in old_slaves and master_ip not in dbmon_ips:
+                dbmon_ips.append(master_ip)
+        for fix_link in slave_fix_detail:
+            new_slave = fix_link["target"]["ip"]
+            if new_slave and new_slave not in old_slaves and new_slave not in dbmon_ips:
+                dbmon_ips.append(new_slave)
+
+        if not dbmon_ips:
+            return
+
+        if sub_kwargs.cluster["cluster_type"] == ClusterType.TendisRedisInstance.value:
+            trans_kwargs = deepcopy(sub_kwargs)
+            trans_kwargs.file_list = GetFileList(db_type=DBType.Redis).redis_dbmon()
+            trans_kwargs.exec_ip = dbmon_ips
+            sub_pipeline.add_act(
+                act_name=_("{}-下发dbmon介质包").format(dbmon_ips),
+                act_component_code=TransFileComponent.code,
+                kwargs=asdict(trans_kwargs),
+            )
+            for dbmon_ip in dbmon_ips:
+                dbmon_kwargs = deepcopy(sub_kwargs)
+                dbmon_kwargs.exec_ip = dbmon_ip
+                dbmon_kwargs.cluster["ip"] = dbmon_ip
+                dbmon_kwargs.cluster["is_stop"] = False
+                dbmon_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install_list_new.__name__
+                sub_pipeline.add_act(
+                    act_name=_("{}-刷新监控").format(dbmon_ip),
+                    act_component_code=ExecuteDBActuatorScriptComponent.code,
+                    kwargs=asdict(dbmon_kwargs),
+                )
+            # 刷新slave域名 在《新节点加入集群》节点修改
+        else:
+            sub_pipeline.add_sub_pipeline(
+                sub_flow=ClusterIPsDbmonInstallAtomJob(
+                    self.root_id,
+                    flow_data,
+                    sub_kwargs,
+                    {
+                        "cluster_domain": immute_domain,
+                        "ips": dbmon_ips,
+                        "is_stop": False,
+                    },
+                )
+            )
 
     def slave_fix(self, flow_data, sub_kwargs, slave_fix_info):
         sub_pipeline = SubBuilder(root_id=self.root_id, data=flow_data)
@@ -624,19 +692,8 @@ class RedisClusterAutoFixSceneFlow(object):
                 sub_pipeline.add_sub_pipeline(sub_flow=access_sub_builder)
         # #### rediscluster集群类型需要更新Nodes域名 ############################################### 完毕 ###
 
-        # 主从版本需要 刷新bkdbmon ########################################################
-        if sub_kwargs.cluster["cluster_type"] == ClusterType.TendisRedisInstance.value:
-            for fix_link in slave_fix_detail:
-                new_slave = fix_link["target"]["ip"]
-                sub_kwargs.exec_ip = new_slave
-                sub_kwargs.cluster["ip"] = new_slave
-                sub_kwargs.get_redis_payload_func = RedisActPayload.bkdbmon_install_list_new.__name__
-                sub_pipeline.add_act(
-                    act_name=_("{}-刷新监控").format(new_slave),
-                    act_component_code=ExecuteDBActuatorScriptComponent.code,
-                    kwargs=asdict(sub_kwargs),
-                )
-            # 刷新slave域名 在《新节点加入集群》节点修改
+        # 校准关联 master 与 new_slave 的 bk-dbmon（DBHA 切主不会刷新本机 dbmon meta_role）################
+        self._add_dbmon_reinstall_acts(sub_pipeline, flow_data, sub_kwargs, slave_fix_detail)
 
         # # #### 下架旧实例 （生产Ticket单据） ################################################## 完毕 ###
         old_slaves = [fix_link["ip"] for fix_link in slave_fix_detail]
@@ -649,8 +706,9 @@ class RedisClusterAutoFixSceneFlow(object):
                     "cluster_id": sub_kwargs.cluster["cluster_id"],
                     "immute_domain": sub_kwargs.cluster["immute_domain"],
                     "ticket_type": TicketType.REDIS_CLUSTER_INSTANCE_SHUTDOWN.value,
-                    "ticket_details": {
-                        "infos": [
+                    "ticket_details": self._build_shutdown_ticket_details(
+                        immediate_recycle=flow_data["fix_info"].get("immediate_recycle", False),
+                        infos=[
                             {
                                 "cluster_id": sub_kwargs.cluster["cluster_id"],
                                 "immute_domain": sub_kwargs.cluster["immute_domain"],
@@ -659,7 +717,8 @@ class RedisClusterAutoFixSceneFlow(object):
                                 "need_manual_confirm": flow_data["fix_info"].get("need_manual_confirm", True),
                             }
                         ],
-                    },
+                        fix_info=flow_data["fix_info"],
+                    ),
                 },
             )
         else:

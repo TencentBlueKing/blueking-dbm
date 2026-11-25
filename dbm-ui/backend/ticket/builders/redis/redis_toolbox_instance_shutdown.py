@@ -38,6 +38,8 @@ class RedisClusterInstShutdownDetailSerializer(RedisBaseOperateDetailSerializer)
         need_manual_confirm = serializers.BooleanField(help_text=_("需要人工确认"), required=False, default=True)
 
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
+    immediate_recycle = serializers.BooleanField(help_text=_("立即回收"), required=False, default=False)
+    send_msg_config = serializers.DictField(help_text=_("单据通知设置"), required=False, allow_null=True)
 
 
 class RedisClusterInstShutdownParamBuilder(builders.FlowParamBuilder):

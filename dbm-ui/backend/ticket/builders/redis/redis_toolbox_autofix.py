@@ -41,12 +41,14 @@ class RedisClusterAutofixDetailSerializer(RedisBaseOperateDetailSerializer):
         proxy = serializers.ListField(help_text=_("proxy列表"), child=HostInfoSerializer(), required=False)
         redis_slave = serializers.ListField(help_text=_("slave列表"), child=HostInfoSerializer(), required=False)
         need_manual_confirm = serializers.BooleanField(help_text=_("需要人工确认"), required=False, default=True)
+        immediate_recycle = serializers.BooleanField(help_text=_("立即回收"), required=False, default=False)
         switch_role = serializers.CharField(required=False, help_text=_("替换角色"))
 
     ip_source = serializers.ChoiceField(
         help_text=_("主机来源"), choices=IpSource.get_choices(), default=IpSource.RESOURCE_POOL.value
     )
     infos = serializers.ListField(help_text=_("批量操作参数列表"), child=InfoSerializer())
+    send_msg_config = serializers.DictField(help_text=_("单据通知设置"), required=False, allow_null=True)
 
 
 class RedisClusterAutofixAlarmTransformSerializer(AlarmCallBackDataSerializer):
