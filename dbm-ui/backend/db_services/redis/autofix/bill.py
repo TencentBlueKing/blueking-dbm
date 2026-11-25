@@ -20,6 +20,7 @@ from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.configuration.models.dba import DBAdministrator
+from backend.core.notify.constants import MsgType
 from backend.db_meta.api.cluster.apis import query_cluster_by_hosts
 from backend.db_meta.enums import ClusterType, InstanceRole, MachineType, MachineTypeInstanceRoleMap
 from backend.db_meta.models import Cluster, Machine
@@ -27,7 +28,7 @@ from backend.db_periodic_task.models import FailoverDrillConfig
 from backend.db_services.dbbase.constants import IpSource
 from backend.db_services.mongodb.autofix.mongodb_autofix_ticket import mongo_create_ticket
 from backend.db_services.redis.util import is_support_redis_auotfix
-from backend.ticket.constants import TicketType
+from backend.ticket.constants import TicketStatus, TicketType
 from backend.ticket.models import Ticket
 from backend.utils.time import datetime2str
 
@@ -50,6 +51,14 @@ def is_failover_drill_cluster(immute_domain: str) -> bool:
     if not immute_domain:
         return False
     return FailoverDrillConfig.objects.filter(switch_flag=True, cluster_domain=immute_domain).exists()
+
+
+def build_failed_only_send_msg_config() -> dict:
+    """演练单据仅在失败、待执行(人工确认 TODO)时发送企微，审批/成功等其余状态不发送。"""
+    notify_statuses = {TicketStatus.FAILED.value, TicketStatus.TODO.value}
+    return {
+        status: {MsgType.RTX.value: True} if status in notify_statuses else {} for status in TicketStatus.get_values()
+    }
 
 
 def mongodb_autofix_enabled() -> bool:
@@ -312,10 +321,13 @@ def create_ticket(
 ):
     """redis自愈创建单据"""
     is_drill_cluster = is_failover_drill_cluster(cluster.immute_domain)
+    send_msg_config = build_failed_only_send_msg_config() if is_drill_cluster else None
     details = {
         "ip_source": IpSource.RESOURCE_POOL.value,
         "infos": [],
     }
+    if send_msg_config:
+        details["send_msg_config"] = send_msg_config
     info = {
         "cluster_ids": cluster_ids,
         "immute_domain": cluster.immute_domain,
@@ -326,6 +338,7 @@ def create_ticket(
         "switch_role": fix_role,  # 兼容整机替换
         "resource_spec": {},
         "need_manual_confirm": not is_drill_cluster,
+        "immediate_recycle": is_drill_cluster,
     }
     if fix_role == InstanceRole.REDIS_PROXY.value:
         info["resource_spec"] = {
@@ -356,6 +369,7 @@ def create_ticket(
             creator=redisDBA.users[0],
             remark=_("自动发起-{}".format(ips)),
             details=details,
+            send_msg_config=send_msg_config,
             helpers=get_ticket_heplers(),
         )
 

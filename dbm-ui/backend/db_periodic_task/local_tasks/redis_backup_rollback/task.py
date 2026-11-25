@@ -381,7 +381,7 @@ def init_redis_rollback_candidates():
     RedisRollbackExercise().init_candidates_queue()
 
 
-@register_periodic_task(run_every=crontab(day_of_week="1-5", hour="9-17", minute="*/10"))
+@register_periodic_task(run_every=crontab(day_of_week="1-5", hour="18-23", minute="*/10"))
 def redis_rollback_exercise():
     """
     Generate Redis rollback exercise tasks

@@ -12,9 +12,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from backend.core.notify.constants import MsgType
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_periodic_task.models import FailoverDrillConfig
 from backend.db_services.redis.autofix import bill
+from backend.ticket.constants import TicketStatus
 
 V2_DOMAIN = "cache.my-drill.test.db"
 CLUSTER_TYPE = ClusterType.TendisTwemproxyRedisInstance.value
@@ -28,14 +30,14 @@ def _config(**extra):
     return FailoverDrillConfig.objects.create(**data)
 
 
-def _need_manual_confirm(immute_domain):
+def _autofix_ticket_kwargs(immute_domain):
     cluster = MagicMock(immute_domain=immute_domain, bk_cloud_id=0, bk_biz_id=3)
     proxies = [{"ip": "1.1.1.1", "spec_id": 1, "instance_type": InstanceRole.REDIS_PROXY.value}]
     with patch.object(bill.Ticket, "create_ticket") as create_ticket, patch.object(
         bill.DBAdministrator.objects, "get", return_value=MagicMock(users=["dba"])
     ), patch.object(bill, "get_ticket_heplers", return_value=[]), patch.object(bill, "send_msg_2_qywx"):
         bill.create_ticket(cluster, [1], proxies, [], InstanceRole.REDIS_PROXY.value)
-    return create_ticket.call_args.kwargs["details"]["infos"][0]["need_manual_confirm"]
+    return create_ticket.call_args.kwargs
 
 
 @pytest.mark.parametrize(
@@ -70,4 +72,21 @@ def test_need_manual_confirm(domain, configs, expected):
         _config(**extra)
 
     assert bill.is_failover_drill_cluster(domain) is not expected
-    assert _need_manual_confirm(domain) is expected
+    call_kwargs = _autofix_ticket_kwargs(domain)
+    info = call_kwargs["details"]["infos"][0]
+    assert info["need_manual_confirm"] is expected
+    assert info["immediate_recycle"] is (not expected)
+
+    if not expected:
+        expected_msg_cfg = bill.build_failed_only_send_msg_config()
+        assert call_kwargs["send_msg_config"] == expected_msg_cfg
+        assert call_kwargs["details"]["send_msg_config"] == expected_msg_cfg
+        assert expected_msg_cfg[TicketStatus.FAILED.value] == {MsgType.RTX.value: True}
+        assert expected_msg_cfg[TicketStatus.TODO.value] == {MsgType.RTX.value: True}
+        assert expected_msg_cfg[TicketStatus.APPROVE.value] == {}
+        assert expected_msg_cfg[TicketStatus.SUCCEEDED.value] == {}
+        assert expected_msg_cfg[TicketStatus.INNER_TODO.value] == {}
+        assert set(expected_msg_cfg.keys()) == set(TicketStatus.get_values())
+    else:
+        assert call_kwargs["send_msg_config"] is None
+        assert "send_msg_config" not in call_kwargs["details"]

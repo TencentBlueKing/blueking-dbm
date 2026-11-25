@@ -36,12 +36,18 @@ class RedisTicketService(BaseService):
             bk_biz_id=int(kwargs["bk_biz_id"]), db_type=DBType.Redis.value
         )
 
+        ticket_details = kwargs["ticket_details"]
+        send_msg_config = kwargs.get("send_msg_config")
+        if send_msg_config is None:
+            send_msg_config = ticket_details.get("send_msg_config")
+
         ticket = Ticket.create_ticket(
             creator=redisDBA[0],
             bk_biz_id=kwargs["bk_biz_id"],
             ticket_type=kwargs["ticket_type"],
             remark=_("自动发起-{}".format(kwargs["immute_domain"])),
-            details=kwargs["ticket_details"],
+            details=ticket_details,
+            send_msg_config=send_msg_config,
             helpers=get_ticket_heplers(),
         )
 
