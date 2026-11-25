@@ -221,7 +221,10 @@ func (s *mysql) writeSaveEndpoints(msg *Message, data *hamodel.DbhaDataStatus, s
 	var firstOK time.Time
 	okN, dataFails, otherFails := 0, 0, 0
 	for _, db := range s.dbs {
+		// A zero DeletedAt is written as 0000-00-00, which strict MySQL rejects. That failure skips
+		// the updated_at refresh, so the column stays unset and stores NULL.
 		err := db.DB().Session(&gorm.Session{FullSaveAssociations: true}).
+			Omit(hamodel.DbhaStatusFieldDeletedAt).
 			Clauses(clause.OnConflict{UpdateAll: true}).
 			Create(data).Error
 		if err != nil {

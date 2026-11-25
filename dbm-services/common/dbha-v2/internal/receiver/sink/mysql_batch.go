@@ -61,8 +61,11 @@ type chunkWriter interface {
 type gormChunkWriter struct{}
 
 func (gormChunkWriter) write(ctx context.Context, db *gorm.DB, rows []*hamodel.DbhaDataStatus) error {
+	// A zero DeletedAt is written as 0000-00-00, which strict MySQL rejects. That failure skips
+	// the updated_at refresh, so the column stays unset and stores NULL.
 	return db.Session(&gorm.Session{SkipDefaultTransaction: true}).
 		WithContext(ctx).
+		Omit(hamodel.DbhaStatusFieldDeletedAt).
 		Clauses(clause.OnConflict{UpdateAll: true}).
 		Create(rows).Error
 }
