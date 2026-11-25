@@ -257,29 +257,34 @@ func (r *retainer) run(ctx context.Context) {
 
 	for ctx.Err() == nil {
 		election, err := r.campaign(ctx)
-		if err != nil {
-			if ctx.Err() != nil {
-				return
-			}
-
-			failures++
-			reachedCap := backoff == retentionBackoffMax && !cappedLogged
-			if failures == 1 || reachedCap {
-				logger.Warn("retention election failed, failures: %d, retry_after: %s, errmsg: %s",
-					failures, backoff, err)
-				cappedLogged = cappedLogged || reachedCap
-			}
-			if !r.sleep(ctx, nil, backoff) {
-				return
-			}
-			backoff = min(backoff*2, retentionBackoffMax)
+		if err == nil {
+			backoff, failures, cappedLogged = retentionBackoffMin, 0, false
+			r.lead(ctx, election)
+			election.Close()
 			continue
 		}
+		if ctx.Err() != nil {
+			return
+		}
 
-		backoff, failures, cappedLogged = retentionBackoffMin, 0, false
-		r.lead(ctx, election)
-		election.Close()
+		failures++
+		cappedLogged = logRetentionElectionFailure(failures, backoff, cappedLogged, err)
+		if !r.sleep(ctx, nil, backoff) {
+			return
+		}
+		backoff = min(backoff*2, retentionBackoffMax)
 	}
+}
+
+// logRetentionElectionFailure logs the first failure and the first time backoff reaches its cap.
+func logRetentionElectionFailure(failures int, backoff time.Duration, cappedLogged bool, err error) bool {
+	reachedCap := backoff == retentionBackoffMax && !cappedLogged
+	if failures == 1 || reachedCap {
+		logger.Warn("retention election failed, failures: %d, retry_after: %s, errmsg: %s",
+			failures, backoff, err)
+		cappedLogged = cappedLogged || reachedCap
+	}
+	return cappedLogged
 }
 
 func (r *retainer) campaign(ctx context.Context) (discovery.ConcurrencyElection, error) {

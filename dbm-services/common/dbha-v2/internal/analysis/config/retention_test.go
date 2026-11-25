@@ -170,6 +170,8 @@ func TestRetentionSizes(t *testing.T) {
 		{name: "window too small", batch: 100, maxRows: 500, scanRows: 500, wantDefault: true},
 		{name: "window too large", batch: 100, maxRows: 2000, scanRows: 200000, wantDefault: true},
 		{name: "zero batch", batch: 0, maxRows: 2000, scanRows: 5000, wantDefault: true},
+		{name: "batch placeholder cap", batch: 14000, maxRows: 14000, scanRows: 20000, wantDefault: true},
+		{name: "batch under placeholder cap", batch: 13106, maxRows: 13106, scanRows: 20000},
 	}
 
 	for _, c := range cases {

@@ -68,8 +68,9 @@ analysis 才生效。
 
 ## 4. 上线与运维
 
-清理默认开启，升级后 1–10 分钟内开始执行。以下预检须在**升级 analysis 之前**完成；需要推迟清理时，升级前在
-`analysis.yaml` 中写入 `workflow.retention.enabled: false`，准备好后改回并重启 analysis。
+清理默认开启，升级后 1–10 分钟内开始执行。`dbha-admin migrate` 必须先于开启 retention 的 analysis。迁移未完成时，
+先把 `workflow.retention.enabled` 设为 `false` 再启动 analysis。以下预检须在**升级 analysis 之前**完成；需要推迟清理时，
+升级前在 `analysis.yaml` 中写入 `workflow.retention.enabled: false`，准备好后改回并重启 analysis。
 
 预检（只读）：
 
@@ -97,7 +98,7 @@ SELECT user, host, table_name FROM mysql.tables_priv WHERE db = 'dbha_data';
 
 - **紧急停止**：改为 `enabled: false` 并重启 analysis。
 - **admin migrate**：执行前先按上一条关闭清理，或在 migrate 维护窗口内一并停止 analysis。
-- **回滚**：不涉及表结构和数据格式，回退 analysis 版本即停止清理；已删除的行会随同步与上报自动重建。
+- **回滚**：回退 analysis 版本即停止清理，不会删除 `idx_updated_at`；旧版本可以留着这个索引读写。已删除的行会随同步与上报自动重建。
 - **表空间**：`DELETE` 不回收磁盘空间，需要时另行安排 `OPTIMIZE TABLE`。
 
 ## 5. 观测

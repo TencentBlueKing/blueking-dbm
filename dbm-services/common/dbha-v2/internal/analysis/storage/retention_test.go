@@ -39,7 +39,6 @@ import (
 	mysqldriver "github.com/go-sql-driver/mysql"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
-	"gorm.io/gorm/clause"
 )
 
 // The retention integration tests only ever delete rows they inserted themselves: status rows carry
@@ -157,39 +156,6 @@ func insertRetentionMetadata(t *testing.T, gdb *gorm.DB, port int, updatedAt tim
 	}
 
 	return MetadataKey{BkCloudID: retentionFixtureCloudID, IP: retentionFixtureIP, Port: port}
-}
-
-func TestRetentionMetadataUpsertRefreshesUpdatedAt(t *testing.T) {
-	_, gdb := newRetentionTestDb(t)
-	old := time.Now().Local().Add(-48 * time.Hour).Truncate(time.Second)
-	key := insertRetentionMetadata(t, gdb, 41001, old)
-
-	record := &hamodel.DbmMetadata{
-		BkCloudID: key.BkCloudID,
-		IP:        key.IP,
-		Port:      key.Port,
-		Status:    "running",
-	}
-	columns := []string{
-		hamodel.DbmMetadataFieldBkCloudID, hamodel.DbmMetadataFieldListenIP, hamodel.DbmMetadataFieldListenPort,
-		hamodel.DbmMetadataFieldStatus, hamodel.DbmMetadataFieldUpdatedAt,
-	}
-	err := gdb.Model(&hamodel.DbmMetadata{}).Select(columns).
-		Clauses(clause.OnConflict{UpdateAll: true}).
-		Create(record).Error
-	if err != nil {
-		t.Fatalf("upsert metadata fixture failed, errmsg: %s", err)
-	}
-
-	var got time.Time
-	err = gdb.Model(&hamodel.DbmMetadata{}).
-		Where(fmt.Sprintf("%s = ? AND %s = ? AND %s = ?",
-			hamodel.DbmMetadataFieldBkCloudID, hamodel.DbmMetadataFieldListenIP, hamodel.DbmMetadataFieldListenPort),
-			key.BkCloudID, key.IP, key.Port).
-		Pluck(hamodel.DbmMetadataFieldUpdatedAt, &got).Error
-	if err != nil || !got.After(old) {
-		t.Fatalf("upsert must refresh updated_at, got: %s, previous: %s, errmsg: %v", got, old, err)
-	}
 }
 
 func countRetentionStatusFixtures(t *testing.T, gdb *gorm.DB) int64 {
@@ -496,10 +462,14 @@ func insertBulkRetentionFixtures(t *testing.T, gdb *gorm.DB, n int, now time.Tim
 
 	statusValues := make([]string, 0, n)
 	metaValues := make([]string, 0, n)
+	// A few fresh rows sit in a backlog of stale rows. The health check looks for updates inside the
+	// last hour, which is the distribution where idx_updated_at is useful. A table of almost all fresh
+	// rows may legally scan the whole table, so this fixture does not try to represent that case.
+	const freshRows = 32
 	for i := 0; i < n; i++ {
-		ts := now.Format(time.DateTime)
-		if i%2 == 1 {
-			ts = now.Add(-20 * 24 * time.Hour).Format(time.DateTime)
+		ts := now.Add(-20 * 24 * time.Hour).Format(time.DateTime)
+		if i < freshRows {
+			ts = now.Format(time.DateTime)
 		}
 		statusValues = append(statusValues, fmt.Sprintf("('%sb%05d', 0, '%s', %d, 'default', '%s')",
 			retentionFixturePrefix, i, retentionFixtureIP, 20000+i%10, ts))

@@ -49,6 +49,11 @@ const (
 	minRetentionScanWindowRows = 1000
 	maxRetentionScanWindowRows = 100000
 	retentionWindowFactor      = 3
+
+	// MySQL rejects a statement with more than 65535 placeholders. A status delete uses five primary-key
+	// columns per row plus the cutoff argument.
+	maxStatusDeletePlaceholders = 65535
+	statusDeletePKColumns       = 5
 )
 
 // RetentionConfig controls the physical cleanup of stale rows in t_dbm_metadata and t_dbha_status.
@@ -151,10 +156,12 @@ func normalizeRetentionTimeouts(cfg *RetentionConfig, def RetentionConfig) {
 	}
 }
 
-// normalizeRetentionSizes enforces batchSize <= maxRowsPerRound <= scanWindowRows and the window
-// range, resetting all three to defaults when the combination is invalid.
+// normalizeRetentionSizes enforces batchSize <= maxRowsPerRound <= scanWindowRows, the window
+// range, and the status-table placeholder cap. An invalid combination resets all three sizes.
 func normalizeRetentionSizes(cfg *RetentionConfig, def RetentionConfig) {
+	maxBatch := (maxStatusDeletePlaceholders - 1) / statusDeletePKColumns
 	valid := cfg.BatchSize > 0 &&
+		cfg.BatchSize <= maxBatch &&
 		cfg.BatchSize <= cfg.MaxRowsPerRound &&
 		cfg.MaxRowsPerRound <= cfg.ScanWindowRows &&
 		cfg.ScanWindowRows >= minRetentionScanWindowRows &&
