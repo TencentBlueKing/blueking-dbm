@@ -21,11 +21,11 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { useLocation } from '@hooks';
-
   import { systemSearchCache } from '@common/cache';
 
   import TextHighlight from '@components/text-highlight/Index.vue';
+
+  import { getBusinessHref } from '@utils';
 
   import Total from './components/Total.vue';
 
@@ -45,20 +45,19 @@
   defineProps<Props>();
   const emits = defineEmits<Emits>();
 
-  const location = useLocation();
+  const router = useRouter();
 
   const handleGo = (data: Props['data'][number]) => {
     systemSearchCache.appendItem(data.root_id);
 
-    location(
-      {
-        name: 'taskHistoryDetail',
-        params: {
-          root_id: data.root_id,
-        },
+    const { href } = router.resolve({
+      name: 'taskHistoryDetail',
+      params: {
+        root_id: data.root_id,
       },
-      data.bk_biz_id,
-    );
+    });
+    // 业务 id 为空时保持原地址，不替换成当前业务
+    window.open(data.bk_biz_id ? getBusinessHref(href, data.bk_biz_id) : href);
   };
 
   const handleToResult = () => {

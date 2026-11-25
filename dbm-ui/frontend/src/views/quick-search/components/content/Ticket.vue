@@ -84,13 +84,13 @@
   import TicketModel from '@services/model/ticket/ticket';
   import { quickSearchResult } from '@services/source/quickSearch';
 
-  import { useLocation } from '@hooks';
-
   import { batchSplitRegex } from '@common/regex';
 
   import DbTable from '@components/db-table/IndexNew.vue';
   import TextHighlight from '@components/text-highlight/Index.vue';
   import TicketStatusTag from '@components/ticket-status-tag/Index.vue';
+
+  import { getBusinessHref } from '@utils';
 
   interface Props {
     bizIdNameMap: Record<number, string>;
@@ -113,7 +113,7 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
-  const location = useLocation();
+  const router = useRouter();
 
   const tableRef = useTemplateRef('table');
 
@@ -147,15 +147,14 @@
   };
 
   const handleToTicket = (data: TicketModel) => {
-    location(
-      {
-        name: 'bizTicketManage',
-        params: {
-          ticketId: data.id,
-        },
+    const { href } = router.resolve({
+      name: 'bizTicketManage',
+      params: {
+        ticketId: data.id,
       },
-      data.bk_biz_id,
-    );
+    });
+    // 业务 id 为空时保持原地址，不替换成当前业务
+    window.open(data.bk_biz_id ? getBusinessHref(href, data.bk_biz_id) : href);
   };
 
   const handleClearSearch = () => {

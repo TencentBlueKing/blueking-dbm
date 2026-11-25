@@ -1,7 +1,6 @@
 import GrammarCheckModel from '@services/model/sql-import/grammar-check';
 import SemanticCheckResultModel from '@services/model/sql-import/semantic-check-result';
 import SemanticDataModel from '@services/model/sql-import/semantic-data';
-import UserSemanticTaskModel from '@services/model/sql-import/user-semantic-task';
 import type { Mysql } from '@services/model/ticket/ticket';
 
 import type { ClusterTypes, DBTypes, TicketTypes } from '@common/const';
@@ -16,18 +15,6 @@ export function deleteUserSemanticTasks(params: { cluster_type: ClusterTypes; ta
     `/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/sql_import/delete_user_semantic_tasks/`,
     params,
   );
-}
-
-/**
- * 获取用户语义检查任务列表
- */
-export function getUserSemanticTasks(params: { cluster_type?: string }) {
-  return http
-    .get<UserSemanticTaskModel[]>(
-      `/apis/mysql/bizs/${window.PROJECT_CONFIG.BIZ_ID}/sql_import/get_user_semantic_tasks/`,
-      params,
-    )
-    .then((data) => data.map((item) => new UserSemanticTaskModel(item)));
 }
 
 /**

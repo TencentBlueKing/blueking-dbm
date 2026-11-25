@@ -6,7 +6,7 @@
   </div>
 </template>
 <script lang="ts" setup>
-  import { useCopy } from '@hooks';
+  import { execCopy } from '@utils';
 
   interface Props {
     content: string;
@@ -14,10 +14,8 @@
 
   const props = defineProps<Props>();
 
-  const copy = useCopy();
-
   const handleCopy = () => {
-    copy(props.content);
+    execCopy(props.content);
   };
 </script>
 <style lang="less" scoped>

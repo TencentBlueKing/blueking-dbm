@@ -3,7 +3,7 @@
     :custom-list-filter-render-method="customListFilterRenderMethod"
     :data="withFavorBizList"
     :generate-key="(item: IAppItem) => item.bk_biz_id"
-    :generate-name="(item: IAppItem) => item.display_name"
+    :generate-name="(item: IAppItem) => item.name"
     v-bind="{ ...attrs, ...props }"
     :theme="theme"
     :value="modelValue"

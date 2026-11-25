@@ -84,7 +84,9 @@
 <script setup lang="ts">
   import { useI18n } from 'vue-i18n';
 
-  import { useCopy, useEventBus, useMarkChanged } from '@hooks';
+  import { useEventBus, useMarkChanged } from '@hooks';
+
+  import { execCopy } from '@utils';
 
   interface Props {
     /**
@@ -115,7 +117,6 @@
 
   // 标记所在内容（弹层内或页面上）已编辑
   const markChanged = useMarkChanged();
-  const copy = useCopy();
   const eventBus = useEventBus();
   const route = useRoute();
 
@@ -124,7 +125,7 @@
   const isClear = ref(false);
 
   const handleCopy = () => {
-    copy(props.config.map((item) => `${item.case}`).join('\t') + '\n');
+    execCopy(props.config.map((item) => `${item.case}`).join('\t') + '\n');
   };
 
   const handleClose = () => {

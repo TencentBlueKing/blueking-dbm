@@ -15,7 +15,6 @@ export * from './globalBizs';
 export * from './useFunController';
 export * from './useMenu';
 export * from './useSqlImport';
-export * from './useSQLTaskCount';
 export * from './useSystemEnviron';
 export * from './useSystemSearch';
 export * from './useUserProfile';

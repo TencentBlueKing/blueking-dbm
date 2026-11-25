@@ -6,7 +6,7 @@
     <DbOption
       v-for="biz in bizList"
       :key="biz.bk_biz_id"
-      :label="biz.display_name"
+      :label="biz.name"
       :value="biz.bk_biz_id" />
   </DbSelect>
 </template>
@@ -33,17 +33,17 @@
   const bizList = shallowRef<
     {
       bk_biz_id: string;
-      display_name: string;
+      name: string;
     }[]
   >([]);
 
   useRequest(getBizs, {
     onSuccess(data) {
       bizList.value = [
-        { bk_biz_id: '0', display_name: t('公共资源池') },
+        { bk_biz_id: '0', name: t('公共资源池') },
         ...data.map((item) => ({
           bk_biz_id: `${item.bk_biz_id}`,
-          display_name: item.display_name,
+          name: item.name,
         })),
       ];
     },

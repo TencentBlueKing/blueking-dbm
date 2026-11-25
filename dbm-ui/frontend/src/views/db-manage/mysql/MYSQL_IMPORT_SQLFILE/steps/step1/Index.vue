@@ -15,7 +15,6 @@
   <BkLoading :loading="isEditLoading">
     <SmartAction>
       <div class="mysql-sql-execute-page">
-        <TaskTips :db-type="DBTypes.MYSQL" />
         <DbForm
           :key="resetFormKey"
           ref="formRef"
@@ -76,7 +75,6 @@
   import ClusterIds from '@views/db-manage/common/sql-execute/cluster-ids/Index.vue';
   import Backup from '@views/db-manage/common/sql-execute/mysql-backup/Index.vue';
   import ExecuteObjects from '@views/db-manage/common/sql-execute/mysql-execute-objects/Index.vue';
-  import TaskTips from '@views/db-manage/common/sql-execute/task-tips/Index.vue';
   import TicketMode from '@views/db-manage/common/sql-execute/ticket-mode/Index.vue';
   import TicketPayload, {
     createTicketPayload,

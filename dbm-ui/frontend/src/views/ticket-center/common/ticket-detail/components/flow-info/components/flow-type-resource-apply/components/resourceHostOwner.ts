@@ -37,7 +37,7 @@ export const getResourceHostOwnerData = (data: IResouce) => {
       ...baseData,
       for_biz: {
         bk_biz_id: data.for_biz,
-        bk_biz_name: useGlobalBizs().bizIdMap.get(data.for_biz)?.display_name || '--',
+        bk_biz_name: useGlobalBizs().bizIdMap.get(data.for_biz)?.name || '--',
       },
     };
   }

@@ -81,7 +81,7 @@ export const useApplyBase = () => {
    */
   function handleCreateAppAbbr(formdata: any) {
     const appAbbr = formdata.details.db_app_abbr;
-    const bizName = bizState.info.display_name || bizState.info.name || '';
+    const bizName = bizState.info.name || '';
     InfoBox({
       content: t('业务Codexx将被保存到业务xx且保存后不允许修改', [appAbbr, bizName]),
       onCancel: () => {

@@ -103,8 +103,6 @@
   import TaskFlowModel from '@services/model/taskflow/taskflow';
   import { quickSearchResult } from '@services/source/quickSearch';
 
-  import { useLocation } from '@hooks';
-
   import { batchSplitRegex } from '@common/regex';
 
   import DbStatus from '@components/db-status/index.vue';
@@ -135,7 +133,6 @@
 
   const { t } = useI18n();
   const router = useRouter();
-  const location = useLocation();
 
   const tableRef = useTemplateRef('table');
 
@@ -169,15 +166,14 @@
   };
 
   const handleToTask = (data: TaskFlowModel) => {
-    location(
-      {
-        name: 'taskHistoryDetail',
-        params: {
-          root_id: data.root_id,
-        },
+    const { href } = router.resolve({
+      name: 'taskHistoryDetail',
+      params: {
+        root_id: data.root_id,
       },
-      data.bk_biz_id,
-    );
+    });
+    // 业务 id 为空时保持原地址，不替换成当前业务
+    window.open(data.bk_biz_id ? getBusinessHref(href, data.bk_biz_id) : href);
   };
 
   // 关联单据按任务所在业务打开，与任务详情跳转保持一致
