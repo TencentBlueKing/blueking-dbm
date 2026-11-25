@@ -4,7 +4,7 @@
     :custom-list-filter-render-method="customListFilterRenderMethod"
     :data="dataList"
     :generate-key="(item: IAppItem) => item.bk_biz_id"
-    :generate-name="(item: IAppItem) => item.display_name"
+    :generate-name="(item: IAppItem) => item.name"
     :search-extension-method="searchExtensionMethod"
     :value="modelValue"
     @change="handleAppChange">

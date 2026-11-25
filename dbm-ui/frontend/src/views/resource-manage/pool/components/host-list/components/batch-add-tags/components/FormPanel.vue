@@ -37,7 +37,7 @@
           <DbOption
             v-for="bizItem in bizList"
             :key="bizItem.bk_biz_id"
-            :label="bizItem.display_name"
+            :label="bizItem.name"
             :value="bizItem.bk_biz_id" />
         </DbSelect>
       </BkFormItem>
@@ -96,7 +96,7 @@
   const bizList = computed(() => [
     {
       bk_biz_id: 0,
-      display_name: t('公共资源池'),
+      name: t('公共资源池'),
     } as BizItem,
     ...globalBizsStore.bizs,
   ]);

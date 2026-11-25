@@ -161,7 +161,7 @@
       bizList.value = [
         {
           bk_biz_id: 0,
-          display_name: t('公共资源池'),
+          name: t('公共资源池'),
         } as BizItem,
         ...data,
       ];

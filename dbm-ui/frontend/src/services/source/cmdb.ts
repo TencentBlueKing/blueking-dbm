@@ -10,8 +10,6 @@
  * on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for
  * the specific language governing permissions and limitations under the License.
  */
-import { pinyin } from 'pinyin-pro';
-
 import type { BizItem } from '@services/types';
 
 import type { ClusterTypes } from '@common/const';
@@ -46,25 +44,7 @@ export interface ComponentVersionInfo extends ComponentVersionInput {
  * 业务列表
  */
 export function getBizs(params = {} as { action: string }) {
-  return http.get<BizItem[]>(`${path}/list_bizs/`, params).then((res) =>
-    res.map((item: BizItem) => {
-      const biz = { ...item };
-      biz.display_name = item.name;
-      // 保持与原 tiny-pinyin 输出一致：汉字转大写拼音，非汉字保留原文
-      const parseName = pinyin(item.name, { toneType: 'none', type: 'all' });
-      const names = [];
-      const heads = [];
-      for (const word of parseName) {
-        const { first, isZh, origin } = word;
-        names.push(isZh ? word.pinyin.toUpperCase() : origin);
-        heads.push(isZh ? first.toUpperCase() : origin);
-      }
-      biz.pinyin_head = heads.join('');
-      biz.pinyin_name = names.join('');
-
-      return biz;
-    }),
-  );
+  return http.get<BizItem[]>(`${path}/list_bizs/`, params);
 }
 
 /**

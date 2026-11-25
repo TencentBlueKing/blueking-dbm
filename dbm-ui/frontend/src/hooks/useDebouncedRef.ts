@@ -14,14 +14,15 @@
 import { customRef } from 'vue';
 
 export const useDebouncedRef = <T>(value: T, delay = 200) => {
-  let timeout: number;
+  // setTimeout 在 DOM / Node 类型下返回值不同，用 ReturnType 兼容；首次 clearTimeout 时尚未赋值
+  let timeout: ReturnType<typeof setTimeout> | undefined;
   let localValue = value;
-  return customRef((track, trigger) => ({
+  return customRef<T>((track, trigger) => ({
     get() {
       track();
       return localValue;
     },
-    set(newValue) {
+    set(newValue: T) {
       clearTimeout(timeout);
       timeout = setTimeout(() => {
         localValue = newValue;
