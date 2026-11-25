@@ -162,7 +162,6 @@
   interface Props {
     disableHostMethod?: (params: IValue) => string | boolean;
     limit?: number;
-    // eslint-disable-next-line vue/no-unused-properties
     params?: {
       bk_cloud_ids?: string;
       for_biz?: number;
@@ -210,29 +209,31 @@
   const selectedNum = computed(() => Object.keys(rowSelectMemo.value).length);
   const isInfinity = computed(() => props.limit === -1);
 
+  // 表头列筛选条件，与搜索栏条件合并后再请求
+  const columnFilterValue = ref<Record<string, string>>({});
+
+  const search = () => {
+    pagination.current = 1;
+    fetchData({
+      ...quickSearchValue.value,
+      ...columnFilterValue.value,
+    });
+  };
+
   const handleFilterChange = (filterValue: Record<string, string>) => {
     // 剔除空值，剔除多余逗号
-    const formatFilterValue = Object.fromEntries(
+    columnFilterValue.value = Object.fromEntries(
       Object.entries(filterValue)
         .map(([key, value]) => [key, value.replace(/^,+|,+$/g, '').trim()])
         .filter(([, value]) => value !== ''),
     );
-    fetchData({
-      ...quickSearchValue.value,
-      ...formatFilterValue,
-    });
+    search();
   };
 
-  watch(
-    quickSearchValue,
-    () => {
-      fetchData(quickSearchValue.value);
-    },
-    {
-      // 搜索条件为空时 DbQuickSearch 首次回显的值与 quickSearchValue 相等，不会回写触发本 watch，首屏数据靠 immediate 拉取
-      immediate: true,
-    },
-  );
+  watch(quickSearchValue, search, {
+    // 搜索条件为空时 DbQuickSearch 首次回显的值与 quickSearchValue 相等，不会回写触发本 watch，首屏数据靠 immediate 拉取
+    immediate: true,
+  });
 
   watch(isShow, () => {
     if (!isShow.value) {

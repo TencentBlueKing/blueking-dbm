@@ -100,7 +100,7 @@ export function importResource(params: {
   });
 }
 
-interface ResouceListParams {
+export interface ResouceListParams {
   agent_status?: string;
   bk_cloud_ids?: string;
   city?: string;
