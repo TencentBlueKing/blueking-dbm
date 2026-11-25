@@ -49,6 +49,9 @@ class SubmitBillMySQLMigrateClusterSerializer(serializers.Serializer):
             child=serializers.CharField(), help_text=_("资源标签 ID 列表"), default=[], required=False
         )
 
+        class Meta:
+            ref_name = "MCPMySQLMigrateClusterInfo"
+
     infos = serializers.ListField(
         child=MigrateInfoSerializer(), help_text=_("迁移信息（每行一个集群或整机迁移机器组）"), allow_empty=False
     )
@@ -119,6 +122,9 @@ class SubmitBillTendbClusterMigrateSerializer(serializers.Serializer):
         labels = serializers.ListField(
             child=serializers.CharField(), help_text=_("资源标签 ID 列表"), default=[], required=False
         )
+
+        class Meta:
+            ref_name = "MCPTendbClusterMigrateInfo"
 
     infos = serializers.ListField(child=MigrateInfoSerializer(), help_text=_("迁移信息（每行一对主从）"), allow_empty=False)
     backup_source = serializers.ChoiceField(

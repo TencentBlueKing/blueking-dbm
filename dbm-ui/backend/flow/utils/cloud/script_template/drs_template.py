@@ -103,6 +103,9 @@ chmod -R 777 $path/drs;
 source drs.env;
 nohup ./db-remote-service -> db-remote-service-apply.log 2>&1 &
 
+# 等待drs服务启动
+sleep 5;
+
 # 验证部署是否成功
 pid=$(lsof -i:$DRS_PORT | awk '{print $2}' | tail -n 1);
 if [[ "$pid" != "" ]]; then
