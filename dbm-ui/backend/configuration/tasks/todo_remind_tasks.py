@@ -18,7 +18,6 @@ from typing import Dict, Set
 from blueapps.account.models import User
 from celery import shared_task
 from django.db.models import Count, Q
-from django.utils import timezone
 from django.utils.translation import gettext as _
 
 from backend import env
@@ -33,8 +32,7 @@ from backend.configuration.constants import (
 from backend.configuration.models import DBAdministrator, SystemSettings
 from backend.core.notify.constants import MsgType
 from backend.core.notify.handlers import BkChatApi, BkChatHandler, CmsiHandler
-from backend.db_report.enums import ReportStateType
-from backend.db_report.register import db_report_maps
+from backend.db_report.counters import TODO_REPORT_TIME_RANGE, calc_report_count
 from backend.db_services.risk_memo.models.risk_memo import RiskMemo
 from backend.ticket.constants import TICKET_TODO_STATUS_SET, TODO_RUNNING_STATUS, CountType, TodoStatus, TodoType
 from backend.ticket.models import Ticket, Todo
@@ -99,22 +97,19 @@ class CalcPersonalTodoClass:
 
     @classmethod
     def get_inspect_todo_count(cls, username, infos):
-        """获取巡检待办"""
-        result_map: Dict[str, int] = defaultdict(int)
-        now_date = datetime.now(timezone.utc).date()
-        for db_type, report_classes in db_report_maps.items():
-            total_count = 0
-            # 获取用户的管理业务
-            manage_bizs = [info["bk_biz_id"] for info in infos if db_type == info["db_type"]]
-            for cls_ in report_classes:
-                # 过滤当天的待办
-                count = cls_.queryset.filter(
-                    state=ReportStateType.ABNORMAL, update_at__gte=now_date, bk_biz_id__in=manage_bizs
-                ).count()
-                total_count += count
-            result_map[db_type] = total_count
-        new_result_map = {key: value for key, value in result_map.items() if value}
-        return new_result_map
+        """获取巡检待办
+
+        口径与「巡检待办」页面（get_report_count 接口）完全一致，见 db_report.counters.calc_report_count：
+        异常+预警、最近 24 小时、只统计当前用户作为主 DBA 的业务。
+        infos 为调用方统一传入的 DBA 信息，此处按 db_type 自行取管理业务，不再使用。
+        返回按组件汇总的「待我处理」数量，形如 {"redis": 27, "kafka": 8}。
+        """
+        report_count_map = calc_report_count(username, time_range=TODO_REPORT_TIME_RANGE)
+        db_type_count = {
+            db_type: sum(item["manage_count"] for item in report_counts.values())
+            for db_type, report_counts in report_count_map.items()
+        }
+        return {db_type: count for db_type, count in db_type_count.items() if count}
 
     @classmethod
     def get_cluster_disable_todo_count(cls, username, infos):
