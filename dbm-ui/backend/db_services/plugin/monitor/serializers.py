@@ -11,6 +11,8 @@ specific language governing permissions and limitations under the License.
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
+from backend.db_services.plugin.constants import SubscribeAggregateType
+
 
 class MonitorImageRenderSerializer(serializers.Serializer):
     class OptionsSerializer(serializers.Serializer):
@@ -34,3 +36,19 @@ class MonitorImageRenderSerializer(serializers.Serializer):
 
 class MonitorImageResultSerializer(serializers.Serializer):
     task_id = serializers.CharField(help_text=_("业务id"))
+
+
+class ListSubscribeRelationsSerializer(serializers.Serializer):
+    bk_biz_name = serializers.CharField(help_text=_("业务名称，精确匹配"), required=False, allow_blank=True)
+    db_types = serializers.CharField(help_text=_("DB类型，多个以逗号分隔"), required=False, allow_blank=True)
+    cluster_domain = serializers.CharField(help_text=_("集群域名，模糊匹配"), required=False, allow_blank=True)
+    username = serializers.CharField(help_text=_("订阅人账号，模糊匹配"), required=False, allow_blank=True)
+    aggregate = serializers.ChoiceField(
+        help_text=_("聚合方式，不传则返回明细"),
+        choices=SubscribeAggregateType.get_choices(),
+        required=False,
+        allow_blank=True,
+    )
+
+    def validate_db_types(self, value):
+        return [db_type.strip() for db_type in value.split(",") if db_type.strip()]

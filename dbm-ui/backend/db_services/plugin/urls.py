@@ -16,7 +16,7 @@ from .bf.views import BFPluginViewSet
 from .cluster.views import OpenClusterViewSet
 from .cmdb.view import CMDBApiGwViewSet
 from .db_dirty.views import DBDirtyMachineViewSet
-from .monitor.views import MonitorPluginViewSet
+from .monitor.views import MonitorPluginViewSet, MonitorSubscribeOpenViewSet
 from .mysql.apply.views import ApplyPluginViewSet
 from .mysql.authorize.views import AuthorizePluginViewSet
 from .ticket.views import TicketApiGwViewSet
@@ -24,6 +24,7 @@ from .ticket.views import TicketApiGwViewSet
 routers = DefaultRouter(trailing_slash=True)
 
 routers.register("cluster", OpenClusterViewSet, basename="cluster")
+routers.register("monitor/subscribe", MonitorSubscribeOpenViewSet, basename="monitor_subscribe")
 routers.register("monitor", MonitorPluginViewSet, basename="monitor")
 routers.register("mysql/authorize", AuthorizePluginViewSet, basename="authorize")
 routers.register("mysql/apply", ApplyPluginViewSet, basename="apply")
