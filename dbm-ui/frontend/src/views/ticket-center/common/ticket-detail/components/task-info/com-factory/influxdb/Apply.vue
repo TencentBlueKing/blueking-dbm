@@ -23,6 +23,9 @@
     <InfoItem :label="t('分组名')">
       {{ ticketDetails.details.group_name || '--' }}
     </InfoItem>
+    <!-- <InfoItem :label="t('集群标签')">
+      <TagDisplay direction="horizontal" :tags="ticketDetails.details.tags" />
+    </InfoItem> -->
   </InfoList>
   <RegionRequirements :details="ticketDetails.details" />
   <div class="info-title">{{ t('部署需求') }}</div>
@@ -79,6 +82,7 @@
   import HostPreview from '@components/host-preview/HostPreview.vue';
   import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
+  // import TagDisplay from '@views/db-manage/common/deploy-cluster-tag/Index.vue';
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
 

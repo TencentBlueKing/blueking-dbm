@@ -36,6 +36,7 @@
               <BkInput
                 ref="inputRef"
                 v-model="inputValue"
+                :disabled="disabled"
                 :maxlength="maxLength"
                 :placeholder="placeholder"
                 show-word-limit
@@ -210,7 +211,8 @@
   );
 
   const handleFormValidate = (_property: string, result: boolean) => {
-    isHideErrorTip.value = !result && formData.value === '';
+    // 半填时 required=true 需要展示错误；全空行 required=false 隐藏错误
+    isHideErrorTip.value = !result && formData.value === '' && !props.required;
   };
 
   const handleValidate = async () => {
@@ -326,6 +328,10 @@
   };
 
   const handleFocusInput = () => {
+    // 禁用态不拉起下拉
+    if (props.disabled) {
+      return;
+    }
     setTimeout(() => {
       if (selectRef.value?.isFocus && selectRef.value?.isPopoverShow) {
         return;
@@ -482,9 +488,6 @@
   const handleChange = (value: T, isAutoChanged = true) => {
     isExistdInList.value = true;
     isInputOrSelectValueChanged = isAutoChanged;
-    if (isAutoChanged) {
-      handleValidate();
-    }
     modelValue.value = value;
     const option = localList.value.find((item) => item.value === value);
     inputValue.value = option?.label ?? '';
@@ -493,6 +496,10 @@
     nextTick(() => {
       isInputOrSelectValueChanged = false;
     });
+    if (isAutoChanged) {
+      // 值回写后再校验，否则 formData 仍是旧值，错误不会随新输入消失
+      nextTick(handleValidate);
+    }
   };
 
   const handleKeyDown = (_value: string, e: KeyboardEvent) => {

@@ -36,6 +36,14 @@
             v-model="formData.details.cluster_alias"
             :biz-id="formData.bk_biz_id"
             cluster-type="redis" />
+          <BkFormItem :label="t('集群标签')">
+            <TagOperation
+              :key="tagEditorKey"
+              ref="tagOperationRef"
+              :allow-key-value-empty="false"
+              :biz-id="formData.bk_biz_id"
+              :data="tagEditorData" />
+          </BkFormItem>
         </DbCard>
         <RegionRequirements
           ref="regionRequirements"
@@ -322,6 +330,7 @@
                   </BkFormItem>
                   <BkFormItem
                     v-if="isLoadBalanceShow"
+                    class="no-required-mark"
                     :label="t('负载均衡')"
                     :required="false">
                     <BkCheckbox
@@ -336,6 +345,13 @@
                       :disabled="modifyState.isAdjustApply">
                       {{ t('北极星') }}
                     </BkCheckbox>
+                    <div class="load-balance-tips">
+                      {{
+                        t(
+                          '集群默认通过域名访问。如需流量分发更均衡，可启用 CLB、北极星；未启用的，之后也可在集群列表启用。',
+                        )
+                      }}
+                    </div>
                   </BkFormItem>
                 </div>
               </BkFormItem>
@@ -448,6 +464,8 @@
   import TicketModifyAlert from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyAlert.vue';
   import TicketModifyRemark from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyRemark.vue';
   import { APPLY_SCHEME } from '@views/db-manage/common/apply-schema/Index.vue';
+  import TagOperation from '@views/db-manage/common/cluster-batch-add-tag/components/tag-operation/Index.vue';
+  import { useDeployClusterTags } from '@views/db-manage/common/deploy-cluster-tag/hooks/useDeployClusterTags';
   import PasswordInput from '@views/db-manage/common/password-input/Index.vue';
   import { QueryKeyMap } from '@views/db-manage/redis/common/const';
   import { serviceApplyKey } from '@views/service-apply/const.ts';
@@ -509,6 +527,9 @@
         // 后端保存了访问密码；不回填时改单要重新输入，还会多出一项变更
         proxy_pwd: details.proxy_pwd,
       });
+
+      // 集群标签按单键对象数组存储，转 key/value 行回显
+      initEditorTags(details.tags);
 
       if (details.ip_source === 'resource_pool') {
         const { backend_group: backendGroup, proxy } = details.resource_spec!;
@@ -626,6 +647,8 @@
   const slaveRef = ref();
   const specProxyRef = ref();
   const specBackendRef = ref();
+  const { getSubmitTags, initEditorTags, resetEditorTags, tagEditorData, tagEditorKey, tagOperationRef } =
+    useDeployClusterTags();
   const passwordRef = ref<InstanceType<typeof PasswordInput>>();
   const capSpecsKey = ref(generateId('CLUSTER_APPLAY_CAP_'));
   const isShowRecommendArchitectrue = ref(false);
@@ -860,6 +883,8 @@
       return;
     }
     Object.assign(formData, initData());
+    // 标签编辑器随重建回到默认空白行
+    resetEditorTags();
     nextTick(() => {
       window.changeConfirm = false;
     });
@@ -1036,7 +1061,11 @@
   });
 
   const handleSubmit = async () => {
-    await formRef.value?.validate();
+    // 表单校验与标签校验并行，错误同时展示；标签半填返回 null 阻断提交
+    const [, tags] = await Promise.all([formRef.value?.validate(), getSubmitTags()]);
+    if (tags === null) {
+      return;
+    }
 
     baseState.isSubmitting = true;
 
@@ -1045,7 +1074,10 @@
       config: {
         send_msg_config: notifyRelatedPersonsRef.value!.getValue(),
       },
-      details: getDetails(),
+      details: {
+        ...getDetails(),
+        tags,
+      },
     };
 
     // 若业务没有英文名称则先创建业务英文名称再创建单据，反正直接创建单据
@@ -1070,6 +1102,17 @@
 </script>
 
 <style lang="less">
+  .bk-form-item.no-required-mark .bk-form-label::after {
+    display: none !important;
+  }
+
+  .load-balance-tips {
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 20px;
+    color: #979ba5;
+  }
+
   .apply-form {
     .apply-form-tips {
       font-size: @font-size-mini;

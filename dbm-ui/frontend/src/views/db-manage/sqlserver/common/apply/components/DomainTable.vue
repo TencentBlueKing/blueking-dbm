@@ -7,6 +7,13 @@
       :data="tableData"
       :empty="t('请选择业务和DB模块名')"
       row-key="index" />
+    <!-- <EditTagDialog
+      :biz-id="bizId"
+      :domain="editingRowIndex !== undefined ? domains[editingRowIndex]?.key || '' : ''"
+      :is-show="editingRowIndex !== undefined"
+      :tags="editingTags"
+      @close="handleCloseTagDialog"
+      @confirm="handleTagConfirm" /> -->
   </div>
 </template>
 
@@ -20,6 +27,8 @@
   import { ClusterTypes } from '@common/const';
   import { clusterNameFormatRegx, clusterNameSymbolRegx } from '@common/regex';
 
+  // import EditTagDialog from '@views/db-manage/common/deploy-cluster-tag/components/EditTagDialog.vue';
+  // import TagDisplay from '@views/db-manage/common/deploy-cluster-tag/Index.vue';
   import { getDomainStrategy } from '@views/db-manage/utils/getDomainPreview.ts';
 
   import { checkDomainRepeat } from '@/services/source/ticket.tsx';
@@ -36,7 +45,7 @@
 
   const props = defineProps<Props>();
 
-  const domains = defineModel<{ key: string }[]>('domains', {
+  const domains = defineModel<Array<{ key: string; tags?: Record<string, string>[] }>>('domains', {
     default: () => [{ key: '' }],
   });
 
@@ -192,6 +201,13 @@
       });
     }
 
+    // columns.push({
+    //   cell: (_, { rowIndex }) => renderTagCell(rowIndex),
+    //   colKey: 'tags',
+    //   minWidth: 200,
+    //   title: t('集群标签'),
+    // });
+
     return columns;
   });
 
@@ -214,6 +230,46 @@
     newDomains[index].key = value;
     domains.value = newDomains;
   };
+
+  // // 「集群标签」编辑弹窗：undefined 表示未打开
+  // const editingRowIndex = ref<number>();
+  // const editingTags = computed(() =>
+  //   editingRowIndex.value === undefined ? [] : (domains.value[editingRowIndex.value]?.tags ?? []),
+  // );
+  //
+  // const handleEditTag = (rowIndex: number) => {
+  //   editingRowIndex.value = rowIndex;
+  // };
+  //
+  // const handleCloseTagDialog = () => {
+  //   editingRowIndex.value = undefined;
+  // };
+  //
+  // /** 弹窗确定：把标签写回当前行，不影响其他行 */
+  // const handleTagConfirm = (tags: Record<string, string>[]) => {
+  //   if (editingRowIndex.value === undefined) {
+  //     return;
+  //   }
+  //   const newDomains = _.cloneDeep(domains.value);
+  //   newDomains[editingRowIndex.value] = { ...newDomains[editingRowIndex.value], tags };
+  //   domains.value = newDomains;
+  //   editingRowIndex.value = undefined;
+  // };
+  //
+  // /** 渲染「集群标签」列：标签只读展示 + 编辑图标 */
+  // const renderTagCell = (rowIndex: number) => (
+  //   <div class='cluster-tag-cell'>
+  //     <TagDisplay tags={domains.value[rowIndex]?.tags} />
+  //     {!isAdjustApply && (
+  //       <db-icon
+  //         v-bk-tooltips={t('编辑标签')}
+  //         class='tag-edit-icon'
+  //         type='edit'
+  //         onClick={() => handleEditTag(rowIndex)}
+  //       />
+  //     )}
+  //   </div>
+  // );
 
   const getDomainPreview = (clusterName: string) => {
     const strategy = getDomainStrategy(
@@ -260,5 +316,19 @@
         min-width: 12px;
       }
     }
+
+    // .cluster-tag-cell {
+    //   display: flex;
+    //   align-items: flex-start;
+    //
+    //   .tag-edit-icon {
+    //     margin-left: 8px;
+    //     font-size: 14px;
+    //     line-height: 20px;
+    //     color: #3a84ff;
+    //     cursor: pointer;
+    //     flex-shrink: 0;
+    //   }
+    // }
   }
 </style>

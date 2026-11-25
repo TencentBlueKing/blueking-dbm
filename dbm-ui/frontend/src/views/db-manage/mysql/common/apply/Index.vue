@@ -261,6 +261,7 @@
                       property="details.resource_spec.proxy.labels" />
                     <BkFormItem
                       v-if="isClbShow"
+                      class="no-required-mark"
                       :label="t('负载均衡')"
                       :required="false">
                       <BkCheckbox
@@ -269,6 +270,13 @@
                         :disabled="modifyState.isAdjustApply">
                         CLB
                       </BkCheckbox>
+                      <div class="load-balance-tips">
+                        {{
+                          t(
+                            '集群默认通过域名访问。如需流量分发更均衡，可启用 CLB、北极星；未启用的，之后也可在集群列表启用。',
+                          )
+                        }}
+                      </div>
                     </BkFormItem>
                   </div>
                 </BkFormItem>
@@ -446,7 +454,7 @@
       db_app_abbr: '',
       db_module_id: null as null | number,
       disaster_tolerance_level: ticketType === TicketTypes.MYSQL_SINGLE_APPLY ? Affinity.NONE : Affinity.CROS_SUBZONE, // 同 affinity
-      domains: [{ key: '' }],
+      domains: [{ key: '' }] as Array<{ key: string; tags?: Record<string, string>[] }>,
       inst_num: 1,
       ip_source: 'resource_pool',
       nodes: {
@@ -1081,6 +1089,17 @@
 </script>
 
 <style lang="less" scoped>
+  .no-required-mark :deep(.bk-form-label::after) {
+    display: none !important;
+  }
+
+  .load-balance-tips {
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 20px;
+    color: #979ba5;
+  }
+
   :deep(.item-input) {
     width: 435px;
   }

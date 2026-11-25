@@ -49,4 +49,5 @@ export interface ClusterApply extends DetailBase {
     };
     proxy: ApplySpecInfo;
   };
+  tags: Record<string, string>[];
 }

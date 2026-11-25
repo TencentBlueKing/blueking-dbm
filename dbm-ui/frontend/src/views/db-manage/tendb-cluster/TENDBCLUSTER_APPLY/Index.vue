@@ -35,6 +35,14 @@
             v-model="formData.details.cluster_alias"
             :biz-id="formData.bk_biz_id"
             :cluster-type="ClusterTypes.TENDBCLUSTER" />
+          <BkFormItem :label="t('集群标签')">
+            <TagOperation
+              :key="tagEditorKey"
+              ref="tagOperationRef"
+              :allow-key-value-empty="false"
+              :biz-id="formData.bk_biz_id"
+              :data="tagEditorData" />
+          </BkFormItem>
         </DbCard>
         <RegionRequirements
           ref="regionRequirements"
@@ -107,6 +115,7 @@
               </BkFormItem>
               <BkFormItem
                 v-if="isClbShow"
+                class="no-required-mark"
                 :label="t('负载均衡')"
                 :required="false">
                 <BkCheckbox
@@ -115,6 +124,13 @@
                   :disabled="modifyState.isAdjustApply">
                   CLB
                 </BkCheckbox>
+                <div class="load-balance-tips">
+                  {{
+                    t(
+                      '集群默认通过域名访问。如需流量分发更均衡，可启用 CLB、北极星；未启用的，之后也可在集群列表启用。',
+                    )
+                  }}
+                </div>
               </BkFormItem>
             </div>
           </BkFormItem>
@@ -206,6 +222,8 @@
   import SpecSelector from '@views/db-manage/common/apply-items/SpecSelector.vue';
   import TicketModifyAlert from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyAlert.vue';
   import TicketModifyRemark from '@views/db-manage/common/apply-items/ticket-modify/TicketModifyRemark.vue';
+  import TagOperation from '@views/db-manage/common/cluster-batch-add-tag/components/tag-operation/Index.vue';
+  import { useDeployClusterTags } from '@views/db-manage/common/deploy-cluster-tag/hooks/useDeployClusterTags';
   import { serviceApplyKey } from '@views/service-apply/const.ts';
 
   import { checkDbConsole } from '@utils';
@@ -305,6 +323,8 @@
         remote_shard_num: details.remote_shard_num,
         spider_port: details.spider_port,
       });
+      // 集群标签按单键对象数组存储，转 key/value 行回显
+      initEditorTags(details.tags);
 
       if (details.ip_source === 'resource_pool') {
         const { backend_group: backendGroup, spider } = details.resource_spec!;
@@ -360,6 +380,9 @@
   const moduleAliasName = ref('');
 
   const formData = reactive(initData());
+
+  const { getSubmitTags, initEditorTags, resetEditorTags, tagEditorData, tagEditorKey, tagOperationRef } =
+    useDeployClusterTags();
 
   const rules = {
     'details.cluster_name': [
@@ -418,6 +441,8 @@
       return;
     }
     Object.assign(formData, initData());
+    // 标签编辑器随重建回到默认空白行
+    resetEditorTags();
     nextTick(() => {
       window.changeConfirm = false;
     });
@@ -476,7 +501,11 @@
   });
 
   const handleSubmit = async () => {
-    await formRef.value?.validate();
+    // 表单校验与标签校验并行，错误同时展示；标签半填返回 null 阻断提交
+    const [, tags] = await Promise.all([formRef.value?.validate(), getSubmitTags()]);
+    if (tags === null) {
+      return;
+    }
 
     baseState.isSubmitting = true;
 
@@ -485,7 +514,10 @@
       config: {
         send_msg_config: notifyRelatedPersonsRef.value!.getValue(),
       },
-      details: getDetails(),
+      details: {
+        ...getDetails(),
+        tags,
+      },
     };
 
     // 若业务没有英文名称则先创建业务英文名称再创建单据，反正直接创建单据
@@ -510,6 +542,17 @@
 </script>
 
 <style lang="less">
+  .bk-form-item.no-required-mark .bk-form-label::after {
+    display: none !important;
+  }
+
+  .load-balance-tips {
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 20px;
+    color: #979ba5;
+  }
+
   .spider-apply-instance-page {
     .item-input {
       width: 435px;

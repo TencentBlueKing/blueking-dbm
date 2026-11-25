@@ -28,4 +28,5 @@ export interface ShardApply extends DetailBase {
   shard_num: number;
   start_port: number;
   sub_zone_ids: string[];
+  // tags: Record<string, string>[];
 }

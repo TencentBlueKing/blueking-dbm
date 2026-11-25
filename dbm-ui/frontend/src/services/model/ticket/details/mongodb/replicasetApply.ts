@@ -25,6 +25,7 @@ export interface ReplicasetApply extends DetailBase {
     domain: string;
     name: string;
     set_id: string;
+    // tags: Record<string, string>[];
   }>;
   resource_spec: {
     mongo_machine_set: ApplySpecInfo;

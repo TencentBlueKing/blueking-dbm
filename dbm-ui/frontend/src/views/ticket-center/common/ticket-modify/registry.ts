@@ -20,14 +20,20 @@ import { t } from '@locales/index';
 
 import { type DiffOptions, formatValue } from './utils';
 
-type DomainList = { key: string }[] | undefined;
+type DomainList = { key: string; tags?: Record<string, string>[] }[] | undefined;
 type HostList = { ip: string }[] | undefined;
 type K8sComponentList =
   | { component_name: string; replicas: number; request_cpu: string; request_memory: string; storage?: string }[]
   | undefined;
 type RedisInsInfoList =
-  { backend_group?: { master: { ip: string } }; cluster_name: string; databases: number }[] | undefined;
-type ReplicaSetList = { domain: string; name: string }[] | undefined;
+  | {
+      backend_group?: { master: { ip: string } };
+      cluster_name: string;
+      databases: number;
+      tags?: Record<string, string>[];
+    }[]
+  | undefined;
+type ReplicaSetList = { domain: string; name: string; tags?: Record<string, string>[] }[] | undefined;
 
 /**
  * resource_spec 下各角色的公共对比口径：

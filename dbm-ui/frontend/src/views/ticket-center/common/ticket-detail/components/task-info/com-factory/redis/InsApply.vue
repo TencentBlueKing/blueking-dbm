@@ -56,6 +56,16 @@
           col-key="databases"
           title="Databases">
         </TicketInfoTableColumn>
+        <TicketInfoTableColumn
+          col-key="tags"
+          :min-width="160"
+          :title="t('集群标签')">
+          <template #default="{ row }: { row: IRowData }">
+            <TagDisplay
+              direction="vertical"
+              :tags="row.tags" />
+          </template>
+        </TicketInfoTableColumn>
         <template v-if="isAppend">
           <TicketInfoTableColumn
             col-key="masterIp"
@@ -116,6 +126,8 @@
 
   import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
+  import TagDisplay from '@views/db-manage/common/deploy-cluster-tag/Index.vue';
+
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
   import NotifyRelatedPersons from '../components/NotifyRelatedPersons.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';
@@ -130,6 +142,8 @@
   });
 
   const props = defineProps<Props>();
+
+  type IRowData = (typeof tableData)[number];
 
   const { t } = useI18n();
 
@@ -184,6 +198,7 @@
       masterIp: infoItem.backend_group?.master.ip,
       // slaveDomain: `ins.${clusterName}.${appAbbr}.dr#${isAppend ? '' : `#${port + index}`}`,
       slaveIp: infoItem.backend_group?.slave.ip,
+      tags: infoItem.tags,
     };
   });
 </script>

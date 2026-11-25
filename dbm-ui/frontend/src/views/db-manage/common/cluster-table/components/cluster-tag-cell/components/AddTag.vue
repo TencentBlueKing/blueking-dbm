@@ -29,6 +29,7 @@
     </template>
     <TagOperation
       ref="tagOperationRef"
+      :biz-id="bizId"
       :data="data" />
     <template #footer>
       <div class="footer-wrapper">
@@ -58,6 +59,7 @@
   import type { ClusterModel, ISupportClusterType } from '../../../types';
 
   interface Props {
+    bizId?: number | '';
     clusterId: number;
     data: ClusterModel<ISupportClusterType>['tags'];
     domain: string;
@@ -65,7 +67,9 @@
 
   type Emits = (e: 'success') => void;
 
-  const props = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    bizId: window.PROJECT_CONFIG.BIZ_ID,
+  });
   const emits = defineEmits<Emits>();
 
   const isShow = defineModel<boolean>('isShow', {
@@ -101,7 +105,7 @@
     try {
       confirmLoading.value = true;
       const tagsInfo = await tagOperationRef.value!.getValue();
-      if (tagsInfo) {
+      if (tagsInfo?.length) {
         const tags = tagsInfo.map((item) => ({
           [item.key]: item.value,
         }));

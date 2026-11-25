@@ -25,4 +25,5 @@ export interface Apply extends DetailBase {
   resource_spec?: {
     riak: ApplySpecInfo;
   };
+  // tags: Record<string, string>[];
 }

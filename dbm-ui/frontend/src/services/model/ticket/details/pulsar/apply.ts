@@ -28,5 +28,6 @@ export interface Apply extends DetailBase {
     zookeeper: ApplySpecInfo;
   };
   retention_hours: number;
+  // tags: Record<string, string>[];
   username: string;
 }

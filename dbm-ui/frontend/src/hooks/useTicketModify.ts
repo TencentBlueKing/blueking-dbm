@@ -26,7 +26,13 @@ import { useUserProfile } from '@stores';
 import { Affinity, cloudZoneNameMap, TicketTypes } from '@common/const';
 
 import { getTicketModifyDiffOptions, isTicketModifiable } from '@views/ticket-center/common/ticket-modify/registry';
-import { diffDetails, type DiffItem, formatValue } from '@views/ticket-center/common/ticket-modify/utils';
+import {
+  diffDetails,
+  type DiffItem,
+  formatClusterTags,
+  formatValue,
+  normalizeClusterTagsForDiff,
+} from '@views/ticket-center/common/ticket-modify/utils';
 
 import { messageError } from '@utils';
 
@@ -288,7 +294,7 @@ export const useTicketModify = () => {
       return [];
     }
     const options = getTicketModifyDiffOptions(data.ticket_type);
-    const diffList = diffDetails(data.details, details, {
+    const diffList = diffDetails(normalizeClusterTagsForDiff(data.details), normalizeClusterTagsForDiff(details), {
       ...options,
       formatters: {
         ...options.formatters,
@@ -317,6 +323,8 @@ export const useTicketModify = () => {
           const zoneNames = (value as string[] | undefined)?.map((zoneName) => cloudZoneNameMap[zoneName] || zoneName);
           return zoneNames?.length ? zoneNames.join('，') : t('随机');
         },
+        // 集群标签（单键对象数组）转 "key: value" 列表展示
+        tags: (value) => formatClusterTags(value) || '--',
       },
     });
     // 改单后容灾为特定容灾（跨机架 / 无）时可用区已无概念，隐藏可用区变更项

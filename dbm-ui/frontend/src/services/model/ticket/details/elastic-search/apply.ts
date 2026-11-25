@@ -29,4 +29,5 @@ export interface Apply extends DetailBase {
     hot?: ApplySpecInfo;
     master: ApplySpecInfo;
   };
+  tags: Record<string, string>[];
 }

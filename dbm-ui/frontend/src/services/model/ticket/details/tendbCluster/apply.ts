@@ -28,6 +28,7 @@ export interface Apply extends DetailBase {
     spider: ApplySpecInfo;
   };
   spider_port: number;
+  tags: Record<string, string>[];
   version: {
     db_version: string;
     spider_version: string;

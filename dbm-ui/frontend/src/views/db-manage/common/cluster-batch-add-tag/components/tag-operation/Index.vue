@@ -36,20 +36,24 @@
         <div class="column-title title-value">{{ t('标签值') }}</div>
       </template>
       <div class="switch-operation">
-        <DbIcon type="qiehuan" />
-        <BkButton
-          text
-          theme="primary"
-          @click="handleSwitchMode">
-          {{ isKeyValueMode ? t('切换文本编辑') : t('切换网格编辑') }}
-        </BkButton>
+        <template v-if="!isDisabled">
+          <DbIcon type="qiehuan" />
+          <BkButton
+            text
+            theme="primary"
+            @click="handleSwitchMode">
+            {{ isKeyValueMode ? t('切换文本编辑') : t('切换网格编辑') }}
+          </BkButton>
+        </template>
       </div>
     </div>
     <Component
       :is="renderMode"
       ref="modeRef"
       :allow-empty="allowKeyValueEmpty"
+      :biz-id="bizId"
       :data="tagsPairData"
+      :disabled="isDisabled"
       :key-value-map="keyValueMap"
       @change="() => emits('change')" />
   </div>
@@ -74,11 +78,13 @@
   export type KeyValueMapType = Record<string, string[]>;
 
   interface Exposes {
-    getValue: (isIgnoreVerify?: boolean) => Promise<TagsPairType[]>;
+    getValue: (isIgnoreVerify?: boolean) => Promise<TagsPairType[] | null>;
   }
 
   interface Props {
     allowKeyValueEmpty?: boolean;
+    /** 标签候选查询的业务 ID；不传回退到当前页面业务，业务切换时重新查询，未选择业务时整体禁用 */
+    bizId?: number | '';
     data?: { id: number; key: string; value: string }[];
   }
 
@@ -86,17 +92,38 @@
 
   const props = withDefaults(defineProps<Props>(), {
     allowKeyValueEmpty: true,
+    bizId: window.PROJECT_CONFIG.BIZ_ID,
     data: () => [],
   });
 
   const emits = defineEmits<Emits>();
+
+  // 未选择业务（空字符串）时禁用编辑；0 是全业务/公共业务，属于合法业务 ID
+  const isDisabled = computed(() => props.bizId === '' || props.bizId === null || props.bizId === undefined);
 
   const { t } = useI18n();
 
   const modeRef = ref();
   const editMode = ref('key_value');
   const tagsPairData = ref<TagsPairType[]>([]);
-  const keyValueMap = ref<KeyValueMapType>({});
+
+  // 标签候选由「内置标签 + 业务标签」两个数据源组合；内置只查一次，业务随 bizId 变化重新查询
+  const builtinKeyValueMap = ref<KeyValueMapType>({});
+  const businessKeyValueMap = ref<KeyValueMapType>({});
+  const keyValueMap = computed<KeyValueMapType>(() => {
+    const results: KeyValueMapType = {};
+    Object.entries(builtinKeyValueMap.value).forEach(([key, values]) => {
+      Object.assign(results, { [key]: [...values] });
+    });
+    Object.entries(businessKeyValueMap.value).forEach(([key, values]) => {
+      if (results[key]) {
+        results[key].push(...values.filter((value) => !results[key].includes(value)));
+      } else {
+        Object.assign(results, { [key]: [...values] });
+      }
+    });
+    return results;
+  });
 
   const isKeyValueMode = computed(() => editMode.value === 'key_value');
   const renderMode = computed(() => renderModeMap[editMode.value]);
@@ -107,42 +134,58 @@
     text: TextMode,
   };
 
-  const { run: handleGetBuiltinLabels } = useRequest(getBuiltinLabels, {
+  const { run: fetchBuiltinLabels } = useRequest(getBuiltinLabels, {
     manual: true,
     onSuccess(dataList) {
-      dataList.forEach((innerKey) => {
-        if (!keyValueMap.value[innerKey]) {
-          Object.assign(keyValueMap.value, {
-            [innerKey]: [],
-          });
-        }
-      });
+      builtinKeyValueMap.value = dataList.reduce<KeyValueMapType>((results, key) => {
+        Object.assign(results, { [key]: [] });
+        return results;
+      }, {});
     },
   });
 
-  useRequest(listTag, {
-    defaultParams: [
-      {
-        bk_biz_id: window.PROJECT_CONFIG.BIZ_ID,
-        limit: -1,
-        offset: 0,
-        type: 'cluster',
-      },
-    ],
+  const { run: fetchTagList } = useRequest(listTag, {
+    manual: true,
     onSuccess(data) {
-      keyValueMap.value = data.results.reduce<typeof keyValueMap.value>((results, item) => {
+      businessKeyValueMap.value = data.results.reduce<KeyValueMapType>((results, item) => {
         if (results[item.key]) {
           results[item.key].push(item.value);
         } else {
-          Object.assign(results, {
-            [item.key]: [item.value],
-          });
+          Object.assign(results, { [item.key]: [item.value] });
         }
         return results;
       }, {});
-      handleGetBuiltinLabels();
     },
   });
+
+  // 内置标签键是全局数据，挂载即拉取一次，不依赖业务候选查询成败
+  onMounted(() => {
+    fetchBuiltinLabels();
+  });
+
+  // 标签候选按业务维度查询，业务切换时重新查询；未选择业务（空字符串）时不查询；
+  // 0 是全业务/公共业务的合法 ID，需要正常查询
+  // 业务切换后已填数据不再适用，同步清空回一条空白行
+  watch(
+    () => props.bizId,
+    (bizId) => {
+      tagsPairData.value = [];
+      if (bizId === '' || bizId === null || bizId === undefined) {
+        // 清空业务候选，computed 组合后仅保留内置标签
+        businessKeyValueMap.value = {};
+        return;
+      }
+      // 先清空上一业务的候选，避免新结果返回前短暂展示旧业务标签
+      businessKeyValueMap.value = {};
+      fetchTagList({
+        bk_biz_id: bizId,
+        limit: -1,
+        offset: 0,
+        type: 'cluster',
+      });
+    },
+    { immediate: true },
+  );
 
   watch(
     dataTagIds,
@@ -173,8 +216,8 @@
   };
 
   defineExpose<Exposes>({
-    async getValue() {
-      return await modeRef.value!.getValue();
+    async getValue(isIgnoreVerify?: boolean) {
+      return await modeRef.value!.getValue(isIgnoreVerify);
     },
   });
 </script>
