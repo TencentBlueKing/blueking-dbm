@@ -11,6 +11,7 @@ specific language governing permissions and limitations under the License.
 import logging
 import time
 from collections import defaultdict
+from datetime import timedelta
 from typing import Dict, List, Optional, Set
 
 from django.utils import timezone
@@ -146,6 +147,12 @@ def _merge_disk_rw_candidates(
                 sustained[name] = PeerAbnormalSummary(name=name)
         else:
             logger.info("mongo autofix disk_rw delay wait name=%s", name)
+            _ignore_peer(
+                name,
+                sustained.get(name),
+                "delay_window",
+                {"reason": "disk_rw", "first_seen": first_seen, "delay_minutes": delay_minutes},
+            )
     return disk_failed
 
 
@@ -160,7 +167,26 @@ def _record_ignore(
     ip: str,
     ignore_msg: str,
     extra: Optional[dict] = None,
+    dedupe_minutes: int = 0,
 ) -> None:
+    """配置或闸门挡住自愈时写忽略记录，并打应用日志。dedupe_minutes>0 时同一 IP+原因在窗口内不重复入库。"""
+    msg = (ignore_msg or "")[:64]
+    payload = extra or {}
+    logger.info(
+        "mongo autofix ignore ip=%s msg=%s domain=%s cluster_id=%s extra=%s",
+        ip,
+        msg,
+        immute_domain,
+        cluster_id,
+        payload,
+    )
+    if dedupe_minutes and ip:
+        since = timezone.now() - timedelta(minutes=dedupe_minutes)
+        try:
+            if MongoIgnoreAutofix.objects.filter(ip=ip, ignore_msg=msg, create_at__gte=since).exists():
+                return
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("mongo autofix ignore dedupe fail ip=%s err=%s", ip, exc)
     try:
         MongoIgnoreAutofix.objects.create(
             bk_cloud_id=bk_cloud_id,
@@ -170,11 +196,32 @@ def _record_ignore(
             immute_domain=immute_domain or "",
             bk_host_id=bk_host_id or 0,
             ip=ip,
-            ignore_msg=ignore_msg[:64],
-            extra=extra or {},
+            ignore_msg=msg,
+            extra=payload,
         )
     except Exception as exc:  # noqa: BLE001
         logger.warning("mongo autofix ignore write fail ip=%s err=%s", ip, exc)
+
+
+def _ignore_peer(name: str, summary: Optional[PeerAbnormalSummary], ignore_msg: str, extra: dict) -> None:
+    """旁观者阶段还没有机器元数据，用 ip:port 和域名记下配置挡下的原因。"""
+    parsed = _parse_name(name)
+    if not parsed:
+        logger.info("mongo autofix ignore skip nameless msg=%s name=%s extra=%s", ignore_msg, name, extra)
+        return
+    ip, _port = parsed
+    _record_ignore(
+        bk_cloud_id=0,
+        bk_biz_id=0,
+        cluster_id=0,
+        cluster_type="",
+        immute_domain=(summary.cluster_domain if summary else "") or "",
+        bk_host_id=0,
+        ip=ip,
+        ignore_msg=ignore_msg,
+        extra={"name": name, **extra},
+        dedupe_minutes=10,
+    )
 
 
 def _parse_name(name: str) -> Optional[tuple]:
@@ -286,6 +333,18 @@ def _aggregate_by_ip(
         if cluster is None:
             continue
         if not ctl.is_whitelist_allowed(cluster.bk_biz_id, cluster.immute_domain):
+            _record_ignore(
+                bk_cloud_id=machine.bk_cloud_id,
+                bk_biz_id=cluster.bk_biz_id,
+                cluster_id=cluster.id,
+                cluster_type=cluster.cluster_type,
+                immute_domain=cluster.immute_domain,
+                bk_host_id=machine.bk_host_id,
+                ip=machine.ip,
+                ignore_msg="not_in_whitelist",
+                extra={"bk_biz_id": cluster.bk_biz_id, "immute_domain": cluster.immute_domain, "name": name},
+                dedupe_minutes=30,
+            )
             continue
         cand = by_ip.get(machine.ip)
         if cand is None:
@@ -423,6 +482,13 @@ def _collect_sustained_peers(
     # 对当前仍异常但未达 peer_min 的，主动 clear。
     for name in abnormal_names - set(qualified.keys()):
         clear_peer_first_seen(name)
+        summary = aggregated[name]
+        _ignore_peer(
+            name,
+            summary,
+            "peer_min_count",
+            {"peer_count": summary.peer_count, "peer_min": peer_min},
+        )
 
     sustained: Dict[str, PeerAbnormalSummary] = {}
     for name, summary in qualified.items():
@@ -436,6 +502,12 @@ def _collect_sustained_peers(
                 summary.peer_count,
                 first_seen,
                 delay_minutes,
+            )
+            _ignore_peer(
+                name,
+                summary,
+                "delay_window",
+                {"first_seen": first_seen, "delay_minutes": delay_minutes, "peer_count": summary.peer_count},
             )
     return sustained
 
@@ -548,6 +620,57 @@ def _create_cores_and_pre(surviving: List[HostCandidate]) -> List[MongoAutofixCo
     return created_cores
 
 
+def _record_configsvr_disabled(
+    sustained: Dict[str, PeerAbnormalSummary],
+    storages: Dict[str, StorageInstance],
+) -> None:
+    """enable_configsvr=off 时，本可自愈的 running configsvr 被滤掉，要留下忽略记录。"""
+    if ctl.is_configsvr_enabled():
+        return
+    missing = []
+    for name in sustained:
+        if name in storages:
+            continue
+        parsed = _parse_name(name)
+        if parsed:
+            missing.append((name, parsed[0], parsed[1]))
+    if not missing:
+        return
+    from django.db.models import Q
+
+    query = Q()
+    for _name, ip, port in missing:
+        query |= Q(machine__ip=ip, port=port)
+    qs = (
+        StorageInstance.objects.filter(
+            query,
+            status=InstanceStatus.RUNNING.value,
+            machine_type=MachineType.MONOG_CONFIG.value,
+        )
+        .exclude(instance_role=InstanceRole.MONGO_BACKUP.value)
+        .select_related("machine")
+        .prefetch_related("cluster")
+    )
+    found = {f"{storage.machine.ip}:{storage.port}": storage for storage in qs}
+    for name, ip, _port in missing:
+        storage = found.get(name)
+        if storage is None:
+            continue
+        cluster = storage.cluster.first()
+        _record_ignore(
+            bk_cloud_id=storage.machine.bk_cloud_id,
+            bk_biz_id=cluster.bk_biz_id if cluster else 0,
+            cluster_id=cluster.id if cluster else 0,
+            cluster_type=cluster.cluster_type if cluster else "",
+            immute_domain=cluster.immute_domain if cluster else "",
+            bk_host_id=storage.machine.bk_host_id,
+            ip=ip,
+            ignore_msg="configsvr_disabled",
+            extra={"name": name, "ctl": "enable_configsvr=off"},
+            dedupe_minutes=30,
+        )
+
+
 def discover_mongod_backend_faults() -> List[MongoAutofixCore]:
     """
     主发现入口（无 pymongo）：
@@ -585,6 +708,7 @@ def discover_mongod_backend_faults() -> List[MongoAutofixCore]:
         return []
 
     storages = _load_running_storages(list(sustained.keys()), enable_configsvr=ctl.is_configsvr_enabled())
+    _record_configsvr_disabled(sustained, storages)
     by_ip = _aggregate_by_ip(sustained, storages)
     if not by_ip:
         logger.info("mongo autofix no running storage mapped")
