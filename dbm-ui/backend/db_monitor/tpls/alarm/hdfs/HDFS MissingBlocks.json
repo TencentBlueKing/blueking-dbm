@@ -10,7 +10,7 @@
     "type": "monitor",
     "items": [
       {
-        "name": "AVG(hadoop_namenode_missing_blocks)/MIN(hadoop_namenode_State)",
+        "name": "AVG(hadoop_namenode_missing_blocks) [Active NameNode only]",
         "no_data_config": {
           "level": 2,
           "continuous": 10,
@@ -23,51 +23,19 @@
           ]
         },
         "target": [],
-        "expression": "b/a",
+        "expression": "a",
         "functions": [],
         "origin_sql": "",
         "query_configs": [
           {
-            "data_source_label": "bk_monitor",
+            "data_source_label": "prometheus",
             "data_type_label": "time_series",
             "alias": "a",
-            "metric_id": "bk_monitor.exporter_dbm_hdfs_exporter.__default__.hadoop_namenode_State",
+            "metric_id": "",
             "functions": [],
-            "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
-            "data_label": "exporter_dbm_hdfs_exporter",
-            "agg_method": "MIN",
+            "promql": "avg by (app, appid, cluster_domain, bk_target_service_instance_id) (avg_over_time(bkmonitor:exporter_dbm_hdfs_exporter:hadoop_namenode_missing_blocks{instance_role=\"hdfs_namenode\"}[1m])) and on (app, appid, cluster_domain, bk_target_service_instance_id) (min by (app, appid, cluster_domain, bk_target_service_instance_id) (min_over_time(bkmonitor:exporter_dbm_hdfs_exporter:hadoop_namenode_State{instance_role=\"hdfs_namenode\"}[1m])) == 1)",
             "agg_interval": 60,
-            "agg_dimension": [
-              "bk_target_service_instance_id",
-              "app",
-              "cluster_domain",
-              "appid"
-            ],
-            "agg_condition": [],
-            "metric_field": "hadoop_namenode_State",
-            "unit": "",
-            "name": "hadoop_namenode_State"
-          },
-          {
-            "data_source_label": "bk_monitor",
-            "data_type_label": "time_series",
-            "alias": "b",
-            "metric_id": "bk_monitor.exporter_dbm_hdfs_exporter.__default__.hadoop_namenode_missing_blocks",
-            "functions": [],
-            "result_table_id": "exporter_dbm_hdfs_exporter.__default__",
-            "data_label": "exporter_dbm_hdfs_exporter",
-            "agg_method": "AVG",
-            "agg_interval": 60,
-            "agg_dimension": [
-              "bk_target_service_instance_id",
-              "app",
-              "cluster_domain",
-              "appid"
-            ],
-            "agg_condition": [],
-            "metric_field": "hadoop_namenode_missing_blocks",
-            "unit": "",
-            "name": "hadoop_namenode_missing_blocks"
+            "name": ""
           }
         ],
         "algorithms": [
@@ -310,8 +278,8 @@
     "is_enabled": true
   },
   "is_enabled": true,
-  "monitor_indicator": "AVG(hadoop_namenode_missing_blocks)/MIN(hadoop_namenode_State)",
-  "version": 22,
+  "monitor_indicator": "AVG(hadoop_namenode_missing_blocks) [Active NameNode only]",
+  "version": 23,
   "alert_source": "time_series",
   "custom_conditions": []
 }
