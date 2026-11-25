@@ -8,7 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from django.utils.translation import gettext_lazy as _
 
@@ -58,43 +58,41 @@ class VictoriaMetricsClusterListRetrieveResource(VictoriaMetricsBaseListRetrieve
         return scan_cluster(cluster, bcs_cluster_name, namespace).to_dict()
 
     @classmethod
-    def _to_cluster_representation(
-        cls,
-        cluster: Cluster,
-        cluster_entry: List[Dict[str, str]],
-        db_module_names_map: Dict[int, str],
-        cluster_entry_map: Dict[int, Dict[str, str]],
-        cluster_operate_records_map: Dict[int, List],
-        cloud_info: Dict[str, Any],
-        biz_info,
-        cluster_stats_map: Dict[str, Dict[str, int]],
-        cluster_zone_map: Dict[str, str],
-        dns_to_clb: bool = False,
-        **kwargs,
-    ) -> Dict[str, Any]:
-        cluster_info = super()._to_cluster_representation(
-            cluster,
-            cluster_entry,
-            db_module_names_map,
-            cluster_entry_map,
-            cluster_operate_records_map,
-            cloud_info,
-            biz_info,
-            cluster_stats_map,
-            cluster_zone_map,
-            dns_to_clb,
-            **kwargs,
+    def _retrieve_cluster(cls, cluster_details: Dict[str, Any], cluster_id: int) -> Dict[str, Any]:
+        """集群详情补充存储入口
+
+        存储入口依赖组件规格（cluster_describe 查询第三方接口），只在详情接口返回；
+        列表接口不再逐集群请求，避免 N+1 拖慢列表。
+        """
+        cluster_details = super()._retrieve_cluster(cluster_details, cluster_id)
+        cluster_details["storage_entry"] = cls._get_storage_entry(
+            cluster_details.get("master_domain", ""), cls._fetch_cluster_spec(cluster_details)
         )
-        cluster_info["storage_entry"] = cls._get_storage_entry(cluster, cluster_info.get("cluster_spec"))
-        return cluster_info
+        return cluster_details
 
     @classmethod
-    def _get_storage_entry(cls, cluster: Cluster, cluster_spec: dict = None) -> str:
+    def _fetch_cluster_spec(cls, cluster_details: Dict[str, Any]) -> dict:
+        """按集群身份查询组件规格（cluster_describe），失败时返回空 dict"""
+        component_spec = cls.get_component_spec(
+            {
+                "k8sClusterName": cluster_details.get("k8s_cluster_name", ""),
+                "namespace": cluster_details.get("namespace", ""),
+                "clusterName": cluster_details.get("cluster_name", ""),
+                # 详情接口无请求上下文，沿用列表侧原来的兜底值
+                "bk_username": "admin",
+            }
+        )
+        return (component_spec or {}).get("spec") or {}
+
+    @classmethod
+    def _get_storage_entry(cls, domain: str, cluster_spec: dict = None) -> str:
         """vmstorage 存储入口：统一域名 + 按实例序号从 8000 递增的端口
 
         副本数取自集群组件规格（cluster_describe 返回的 spec.componentList），
-        不实时调用 component_pods，避免列表/详情接口因逐 Pod 补充资源信息而响应缓慢。
+        不实时调用 component_pods，避免因逐 Pod 补充资源信息而响应缓慢。
         """
+        if not domain:
+            return ""
         replicas = next(
             (
                 component.get("replicas") or 0
@@ -103,7 +101,7 @@ class VictoriaMetricsClusterListRetrieveResource(VictoriaMetricsBaseListRetrieve
             ),
             0,
         )
-        return "\n".join(f"{cluster.immute_domain}:{VMSTORAGE_NODE_START_PORT + index}" for index in range(replicas))
+        return "\n".join(f"{domain}:{VMSTORAGE_NODE_START_PORT + index}" for index in range(replicas))
 
     @classmethod
     def _list_instances(
@@ -181,7 +179,7 @@ class VictoriaMetricsClusterListRetrieveResource(VictoriaMetricsBaseListRetrieve
             or {}
         )
         if enable:
-            # 与列表/详情同口径：通过 cluster_describe 获取组件规格计算存储入口，避免实时查询 Pod
+            # 与详情同口径：通过 cluster_describe 获取组件规格计算存储入口，避免实时查询 Pod
             component_spec = cls.get_component_spec(
                 {
                     "k8sClusterName": context["k8s_cluster_name"],
@@ -190,7 +188,7 @@ class VictoriaMetricsClusterListRetrieveResource(VictoriaMetricsBaseListRetrieve
                     "bk_username": bk_username,
                 }
             )
-            result["storage_entry"] = cls._get_storage_entry(cluster, (component_spec or {}).get("spec"))
+            result["storage_entry"] = cls._get_storage_entry(cluster.immute_domain, (component_spec or {}).get("spec"))
         else:
             result["storage_entry"] = ""
         return result

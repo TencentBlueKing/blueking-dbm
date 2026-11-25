@@ -23,7 +23,8 @@ paginated_resource_example = {
             "id": 1,
             "cluster_name": "bk-dbm",
             "query_entry": "victoriametrics.bk-dbm.blueking.db:8481",
-            "storage_nodes": ["victoriametrics.bk-dbm.4.db:8000"],
+            # 列表接口只返回空列表占位，真实节点由详情接口返回
+            "storage_nodes": [],
             "status": "normal",
             "tags": ["env:prod"],
             "major_version": "v1.115.0",
@@ -42,6 +43,13 @@ class PaginatedResourceSLZ(serializers.Serializer):
         ref_name = f"{REF_NAME}_PaginatedResourceSLZ"
 
 
+# storage_nodes 依赖组件配置查询，仅在详情接口返回
+retrieve_resource_example = {
+    **paginated_resource_example["results"][0],
+    "storage_nodes": ["victoriametrics.bk-dbm.4.db:8000"],
+}
+
+
 class ResourceFieldSLZ(serializers.Serializer):
     class Meta:
         swagger_schema_fields = {"example": VictoriaMetricsSelectListRetrieveResource.get_fields()}
@@ -50,7 +58,7 @@ class ResourceFieldSLZ(serializers.Serializer):
 
 class ResourceSLZ(serializers.Serializer):
     class Meta:
-        swagger_schema_fields = {"example": paginated_resource_example["results"][0]}
+        swagger_schema_fields = {"example": retrieve_resource_example}
         ref_name = f"{REF_NAME}_ResourceSLZ"
 
 

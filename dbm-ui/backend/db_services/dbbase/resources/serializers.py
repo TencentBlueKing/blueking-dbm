@@ -131,6 +131,9 @@ class ListInstancesSerializer(InstanceAddressSerializer):
     # k8s集群相关参数
     k8s_cluster_name = serializers.CharField(help_text=_("k8s集群名称"), required=False)
     namespace = serializers.CharField(help_text=_("命名空间"), required=False)
+    component_name = serializers.CharField(help_text=_("组件名称"), required=False)
+    node = serializers.CharField(help_text=_("节点ip"), required=False)
+    pod_name = serializers.CharField(help_text=_("pod名称"), required=False)
 
 
 class SqlserverListInstanceSerializer(ListInstancesSerializer):

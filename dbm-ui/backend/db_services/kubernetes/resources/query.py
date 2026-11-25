@@ -22,6 +22,11 @@ from backend.db_services.kubernetes.utils import offset_to_page, parse_deploy_pa
 from backend.ticket.constants import TicketType
 
 
+def _split_multi_value(value: str) -> List[str]:
+    """解析逗号分隔的多值查询参数"""
+    return value.split(",") if value else []
+
+
 class KubernetesBaseExportQueryResourceMixin(CommonExportQueryResourceMixin):
     """补充k8s集群列表导出所需的header及数据父类"""
 
@@ -254,77 +259,70 @@ class KubernetesBaseListRetrieveResource(query.ListRetrieveResource, KubernetesB
         @param offset: 分页查询, 当前页的偏移数
         @param filter_params_map: 过滤参数map
         """
-        result = {"count": 0, "data": []}
+        # 解析多值参数（逗号分隔的字符串）：cluster_name / k8s_cluster_name / namespace 按索引一一对应
+        cluster_name_list = _split_multi_value(query_params.get("cluster_name", ""))
+        # 没有指定集群，不查询（提前返回，避免无意义的 DB 查询）
+        if not cluster_name_list:
+            return ResourceList(count=0, data=[])
 
-        # 支持多集群查询：解析集群参数，只支持逗号分隔的字符串格式
-        cluster_names = query_params.get("cluster_name", "")
-        k8s_cluster_names = query_params.get("k8s_cluster_name", "")
-        namespaces = query_params.get("namespace", "")
-
-        # 解析多值参数（逗号分隔的字符串）
-        cluster_name_list = cluster_names.split(",") if cluster_names else []
-        k8s_cluster_name_list = k8s_cluster_names.split(",") if k8s_cluster_names else []
-        namespace_list = namespaces.split(",") if namespaces else []
-
-        if len(cluster_name_list) != len(k8s_cluster_name_list) or len(cluster_name_list) != len(namespace_list):
+        k8s_cluster_name_list = _split_multi_value(query_params.get("k8s_cluster_name", ""))
+        namespace_list = _split_multi_value(query_params.get("namespace", ""))
+        if not (len(cluster_name_list) == len(k8s_cluster_name_list) == len(namespace_list)):
             raise ValueError(_("cluster_name, k8s_cluster_name, namespace 参数数量必须一致"))
 
         # 批量反查 cluster_id，用于权限字段嵌入(viewsets.list_instances 的 id_field=lambda d: d["cluster_id"])
         # 构建 cluster_name -> cluster_id 的映射
-        cluster_id_map = {}
         cluster_ids = query_params.get("cluster_id")
         if cluster_ids:
             # 如果传入了 cluster_id，支持多选（只支持逗号分隔的字符串格式）
-            id_list = cluster_ids.split(",") if cluster_ids else []
-            clusters = Cluster.objects.filter(bk_biz_id=bk_biz_id, id__in=id_list).only("id", "name")
-            cluster_id_map = {c.name: c.id for c in clusters}
+            clusters = Cluster.objects.filter(bk_biz_id=bk_biz_id, id__in=_split_multi_value(cluster_ids))
         else:
             # 通过集群名反查，支持多选
-            if cluster_name_list:
-                clusters = Cluster.objects.filter(bk_biz_id=bk_biz_id, name__in=cluster_name_list).only("id", "name")
-                cluster_id_map = {c.name: c.id for c in clusters}
+            clusters = Cluster.objects.filter(bk_biz_id=bk_biz_id, name__in=cluster_name_list)
+        cluster_id_map = dict(clusters.values_list("name", "id"))
 
-        # 构建查询集群列表：如果有多集群，循环查询；否则按原逻辑查询
-        # 如果未配置 instance_roles，则按一次不带 componentName 的请求处理
-        roles = cls.instance_roles or [None]
+        # 可选过滤参数，DBS 侧入参统一为驼峰命名
+        optional_filters = {
+            "componentName": query_params.get("component_name"),
+            "status": query_params.get("status"),
+            "node": query_params.get("node"),
+            "podName": query_params.get("pod_name"),
+        }
+        component_name = optional_filters["componentName"]
 
-        # 确定需要查询的集群列表
-        if not cluster_name_list:
-            # 没有指定集群，不查询
-            return ResourceList(**result)
+        # 分页：DBS 使用 page/limit，而前端传的是 limit/offset
+        # 单集群时直接把分页下发给 DBS（避免全量拉取）；多集群时各集群的 page 无法合并，改为全量拉取后本地切片
+        api_paginate = len(cluster_name_list) == 1 and limit > 0
 
-        for idx, cluster_name in enumerate(cluster_name_list):
-            # 获取当前集群对应的 k8s_cluster_name 和 namespace（如果有多值则按索引对应，否则共用）
-            k8s_cluster_name = (
-                k8s_cluster_name_list[idx]
-                if idx < len(k8s_cluster_name_list)
-                else (k8s_cluster_name_list[0] if k8s_cluster_name_list else "")
-            )
-            namespace = (
-                namespace_list[idx] if idx < len(namespace_list) else (namespace_list[0] if namespace_list else "")
-            )
-
-            data = {
+        result = {"count": 0, "data": []}
+        for cluster_name, k8s_cluster_name, namespace in zip(cluster_name_list, k8s_cluster_name_list, namespace_list):
+            params = {
                 "k8sClusterName": k8s_cluster_name,
                 "clusterName": cluster_name,
                 "namespace": namespace,
+                # 空值不下发，避免被 DBS 当成过滤条件
+                **{key: value for key, value in optional_filters.items() if value},
             }
+            if api_paginate:
+                params.update(offset_to_page({"offset": offset, "limit": limit}))
 
-            # 获取当前集群的 cluster_id
-            current_cluster_id = cluster_id_map.get(cluster_name)
+            res = KubernetesApi.component_pods(params, use_admin=True) or {}
+            pods = res.get("result") or []
+            # DBS 未返回 count 时退化为当前批次条数，避免列表总数为 0
+            result["count"] += res.get("count") or len(pods)
 
-            for role in roles:
-                if role is not None:
-                    data["componentName"] = role
-                res = KubernetesApi.component_pods(data, use_admin=True) or {}
-                result["count"] += res.get("count", 0)
-                pods = res.get("result") or []
+            cluster_id = cluster_id_map.get(cluster_name)
+            for pod in pods:
                 # 给每条 pod 数据补充 cluster_id，供权限装饰器(id_field=lambda d: d["cluster_id"])使用
-                # 每个 pod 关联它所属的集群 ID
-                for pod in pods:
-                    pod["cluster_id"] = current_cluster_id
-                    pod["componentName"] = role
-                result["data"].extend(pods)
+                pod["cluster_id"] = cluster_id
+                # 仅在显式指定组件时覆盖，否则保留 DBS 返回的真实组件名
+                if component_name:
+                    pod["componentName"] = component_name
+            result["data"].extend(pods)
+
+        # 全量拉取场景（多集群 / limit=-1）下，按前端分页参数在本地切片，count 仍为总数
+        if not api_paginate and limit > 0:
+            result["data"] = result["data"][offset : offset + limit]
 
         return ResourceList(**result)
 
