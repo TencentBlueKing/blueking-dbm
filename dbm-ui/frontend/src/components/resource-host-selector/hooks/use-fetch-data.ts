@@ -38,26 +38,33 @@ export default (defaultParams?: {
     },
   });
 
-  const fetchData = (params?: ServiceParameters<typeof fetchList>) =>
-    run({
+  // 最近一次搜索条件，翻页时复用，否则只剩 defaultParams
+  type ListParams = ServiceParameters<typeof fetchList>;
+  const lastParams = shallowRef<ListParams>({});
+
+  const fetchData = (params: ListParams = {}) => {
+    lastParams.value = params;
+    // 资源池参数用 for_biz，把 db-table 内置的 bk_biz_id 去掉
+    const { ...restParams } = params as { bk_biz_id?: number } & Omit<ListParams, 'bk_biz_id'>;
+    return run({
       ...(defaultParams ? defaultParams.params : {}),
-      ...params,
-      bk_biz_id: undefined, // 资源池参数用for_biz,把db-table内置的bk_biz_id去掉
+      ...restParams,
       limit: pagination.limit,
       offset: pagination.current - 1,
-    });
+    } as ListParams);
+  };
 
   // 切换每页条数
   const handlePageLimitChange = (pageLimit: number) => {
     pagination.limit = pageLimit;
     paginationLimitCache.value = pageLimit;
-    fetchData();
+    fetchData(lastParams.value);
   };
 
   // 切换页码
   const handlePageValueChange = (pageValue: number) => {
     pagination.current = pageValue;
-    fetchData();
+    fetchData(lastParams.value);
   };
 
   return {
