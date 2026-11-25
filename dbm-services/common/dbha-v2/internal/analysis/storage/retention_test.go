@@ -39,6 +39,7 @@ import (
 	mysqldriver "github.com/go-sql-driver/mysql"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 // The retention integration tests only ever delete rows they inserted themselves: status rows carry
@@ -156,6 +157,39 @@ func insertRetentionMetadata(t *testing.T, gdb *gorm.DB, port int, updatedAt tim
 	}
 
 	return MetadataKey{BkCloudID: retentionFixtureCloudID, IP: retentionFixtureIP, Port: port}
+}
+
+func TestRetentionMetadataUpsertRefreshesUpdatedAt(t *testing.T) {
+	_, gdb := newRetentionTestDb(t)
+	old := time.Now().Local().Add(-48 * time.Hour).Truncate(time.Second)
+	key := insertRetentionMetadata(t, gdb, 41001, old)
+
+	record := &hamodel.DbmMetadata{
+		BkCloudID: key.BkCloudID,
+		IP:        key.IP,
+		Port:      key.Port,
+		Status:    "running",
+	}
+	columns := []string{
+		hamodel.DbmMetadataFieldBkCloudID, hamodel.DbmMetadataFieldListenIP, hamodel.DbmMetadataFieldListenPort,
+		hamodel.DbmMetadataFieldStatus, hamodel.DbmMetadataFieldUpdatedAt,
+	}
+	err := gdb.Model(&hamodel.DbmMetadata{}).Select(columns).
+		Clauses(clause.OnConflict{UpdateAll: true}).
+		Create(record).Error
+	if err != nil {
+		t.Fatalf("upsert metadata fixture failed, errmsg: %s", err)
+	}
+
+	var got time.Time
+	err = gdb.Model(&hamodel.DbmMetadata{}).
+		Where(fmt.Sprintf("%s = ? AND %s = ? AND %s = ?",
+			hamodel.DbmMetadataFieldBkCloudID, hamodel.DbmMetadataFieldListenIP, hamodel.DbmMetadataFieldListenPort),
+			key.BkCloudID, key.IP, key.Port).
+		Pluck(hamodel.DbmMetadataFieldUpdatedAt, &got).Error
+	if err != nil || !got.After(old) {
+		t.Fatalf("upsert must refresh updated_at, got: %s, previous: %s, errmsg: %v", got, old, err)
+	}
 }
 
 func countRetentionStatusFixtures(t *testing.T, gdb *gorm.DB) int64 {
@@ -398,6 +432,29 @@ func TestRetentionQueryPlans(t *testing.T) {
 			t.Fatalf("%s: window scan must not sort, extra: %s", c.name, extra)
 		}
 	}
+
+	since := now.Add(-time.Hour)
+	health := []struct {
+		name   string
+		table  string
+		column string
+	}{
+		{"status health", hamodel.DbhaDataStatusTableName, hamodel.DbhaStatusFieldUpdatedAt},
+		{"metadata health", hamodel.DbmMetadataTableName, hamodel.DbmMetadataFieldUpdatedAt},
+	}
+	for _, c := range health {
+		var plan []map[string]any
+		query := recentUpdateQuery(c.table, c.column, retentionTestTimeout)
+		if err := gdb.Raw("EXPLAIN "+query, since).Scan(&plan).Error; err != nil {
+			t.Fatalf("%s: explain failed, errmsg: %s", c.name, err)
+		}
+		if len(plan) != 1 {
+			t.Fatalf("%s: unexpected plan rows: %v", c.name, plan)
+		}
+		if key := planField(plan[0], "key"); key != "idx_updated_at" {
+			t.Fatalf("%s: expected idx_updated_at, got key: %s", c.name, key)
+		}
+	}
 }
 
 func TestRetentionErrorKindOf(t *testing.T) {
@@ -441,6 +498,9 @@ func insertBulkRetentionFixtures(t *testing.T, gdb *gorm.DB, n int, now time.Tim
 	metaValues := make([]string, 0, n)
 	for i := 0; i < n; i++ {
 		ts := now.Format(time.DateTime)
+		if i%2 == 1 {
+			ts = now.Add(-20 * 24 * time.Hour).Format(time.DateTime)
+		}
 		statusValues = append(statusValues, fmt.Sprintf("('%sb%05d', 0, '%s', %d, 'default', '%s')",
 			retentionFixturePrefix, i, retentionFixtureIP, 20000+i%10, ts))
 		metaValues = append(metaValues, fmt.Sprintf("(%d, '%s', %d, '%s')",

@@ -54,6 +54,28 @@ _DEFAULT_PROBE_ADMIN_BK_CLOUD_ID = "0"
 _DEFAULT_ADMIN_PROBE_METADATA_CACHE_MAX_AGE = "10m"
 _DEFAULT_ADMIN_PROBE_METADATA_TOMBSTONE_AGE = "24h"
 
+# analysis workflow.retention defaults. Values match DefaultRetentionConfig. An rc written
+# before the retention placeholders existed would otherwise fail rendering.
+_RETENTION_DEFAULTS = {
+    "ANALYSIS_WORKFLOW_RETENTION_ENABLED": "true",
+    "ANALYSIS_WORKFLOW_RETENTION_METADATA_RETENTION": "336h",
+    "ANALYSIS_WORKFLOW_RETENTION_STATUS_RETENTION": "336h",
+    "ANALYSIS_WORKFLOW_RETENTION_INTERVAL": "6h",
+    "ANALYSIS_WORKFLOW_RETENTION_DRAIN_INTERVAL": "5m",
+    "ANALYSIS_WORKFLOW_RETENTION_SCAN_WINDOW_ROWS": "20000",
+    "ANALYSIS_WORKFLOW_RETENTION_MAX_ROWS_PER_ROUND": "10000",
+    "ANALYSIS_WORKFLOW_RETENTION_BATCH_SIZE": "500",
+    "ANALYSIS_WORKFLOW_RETENTION_BATCH_SLEEP": "200ms",
+    "ANALYSIS_WORKFLOW_RETENTION_SCAN_TIMEOUT": "10s",
+    "ANALYSIS_WORKFLOW_RETENTION_HEALTH_CHECK_TIMEOUT": "10s",
+    "ANALYSIS_WORKFLOW_RETENTION_DELETE_TIMEOUT": "10s",
+    "ANALYSIS_WORKFLOW_RETENTION_SLOW_DELETE_THRESHOLD": "1s",
+    "ANALYSIS_WORKFLOW_RETENTION_ROUND_TIME_BUDGET": "60s",
+    "ANALYSIS_WORKFLOW_RETENTION_METADATA_HEALTH_WINDOW": "10m",
+    "ANALYSIS_WORKFLOW_RETENTION_STATUS_HEALTH_WINDOW": "5m",
+    "ANALYSIS_WORKFLOW_RETENTION_STALL_ALERT_AFTER": "24h",
+}
+
 # IP detection and fallback.
 _IP_DETECT_UDP_CONNECT_PORT = 80
 _DEFAULT_LOOPBACK_IPV4 = "127.0.0.1"
@@ -220,6 +242,19 @@ def apply_admin_probe_metadata_defaults(values: Dict[str, str]) -> None:
         values["ADMIN_PROBE_METADATA_CACHE_MAX_AGE"] = _DEFAULT_ADMIN_PROBE_METADATA_CACHE_MAX_AGE
     if not values.get("ADMIN_PROBE_METADATA_TOMBSTONE_AGE", "").strip():
         values["ADMIN_PROBE_METADATA_TOMBSTONE_AGE"] = _DEFAULT_ADMIN_PROBE_METADATA_TOMBSTONE_AGE
+
+
+def apply_analysis_retention_defaults(values: Dict[str, str]) -> None:
+    """Fill workflow.retention placeholders when the rc omits them.
+
+    analysis.yaml now carries a retention block. Server rc files written before it exists
+    would leave the placeholders unrendered, which render_configs.py rejects, so an upgrade
+    would fail on every existing deployment. Filled values match DefaultRetentionConfig.
+    A key the rc already sets is left unchanged, and nothing is written to stderr.
+    """
+    for key, default in _RETENTION_DEFAULTS.items():
+        if not values.get(key, "").strip():
+            values[key] = default
 
 
 def apply_probe_admin_sync_defaults(values: Dict[str, str], ip_detect_host: str) -> None:
@@ -495,6 +530,7 @@ def main() -> None:
         apply_admin_probe_gse_local_socket_port_default(values)
         apply_admin_probe_metadata_defaults(values)
         apply_admin_probe_health_disk_write_dirs_default(values)
+        apply_analysis_retention_defaults(values)
     else:
         apply_probe_reporter_local_socket_port_default(values)
         apply_probe_admin_sync_defaults(values, ip_detect_host)

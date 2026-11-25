@@ -55,6 +55,7 @@ func publishedSchemaSteps() []schemaStep {
 		publishedSchemaStepsPart25(),
 		publishedSchemaStepsPart26(),
 		publishedSchemaStepsPart27(),
+		publishedSchemaStepsPart28(),
 	)
 }
 
@@ -2025,5 +2026,25 @@ func publishedSchemaStepsPart27() []schemaStep {
 			Index:   "idx_biz_event_reason",
 			Apply: "ALTER TABLE `t_db_switching_strategy` ADD UNIQUE INDEX `idx_biz_event_reason` " +
 				"(`bk_biz_id`, `trigger_event_name`, `trigger_event_name_reason`)",
+		}}
+}
+
+func publishedSchemaStepsPart28() []schemaStep {
+	return []schemaStep{
+		{
+			Version: 224,
+			Name:    "000224_t_dbha_status_idx_updated_at",
+			Table:   "t_dbha_status",
+			Kind:    objectIndex,
+			Index:   "idx_updated_at",
+			Apply:   "ALTER TABLE `t_dbha_status` ADD INDEX `idx_updated_at` (`updated_at`)",
+		},
+		{
+			Version: 225,
+			Name:    "000225_t_dbm_metadata_idx_updated_at",
+			Table:   "t_dbm_metadata",
+			Kind:    objectIndex,
+			Index:   "idx_updated_at",
+			Apply:   "ALTER TABLE `t_dbm_metadata` ADD INDEX `idx_updated_at` (`updated_at`)",
 		}}
 }

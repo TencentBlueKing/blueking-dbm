@@ -160,8 +160,7 @@ func (ha *DbhaData) HasRecentUpdate(ctx context.Context, table string, since tim
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	query := fmt.Sprintf("SELECT /*+ MAX_EXECUTION_TIME(%d) */ 1 FROM %s WHERE %s > ? LIMIT 1",
-		timeout.Milliseconds(), table, updatedAtColumn)
+	query := recentUpdateQuery(table, updatedAtColumn, timeout)
 
 	var found []int
 	if err := ha.DB.DB().WithContext(ctx).Raw(query, since).Scan(&found).Error; err != nil {
@@ -352,16 +351,27 @@ func metadataWindowQuery(cursor MetadataCursor, timeout time.Duration) (string, 
 	return query, args
 }
 
+// recentUpdateQuery is the health check. It does not force idx_updated_at: a database that has not
+// run the migration yet must keep scanning instead of failing the statement.
+func recentUpdateQuery(table, column string, timeout time.Duration) string {
+	return fmt.Sprintf("SELECT /*+ MAX_EXECUTION_TIME(%d) */ 1 FROM %s WHERE %s > ? LIMIT 1",
+		timeout.Milliseconds(), table, column)
+}
+
+// statusDeleteQuery deletes by primary key. FORCE INDEX is written in the multi-table form because
+// MySQL 5.7 rejects an index hint on a single-table DELETE. PRIMARY exists before and after the
+// updated_at index migration, so this statement does not depend on that migration.
 func statusDeleteQuery() string {
-	return fmt.Sprintf("DELETE FROM %s WHERE (%s, %s, %s, %s, %s) IN ? AND %s < ?",
+	return fmt.Sprintf("DELETE t FROM %s AS t FORCE INDEX (PRIMARY) WHERE (%s, %s, %s, %s, %s) IN ? AND %s < ?",
 		hamodel.DbhaDataStatusTableName,
 		hamodel.DbhaStatusFieldMachineID, hamodel.DbhaStatusFieldBkCloudID, hamodel.DbhaStatusFieldDbIp,
 		hamodel.DbhaStatusFieldDbPort, hamodel.DbhaStatusFieldHarvestType, hamodel.DbhaStatusFieldUpdatedAt,
 	)
 }
 
+// metadataDeleteQuery deletes by primary key and keeps the same PRIMARY hint as statusDeleteQuery.
 func metadataDeleteQuery() string {
-	return fmt.Sprintf("DELETE FROM %s WHERE (%s, %s, %s) IN ? AND %s < ?",
+	return fmt.Sprintf("DELETE t FROM %s AS t FORCE INDEX (PRIMARY) WHERE (%s, %s, %s) IN ? AND %s < ?",
 		hamodel.DbmMetadataTableName,
 		hamodel.DbmMetadataFieldBkCloudID, hamodel.DbmMetadataFieldListenIP, hamodel.DbmMetadataFieldListenPort,
 		hamodel.DbmMetadataFieldUpdatedAt,

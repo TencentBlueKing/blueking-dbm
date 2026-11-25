@@ -169,6 +169,9 @@ type retainer struct {
 	tables        []*retentionTableState
 }
 
+// metadataRetentionTarget cleans t_dbm_metadata. A live row survives only while
+// Synchronizer.saveRespond keeps refreshing updated_at, through OnConflict{UpdateAll: true}
+// together with the model's autoUpdateTime.
 type metadataRetentionTarget struct{}
 
 type statusRetentionTarget struct{}
