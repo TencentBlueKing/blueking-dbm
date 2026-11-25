@@ -142,8 +142,8 @@ class StorageConfChecker(BaseConfChecker):
     ``whitelist`` (default DEFAULT_STORAGE_CONF_WHITELIST, "*" = everything) and ``directive_rules``;
     ``check_role`` / ``check_loadmodule`` booleans force those sub-checks on or off.
 
-    Disk and runtime state are collected on the host through redis-cmd.sh (no DRS, no
-    password lookup); see ``build_storage_conf_check_snippet``.
+    Disk and runtime state are collected on the host directly through local redis-cli (no
+    DRS, no remote password lookup, no redis-cmd.sh wrapper); see ``build_storage_conf_check_snippet``.
     """
 
     name = "storage_conf"
@@ -195,7 +195,9 @@ class StorageConfChecker(BaseConfChecker):
         return masters
 
     def host_script_snippet(self, targets_on_host: List[CheckTarget]) -> Optional[str]:
-        return build_storage_conf_check_snippet([t.port for t in targets_on_host]) or None
+        if not targets_on_host:
+            return None
+        return build_storage_conf_check_snippet([t.port for t in targets_on_host], ip=targets_on_host[0].ip) or None
 
     def prepare_evaluation(self, targets: List[CheckTarget]) -> None:
         contexts = load_cluster_contexts({t.cluster_id for t in targets})

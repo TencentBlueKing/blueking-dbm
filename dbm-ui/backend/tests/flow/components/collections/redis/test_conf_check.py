@@ -95,24 +95,69 @@ COMPONENTS = "backend.flow.plugins.components.collections.redis.conf_check.compo
 SYSTEM_BASH = "/bin/bash" if os.path.exists("/bin/bash") else shutil.which("bash")
 HOST_TOOLS_AVAILABLE = bool(SYSTEM_BASH and shutil.which("bash") and shutil.which("gzip") and shutil.which("base64"))
 
-# Mimics /home/mysql/dbtools/redis-cmd.sh: echoes the redis-cli command line with the
-# password, then answers the command read from stdin from per-port fixture files.
-_STUB_REDIS_CMD = r"""#!/bin/bash
-port="$1"
-echo "$#" >> "$STUB_DIR/argc.log"
-echo "/usr/local/redis/bin/redis-cli -a FakePass_For_Test_Only -h 1.1.1.1 -p $port -c "
-IFS= read -r cmd
+# Mimics direct redis-cli invocation: parses -h/-p/-a and positional command args,
+# optionally verifies exact password bytes, and answers from per-port fixture files.
+_STUB_REDIS_CLI = r"""#!/bin/bash
+host=""
+port=""
+has_auth=0
+has_raw=0
+pass=""
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --raw) has_raw=1; shift ;;
+        -h) host="$2"; shift 2 ;;
+        -p) port="$2"; shift 2 ;;
+        -a) has_auth=1; pass="$2"; shift 2 ;;
+        *) break ;;
+    esac
+done
+if [ "$has_raw" -ne 1 ]; then
+    echo "ERR missing --raw flag"
+    exit 1
+fi
+cmd="$*"
 printf '%s|%s\n' "$port" "$cmd" >> "$STUB_DIR/calls.log"
+printf '%s|%s|%s\n' "$host" "$port" "$cmd" >> "$STUB_DIR/host_calls.log"
+printf '%s\n' "$#" >> "$STUB_DIR/argc.log"
 d="$STUB_DIR/$port"
+if [ -f "$d/echo_cmd" ]; then
+    echo "/usr/local/redis/bin/redis-cli -a ${pass:-FakePass_For_Test_Only} -h $host -p $port"
+fi
 if [ -f "$d/warning" ]; then
     echo "Warning: Using a password with '-a' or '-u' option on the command line interface may not be safe." >&2
 fi
-case "$cmd" in
-    "info replication") f=info ;;
-    "confxx get *") f=confxx ;;
-    "config get *") f=config ;;
-    *) echo "ERR unexpected command"; exit 0 ;;
-esac
+if [ -f "$d/require_pass" ]; then
+    expected=$(cat "$d/require_pass"; echo x)
+    expected="${expected%x}"
+    if [ -z "$expected" ]; then
+        if [ "$has_auth" -eq 1 ]; then
+            echo "ERR Client sent AUTH, but no password is set"
+            exit 0
+        fi
+    else
+        if [ "$has_auth" -eq 0 ]; then
+            echo "NOAUTH Authentication required."
+            exit 0
+        fi
+        if [ "$pass" != "$expected" ]; then
+            echo "WRONGPASS invalid username-password pair or user is disabled."
+            exit 0
+        fi
+    fi
+fi
+if [ "$#" -eq 2 ] && [ "$1" = "info" ] && [ "$2" = "replication" ]; then
+    f=info
+elif [ "$#" -eq 3 ] && [ "$2" = "get" ] && [ "$3" = "*" ]; then
+    case "$1" in
+        confxx) f=confxx ;;
+        config) f=config ;;
+        *) echo "ERR unexpected command"; exit 0 ;;
+    esac
+else
+    echo "ERR unexpected command"
+    exit 0
+fi
 [ -f "$d/$f.out" ] && cat "$d/$f.out"
 if [ -f "$d/$f.rc" ]; then exit "$(cat "$d/$f.rc")"; fi
 exit 0
@@ -190,14 +235,15 @@ def _storage_block(disk="port 30000\n", repl=REDIS_MASTER_INFO, mem=REDIS_CONFIG
 
 
 class _StorageHostSim:
-    """Temp config tree + stub redis-cmd.sh for running the storage_conf snippet under bash."""
+    """Temp config tree + stub redis-cli for running the storage_conf snippet under bash."""
 
     def __init__(self, root):
         self.root = root
         self.stub_dir = root / "stub"
         self.stub_dir.mkdir()
-        self.redis_cmd = root / "redis-cmd.sh"
-        self.redis_cmd.write_text(_STUB_REDIS_CMD)
+        self.redis_cli = root / "redis-cli"
+        self.redis_cli.write_text(_STUB_REDIS_CLI)
+        self.redis_cli.chmod(0o755)
         self.data_dirs = [root / "data1", root / "data"]
 
     def write_conf(self, data_dir: str, port: int, name: str, content: str):
@@ -206,7 +252,14 @@ class _StorageHostSim:
         conf.write_text(content)
         return conf
 
-    def answer(self, port: int, kind: str, out: str = "", rc: int = None, warning: bool = False):
+    def require_pass(self, port: int, password: str):
+        port_dir = self.stub_dir / str(port)
+        port_dir.mkdir(exist_ok=True)
+        (port_dir / "require_pass").write_bytes(password.encode())
+
+    def answer(
+        self, port: int, kind: str, out: str = "", rc: int = None, warning: bool = False, echo_cmd: bool = False
+    ):
         port_dir = self.stub_dir / str(port)
         port_dir.mkdir(exist_ok=True)
         (port_dir / "{}.out".format(kind)).write_bytes(out.encode())
@@ -214,14 +267,24 @@ class _StorageHostSim:
             (port_dir / "{}.rc".format(kind)).write_text(str(rc))
         if warning:
             (port_dir / "warning").write_text("1")
+        if echo_cmd:
+            (port_dir / "echo_cmd").write_text("1")
 
     def calls(self):
         log = self.stub_dir / "calls.log"
         return log.read_text().splitlines() if log.exists() else []
 
-    def run(self, ports, cwd=None):
+    def host_calls(self):
+        log = self.stub_dir / "host_calls.log"
+        return log.read_text().splitlines() if log.exists() else []
+
+    def run(self, ports, cwd=None, ip="1.1.1.1", redis_cli=None):
+        cli_path = str(self.redis_cli) if redis_cli is None else redis_cli
         script = CONF_CHECK_SCRIPT_HEADER + build_storage_conf_check_snippet(
-            ports, redis_cmd=str(self.redis_cmd), data_dirs=[str(d) for d in self.data_dirs]
+            ports,
+            ip=ip,
+            redis_cli=cli_path,
+            data_dirs=[str(d) for d in self.data_dirs],
         )
         script_path = self.root / "job.sh"
         script_path.write_text(script)
@@ -424,8 +487,10 @@ class TestConfCheckScript:
 
 class TestStorageConfSnippetBuilder:
     def test_snippet_embeds_numeric_ports_only(self):
-        snippet = build_storage_conf_check_snippet([30000, "30001", "bad"])
+        snippet = build_storage_conf_check_snippet([30000, "30001", "bad"], ip="1.1.1.1")
         assert '__dbm_scc_port "30000"' in snippet and '__dbm_scc_port "30001"' in snippet
+        assert "__DBM_SCC_HOST_IP=1.1.1.1" in snippet
+        assert "redis-cmd.sh" not in snippet
         assert "bad" not in snippet and "python" not in snippet
         assert '"${REDIS_DATA_DIR:-}" /data1 /data;' in snippet
         assert build_storage_conf_check_snippet([]) == ""
@@ -485,8 +550,18 @@ class TestStorageConfHostSnippet:
         _stdout, blocks = sim.run([30000], cwd=workdir)
 
         assert "30000|confxx get *" in sim.calls()
-        assert set((sim.stub_dir / "argc.log").read_text().split()) == {"1"}
+        assert (sim.stub_dir / "argc.log").read_text().splitlines() == ["2", "3"]
         assert _decode_section(blocks[30000]["mem"]) == REDIS_CONFIG
+
+    def test_redis_cli_not_found_reports_fixed_token(self, tmp_path):
+        sim = _StorageHostSim(tmp_path)
+        sim.write_conf("data", 30000, "redis.conf", "port 30000\n")
+
+        _stdout, blocks = sim.run([30000], redis_cli=str(tmp_path / "missing-redis-cli"))
+
+        assert blocks[30000]["disk_err"] == ""
+        assert (blocks[30000]["repl_err"], blocks[30000]["repl"]) == ("redis_cli_not_found", "")
+        assert (blocks[30000]["mem_err"], blocks[30000]["mem"]) == ("redis_cli_not_found", "")
 
     def test_falls_back_to_config_get_only_on_unknown_command(self, tmp_path):
         sim = _StorageHostSim(tmp_path)
@@ -555,6 +630,103 @@ class TestStorageConfHostSnippet:
             assert (blocks[port]["repl_err"], blocks[port]["repl"], blocks[port]["mem_err"]) == (err, "", "")
         assert "Authentication required" not in stdout
         assert "partial output" not in stdout
+
+    @pytest.mark.parametrize(
+        "conf_line,expected_password",
+        [
+            ('requirepass "$70<Fake\'Pass \\"\\\\* ?[a]&>"', "$70<Fake'Pass \"\\* ?[a]&>"),
+            ("requirepass 'a\\'b$70<c>d&e*f'", "a'b$70<c>d&e*f"),
+            ('requirepass "-lead$70<dash"', "-lead$70<dash"),
+            ('requirepass "hex\\x3c\\x3e\\x26pass"', "hex<>&pass"),
+            ("requirepass $70<Bare&Pass", "$70<Bare&Pass"),
+            ('requirepass "trailing space "', "trailing space "),
+            ('requirepass ""', ""),
+            ("# requirepass commented_out", ""),
+        ],
+    )
+    def test_special_char_disk_passwords(self, tmp_path, conf_line, expected_password):
+        sim = _StorageHostSim(tmp_path)
+        workdir = tmp_path / "cwd"
+        workdir.mkdir()
+        (workdir / "alpha").write_text("x")
+        sim.write_conf("data", 30000, "redis.conf", "port 30000\n{}\n".format(conf_line))
+        sim.require_pass(30000, expected_password)
+        sim.answer(30000, "info", REDIS_MASTER_INFO, warning=bool(expected_password))
+        sim.answer(30000, "confxx", REDIS_CONFIG, warning=bool(expected_password))
+
+        stdout, blocks = sim.run([30000], cwd=workdir)
+
+        block = blocks[30000]
+        assert (block["disk_err"], block["repl_err"], block["mem_err"]) == ("", "", "")
+        assert _decode_section(block["repl"]) == REDIS_MASTER_INFO
+        assert _decode_section(block["mem"]) == REDIS_CONFIG
+        if expected_password:
+            assert expected_password not in stdout
+        assert "Warning: Using a password" not in stdout
+
+    def test_last_requirepass_across_includes_wins(self, tmp_path):
+        sim = _StorageHostSim(tmp_path)
+        sim.write_conf(
+            "data",
+            30000,
+            "redis.conf",
+            'port 30000\ninclude instance.conf\nrequirepass "new$70<pass"\n',
+        )
+        sim.write_conf("data", 30000, "instance.conf", 'requirepass "oldpass"\n')
+        sim.require_pass(30000, "new$70<pass")
+        sim.answer(30000, "info", REDIS_MASTER_INFO, warning=True)
+        sim.answer(30000, "confxx", REDIS_CONFIG, warning=True)
+
+        stdout, blocks = sim.run([30000])
+
+        assert (blocks[30000]["repl_err"], blocks[30000]["mem_err"]) == ("", "")
+        assert "new$70<pass" not in stdout
+        assert "oldpass" not in stdout
+
+    def test_host_ip_passed_to_cli_and_defaults_to_loopback(self, tmp_path):
+        sim = _StorageHostSim(tmp_path)
+        sim.write_conf("data", 30000, "redis.conf", "port 30000\n")
+        sim.answer(30000, "info", REDIS_MASTER_INFO)
+        sim.answer(30000, "confxx", REDIS_CONFIG)
+
+        _stdout, blocks = sim.run([30000], ip="2.2.2.2")
+        assert blocks[30000]["repl_err"] == ""
+        assert "2.2.2.2|30000|info replication" in sim.host_calls()
+
+        _stdout, blocks = sim.run([30000], ip="")
+        assert blocks[30000]["repl_err"] == ""
+        assert "127.0.0.1|30000|info replication" in sim.host_calls()
+
+    def test_missing_conf_skips_cli_and_reports_conf_not_found(self, tmp_path):
+        sim = _StorageHostSim(tmp_path)
+        sim.answer(30000, "info", REDIS_MASTER_INFO)
+        sim.answer(30000, "confxx", REDIS_CONFIG)
+
+        _stdout, blocks = sim.run([30000], ip="1.1.1.1")
+
+        block = blocks[30000]
+        assert (block["disk_err"], block["repl_err"], block["mem_err"]) == (
+            "conf_not_found",
+            "conf_not_found",
+            "conf_not_found",
+        )
+        assert (block["disk"], block["repl"], block["mem"]) == ("", "", "")
+        assert sim.calls() == []
+
+    def test_echoed_cli_password_line_stripped_from_job_log(self, tmp_path):
+        sim = _StorageHostSim(tmp_path)
+        pwd = "$70<Fake'Pass"
+        sim.write_conf("data", 30000, "redis.conf", 'port 30000\nrequirepass "{}"\n'.format(pwd))
+        sim.require_pass(30000, pwd)
+        sim.answer(30000, "info", REDIS_MASTER_INFO, warning=True, echo_cmd=True)
+        sim.answer(30000, "confxx", REDIS_CONFIG, warning=True, echo_cmd=True)
+
+        stdout, blocks = sim.run([30000], ip="1.1.1.1")
+
+        assert (blocks[30000]["repl_err"], blocks[30000]["mem_err"]) == ("", "")
+        assert pwd not in stdout
+        assert " -a " not in stdout
+        assert "Warning: Using a password" not in stdout
 
 
 class TestStorageConfParse:
@@ -1572,7 +1744,21 @@ class TestStorageConfChecker:
         target = CheckTarget(cluster_id=1, bk_cloud_id=0, ip="1.1.1.1", port=30000)
         assert checker.requires_host_script is True
         assert checker.drs_request(target) is None
-        assert checker.host_script_snippet([target, target]).count('__dbm_scc_port "30000"') == 2
+        assert checker.host_script_snippet([]) is None
+        snippet = checker.host_script_snippet([target, target])
+        assert snippet.count('__dbm_scc_port "30000"') == 2
+        assert "__DBM_SCC_HOST_IP=1.1.1.1" in snippet
+
+    def test_evaluate_redis_cli_not_found_reports_abnormal(self):
+        block = _storage_block(
+            repl=None,
+            mem=None,
+            repl_err="redis_cli_not_found",
+            mem_err="redis_cli_not_found",
+        )
+        results = _evaluate_storage("master", {}, block)
+        assert [r.state for r in results] == [ABNORMAL]
+        assert "[collect] mem=redis_cli_not_found; [collect] repl=redis_cli_not_found" in results[0].msg
 
     @staticmethod
     def _storage(inst_id, ip, role, status="running", master=None):
