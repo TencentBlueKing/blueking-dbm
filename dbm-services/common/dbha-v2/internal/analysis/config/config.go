@@ -26,6 +26,8 @@
 package config
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	"dbm-services/common/dbha-v2/pkg/logger"
@@ -61,6 +63,7 @@ var Cfg = Configuration{
 		SwitchTimeout:              10 * time.Minute,
 		DbmApiMetadataHashCnt:      minDbmApiMetadataHashCnt,
 		EnableWhiteListForSwitch:   true,
+		EnableWhiteListForScan:     true,
 		SwitchFlow: SwitchFlowConfig{
 			Common: SwitchFlowCommonConfig{
 				HostLevelSwitchMaxHostNum:        32,
@@ -295,6 +298,23 @@ func Load(configFilePath string) error {
 	}
 
 	Cfg.Detector.Ssh.Timeout = clampSshTimeout(Cfg.Detector.Ssh.Timeout)
+
+	return ValidateWhiteListForScan()
+}
+
+// ValidateWhiteListForScan checks that the DBHA v1 whitelist API is configured when
+// workflow.enableWhiteListForScan is on. Without it every business scan fails the
+// whitelist query and is skipped, so nothing is probed.
+// It returns nil when the scan whitelist is disabled or the API is non-empty.
+func ValidateWhiteListForScan() error {
+	if !Cfg.Workflow.EnableWhiteListForScan {
+		return nil
+	}
+
+	if strings.TrimSpace(Cfg.Workflow.Dbhav1ApiBlackWhitelistGet.Api) == "" {
+		return fmt.Errorf("invalid workflow config: dbhav1ApiBlackWhitelistGet.api is empty while " +
+			"enableWhiteListForScan is true, set the api or set enableWhiteListForScan: false")
+	}
 
 	return nil
 }

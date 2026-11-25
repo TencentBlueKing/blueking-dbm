@@ -34,6 +34,10 @@ import (
 	"github.com/spf13/viper"
 )
 
+const minimalWhiteListAPIYAML = `  dbhav1ApiBlackWhitelistGet:
+    api: http://127.0.0.1:8080/blackwhitelist/
+`
+
 const minimalAnalysisYAML = `name: analysis
 version: test
 pidFile: ./pids/analysis.pid
@@ -49,7 +53,7 @@ workflow:
   lockBusinessWaitTimeout: 5s
   scanTimeout: 60s
   scanInterval: 3s
-detector:
+` + minimalWhiteListAPIYAML + `detector:
   ssh:
     port: 22
     user: root

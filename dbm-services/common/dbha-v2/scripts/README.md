@@ -181,6 +181,7 @@ python3 scripts/render_configs.py --module server \
     6. `ADMIN_WEB_LISTEN_ADDRESS` → `http://<本机检测 IPv4>:50060`（失败则为 `http://127.0.0.1:50060`）。
     7. `PROBE_INSTALL_DIR` / `ANALYSIS_DETECTOR_CHECK_PROBE_PROCESS_CMD` → 默认 `/usr/local/dbha-v2` 与 `cd /usr/local/dbha-v2 && ./bin/dbha-probe health -j`（与 `deploy.sh -t` 及 `start-probe.sh` 一致）。
   - 「本机检测 IPv4」依赖必填参数 `--ip-detect-udp-connect-host`（UDP connect 对端；与上列 (1)–(6) 同一策略）。
+- **Scan 白名单接口检查（server）**：`ANALYSIS_WORKFLOW_ENABLE_WHITE_LIST_FOR_SCAN` 为 `true`（或留空，沿用 analysis 默认值 `true`）而 `COMMON_DBHAV1_API_BLACK_WHITELIST_GET_API` 为空时，脚本在 stderr 打 warning 并继续渲染；analysis 启动时 `config.Load()` 会拒绝该组合。填写接口或把开关设为 `false` 即可消除。
 - **receiver `service.source` 分片（server）**：`RECEIVER_SOURCE_PROBE_SHARD_FILE` / `RECEIVER_SOURCE_KAFKA_SHARD_FILE` 各对应一类 source 列表项（默认见 `templates/snippets/receiver_source_probe.yaml`、`receiver_source_kafka.yaml`），占位符与 rc 中 `RECEIVER_SOURCE_PROBE_*` / `RECEIVER_SOURCE_KAFKA_*` 一致。
 - **probe client（probe）**：`probe.yaml` 的 `client.*` 可配置 probe 侧 gRPC client 的 keepalive/msg size，以及 receiver client 的重连参数；未设置时回退到内置默认值。
 - **probe harvester 凭据由 admin 下发（server）**：admin 通过 `GetProbeConfig` 把 `probeMysql` / `probeRedis` 段返回给 probe，probe 侧 `genconfig` 不再硬编码用户名/密码/采集间隔；只有当请求 probe 的元数据包含对应集群家族时才下发对应段。
