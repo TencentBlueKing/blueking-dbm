@@ -91,6 +91,33 @@ random_job_with_ticket_map = {
 TICKET_TYPE_SENSITIVE_LIST = []
 
 
+def build_tdbctl_list_by_spider_master(cluster: Cluster, skip_unavailable: bool = False) -> list:
+    """
+    遍历 spider_master 节点，推算所有 tdbctl 节点地址
+
+    架构约定：tdbctl 与 spider_master 部署在同一机器上，端口 = spider.port + 1000
+    因此通过遍历 spider_master 来推算所有 tdbctl 节点的地址
+
+    @param cluster: 集群对象
+    @param skip_unavailable: 是否排除 unavailable 状态的 spider（对应的 tdbctl 也不可用）
+    @return: tdbctl 节点信息列表
+    """
+    spider_master_query = Q(tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER.value)
+    if skip_unavailable:
+        spider_master_query &= ~Q(status=InstanceStatus.UNAVAILABLE.value)
+
+    return [
+        {
+            # tdbctl 端口 = spider_master 端口 + 1000（TenDBCluster 架构约定）
+            "instance": "{}{}{}".format(spider.machine.ip, IP_PORT_DIVIDER, spider.port + 1000),
+            "priv_role": PrivRole.TDBCTL.value,
+            # tdbctl 不是独立的 CMDB 模型实例，此处以对应 spider 的可用性间接代表其状态
+            "cmdb_status": InstanceStatus.RUNNING.value,
+        }
+        for spider in cluster.proxyinstance_set.filter(spider_master_query)
+    ]
+
+
 def get_instance_with_random_job(cluster: Cluster, ticket_type: TicketType):
     """
     根据单据类型及集群信息，获取需要添加随机临时账号的实例列表
@@ -107,19 +134,12 @@ def get_instance_with_random_job(cluster: Cluster, ticket_type: TicketType):
     is_tendb_cluster = cluster.cluster_type == ClusterType.TenDBCluster
 
     if not rule_dict:
-        # 未命中任何规则，默认返回集群所有实例（storage + proxy + tdbctl primary）
-        # 注意：只有 TenDBCluster 集群类型才会额外添加 proxy 和 tdbctl primary 节点
+        # 未命中任何规则，默认返回集群所有实例（storage + proxy + 所有 tdbctl）
+        # 注意：只有 TenDBCluster 集群类型才会额外添加 proxy 和 tdbctl 节点
         storage_instances = cluster.storageinstance_set.all()
         if is_tendb_cluster:
             proxy_instances = cluster.proxyinstance_set.all()
-            tdbctl_list.append(
-                {
-                    "instance": cluster.tendbcluster_ctl_primary_address(),
-                    "priv_role": PrivRole.TDBCTL.value,
-                    # tdbctl 不是独立的 CMDB 模型实例，无法直接查询真实状态，此处硬编码为 RUNNING
-                    "cmdb_status": InstanceStatus.RUNNING.value,
-                }
-            )
+            tdbctl_list.extend(build_tdbctl_list_by_spider_master(cluster))
     else:
         # 根据规则构建查询条件，分别对 storage 和 proxy 进行过滤
         storage_filter_query = Q()
@@ -183,24 +203,9 @@ def get_instance_with_random_job(cluster: Cluster, ticket_type: TicketType):
 
         # 所有 tdbctl 节点添加账号
         # 架构约定：tdbctl 与 spider_master 部署在同一机器上，端口 = spider.port + 1000
-        # 因此通过遍历 spider_master 来推算所有 tdbctl 节点的地址
         if rule_dict.is_all_tdbctl_add:
-            spider_master_query = Q(tendbclusterspiderext__spider_role=TenDBClusterSpiderRole.SPIDER_MASTER.value)
             # 当开启 skip_unavailable_instance 时，排除 unavailable 状态的 spider（对应的 tdbctl 也不可用）
-            if rule_dict.skip_unavailable_instance:
-                spider_master_query &= ~Q(status=InstanceStatus.UNAVAILABLE.value)
-
-            spider_masters = cluster.proxyinstance_set.filter(spider_master_query)
-            for spider in spider_masters:
-                tdbctl_list.append(
-                    {
-                        # tdbctl 端口 = spider_master 端口 + 1000（TenDBCluster 架构约定）
-                        "instance": "{}{}{}".format(spider.machine.ip, IP_PORT_DIVIDER, spider.port + 1000),
-                        "priv_role": PrivRole.TDBCTL.value,
-                        # tdbctl 不是独立的 CMDB 模型实例，此处以对应 spider 的可用性间接代表其状态
-                        "cmdb_status": InstanceStatus.RUNNING.value,
-                    }
-                )
+            tdbctl_list.extend(build_tdbctl_list_by_spider_master(cluster, rule_dict.skip_unavailable_instance))
 
     # 统一组装返回结果
     return [

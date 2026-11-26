@@ -1673,6 +1673,14 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         定义拼接TenDB-Cluster成对迁移的payload参数
         """
         cluster = Cluster.objects.get(id=self.ticket_data["cluster_id"])
+        # 获取cluster的tdbctl的管理端口
+        tdbctl_port = cluster.proxyinstance_set.first().admin_port
+        tdbctl_account = self.account | {
+            "tdbctl_pwd": self.read_ctl_pass_from_ctl_primary(
+                f'{kwargs["ip"]}{IP_PORT_DIVIDER}{tdbctl_port}', cluster.bk_cloud_id
+            ),
+            "tdbctl_user": TDBCTL_USER,
+        }
         migrate_cutover_pairs = []
         for info in self.ticket_data["migrate_tuples"]:
             migrate_cutover_pairs.append(
@@ -1700,10 +1708,10 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             "db_type": DBActuatorTypeEnum.SpiderCtl.value,
             "action": DBActuatorActionEnum.TenDBClusterMigrateCutOver.value,
             "payload": {
-                "general": {"runtime_account": self.account},
+                "general": {"runtime_account": tdbctl_account},
                 "extend": {
                     "host": kwargs["ip"],
-                    "port": cluster.proxyinstance_set.first().admin_port,
+                    "port": tdbctl_port,
                     "slave_delay_check": self.ticket_data["slave_delay_check"],
                     "migrate_cutover_pairs": migrate_cutover_pairs,
                 },

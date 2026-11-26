@@ -195,8 +195,8 @@ func (s *SpiderClusterBackendMigrateCutoverComp) Init() (err error) {
 	conn, err = native.InsObject{
 		Host: s.Params.Host,
 		Port: s.Params.Port,
-		User: s.GeneralParam.RuntimeAccountParam.AdminUser,
-		Pwd:  s.GeneralParam.RuntimeAccountParam.AdminPwd,
+		User: s.GeneralParam.RuntimeAccountParam.TdbctlUser,
+		Pwd:  s.GeneralParam.RuntimeAccountParam.TdbctlPwd,
 	}.Conn()
 	if err != nil {
 		return err

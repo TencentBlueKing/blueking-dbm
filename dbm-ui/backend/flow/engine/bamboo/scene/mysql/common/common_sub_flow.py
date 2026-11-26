@@ -24,14 +24,17 @@ from backend.db_meta.models import Cluster
 from backend.db_package.exceptions import PackageNotExistException
 from backend.db_services.dbpermission.db_account.handlers import AccountHandler
 from backend.db_services.mysql.permission.clone.handlers import CloneHandler
-from backend.flow.consts import DBA_ROOT_USER, WriteContextOpType
+from backend.flow.consts import DBA_ROOT_USER, CheckClientConnRole, WriteContextOpType
 from backend.flow.engine.bamboo.scene.common.builder import SubBuilder
 from backend.flow.engine.bamboo.scene.common.get_file_list import GetFileList
 from backend.flow.engine.bamboo.scene.common.install_plugins import install_nodeman_plugins
 from backend.flow.plugins.components.collections.common.sa_idle_check import CheckMachineIdleComponent
 from backend.flow.plugins.components.collections.mysql.authorize_rules import AuthorizeRulesComponent
 from backend.flow.plugins.components.collections.mysql.authorize_rules_v2 import AuthorizeRulesV2Component
-from backend.flow.plugins.components.collections.mysql.check_client_connections import CheckClientConnComponent
+from backend.flow.plugins.components.collections.mysql.check_client_connections import (
+    CheckClientConnComponent,
+    DynamicCheckClientConnComponent,
+)
 from backend.flow.plugins.components.collections.mysql.check_long_innodb_trx import CheckLongInnoDbTrxComponent
 from backend.flow.plugins.components.collections.mysql.check_slaves_delay import CheckSlavesDelayComponent
 from backend.flow.plugins.components.collections.mysql.clone_rules import CloneRulesComponent
@@ -62,6 +65,7 @@ from backend.flow.utils.mysql.mysql_act_dataclass import (
     CloneRuleKwargs,
     DBMetaOPKwargs,
     DownloadMediaKwargs,
+    DynamicCheckClientConnKwargs,
     ExecActuatorKwargs,
     MySQLCheckVariableConsistencyKwargs,
     VerifyChecksumKwargs,
@@ -298,25 +302,51 @@ def check_sub_flow(
     is_proxy: bool = False,
     slave_addr_tuples: list = None,
     is_check_delay: bool = False,
+    is_dynamic_check_client_conn: bool = False,
+    check_client_conn_role: str = None,
 ):
     """
     设计预检测的公共子流程，主要服务于切换类的流程，做前置检查，方便管控
     @param uid: 流程单据的uid
     @param root_id: flow流程的root_id
     @param cluster: 关联的cluster对象
-    @param is_check_client_conn: 是否做客户端连接检测
+    @param is_check_client_conn: 是否做客户端连接检测（静态模式，构建期需传入实例列表）
     @param check_client_conn_inst: 如果做客户端连接检测，则传入待检测的实例列表，["ip:port"...]
     @param is_verify_checksum: 是否做验证checksum结果
     @param verify_checksum_tuples: 如果验证checksum，则传入待检测的实例列表，每个元素[{"master":"ip:port", "slave":"ip:port"}..]
     @param is_proxy: 是否针对proxy机器做检查
+    @param is_dynamic_check_client_conn: 是否做客户端连接检测（动态模式，运行期根据集群ID+角色动态获取实例列表）
+    @param check_client_conn_role: 动态检测的角色，CheckClientConnRole.value（backend/spider/proxy）
     """
 
     if is_check_client_conn and not check_client_conn_inst:
         raise Exception(_("构建子流程失败，联系系统管理员, check_client_conn_inst is null"))
     if is_verify_checksum and not verify_checksum_tuples:
         raise Exception(_("构建子流程失败，联系系统管理员, verify_checksum_tuples is null"))
+    if is_dynamic_check_client_conn:
+        # 动态检测与静态检测互斥
+        if is_check_client_conn or check_client_conn_inst:
+            raise Exception(_("构建子流程失败，联系系统管理员, 动态检测客户端连接与静态检测互斥"))
+        if not check_client_conn_role:
+            raise Exception(_("构建子流程失败，联系系统管理员, check_client_conn_role is null"))
+        if check_client_conn_role not in CheckClientConnRole.get_values():
+            raise Exception(_("构建子流程失败，联系系统管理员, 非法的检测角色类型: {}").format(check_client_conn_role))
 
     act_list = []
+    if is_dynamic_check_client_conn:
+        act_list.append(
+            {
+                "act_name": _("动态检测客户端连接(角色: {})").format(check_client_conn_role),
+                "act_component_code": DynamicCheckClientConnComponent.code,
+                "kwargs": asdict(
+                    DynamicCheckClientConnKwargs(
+                        bk_cloud_id=cluster.bk_cloud_id,
+                        cluster_id=cluster.id,
+                        check_role=check_client_conn_role,
+                    )
+                ),
+            }
+        )
     if is_check_client_conn:
         for inst in check_client_conn_inst:
             if is_proxy:

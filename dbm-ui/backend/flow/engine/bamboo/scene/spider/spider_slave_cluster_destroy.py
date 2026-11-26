@@ -83,30 +83,7 @@ class TenDBSlaveClusterDestroyFlow(object):
             # 子流程
             sub_pipeline = SubBuilder(root_id=self.root_id, data=copy.deepcopy(sub_flow_context))
 
-            # 删除spider路由关系
-            sub_pipeline.add_act(
-                act_name=_("删除spider路由关系"),
-                act_component_code=DropSpiderRoutingComponent.code,
-                kwargs=asdict(
-                    DropSpiderRoutingKwargs(
-                        cluster_id=slave_cluster["cluster_id"],
-                        reduce_spiders=sub_flow_context["reduce_spiders"],
-                    )
-                ),
-            )
-
             # 删除对应的域名关系
-            # sub_pipeline.add_act(
-            #     act_name=_("删除集群域名"),
-            #     act_component_code=MySQLDnsManageComponent.code,
-            #     kwargs=asdict(
-            #         DeleteClusterDnsKwargs(
-            #             bk_cloud_id=slave_cluster["bk_cloud_id"],
-            #             delete_cluster_id=slave_cluster["cluster_id"],
-            #             is_only_delete_slave_domain=True,
-            #         ),
-            #     ),
-            # )
             entrysub_process = BuildEntrysManageSubflow(
                 root_id=self.root_id,
                 ticket_data=sub_flow_context,
@@ -122,6 +99,18 @@ class TenDBSlaveClusterDestroyFlow(object):
             sub_pipeline.add_sub_pipeline(sub_flow=entrysub_process)
             # 暂停节点，让用户在合适的时间执行下架
             sub_pipeline.add_act(act_name=_("人工确认"), act_component_code=PauseComponent.code, kwargs={})
+
+            # 删除spider路由关系
+            sub_pipeline.add_act(
+                act_name=_("删除spider路由关系"),
+                act_component_code=DropSpiderRoutingComponent.code,
+                kwargs=asdict(
+                    DropSpiderRoutingKwargs(
+                        cluster_id=slave_cluster["cluster_id"],
+                        reduce_spiders=sub_flow_context["reduce_spiders"],
+                    )
+                ),
+            )
 
             # 根据场景执行下架spider子流程
             sub_pipeline.add_sub_pipeline(

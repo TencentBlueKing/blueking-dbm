@@ -7,14 +7,17 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import copy
+
 from django.utils.translation import gettext as _
 from pipeline.component_framework.component import Component
 
 from backend import env
+from backend.flow.consts import CheckClientConnRole
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.base.flow_output import BaseFlowOutputSerializer, FlowOutputHandler
 from backend.flow.utils.mysql.act_payload.mixed.account_mixed.mysql_account_mixed import MySQLAccountMixed
-from backend.flow.utils.mysql.check_client_connections import check_client_connection
+from backend.flow.utils.mysql.check_client_connections import check_client_connection, get_cluster_instances_by_role
 
 # --------------------------
 # Helpers for formatted output
@@ -180,3 +183,43 @@ class CheckClientConnComponent(Component):
     name = __name__
     code = "check_client_connections"
     bound_service = CheckClientConnService
+
+
+class DynamicCheckClientConnService(CheckClientConnService):
+    """
+    定义运行期动态检测客户端连接的活动节点
+    区别于静态模式（构建期传入实例列表），本节点在运行期根据集群ID+角色
+    动态获取 running 状态的实例，再复用父类 CheckClientConnService 的检测逻辑
+    （含内置账号过滤、proxy 的 dbha 账号过滤、FlowOutput/Excel 输出等）
+    """
+
+    def _execute(self, data, parent_data):
+        kwargs = data.get_one_of_inputs("kwargs")
+        check_role = kwargs["check_role"]
+
+        # 运行期根据集群ID+角色，动态获取该角色 running 状态的实例
+        instances = get_cluster_instances_by_role(cluster_id=kwargs["cluster_id"], role=check_role)
+        if not instances:
+            self.log_error(_("集群[{}]按角色[{}]未查询到 running 状态的待检测实例，联系系统管理员确认").format(kwargs["cluster_id"], check_role))
+            return False
+
+        # proxy 角色走 proxyrpc(show processlist)，backend/spider 角色走 rpc(processlist 查询)
+        is_proxy = check_role == CheckClientConnRole.PROXY.value
+
+        # 拼装父类 CheckClientConnService._execute 所需的 kwargs
+        original_kwargs = kwargs
+        check_kwargs = copy.deepcopy(original_kwargs)
+        check_kwargs["check_instances"] = instances
+        check_kwargs["is_proxy"] = is_proxy
+        data.inputs.kwargs = check_kwargs
+
+        self.log_info(f"[dynamic check client conn] role[{check_role}] instances: {instances}")
+        result = super()._execute(data, parent_data)
+
+        return result
+
+
+class DynamicCheckClientConnComponent(Component):
+    name = __name__
+    code = "mysql_dynamic_check_client_connections"
+    bound_service = DynamicCheckClientConnService
