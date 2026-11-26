@@ -35,6 +35,7 @@ type K8sCrdClusterDbAccess interface {
 	Create(model *models.K8sCrdClusterModel) (*models.K8sCrdClusterModel, error)
 	DeleteByID(id uint64) (uint64, error)
 	FindByID(id uint64) (*models.K8sCrdClusterModel, error)
+	FindByDbmClusterIDs(clusterIDs []uint64) ([]*models.K8sCrdClusterModel, error)
 	FindByParams(params *metaentity.ClusterQueryParams) (*models.K8sCrdClusterModel, error)
 	Update(model *models.K8sCrdClusterModel) (uint64, error)
 	ListByPage(params *metaentity.ClusterQueryParams, pagination *entity.Pagination) (
@@ -95,6 +96,20 @@ func (k *K8sCrdClusterDbAccessImpl) FindByID(id uint64) (*models.K8sCrdClusterMo
 		return nil, errors.Wrapf(result.Error, "failed to find cluster with id %d", id)
 	}
 	return &cluster, nil
+}
+
+// FindByDbmClusterIDs 根据 DBM cluster ID 批量查找集群元数据
+func (k *K8sCrdClusterDbAccessImpl) FindByDbmClusterIDs(clusterIDs []uint64) (
+	[]*models.K8sCrdClusterModel, error,
+) {
+	clusters := make([]*models.K8sCrdClusterModel, 0)
+	if len(clusterIDs) == 0 {
+		return clusters, nil
+	}
+	if err := k.db.Where("dbm_cluster_id IN (?)", clusterIDs).Order("id").Find(&clusters).Error; err != nil {
+		return nil, errors.Wrapf(err, "failed to find clusters with dbm cluster IDs %v", clusterIDs)
+	}
+	return clusters, nil
 }
 
 // FindByParams 根据参数查找 cluster 元数据接口实现

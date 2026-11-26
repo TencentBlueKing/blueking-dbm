@@ -84,6 +84,9 @@ func (m *mockClusterProvider) DeleteClusterByID(_ uint64) (uint64, error) { retu
 func (m *mockClusterProvider) FindClusterByID(_ uint64) (*metaentity.K8sCrdClusterEntity, error) {
 	return nil, nil
 }
+func (m *mockClusterProvider) FindByDbmClusterIDs(_ []uint64) ([]*metaentity.K8sCrdClusterEntity, error) {
+	return nil, nil
+}
 func (m *mockClusterProvider) FindByParams(_ *metaentity.ClusterQueryParams) (*metaentity.K8sCrdClusterEntity, error) {
 	if m.err != nil {
 		return nil, m.err

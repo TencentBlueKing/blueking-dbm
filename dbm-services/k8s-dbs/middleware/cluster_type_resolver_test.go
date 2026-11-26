@@ -70,6 +70,9 @@ func (m *mockK8sCrdClusterProvider) DeleteClusterByID(_ uint64) (uint64, error) 
 func (m *mockK8sCrdClusterProvider) FindClusterByID(_ uint64) (*metaentity.K8sCrdClusterEntity, error) {
 	return nil, nil
 }
+func (m *mockK8sCrdClusterProvider) FindByDbmClusterIDs(_ []uint64) ([]*metaentity.K8sCrdClusterEntity, error) {
+	return nil, nil
+}
 func (m *mockK8sCrdClusterProvider) FindByParams(_ *metaentity.ClusterQueryParams) (*metaentity.K8sCrdClusterEntity, error) {
 	return m.cluster, m.err
 }

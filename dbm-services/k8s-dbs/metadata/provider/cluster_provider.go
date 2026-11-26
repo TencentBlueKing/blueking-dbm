@@ -45,6 +45,7 @@ type K8sCrdClusterProvider interface {
 	CreateCluster(entity *metaentity.K8sCrdClusterEntity) (*metaentity.K8sCrdClusterEntity, error)
 	DeleteClusterByID(id uint64) (uint64, error)
 	FindClusterByID(id uint64) (*metaentity.K8sCrdClusterEntity, error)
+	FindByDbmClusterIDs(clusterIDs []uint64) ([]*metaentity.K8sCrdClusterEntity, error)
 	FindByParams(params *metaentity.ClusterQueryParams) (*metaentity.K8sCrdClusterEntity, error)
 	UpdateCluster(entity *metaentity.K8sCrdClusterEntity) (uint64, error)
 	ListClusters(params *metaentity.ClusterQueryParams,
@@ -328,8 +329,14 @@ func (k *K8sCrdClusterProviderImpl) FindClusterByID(id uint64) (*metaentity.K8sC
 	if clusterModel == nil {
 		return nil, nil
 	}
+	return k.buildClusterDetail(clusterModel)
+}
+
+func (k *K8sCrdClusterProviderImpl) buildClusterDetail(
+	clusterModel *models.K8sCrdClusterModel,
+) (*metaentity.K8sCrdClusterEntity, error) {
 	clusterEntity := &metaentity.K8sCrdClusterEntity{}
-	if err = copier.Copy(clusterEntity, clusterModel); err != nil {
+	if err := copier.Copy(clusterEntity, clusterModel); err != nil {
 		return nil, errors.Wrap(err, "failed to copy")
 	}
 
@@ -370,6 +377,40 @@ func (k *K8sCrdClusterProviderImpl) FindClusterByID(id uint64) (*metaentity.K8sC
 		clusterEntity.Status = string(clusterResource.ClusterStatus.Phase)
 	}
 	return clusterEntity, nil
+}
+
+// FindByDbmClusterIDs 按请求顺序返回完整集群详情，跳过不存在的 ID
+func (k *K8sCrdClusterProviderImpl) FindByDbmClusterIDs(clusterIDs []uint64) (
+	[]*metaentity.K8sCrdClusterEntity, error,
+) {
+	clusterModels, err := k.clusterDbAccess.FindByDbmClusterIDs(clusterIDs)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to batch find clusters")
+	}
+	modelByID := make(map[uint64]*models.K8sCrdClusterModel, len(clusterModels))
+	for _, clusterModel := range clusterModels {
+		if _, exists := modelByID[clusterModel.DbmClusterID]; !exists {
+			modelByID[clusterModel.DbmClusterID] = clusterModel
+		}
+	}
+	clusters := make([]*metaentity.K8sCrdClusterEntity, 0, len(clusterIDs))
+	detailByID := make(map[uint64]*metaentity.K8sCrdClusterEntity, len(modelByID))
+	for _, clusterID := range clusterIDs {
+		clusterModel, exists := modelByID[clusterID]
+		if !exists {
+			continue
+		}
+		cluster, exists := detailByID[clusterID]
+		if !exists {
+			cluster, err = k.buildClusterDetail(clusterModel)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to get cluster with cluster_id %d", clusterID)
+			}
+			detailByID[clusterID] = cluster
+		}
+		clusters = append(clusters, cluster)
+	}
+	return clusters, nil
 }
 
 // FindByParams 通过 params 查找 cluster
