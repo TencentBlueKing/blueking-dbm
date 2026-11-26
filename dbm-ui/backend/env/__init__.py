@@ -8,6 +8,8 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import os
+
 from bkcrypto.constants import AsymmetricCipherType, SymmetricCipherType
 
 from .apigw_domains import *  # pylint: disable=wildcard-import
@@ -33,8 +35,11 @@ REDIS_HOST = get_type_env(key="REDIS_HOST", _type=str, default="localhost")
 REDIS_PORT = get_type_env(key="REDIS_PORT", _type=int, default=6379)
 REDIS_PASSWORD = get_type_env(key="REDIS_PASSWORD", _type=str, default="")
 REDIS_URL = f"redis://{f':{REDIS_PASSWORD}@' if REDIS_PASSWORD else ''}{REDIS_HOST}:{REDIS_PORT}/1"
-# aidev redis缓存配置
+# aidev redis缓存配置。aidev_agent 只读进程环境变量。
+# Helm 注入 MESSAGE_REDIS_URL 时直接使用；未注入时把默认值 REDIS_URL 写回环境变量。
 MESSAGE_REDIS_URL = get_type_env(key="MESSAGE_REDIS_URL", _type=str, default=REDIS_URL)
+if "MESSAGE_REDIS_URL" not in os.environ and MESSAGE_REDIS_URL:
+    os.environ["MESSAGE_REDIS_URL"] = MESSAGE_REDIS_URL
 
 # Redis 开发最佳实践文档地址(内网iwiki),开源环境默认留空,内网环境通过环境变量 REDIS_DEV_BEST_PRACTICE_URL 配置
 REDIS_DEV_BEST_PRACTICE_URL = get_type_env(key="REDIS_DEV_BEST_PRACTICE_URL", _type=str, default="")

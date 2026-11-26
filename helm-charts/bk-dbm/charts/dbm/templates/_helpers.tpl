@@ -66,8 +66,10 @@ environment variables
 */}}
 {{- define "dbm.envs" -}}
 {{- range $key, $val := .Values.envs }}
+{{- if or (ne $key "MESSAGE_REDIS_URL") (ne $val "") }}
 - name: {{ $key }}
   value: {{ $val | quote }}
+{{- end }}
 {{- end }}
 {{- end }}
 
