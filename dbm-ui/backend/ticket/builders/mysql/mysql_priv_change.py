@@ -75,6 +75,7 @@ class MySQLAccountRuleChangeFlowBuilder(BaseMySQLTicketFlowBuilder):
     inner_flow_builder = MySQLAccountRuleChangeFlowParamBuilder
     itsm_flow_builder = MySQLAccountRuleChangeItsmFlowParamBuilder
     retry_type = FlowRetryType.MANUAL_RETRY
+    editable_need_itsm = None
 
     @property
     def need_itsm(self):

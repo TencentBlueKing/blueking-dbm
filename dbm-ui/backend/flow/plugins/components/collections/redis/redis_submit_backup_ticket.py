@@ -87,7 +87,6 @@ class RedisSubmitBackupTicketService(BaseService):
                 creator="admin",
                 updater="admin",
                 group=DBType.Redis.value,
-                editable=False,
                 configs={
                     FlowTypeConfig.NEED_ITSM: False,
                     FlowTypeConfig.NEED_MANUAL_CONFIRM: True,

@@ -46,7 +46,7 @@ class MysqlDeleteClearDBFlowBuilder(MysqlForceSqlImportFlowBuilder):
     serializer = MysqlDeleteClearDBDetailSerializer
     inner_flow_builder = MysqlDeleteClearDBFlowParamBuilder
     inner_flow_name = _("删除清档备份库执行")
-    editable = True
+    editable_need_manual_confirm = None
 
     @property
     def need_manual_confirm(self):

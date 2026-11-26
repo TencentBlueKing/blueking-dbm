@@ -56,7 +56,8 @@ class MongoDBAutofixManualFlowBuilder(BaseMongoDBTicketFlowBuilder):
     inner_flow_name = _("MongoDB 自愈人工处理")
 
     default_need_itsm = True
-    default_need_manual_confirm = True
+    editable_need_itsm = None
+    editable_need_manual_confirm = None
 
     @property
     def need_itsm(self):

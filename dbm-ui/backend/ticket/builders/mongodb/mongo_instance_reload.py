@@ -164,6 +164,8 @@ class MongoDBInstanceReloadApplyFlowBuilder(BaseMongoDBTicketFlowBuilder):
     inner_flow_builder = MongoDBInstanceReloadFlowParamBuilder
     inner_flow_name = _("MongoDB重启")
     need_patch_instance_details = True
+    editable_need_itsm = None
+    editable_need_manual_confirm = None
 
     @property
     def need_itsm(self):

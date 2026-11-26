@@ -49,8 +49,7 @@ from backend.ticket.exceptions import AppBaseException, TicketFlowsConfigExcepti
 from backend.ticket.flow_config import (
     FLOW_CONFIG_CHECK_ERROR_DISPLAY,
     flow_config_days_to_hours,
-    get_described_flow_types,
-    get_supported_expire_types,
+    get_query_expire_types,
     plan_flow_config_update,
 )
 from backend.ticket.flow_manager.manager import TicketFlowManager
@@ -213,7 +212,6 @@ class TicketHandler:
                 updater="admin",
                 ticket_type=ticket_type,
                 group=flow_class.group,
-                editable=flow_class.editable,
                 configs={
                     # 单据流程配置
                     FlowTypeConfig.NEED_MANUAL_CONFIRM: flow_class.default_need_manual_confirm,
@@ -497,6 +495,14 @@ class TicketHandler:
             for tag in cluster_tags
         ]
 
+    @staticmethod
+    def _get_itsm_uneditable_configs(configs_qs):
+        return [
+            (config_id, ticket_type)
+            for config_id, ticket_type in configs_qs.values_list("id", "ticket_type")
+            if BuilderFactory.get_builder_cls(ticket_type).editable_need_itsm is False
+        ]
+
     @classmethod
     def create_ticket_flow_config(
         cls, bk_biz_id, cluster_ids, ticket_types, configs, operator, remark, cluster_tags=None
@@ -517,7 +523,7 @@ class TicketHandler:
         cluster_tags = cluster_tags or []
 
         def check_editable_configs(configs_qs):
-            uneditable_configs = list(configs_qs.filter(editable=False).values_list("id", "ticket_type"))
+            uneditable_configs = cls._get_itsm_uneditable_configs(configs_qs)
             if uneditable_configs:
                 raise TicketFlowsConfigException(_("流程配置不允许编辑，配置ID和单据类型: {}").format(uneditable_configs))
 
@@ -678,7 +684,7 @@ class TicketHandler:
             config_qs = TicketFlowsConfig.objects.filter(bk_biz_id=bk_biz_id, ticket_type__in=ticket_types)
             with transaction.atomic():
                 update_config_qs = config_qs.filter(id__in=config_ids).exclude(bk_biz_id=PLAT_BIZ_ID)
-                uneditable_configs = list(update_config_qs.filter(editable=False).values_list("id", "ticket_type"))
+                uneditable_configs = cls._get_itsm_uneditable_configs(update_config_qs)
                 if uneditable_configs:
                     raise TicketFlowsConfigException(_("流程配置不允许编辑，配置ID和单据类型: {}").format(uneditable_configs))
                 update_config_qs.delete()
@@ -836,9 +842,11 @@ class TicketHandler:
                 has_child_config=not is_child_config and flow_config.ticket_type in child_config_ticket_types,
                 ticket_type_display=flow_config.get_ticket_type_display(),
                 flow_desc=[node.label for node in flow_nodes],
+                editable_need_itsm=builder.editable_need_itsm,
+                editable_need_manual_confirm=builder.editable_need_manual_confirm,
                 supported_expire_types=[
                     {"value": expire_type, "label": TICKET_EXPIRE_TYPE_DISPLAY[expire_type]}
-                    for expire_type in get_supported_expire_types(get_described_flow_types(flow_nodes))
+                    for expire_type in get_query_expire_types(builder, flow_nodes)
                 ],
                 clusters=cluster_info,
                 update_at=flow_config.update_at,

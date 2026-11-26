@@ -247,7 +247,6 @@ MYSQL_CLONE_CLIENT_TICKET_CONFIG = {
     "bk_biz_id": constant.BK_BIZ_ID,
     "ticket_type": TicketType.MYSQL_CLIENT_CLONE_RULES,
     "configs": {"need_itsm": True, "need_manual_confirm": True},
-    "editable": 1,
     "group": DBType.MySQL,
 }
 

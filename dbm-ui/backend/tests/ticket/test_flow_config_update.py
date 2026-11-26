@@ -26,6 +26,11 @@ class ConfigFlowBuilder(TicketFlowBuilder):
     ticket_type = "MYSQL_SINGLE_APPLY"
 
 
+class PresetFlowBuilder(ConfigFlowBuilder):
+    editable_need_itsm = False
+    editable_need_manual_confirm = False
+
+
 def test_system_termination_records_pause_timeout_in_hours():
     flow = SimpleNamespace(flow_type=FlowType.PAUSE, context={}, save=MagicMock())
     ticket = SimpleNamespace(ticket_type="MYSQL_SINGLE_APPLY", save=MagicMock())
@@ -56,12 +61,11 @@ def test_termination_reason_displays_hours(context, expected_duration):
         assert expected_duration in Ticket.get_terminate_reason(ticket)
 
 
-def make_config(config_id=1, *, editable=True, bk_biz_id=0, **configs):
+def make_config(config_id=1, *, bk_biz_id=0, **configs):
     return SimpleNamespace(
         id=config_id,
         ticket_type="MYSQL_SINGLE_APPLY",
         bk_biz_id=bk_biz_id,
-        editable=editable,
         configs={"need_itsm": True, "need_manual_confirm": True, **configs},
         cluster_ids=[],
         cluster_tags=[],
@@ -147,26 +151,26 @@ def test_unsupported_resource_timeout():
 
 @pytest.mark.parametrize("field", ["need_itsm", "need_manual_confirm"])
 def test_preset_switches_cannot_be_modified(field):
-    _, errors = plan_flow_config_update(make_config(editable=False), {field: False}, ConfigFlowBuilder)
+    _, errors = plan_flow_config_update(make_config(), {field: False}, PresetFlowBuilder)
     assert any(error["code"] == "preset" for error in errors)
 
 
 def test_preset_allows_supported_timeout_updates():
     merged, errors = plan_flow_config_update(
-        make_config(editable=False), {"expire_config": {"inner_flow_expire": 2}}, ConfigFlowBuilder
+        make_config(), {"expire_config": {"inner_flow_expire": 2}}, PresetFlowBuilder
     )
     assert errors == []
     assert merged["expire_config"]["inner_flow_expire"] == 2 / 24
 
 
-def run_update(configs, targets, ids=None):
+def run_update(configs, targets, ids=None, builder=ConfigFlowBuilder):
     queryset = MagicMock()
     queryset.filter.return_value = queryset
     queryset.order_by.return_value = targets
     with (
         patch("backend.ticket.handler.transaction.atomic", return_value=nullcontext()),
         patch("backend.ticket.handler.TicketFlowsConfig.objects.select_for_update", return_value=queryset),
-        patch.dict("backend.ticket.handler.BuilderFactory.registry", {"MYSQL_SINGLE_APPLY": ConfigFlowBuilder}),
+        patch.dict("backend.ticket.handler.BuilderFactory.registry", {"MYSQL_SINGLE_APPLY": builder}),
     ):
         TicketHandler.update_ticket_flow_config(
             bk_biz_id=0,
@@ -179,9 +183,9 @@ def run_update(configs, targets, ids=None):
 
 
 def test_any_invalid_record_aborts_entire_batch_before_saving():
-    targets = [make_config(1, need_itsm=False), make_config(2, editable=False)]
+    targets = [make_config(1, need_itsm=False), make_config(2)]
     with pytest.raises(TicketFlowsConfigException) as exc:
-        run_update({"need_itsm": True}, targets)
+        run_update({"need_itsm": True}, targets, builder=PresetFlowBuilder)
     assert exc.value.data["config_errors"][0]["errors"][0]["code"] == "preset"
     for cfg in targets:
         cfg.save.assert_not_called()
@@ -241,6 +245,8 @@ def test_query_excludes_disabled_optional_expire_types(bk_biz_id, expected_pause
         if has_optional_nodes
         else SimpleNamespace(
             describe_ticket_flows=lambda configs: [],
+            editable_need_itsm=True,
+            editable_need_manual_confirm=True,
         )
     )
     with (
@@ -347,14 +353,14 @@ def test_business_preset_still_rejects_update_before_deletion():
     create.assert_not_called()
 
 
-def run_precheck(configs, targets, ids=None):
+def run_precheck(configs, targets, ids=None, builder=ConfigFlowBuilder):
     queryset = MagicMock()
     queryset.filter.return_value = queryset
     queryset.order_by.return_value = targets
     with (
         patch("backend.ticket.handler.TicketFlowsConfig.objects.filter", return_value=queryset),
         patch("backend.ticket.handler.TicketFlowsConfig.objects.select_for_update") as lock,
-        patch.dict("backend.ticket.handler.BuilderFactory.registry", {"MYSQL_SINGLE_APPLY": ConfigFlowBuilder}),
+        patch.dict("backend.ticket.handler.BuilderFactory.registry", {"MYSQL_SINGLE_APPLY": builder}),
     ):
         result = TicketHandler.check_update_ticket_flow_config(
             bk_biz_id=0,
@@ -383,16 +389,17 @@ def test_precheck_success_does_not_change_or_save_configuration():
 
 @pytest.mark.parametrize("case", ["inactive", "not_applicable", "unchanged", "preset"])
 def test_precheck_and_update_report_the_same_validation_errors(case):
+    builder = PresetFlowBuilder if case == "preset" else ConfigFlowBuilder
     if case == "inactive":
         targets, configs = [make_config(need_itsm=False)], {"expire_config": {"itsm_expire": 2}}
     elif case == "not_applicable":
         targets, configs = [make_config()], {"expire_config": {"resource_replenish": 2}}
     elif case == "preset":
-        targets, configs = [make_config(editable=False)], {"need_itsm": False}
+        targets, configs = [make_config()], {"need_itsm": False}
     else:
         targets, configs = [make_config(1), make_config(2)], {"need_itsm": True}
     original = [copy.deepcopy(cfg.configs) for cfg in targets]
-    result = run_precheck(configs, targets)
+    result = run_precheck(configs, targets, builder=builder)
     assert result["valid"] is False
     assert result["config_errors"][0]["errors"][0]["code"] == case
     assert result["config_errors"][0]["ticket_type_display"] == "MySQL 单节点部署"
@@ -407,7 +414,7 @@ def test_precheck_and_update_report_the_same_validation_errors(case):
     )
     assert TicketFlowConfigCheckResultSerializer(result).data == result
     with pytest.raises(TicketFlowsConfigException) as exc:
-        run_update(configs, targets)
+        run_update(configs, targets, builder=builder)
     assert exc.value.data == result
     for cfg, previous in zip(targets, original):
         assert cfg.configs == previous

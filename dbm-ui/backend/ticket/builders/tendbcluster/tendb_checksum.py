@@ -235,6 +235,8 @@ class TendbChecksumFlowBuilder(MySQLChecksumFlowBuilder):
     checksum_flow_builder = TendbChecksumParamBuilder
     pause_flow_builder = TendbChecksumPauseParamBuilder
     data_repair_flow_builder = TendbDataRepairFlowParamBuilder
+    editable_need_itsm = False
+    editable_need_manual_confirm = None
 
     def patch_ticket_detail(self):
         BaseMySQLTicketFlowBuilder.patch_ticket_detail(self)

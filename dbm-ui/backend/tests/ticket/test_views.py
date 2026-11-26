@@ -98,14 +98,12 @@ def mysql_single_flow_configs(test_ticket_bk_biz_id):
         bk_biz_id=PLAT_BIZ_ID,
         group=DBType.MySQL.value,
         ticket_type=TicketType.MYSQL_SINGLE_APPLY.value,
-        editable=True,
         configs=configs["global"],
     )
     biz_cfg = TicketFlowsConfig.objects.create(
         bk_biz_id=test_ticket_bk_biz_id,
         group=DBType.MySQL.value,
         ticket_type=TicketType.MYSQL_SINGLE_APPLY.value,
-        editable=True,
         configs=configs["biz"],
     )
 

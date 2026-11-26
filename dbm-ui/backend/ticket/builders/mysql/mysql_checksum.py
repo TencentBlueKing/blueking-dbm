@@ -161,6 +161,8 @@ class MySQLChecksumFlowBuilder(BaseMySQLHATicketFlowBuilder):
     checksum_flow_builder = MySQLChecksumFlowParamBuilder
     pause_flow_builder = MySQLChecksumPauseParamBuilder
     data_repair_flow_builder = MySQLDataRepairFlowParamBuilder
+    editable_need_itsm = False
+    editable_need_manual_confirm = None
 
     def patch_ticket_detail(self):
         super().patch_ticket_detail()

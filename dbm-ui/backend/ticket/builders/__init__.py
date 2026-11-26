@@ -478,7 +478,12 @@ class TicketFlowBuilder:
     # 默认过期时间配置
     default_expire_config: dict = TICKET_EXPIRE_DEFAULT_CONFIG
     # 是否用户可修改单据流程(在单据配置表中)
-    editable: bool = True
+    # 沿用基类 need_itsm 时使用默认值 True；重写后固定返回布尔值时设为 False，
+    # 根据提单参数、业务设置等条件判断是否审批时设为 None。
+    editable_need_itsm: bool | None = True
+    # 沿用基类 need_manual_confirm 时使用默认值 True；重写后固定返回布尔值时设为 False，
+    # 根据提单参数等条件判断是否人工确认时设为 None。
+    editable_need_manual_confirm: bool | None = True
     # 参数校验器
     validator = None
 
@@ -530,13 +535,13 @@ class TicketFlowBuilder:
 
     @property
     def need_itsm(self):
-        """是否需要itsm审批节点。后续默认从单据配置表获取。子类可覆写，覆写以后editable为False"""
+        """判断是否需要 ITSM 审批节点，默认读取生效的单据流程配置。"""
         need_itsm = any([c.configs["need_itsm"] for c in self.ticket_configs])
         return need_itsm
 
     @property
     def need_manual_confirm(self):
-        """是否需要人工确认节点。后续默认从单据配置表获取。子类可覆写，覆写以后editable为False"""
+        """判断是否需要人工确认节点，默认读取生效的单据流程配置。"""
         need_manual_confirm = any([c.configs.get("need_manual_confirm") for c in self.ticket_configs])
         return need_manual_confirm
 

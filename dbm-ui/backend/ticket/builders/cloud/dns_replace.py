@@ -41,9 +41,9 @@ class CloudDNSReplaceFlowBuilder(BaseCloudTicketFlowBuilder):
     serializer = CloudDNSReplaceDetailSerializer
     inner_flow_builder = CloudDNSReplaceFlowParamBuilder
     inner_flow_name = _("DNS 服务替换")
-    editable = False
+    editable_need_itsm = False
+    editable_need_manual_confirm = False
     default_need_itsm = False
-    default_need_manual_confirm = True
 
     @property
     def need_itsm(self):

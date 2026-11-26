@@ -24,6 +24,8 @@ class TendbChecksumCronDetailSerializer(TendbChecksumDetailSerializer):
 @builders.BuilderFactory.register(TicketType.TENDBCLUSTER_CHECKSUM_CRON)
 class TendbChecksumCronFlowBuilder(TendbChecksumFlowBuilder):
     serializer = TendbChecksumCronDetailSerializer
+    editable_need_itsm = False
+    default_need_itsm = False
 
     @property
     def need_itsm(self):

@@ -48,6 +48,7 @@ class MySQLDBHAAFRepairReplicateFlowBuilder(BaseMySQLTicketFlowBuilder):
     inner_flow_name = _(TicketType.MYSQL_DBHA_AF_REPAIR_REPLICATE)
     default_need_itsm = False
     default_need_manual_confirm = False
+    editable_need_itsm = False
 
     @property
     def need_itsm(self):

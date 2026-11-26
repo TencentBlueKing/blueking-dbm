@@ -130,7 +130,8 @@ class RedisDtsServiceApplyFlowParamBuilder(CloudServiceApplyFlowParamBuilder):
 @builders.BuilderFactory.register(TicketType.CLOUD_SERVICE_APPLY)
 class CloudServiceApplyFlowBuilder(BaseCloudTicketFlowBuilder):
     serializer = CloudServiceApplyDetailSerializer
-    editable = False
+    editable_need_itsm = False
+    editable_need_manual_confirm = False
     default_need_itsm = False
     default_need_manual_confirm = False
 

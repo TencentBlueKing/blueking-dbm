@@ -30,7 +30,7 @@ class TicketFlowAdmin(admin.ModelAdmin):
 
 @admin.register(models.TicketFlowsConfig)
 class TicketFlowConfigAdmin(admin.ModelAdmin):
-    list_display = ("bk_biz_id", "ticket_type", "group", "editable", "configs")
+    list_display = ("bk_biz_id", "ticket_type", "group", "configs")
     search_fields = ("bk_biz_id", "ticket_type", "group")
     list_filter = ("group", "bk_biz_id")
 

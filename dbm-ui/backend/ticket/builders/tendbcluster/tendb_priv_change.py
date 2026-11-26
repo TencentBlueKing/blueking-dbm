@@ -38,6 +38,7 @@ class TendbAccountRuleChangeFlowBuilder(BaseTendbTicketFlowBuilder):
     inner_flow_builder = TendbAccountRuleChangeFlowParamBuilder
     itsm_flow_builder = TendbAccountRuleChangeItsmFlowParamBuilder
     retry_type = FlowRetryType.MANUAL_RETRY
+    editable_need_itsm = None
 
     @property
     def need_itsm(self):

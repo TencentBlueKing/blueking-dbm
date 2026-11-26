@@ -42,6 +42,3 @@ class TenDBClusterForceSqlImportFlowBuilder(BaseTendbTicketFlowBuilder, MysqlFor
     serializer = TenDBClusterForceSqlImportDetailSerializer
     backup_builder = TenDBClusterSqlImportBackUpFlowParamBuilder
     inner_flow_builder = TenDBClusterSqlImportFlowParamBuilder
-    editable = False
-    default_need_itsm = True
-    default_need_manual_confirm = True
