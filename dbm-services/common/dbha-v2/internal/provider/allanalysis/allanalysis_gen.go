@@ -26,12 +26,14 @@
 
 package allanalysis
 
-// Blank-import all analysis-side provider capabilities (dbtypedesc + switch + parse + metrics).
+// Blank-import all analysis-side provider capabilities (dbtypedesc + switch + parse + metrics + detection).
 import (
+	_ "dbm-services/common/dbha-v2/internal/provider/mysql/detection"
 	_ "dbm-services/common/dbha-v2/internal/provider/mysql/metrics"
 	_ "dbm-services/common/dbha-v2/internal/provider/mysql/parse"
 	_ "dbm-services/common/dbha-v2/internal/provider/mysql/switch"
 	_ "dbm-services/common/dbha-v2/internal/provider/redis/dbtypedesc"
+	_ "dbm-services/common/dbha-v2/internal/provider/redis/detection"
 	_ "dbm-services/common/dbha-v2/internal/provider/redis/metrics"
 	_ "dbm-services/common/dbha-v2/internal/provider/redis/parse"
 	_ "dbm-services/common/dbha-v2/internal/provider/redis/switch"

@@ -72,10 +72,11 @@ func run() error {
 			comment: "Blank-import all probe-side provider capabilities (dbtypedesc + harvest).",
 		},
 		{
-			target:  targetAnalysis,
-			dir:     "allanalysis",
-			pkg:     "allanalysis",
-			comment: "Blank-import all analysis-side provider capabilities (dbtypedesc + switch + parse + metrics).",
+			target: targetAnalysis,
+			dir:    "allanalysis",
+			pkg:    "allanalysis",
+			comment: "Blank-import all analysis-side provider capabilities " +
+				"(dbtypedesc + switch + parse + metrics + detection).",
 		},
 		{
 			target:  targetDesc,
@@ -129,6 +130,10 @@ func collectImports(entries []provider.Entry, target aggregateTarget) []string {
 			case provider.CapParse:
 				if target == targetAnalysis {
 					add(e.BasePath + "/parse")
+				}
+			case provider.CapDetection:
+				if target == targetAnalysis {
+					add(e.BasePath + "/detection")
 				}
 			case provider.CapMetrics:
 				if target == targetAnalysis {

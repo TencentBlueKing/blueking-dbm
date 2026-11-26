@@ -36,6 +36,10 @@ const (
 	CapHarvest Capability = "harvest"
 	CapSwitch  Capability = "switch"
 	CapParse   Capability = "parse"
+	// CapDetection maps to "<BasePath>/detection" and is injected into the
+	// analysis aggregate only. It is optional: a provider that declares it
+	// opts its DbType into the business scan.
+	CapDetection Capability = "detection"
 	// CapMetrics maps to "<BasePath>/metrics" and is injected into the analysis
 	// aggregate only: these are analysis-side (internal/analysis/apm) metrics.
 	// admin / receiver own separate apm packages and are unaffected.
@@ -58,6 +62,7 @@ type Entry struct {
 	// CapHarvest maps to "<BasePath>/harvest".
 	// CapSwitch maps to "<BasePath>/switch".
 	// CapParse maps to "<BasePath>/parse".
+	// CapDetection maps to "<BasePath>/detection".
 	// CapMetrics maps to "<BasePath>/metrics".
 	Caps []Capability
 }
@@ -71,11 +76,11 @@ var Entries = []Entry{
 	{
 		Name:     "mysql",
 		BasePath: providerRoot + "/mysql",
-		Caps:     []Capability{CapHarvest, CapSwitch, CapParse, CapMetrics},
+		Caps:     []Capability{CapHarvest, CapSwitch, CapParse, CapMetrics, CapDetection},
 	},
 	{
 		Name:     "redis",
 		BasePath: providerRoot + "/redis",
-		Caps:     []Capability{CapDesc, CapHarvest, CapSwitch, CapParse, CapMetrics, CapCredential},
+		Caps:     []Capability{CapDesc, CapHarvest, CapSwitch, CapParse, CapMetrics, CapCredential, CapDetection},
 	},
 }

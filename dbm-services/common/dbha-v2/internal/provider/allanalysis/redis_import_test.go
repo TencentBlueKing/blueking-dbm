@@ -27,6 +27,7 @@ package allanalysis_test
 import (
 	"testing"
 
+	"dbm-services/common/dbha-v2/internal/analysis/detection"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher"
 	"dbm-services/common/dbha-v2/pkg/dbtype"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
@@ -60,4 +61,10 @@ func TestAnalysisImportSetRegistersRedisSwitcher(t *testing.T) {
 		}
 	}
 	t.Fatal("allanalysis must import redis/switch to register the redis switcher")
+}
+
+func TestAnalysisImportSetRegistersRedisDetection(t *testing.T) {
+	if _, ok := detection.Lookup(haprobe.DbTypeRedis); !ok {
+		t.Fatal("allanalysis must import redis/detection to register redis detection")
+	}
 }

@@ -34,6 +34,7 @@ import (
 
 	"dbm-services/common/dbha-v2/internal/analysis/apm"
 	"dbm-services/common/dbha-v2/internal/analysis/config"
+	"dbm-services/common/dbha-v2/internal/analysis/detection"
 	"dbm-services/common/dbha-v2/internal/analysis/failure"
 	"dbm-services/common/dbha-v2/internal/analysis/parser"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher"
@@ -138,14 +139,18 @@ func Run(cmd *cobra.Command, args []string) error {
 func logAnalysisProviderSelfCheck() error {
 	switcherTypes := switcher.RegisteredDbTypes()
 	parserTypes := parser.RegisteredDbTypes()
+	detectionTypes := detection.RegisteredDbTypes()
+
 	logger.Info(
 		"analysis provider self-check, registered_db_types: %s, provider_owned_db_types: %s, "+
-			"switcher_db_types: %s, parser_db_types: %s, special_match_events: %s, "+
-			"non_switchable_db_types: %s, dns_guard_machine_types: %s, metric_db_types: %s",
+			"switcher_db_types: %s, parser_db_types: %s, detection_db_types: %s, "+
+			"special_match_events: %s, non_switchable_db_types: %s, "+
+			"dns_guard_machine_types: %s, metric_db_types: %s",
 		joinDbTypes(dbtype.RegisteredDbTypes()),
 		joinDbTypes(dbtype.ProviderOwnedDbTypes()),
 		joinDbTypes(switcherTypes),
 		joinDbTypes(parserTypes),
+		joinDbTypes(detectionTypes),
 		joinDbEventNames(failure.RegisteredSpecialMatchEvents()),
 		joinDbTypes(failure.RegisteredNonSwitchableDbTypes()),
 		joinMachineTypes(dbtype.DnsSingleAddressGuardMachineTypes()),
@@ -156,6 +161,12 @@ func logAnalysisProviderSelfCheck() error {
 	}
 	if len(parserTypes) == 0 {
 		return gerrors.Newf(gerrors.Failure, "no parsers registered; blank-import provider/allanalysis")
+	}
+	if len(detectionTypes) == 0 {
+		return gerrors.Newf(gerrors.Failure, "no detection providers registered; blank-import provider/allanalysis")
+	}
+	if err := detection.Validate(); err != nil {
+		return gerrors.Newf(gerrors.Failure, "detection validation failed, errmsg: %s", err)
 	}
 	if err := switcher.Validate(); err != nil {
 		return gerrors.Newf(gerrors.Failure, "switcher validation failed, errmsg: %s", err)
