@@ -61,7 +61,6 @@ func (c *GoApplyBinlogComp) Example() interface{} {
 				MaxAllowedPacket: 1073741824,
 				BinaryMode:       true,
 			},
-			QuickMode:         true,
 			BinlogDir:         "/data/dbbak/xxxx/20000/binlog_20000",
 			BinlogFiles:       []string{"binlog20000.00001", "binlog20000.00002", "binlog20000.00003"},
 			BinlogStartFile:   "binlog20000.00001",
@@ -111,10 +110,6 @@ type GoApplyBinlog struct {
 	// 解析的并发度，默认 1，是机器全局的
 	ParseConcurrency int `json:"parse_concurrency"`
 
-	// 如果启用 quick_mode，解析 binlog 时根据 filter databases 等选项过滤 row event，对 query event 会全部保留 。
-	// 需要 mysqlbinlog 工具支持 --tables 选项，可以指定参数的 tools
-	// 当 quick_mode=false 时，recover_opt 里的 databases 等选项无效，会应用全部 binlog
-	QuickMode          bool   `json:"quick_mode"`
 	SourceBinlogFormat string `json:"source_binlog_format" enums:",ROW,STATEMENT,MIXED"`
 
 	MySQLClientOpt *MySQLClientOpt `json:"mysql_client_opt"`
@@ -130,6 +125,10 @@ type GoApplyBinlog struct {
 	parseScript     string
 	binlogParsedDir string
 	logDir          string
+	// enableObjectFilter 是否按库表过滤 binlog。不由外部传入，在 Init 阶段推导：
+	// 全备 index 里有库表过滤条件、binlog_opt 显式指定了过滤条件、或者 flashback 模式时自动开启。
+	// 开启后解析 binlog 会根据 databases/tables 等选项过滤 row event，query event 会全部保留
+	enableObjectFilter bool
 }
 
 // ParseBinlogFiles TODO
@@ -186,7 +185,7 @@ func (r *GoApplyBinlog) ParseBinlogFiles() error {
 				return ctx.Err()
 			default:
 			}
-			_, internalErr := localOpt.Parse(r.BinlogDir, f, r.QuickMode)
+			_, internalErr := localOpt.Parse(r.BinlogDir, f, r.enableObjectFilter)
 			if internalErr != nil {
 				logger.Error("parse failed %s: %s", f, internalErr.Error())
 			}
@@ -214,7 +213,7 @@ func (r *GoApplyBinlog) buildScript() error {
 		} else {
 			r.BinlogOpt.StartPos = 0
 		}
-		_, _ = r.BinlogOpt.BuildArgs(r.QuickMode)
+		_, _ = r.BinlogOpt.BuildArgs(r.enableObjectFilter)
 		parsedFile := fmt.Sprintf(`%s/%s.sql`, dirBinlogParsed, fileName)
 		logFile := fmt.Sprintf("logs/parse_%s.err", fileName)
 		binlogFile := filepath.Join(r.BinlogDir, fileName)
@@ -307,29 +306,18 @@ func (r *GoApplyBinlog) Init() error {
 		return err
 	}
 
-	// 根据全备的库表过滤条件，决定 binlog 应用时的 --databases/--tables 等过滤参数
-	if err = r.buildFilterFromBackupIndex(); err != nil {
-		return err
-	}
-
-	// quick_mode is only allowed when binlog_format=row
-	if r.SourceBinlogFormat != "ROW" && r.QuickMode && !r.BinlogOpt.Flashback {
-		r.QuickMode = false
-		logger.Warn("quick_mode set to false because source_binlog_format != ROW")
-	}
-	//if r.QuickMode && r.SourceBinlogFormat != "ROW" {
-	//	return errors.New("source_binlog_format=ROW is needed because quick_mode will filter tables from binlog")
-	//}
 	if r.BinlogOpt.Flashback {
 		if r.SourceBinlogFormat != "ROW" {
 			return errors.New("flashback=true need source_binlog_format=ROW")
 		}
-		if !r.QuickMode {
-			return errors.New("flashback=true need quick_mode=true")
-		}
 		if !r.ParseOnly {
 			return errors.New("flashback=true must have parse_only=true")
 		}
+	}
+
+	// 根据全备的库表过滤条件，决定 binlog 应用时的 --databases/--tables 等过滤参数
+	if err = r.buildFilterFromBackupIndex(); err != nil {
+		return err
 	}
 
 	if r.BinlogStartPos > 0 && r.BinlogStartFile == "" {
@@ -486,27 +474,32 @@ func isMatchAllObjects(objects []string) bool {
 }
 
 // loadBackupObjectFilter 从全备 .index 文件解析出库表级过滤条件
-// 返回 nil 表示全库全表备份(或者无法识别的旧格式)，binlog 应用不需要过滤。
-// 上层无条件传入 index 路径，所以这里对 index 缺失、backup_filter 为旧格式等情况都只告警、按无过滤处理
-func loadBackupObjectFilter(indexFilePath string) *backupObjectFilter {
-	if indexFilePath == "" {
-		logger.Warn("backup_index_file is empty, binlog will apply without object filter")
-		return nil
+// 返回 nil 表示全库全表备份(或者 backup_filter 是旧的 regex 格式)，binlog 应用不需要过滤。
+// 传了 backup_index_file 却读取/解析失败时必须报错：此时无法判断全备是否只备份了部分库表，
+// 继续执行可能把不属于本次恢复范围的数据写入目标实例
+func (r *GoApplyBinlog) loadBackupObjectFilter() (*backupObjectFilter, error) {
+	if r.BackupIndexFile == "" {
+		// 调用方不依赖 index(比如 flashback)，过滤条件完全由 binlog_opt 指定
+		logger.Warn("backup_index_file is empty, binlog object filter depends on binlog_opt only")
+		return nil, nil
 	}
 	indexObj := &dbbackup.BackupIndexFile{}
-	if err := dbbackup.ParseBackupIndexFile(indexFilePath, indexObj, false); err != nil {
-		logger.Warn("parse backup index file %s failed, binlog will apply without object filter: %s",
-			indexFilePath, err.Error())
-		return nil
+	if err := dbbackup.ParseBackupIndexFile(r.BackupIndexFile, indexObj, false); err != nil {
+		return nil, errors.WithMessagef(err, "parse backup index file %s", r.BackupIndexFile)
+	}
+	// 没有显式传 source_binlog_format 时，用全备记录的源实例 binlog_format
+	if r.SourceBinlogFormat == "" && indexObj.BinlogFormat != "" {
+		r.SourceBinlogFormat = strings.ToUpper(indexObj.BinlogFormat)
+		logger.Info("source_binlog_format=%s from backup index %s", r.SourceBinlogFormat, r.BackupIndexFile)
 	}
 	if indexObj.BackupFilter == "" {
-		return nil
+		return nil, nil
 	}
 	var objFilter dbareport.BackupObjectFilter
 	if err := json.Unmarshal([]byte(indexObj.BackupFilter), &objFilter); err != nil {
 		// 旧版本备份的 backup_filter 存的是 regex 而不是 json，按无过滤处理
 		logger.Warn("backup_filter is not a json string, ignore it: %s", indexObj.BackupFilter)
-		return nil
+		return nil, nil
 	}
 	objectFilter := &backupObjectFilter{
 		Databases:        trimSplitNonEmpty(objFilter.Databases),
@@ -516,38 +509,41 @@ func loadBackupObjectFilter(indexFilePath string) *backupObjectFilter {
 	}
 	if objectFilter.isEmpty() {
 		// 全库全表备份，binlog 不需要过滤
-		return nil
+		return nil, nil
 	}
-	return objectFilter
+	return objectFilter, nil
 }
 
 // buildFilterFromBackupIndex 从全备 index 文件里读取备份的库表过滤条件
-// 如果全备只备份了部分库表，则 binlog 应用也需要按相同条件过滤
+// 如果全备只备份了部分库表，则 binlog 应用也需要按相同条件过滤。
+// 最后根据最终的过滤条件推导 enableObjectFilter，调用方无需传入
 func (r *GoApplyBinlog) buildFilterFromBackupIndex() error {
-	objectFilter := loadBackupObjectFilter(r.BackupIndexFile)
+	objectFilter, err := r.loadBackupObjectFilter()
+	if err != nil {
+		return err
+	}
 	if objectFilter == nil {
-		return nil
-	}
-	if len(r.BinlogOpt.Databases) > 0 || len(r.BinlogOpt.ExcludeDatabases) > 0 ||
-		len(r.BinlogOpt.Tables) > 0 || len(r.BinlogOpt.ExcludeTables) > 0 {
+		// 全库全表备份，或者调用方没有提供 index
+	} else if r.BinlogOpt.HasObjectFilter() {
 		logger.Warn("binlog_opt object filter is given, ignore filter from backup index %s", r.BackupIndexFile)
-		return nil
+	} else {
+		if !isMatchAllObjects(objectFilter.Databases) {
+			r.BinlogOpt.Databases = objectFilter.Databases
+		}
+		if !isMatchAllObjects(objectFilter.Tables) {
+			r.BinlogOpt.Tables = objectFilter.Tables
+		}
+		r.BinlogOpt.ExcludeDatabases = objectFilter.ExcludeDatabases
+		r.BinlogOpt.ExcludeTables = objectFilter.ExcludeTables
+		logger.Info("binlog apply with --databases=%v --exclude-databases=%v --tables=%v --exclude-tables=%v"+
+			" from backup index %s", r.BinlogOpt.Databases, r.BinlogOpt.ExcludeDatabases,
+			r.BinlogOpt.Tables, r.BinlogOpt.ExcludeTables, r.BackupIndexFile)
 	}
-	if !isMatchAllObjects(objectFilter.Databases) {
-		r.BinlogOpt.Databases = objectFilter.Databases
-	}
-	if !isMatchAllObjects(objectFilter.Tables) {
-		r.BinlogOpt.Tables = objectFilter.Tables
-	}
-	r.BinlogOpt.ExcludeDatabases = objectFilter.ExcludeDatabases
-	r.BinlogOpt.ExcludeTables = objectFilter.ExcludeTables
-	logger.Info("binlog apply with --databases=%v --exclude-databases=%v --tables=%v --exclude-tables=%v"+
-		" from backup index %s", r.BinlogOpt.Databases, r.BinlogOpt.ExcludeDatabases,
-		r.BinlogOpt.Tables, r.BinlogOpt.ExcludeTables, r.BackupIndexFile)
-	if !r.QuickMode {
-		r.QuickMode = true
-		logger.Warn("set quick_mode=true to enable binlog object filter")
-	}
+	// 走到这里说明过滤条件已经确定(index 解析成功，或者调用方自己指定)，可以据此决定是否开启过滤。
+	// 有过滤条件就必须让它生效，否则会把不属于本次恢复范围的数据写入目标实例。
+	// flashback 本身就是按库表闪回，也需要开启
+	r.enableObjectFilter = r.BinlogOpt.Flashback || r.BinlogOpt.HasObjectFilter()
+	logger.Info("enable_object_filter=%v", r.enableObjectFilter)
 	return nil
 }
 
@@ -855,6 +851,7 @@ func (r *GoApplyBinlog) Start() error {
 	logger.Info("using lock file %s", fileLock.GetContextFilePath())
 	if r.ParseOnly {
 		if err = r.buildScript(); err != nil {
+			// 这个 script 目前没用，主要用于定位生成的解析命令是否正确，以及方便手动处理
 			return err
 		}
 		return r.ParseBinlogFiles()
@@ -888,7 +885,7 @@ func (r *GoApplyBinlog) Start() error {
 			} else {
 				localOpt.StartPos = 0
 			}
-			parseCmd, err := localOpt.ReturnParseCommandForFile(r.BinlogDir, oneFile, r.QuickMode)
+			parseCmd, err := localOpt.ReturnParseCommandForFile(r.BinlogDir, oneFile, r.enableObjectFilter)
 			if err != nil {
 				return err
 			}

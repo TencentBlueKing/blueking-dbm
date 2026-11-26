@@ -24,6 +24,7 @@ var executable string
 var executableName string
 var executableDir string
 var configFile string
+var enableDefaults bool
 
 func init() {
 	executable, _ = os.Executable()
@@ -32,6 +33,9 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVarP(&configFile, "config", "c", "", "runtime config file")
 	_ = rootCmd.MarkPersistentFlagRequired("config")
+	rootCmd.PersistentFlags().BoolVar(&enableDefaults, "enable-defaults", false,
+		fmt.Sprintf("generate %s from builtin default sinkers (overwrite on every start)",
+			config.DefaultsSinkerFile))
 }
 
 func initLogger(cfg *config.LogConfig) {

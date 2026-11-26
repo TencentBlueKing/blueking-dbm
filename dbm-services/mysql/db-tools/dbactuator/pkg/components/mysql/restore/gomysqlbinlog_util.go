@@ -8,11 +8,13 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/samber/lo"
 	"github.com/spf13/cast"
 
 	"dbm-services/common/go-pubpkg/cmutil"
 	"dbm-services/common/go-pubpkg/logger"
 	"dbm-services/common/go-pubpkg/mysqlcomm"
+	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/util/osutil"
 )
 
@@ -73,8 +75,14 @@ type GoMySQLBinlogUtil struct {
 	cmdPath string
 }
 
+// HasObjectFilter 是否指定了库表级别的过滤条件
+func (b *GoMySQLBinlogUtil) HasObjectFilter() bool {
+	return len(b.Databases) > 0 || len(b.Tables) > 0 ||
+		len(b.ExcludeDatabases) > 0 || len(b.ExcludeTables) > 0 || b.RowsFilter != ""
+}
+
 // BuildArgs 每次 Parse 之前都要调用BuildArgs，因为 StartPos,StopPos 是跟 binlog 文件关联的
-func (b *GoMySQLBinlogUtil) BuildArgs(filterMode bool) ([]string, error) {
+func (b *GoMySQLBinlogUtil) BuildArgs(filterObject bool) ([]string, error) {
 	b.cmdArgs = nil
 	if b.Flashback {
 		b.cmdArgs = append(b.cmdArgs, "--flashback")
@@ -87,6 +95,11 @@ func (b *GoMySQLBinlogUtil) BuildArgs(filterMode bool) ([]string, error) {
 	}
 	if b.ConvRowsUpdateToWrite {
 		b.cmdArgs = append(b.cmdArgs, "--conv-rows-update-to-write")
+	}
+	if b.SkipRowsEventTimeUpdate {
+		b.cmdArgs = append(b.cmdArgs, "--skip-rows-event-time-update true")
+	} else {
+		b.cmdArgs = append(b.cmdArgs, "--skip-rows-event-time-update false")
 	}
 	if b.DisableLogBin {
 		b.cmdArgs = append(b.cmdArgs, "--disable-log-bin")
@@ -110,18 +123,23 @@ func (b *GoMySQLBinlogUtil) BuildArgs(filterMode bool) ([]string, error) {
 	if b.QueryMatchError != "" {
 		b.cmdArgs = append(b.cmdArgs, fmt.Sprintf("--query-match-error='%s'", b.QueryMatchError))
 	}
-	if filterMode {
+	if filterObject {
 		if b.RowsFilter != "" {
 			//b.cmdArgs = append(b.cmdArgs, "--rows-filter", b.RowsFilter)
 			b.cmdArgs = append(b.cmdArgs, fmt.Sprintf("--rows-filter='%s'", b.RowsFilter))
 		}
 		if len(b.Databases) > 0 {
 			b.cmdArgs = append(b.cmdArgs, "--databases", strconv.Quote(strings.Join(b.Databases, ",")))
+		} else {
+			b.cmdArgs = append(b.cmdArgs, "--databases='*'")
 		}
 		if len(b.Tables) > 0 {
 			b.cmdArgs = append(b.cmdArgs, "--tables", strconv.Quote(strings.Join(b.Tables, ",")))
+		} else {
+			b.cmdArgs = append(b.cmdArgs, "--tables='*'")
 		}
 		if len(b.ExcludeDatabases) > 0 {
+			b.ExcludeDatabases = lo.Uniq(append(b.ExcludeDatabases, native.INFODBA_SCHEMA))
 			b.cmdArgs = append(b.cmdArgs, "--exclude-databases", strconv.Quote(strings.Join(b.ExcludeDatabases, ",")))
 		}
 		if len(b.ExcludeTables) > 0 {
@@ -158,18 +176,15 @@ func (b *GoMySQLBinlogUtil) BuildArgs(filterMode bool) ([]string, error) {
 	if b.StopPos > 0 {
 		b.cmdArgs = append(b.cmdArgs, "--stop-position", cast.ToString(b.StopPos))
 	}
-	if b.SkipRowsEventTimeUpdate {
-		b.cmdArgs = append(b.cmdArgs, "--skip-rows-event-time-update true")
-	} else {
-		b.cmdArgs = append(b.cmdArgs, "--skip-rows-event-time-update false")
-	}
+
 	//b.cmdArgs = append(b.cmdArgs, "--file", b.File)
 	return b.cmdArgs, nil
 }
 
 // Parse 解析 binlog 文件
-func (b *GoMySQLBinlogUtil) Parse(binlogDir, fileName string, filterMode bool) (string, error) {
-	_, err := b.BuildArgs(filterMode)
+// 外部调用这个地方生成解析命令，如果有并发，要保证 b.cmdArgs 不会被并发修改
+func (b *GoMySQLBinlogUtil) Parse(binlogDir, fileName string, filterObject bool) (string, error) {
+	_, err := b.BuildArgs(filterObject)
 	if err != nil {
 		return "", err
 	}
@@ -190,8 +205,8 @@ func (b *GoMySQLBinlogUtil) Parse(binlogDir, fileName string, filterMode bool) (
 
 // ReturnParseCommandForFile 返回解析单个 binlog 文件的命令，解析结果输出到 stdout
 // 每个文件都需要重新 BuildArgs，因为 StartPos 是跟具体 binlog 文件关联的
-func (b *GoMySQLBinlogUtil) ReturnParseCommandForFile(binlogDir, fileName string, filterMode bool) (string, error) {
-	if _, err := b.BuildArgs(filterMode); err != nil {
+func (b *GoMySQLBinlogUtil) ReturnParseCommandForFile(binlogDir, fileName string, filterObject bool) (string, error) {
+	if _, err := b.BuildArgs(filterObject); err != nil {
 		return "", err
 	}
 	cmd := fmt.Sprintf("cd %s && %s %s --file %s",

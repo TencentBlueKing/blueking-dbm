@@ -622,55 +622,42 @@ db-event-consumer:
     broker_port: 9092
     auth_info_username: "xxx"
     auth_info_password: "xxx"
+  # 入库项引用的 datasource 不存在时的处理方式: skip(跳过并告警) / fail(启动失败)
+  on_missing_datasource: skip
+  # 入库数据源。程序内置默认入库项引用 dbmReport / dbmReportRaw / dbmStats / dbmStatsHttp,
+  # 注意: 与上面 4 个名字重名的项不会覆盖自动生成的项，而是渲染出两条同名 datasource，
+  # 程序启动时会报 duplicate datasource name 失败。要改这 4 个的连接信息请改 externalDatabase。
+  datasources:
+   # 例:
+   - name: dbmStatsDorisHttp
+     type: doris_http
+     dsn:
+       address: "1.1.1.1:9030"
+       fe_http_address: "1.1.1.1:8030"
+       user: "******"
+       password: "******"
+       database: "bk_dbm_stats"
+
+  # 入库项默认值全部内置在程序里，启动参数 --enable-defaults 会生成 data.defaults.yaml，
+  # 新版本新增的入库项升级镜像后自动生效，已不需要在这里逐个声明。
+  #
+  # 这里只写需要个性化调整的入库项，渲染到 data.sinkers.yaml，
+  # 同 key(model_table + group_id_suffix) 的项会整项覆盖 data.defaults.yaml 里的默认项，
+  # key 不存在则作为新增入库项。注意是整项覆盖，所以要把该项的字段写全。
   sinkers:
-    - topic: "mysql_dbbackup_result"
-      model_table: "tb_mysql_backup_result"
-      strict_schema: true
-      skip_migrate_schema: false
-      datasource: "prod_bk_dbm_report"
+    # 例:
+    - bk_data_id: 0
+      bk_collector_name: mysql_slowlog
+      model_table: tb_mysql_slow_log
+      datasource: dbmStats
+      fetch_min_bytes: 1048576
       from_beginning: false
+      skip_migrate_schema: false
+      strict_schema: true
       client_id_suffix: ""
       group_id_suffix: ""
-    - topic: "mysql_binlog_result"
-      model_table: "tb_mysql_binlog_result"
-      strict_schema: true
-      skip_migrate_schema: false
-      datasource: "prod_bk_dbm_report"
-      from_beginning: false
-      client_id_suffix: ""
-      group_id_suffix: ""
-    - topic: "mysql_dbbackup_progress"
-      model_table: "tb_mysql_backup_progress"
-      strict_schema: true
-      skip_migrate_schema: false
-      datasource: "prod_bk_dbm_report"
-      from_beginning: false
-      client_id_suffix: ""
-      group_id_suffix: ""
-    - topic: "redis_backup_result"
-      model_table: "tb_redis_backup_result"
-      strict_schema: true
-      skip_migrate_schema: false
-      datasource: "prod_bk_dbm_report"
-      from_beginning: false
-      client_id_suffix: ""
-      group_id_suffix: ""
-    - topic: "redis_binlog_result"
-      model_table: "tb_redis_binlog_result"
-      strict_schema: true
-      skip_migrate_schema: false
-      datasource: "prod_bk_dbm_report"
-      from_beginning: false
-      client_id_suffix: ""
-      group_id_suffix: ""
-    - topic: "redis_backup_progress"
-      model_table: "tb_redis_backup_progress"
-      strict_schema: true
-      skip_migrate_schema: false
-      datasource: "prod_bk_dbm_report"
-      from_beginning: false
-      client_id_suffix: ""
-      group_id_suffix: ""
+      ingest_threads: 2
+      sink_batch_size: 10
 
 # reloader
 stakater:
@@ -796,6 +783,7 @@ externalDatabase:
     host: external-db-host-example
     port: 3306
     name: bk_dbm_report
+    # 配置了 fe_http_address(doris fe http 地址, ip:8030 逗号分隔) 则视为 doris，用于 db-event-consumer
   dbConfig:
     username: bk-dbm
     password: external-db-pwd-example
@@ -862,3 +850,5 @@ externalDatabase:
     host: external-db-host-example
     port: 3306
     name: bk_dbm_stats
+    # 配置了 fe_http_address(doris fe http 地址, ip:8030 逗号分隔) 则视为 doris，用于 db-event-consumer
+    fe_http_address: ""
