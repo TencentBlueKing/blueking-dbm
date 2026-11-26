@@ -112,6 +112,7 @@ class Cluster(AuditedModel):
     # mysql 集群存储的是 dbmodule 详情的快照
     # 其他集群类型按需设计结构
     # 不同集群类型自建配套的方法
+    # mysql 读取请用 backend.db_meta.api.db_module.get_mysql_cluster_versions 等函数
     apply_snapshot = models.JSONField(default=dict, help_text=_("集群部署需求快照"), blank=True, null=True)
 
     class Meta:

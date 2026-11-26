@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 from typing import Dict, List
 
 from django.db import transaction
@@ -18,7 +19,9 @@ from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
 from backend.db_meta import api
 from backend.db_meta.api.cluster.base.handler import ClusterHandler
+from backend.db_meta.api.db_module.version import get_layer_package
 from backend.db_meta.enums import (
+    AccessLayer,
     ClusterType,
     InstanceInnerRole,
     InstancePhase,
@@ -27,7 +30,7 @@ from backend.db_meta.enums import (
     MachineType,
 )
 from backend.db_meta.enums.extra_process_type import ExtraProcessType
-from backend.db_meta.exceptions import InstanceNotExistException
+from backend.db_meta.exceptions import DBModuleVersionNotSetException, InstanceNotExistException
 from backend.db_meta.models import StorageInstance
 from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.db_package.models import Package
@@ -98,8 +101,17 @@ class TenDBHAClusterHandler(ClusterHandler):
 
         # 录入机器对应的集群信息
         new_clusters = []
-        mysql_pkg = Package.get_latest_package(version=major_version, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL)
-        proxy_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLProxy)
+        # 存量模块还没设置版本时，仍按部署配置的版本系列取最新介质
+        try:
+            mysql_pkg = get_layer_package(db_module_id, AccessLayer.STORAGE)
+        except DBModuleVersionNotSetException:
+            mysql_pkg = Package.get_latest_package(
+                version=major_version, pkg_type=MediumEnum.MySQL, db_type=DBType.MySQL
+            )
+        try:
+            proxy_pkg = get_layer_package(db_module_id, AccessLayer.PROXY)
+        except DBModuleVersionNotSetException:
+            proxy_pkg = Package.get_latest_package(version=MediumEnum.Latest, pkg_type=MediumEnum.MySQLProxy)
         proxy_real_ver = get_proxy_real_version(proxy_pkg.name)
         mysql_real_ver = get_mysql_real_version(mysql_pkg.name)
 

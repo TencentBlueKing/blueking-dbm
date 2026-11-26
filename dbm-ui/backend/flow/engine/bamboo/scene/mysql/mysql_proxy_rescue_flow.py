@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 import copy
 import logging.config
 from collections import defaultdict
@@ -18,8 +19,9 @@ from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.constants import IP_PORT_DIVIDER
-from backend.db_meta.enums import ClusterType, InstanceRole, InstanceStatus
-from backend.db_meta.exceptions import ClusterNotExistException
+from backend.db_meta.api.db_module.version import get_layer_package
+from backend.db_meta.enums import AccessLayer, ClusterType, InstanceRole, InstanceStatus
+from backend.db_meta.exceptions import ClusterNotExistException, DBModuleVersionNotSetException
 from backend.db_meta.models import Cluster, ProxyInstance
 from backend.db_package.constants import PackageType
 from backend.db_package.models import Package
@@ -126,7 +128,7 @@ class MySQLProxyRescueFlow(object):
         支持三种场景：
         1. 指定版本：使用指定的版本
         2. 有旧 Proxy 元数据：使用旧 Proxy 的版本
-        3. 没有旧 Proxy 元数据：使用最新版本
+        3. 没有旧 Proxy 元数据：使用模块绑定的 proxy 版本，模块还没设置版本时使用最新版本
 
         @param cluster_id: 集群ID
         @param specified_version: 用户指定的版本（可选）
@@ -141,8 +143,13 @@ class MySQLProxyRescueFlow(object):
         all_proxies = cluster.proxyinstance_set.all()
 
         if not all_proxies.exists():
-            logger.warning(_("集群没有任何 Proxy 记录，将使用最新版本的 Proxy 介质包"))
-            return Package.get_latest_package(version="latest", pkg_type=PackageType.MySQLProxy).id
+            try:
+                proxy_pkg = get_layer_package(cluster.db_module_id, AccessLayer.PROXY)
+                logger.warning(_("集群没有任何 Proxy 记录，将使用模块绑定版本的 Proxy 介质包"))
+            except DBModuleVersionNotSetException:
+                proxy_pkg = Package.get_latest_package(version="latest", pkg_type=PackageType.MySQLProxy)
+                logger.warning(_("集群没有任何 Proxy 记录，将使用最新版本的 Proxy 介质包"))
+            return proxy_pkg.id
 
         cluster_proxy_version_set = {p.version for p in all_proxies}
         proxy_version = cluster_proxy_version_set.pop()

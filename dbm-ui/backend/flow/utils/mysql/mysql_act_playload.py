@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 import copy
 import json
 import logging
@@ -24,8 +25,9 @@ from backend.constants import IP_PORT_DIVIDER
 from backend.core.consts import BK_PKG_INSTALL_PATH
 from backend.core.encrypt.constants import AsymmetricCipherConfigType
 from backend.core.encrypt.handlers import AsymmetricHandler
-from backend.db_meta.enums import InstanceInnerRole, MachineType, TenDBClusterSpiderRole
-from backend.db_meta.exceptions import DBMetaException
+from backend.db_meta.api.db_module.version import get_layer_package
+from backend.db_meta.enums import AccessLayer, InstanceInnerRole, MachineType, TenDBClusterSpiderRole
+from backend.db_meta.exceptions import DBMetaException, DBModuleVersionNotSetException
 from backend.db_meta.models import Cluster, Machine, StorageInstanceTuple
 from backend.db_package.models import Package
 from backend.db_proxy.models import DBExtension
@@ -198,7 +200,13 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 return config["mysqld"]["default-storage-engine"]
         return "innodb"
 
-    def get_install_mysql_payload(self, **kwargs) -> dict:
+    def get_install_mysql_payload_with_module(self, **kwargs) -> dict:
+        """
+        集群部署专用：mysql 介质取模块存储层绑定的版本，其余同 get_install_mysql_payload
+        """
+        return self.get_install_mysql_payload(with_module=True, **kwargs)
+
+    def get_install_mysql_payload(self, with_module: bool = False, **kwargs) -> dict:
         """
         拼接安装MySQL的payload参数, 分别兼容集群申请、集群实例重建、集群实例添加单据的获取方式
         由于集群实例重建或者添加单据是不知道 需要部署的版本号以及字符集，需要通过接口获取
@@ -232,7 +240,14 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                 immutable_domain=cluster["master"],
                 db_version=db_version,
             )
-        mysql_pkg = Package.get_latest_package(version=db_version, pkg_type=MediumEnum.MySQL)
+        if with_module:
+            # 存量模块还没设置版本时，仍按部署配置的版本系列取最新介质
+            try:
+                mysql_pkg = get_layer_package(self.db_module_id, AccessLayer.STORAGE)
+            except DBModuleVersionNotSetException:
+                mysql_pkg = Package.get_latest_package(version=db_version, pkg_type=MediumEnum.MySQL)
+        else:
+            mysql_pkg = Package.get_latest_package(version=db_version, pkg_type=MediumEnum.MySQL)
         if self.cluster.get("pkg_id"):
             pkg_id = self.cluster["pkg_id"]
             if pkg_id > 0:
@@ -282,7 +297,13 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
             },
         }
 
-    def get_install_spider_payload(self, **kwargs):
+    def get_install_spider_payload_with_module(self, **kwargs) -> dict:
+        """
+        集群部署专用：spider 介质取模块接入层绑定的版本，其余同 get_install_spider_payload
+        """
+        return self.get_install_spider_payload(with_module=True, **kwargs)
+
+    def get_install_spider_payload(self, with_module: bool = False, **kwargs):
         """
         拼接spider节点安装的payload
         """
@@ -301,6 +322,12 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         if self.cluster.get("pkg_id"):
             pkg_id = self.cluster["pkg_id"]
             spider_pkg = Package.objects.get(id=pkg_id, pkg_type=MediumEnum.Spider)
+        elif with_module:
+            # 存量模块还没设置版本时，仍按部署配置的版本系列取最新介质
+            try:
+                spider_pkg = get_layer_package(self.db_module_id, AccessLayer.PROXY)
+            except DBModuleVersionNotSetException:
+                spider_pkg = Package.get_latest_package(version=spider_version, pkg_type=MediumEnum.Spider)
         else:
             spider_pkg = Package.get_latest_package(version=spider_version, pkg_type=MediumEnum.Spider)
         version_no = get_spider_real_version(spider_pkg.name)

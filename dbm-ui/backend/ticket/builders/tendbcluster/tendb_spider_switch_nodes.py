@@ -14,8 +14,8 @@ from django.db.models import Q
 from django.utils.translation import gettext_lazy as _
 from rest_framework import serializers
 
-from backend.db_meta.enums import TenDBClusterSpiderRole
-from backend.db_meta.models import Cluster, ProxyInstance
+from backend.db_meta.enums import AccessLayer, TenDBClusterSpiderRole
+from backend.db_meta.models import Cluster, DBModule, ProxyInstance
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.controller.spider import SpiderController
 from backend.iam_app.dataclass.actions import ActionEnum
@@ -69,15 +69,23 @@ class TendbSpiderSwitchNodesResourceParamBuilder(TendbBaseOperateResourceParamBu
             cluster__spider_inst_map[spider.cluster.first().id].append(spider.machine)
 
         cluster_map = Cluster.objects.in_bulk(cluster_ids)
+        module_map = DBModule.objects.in_bulk([cluster.db_module_id for cluster in cluster_map.values()])
 
         for info in infos:
+            cluster = cluster_map[info["cluster_id"]]
             self.patch_common_affinity(
                 info,
                 role=info["switch_spider_role"],
-                cluster=cluster_map[info["cluster_id"]],
+                cluster=cluster,
                 exclusive_hosts=cluster__spider_inst_map.get(info["cluster_id"], []),
                 tolerance=0.5,
                 no_need_affinity=info["switch_spider_role"] == TenDBClusterSpiderRole.SPIDER_SLAVE,
+            )
+            self.patch_module_os_params(
+                info["resource_spec"],
+                role=info["switch_spider_role"],
+                db_module=module_map.get(cluster.db_module_id),
+                access_layer=AccessLayer.PROXY,
             )
 
     def post_callback(self):

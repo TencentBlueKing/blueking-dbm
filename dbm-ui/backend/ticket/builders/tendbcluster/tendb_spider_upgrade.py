@@ -56,6 +56,8 @@ class TenDBSpiderUpgradeResourceParamBuilder(TendbBaseOperateResourceParamBuilde
     def format(self):
         self.patch_info_common_affinity("spider_master", tolerance=0.5)
         self.patch_info_common_affinity("spider_slave", no_need_affinity=True)
+        self.patch_info_package_os_params(role="spider_master")
+        self.patch_info_package_os_params(role="spider_slave")
 
     def post_callback(self):
         next_flow = self.ticket.next_flow()

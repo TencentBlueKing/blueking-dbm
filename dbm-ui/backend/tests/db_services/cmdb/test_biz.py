@@ -9,12 +9,15 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.test import TestCase
 from django.utils.crypto import get_random_string
 
-from backend.db_services.cmdb.biz import list_bizs
+from backend.db_meta.enums import ClusterType
+from backend.db_services.cmdb.biz import list_bizs, module_deploy_charsets
+from backend.exceptions import ApiError
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.tests.conftest import mock_bk_user
 from backend.tests.mock_data.components.cc import CCApiMock
@@ -27,3 +30,17 @@ class TestBiz(TestCase):
     def test_list_bizs(self):
         biz_list = list_bizs(user=mock_bk_user(get_random_string(10)))
         self.assertEqual(biz_list[0].permission[ActionEnum.DB_MANAGE.id], True)
+
+    @patch("backend.db_services.cmdb.biz.DBConfigHandler")
+    def test_module_deploy_charsets_ignore_failed_module(self, handler_cls):
+        def get_level_config(dbconfig_level_data):
+            if str(dbconfig_level_data.level_value) == "2":
+                raise ApiError("dbconfig unavailable")
+            return {"conf_items": [{"conf_name": "charset", "conf_value": "utf8mb4"}]}
+
+        handler_cls.return_value.get_level_config = get_level_config
+        modules = [SimpleNamespace(db_module_id=1), SimpleNamespace(db_module_id=2)]
+
+        charsets = module_deploy_charsets(3, ClusterType.TenDBSingle.value, modules)
+
+        self.assertEqual(charsets, {1: "utf8mb4", 2: ""})

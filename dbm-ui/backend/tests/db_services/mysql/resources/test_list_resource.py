@@ -44,7 +44,9 @@ class TestListResource:
 
 class TestResourceTree:
     @patch.object(views.ResourceTreeViewSet, "get_permissions", lambda x: [])
-    def test_get_tree(self, bk_biz_id, dbsingle_cluster):
+    @patch("backend.db_services.mysql.resources.views.module_deploy_charsets")
+    def test_get_tree(self, module_deploy_charsets, bk_biz_id, dbsingle_cluster):
+        module_deploy_charsets.return_value = {dbsingle_cluster.db_module_id: "utf8mb4"}
         request = factory.get(
             f"/apis/mysql/bizs/{bk_biz_id}/resource_tree/?cluster_type={dbsingle_cluster.cluster_type}"
         )
@@ -52,3 +54,4 @@ class TestResourceTree:
         response = view(request, bk_biz_id=bk_biz_id)
         data = response.data
         assert data[0]["children"][0]["extra"]["domain"] == dbsingle_cluster.immute_domain
+        assert data[0]["extra"] == {"version_series": "", "charset": "utf8mb4"}
