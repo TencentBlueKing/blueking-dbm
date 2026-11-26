@@ -163,7 +163,7 @@
       <BkButton
         class="w-88"
         :disabled="isSubmitting"
-        @click="isShow = false">
+        @click="handleClose">
         {{ t('取消') }}
       </BkButton>
     </template>
@@ -213,13 +213,13 @@
       ({
         approve: {
           description: t(
-            '为选中单据类型设置审批，仅更新流程控制方式为「平台设置」且审批值发生变化的单据类型，其他跳过',
+            '为选中单据类型设置审批，仅更新审批控制来源为「平台设置」且审批值发生变化的单据类型，其他跳过',
           ),
           title: t('批量设置审批'),
         },
         confirm: {
           description: t(
-            '为选中单据类型设置确认执行，仅更新流程控制方式为「平台设置」且确认值发生变化的单据类型，其他跳过',
+            '为选中单据类型设置确认执行，仅更新确认执行控制来源为「平台设置」且确认值发生变化的单据类型，其他跳过',
           ),
           title: t('批量设置确认执行'),
         },
@@ -256,11 +256,16 @@
     const configs: Parameters<typeof updateTicketFlowConfig>[0]['configs'] = {};
     if (props.mode === 'timeout' && formData.state) configs.expire_config = { [formData.state]: formData.timeout };
     else configs[flowKey.value] = formData.flowValue;
+    // 非平台设置项保留在影响范围展示，不进入该步骤的预检查和保存。
+    const rows = props.mode === 'timeout'
+      ? props.rows
+      : props.rows.filter((row) => row[`editable_${flowKey.value}`] === true);
+    if (!rows.length) return undefined;
     return {
       bk_biz_id: 0 as const,
-      config_ids: props.rows.map((row) => row.id),
+      config_ids: rows.map((row) => row.id),
       configs,
-      ticket_types: props.rows.map((row) => row.ticket_type),
+      ticket_types: rows.map((row) => row.ticket_type),
     };
   });
   const checkMessage = computed(() => {
@@ -278,6 +283,9 @@
   const isChecked = computed(() => isValid.value && Boolean(checkResult.value) && !checkMessage.value);
   const impact = computed(() =>
     props.rows.map((row) => {
+      if (props.mode !== 'timeout' && row[`editable_${flowKey.value}`] !== true) {
+        return { reason: row[`editable_${flowKey.value}`] === null ? t('逐单判定') : t('单据预设'), row };
+      }
       const errors = checkResult.value?.config_errors.find((item) => item.config_id === row.id)?.errors;
       // 每项仅计一个原因，控制边界与适用性优先于无变更。
       const error = errors?.find((item) => item.code !== 'unchanged') || errors?.[0];

@@ -13,6 +13,7 @@
 
 <template>
   <DbSideslider
+    ref="sideslider"
     v-model:is-show="isShow"
     :before-close="handleBeforeClose"
     quick-close
@@ -28,36 +29,34 @@
       class="global-config-form"
       form-type="vertical"
       :model="formData">
-      <h3>{{ t('流程控制') }}</h3>
+      <h3>{{ t('审批与确认执行') }}</h3>
       <div class="global-config-group">
-        <DbFormItem :label="t('流程控制方式')">
-          <span>{{ data.editable ? t('平台设置') : t('单据预设') }}</span>
-          <span class="config-hint ml-8">
-            {{ data.editable ? t('审批与确认执行由本页设置控制') : t('审批与确认执行由该单据流程预先确定，不受本页设置影响') }}
-          </span>
+        <DbFormItem
+          v-for="field in flowFields"
+          :key="field.key"
+          :label="field.label">
+          <template v-if="data[`editable_${field.key}`] === true">
+            <BkSwitcher
+              v-model="formData[field.key]"
+              theme="primary"
+              @change="handleFlowChange(field.key)" />
+            <span class="ml-8">{{ flowValueText(field.key) }}</span>
+            <span class="config-hint ml-8">{{ formData[field.key] ? field.onHint : field.offHint }}</span>
+          </template>
+          <template v-else>
+            <span>{{ data[`editable_${field.key}`] === null ? t('逐单判定') : flowValueText(field.key) }}</span>
+            <DbIcon
+              class="ml-4"
+              type="lock-fill" />
+            <span class="config-hint ml-8">
+              {{
+                data[`editable_${field.key}`] === null
+                  ? t('由该单据在提交时按提单内容判定，不受本页设置影响')
+                  : t('由该单据流程预先确定，不受本页设置影响')
+              }}
+            </span>
+          </template>
         </DbFormItem>
-        <template v-if="data.editable">
-          <DbFormItem :label="t('审批')">
-            <BkSwitcher
-              v-model="formData.need_itsm"
-              theme="primary"
-              @change="handleFlowChange('need_itsm')" />
-            <span class="ml-8">{{ formData.need_itsm ? t('需审批') : t('免审批') }}</span>
-            <span class="config-hint ml-8">
-              {{ formData.need_itsm ? t('单据提交后需经 DBA 审批，方可进入下一阶段') : t('单据提交后跳过 DBA 审批，直接进入下一阶段') }}
-            </span>
-          </DbFormItem>
-          <DbFormItem :label="t('确认执行')">
-            <BkSwitcher
-              v-model="formData.need_manual_confirm"
-              theme="primary"
-              @change="handleFlowChange('need_manual_confirm')" />
-            <span class="ml-8">{{ formData.need_manual_confirm ? t('需确认') : t('免确认') }}</span>
-            <span class="config-hint ml-8">
-              {{ formData.need_manual_confirm ? t('流转至「确认执行」步骤时挂起，需人工「确认执行」才可进入下一阶段') : t('跳过「确认执行」步骤，直接进入下一阶段') }}
-            </span>
-          </DbFormItem>
-        </template>
       </div>
       <h3>
         {{ t('超时自动终止') }}
@@ -91,7 +90,7 @@
       <BkButton
         class="w-88"
         :disabled="isSubmitting"
-        @click="isShow = false">
+        @click="handleCancel">
         {{ t('取消') }}
       </BkButton>
     </template>
@@ -124,6 +123,21 @@
 
   const { t } = useI18n();
   const beforeClose = useBeforeClose();
+  const sidesliderRef = useTemplateRef('sideslider');
+  const flowFields: { key: FlowKey; label: string; offHint: string; onHint: string }[] = [
+    {
+      key: 'need_itsm',
+      label: t('审批'),
+      offHint: t('单据提交后跳过 DBA 审批，直接进入下一阶段'),
+      onHint: t('单据提交后需经 DBA 审批，方可进入下一阶段'),
+    },
+    {
+      key: 'need_manual_confirm',
+      label: t('确认执行'),
+      offHint: t('跳过「确认执行」步骤，直接进入下一阶段'),
+      onHint: t('流转至「确认执行」步骤时挂起，需人工「确认执行」才可进入下一阶段'),
+    },
+  ];
   const changeSource = Symbol('global-ticket-config');
   const dirty = ref(false);
   const isSubmitting = ref(false);
@@ -135,15 +149,20 @@
     need_manual_confirm: false,
   });
 
+  const flowValueText = (key: FlowKey) =>
+    key === 'need_itsm' ? (formData[key] ? t('需审批') : t('免审批')) : formData[key] ? t('需确认') : t('免确认');
   const visibleStates = computed(() =>
     props.data.orderedExpireTypes.filter(
-      (state) => state.value !== 'pause' || !props.data.editable || formData.need_manual_confirm,
+      (state) =>
+        state.value !== 'pause' || props.data.editable_need_manual_confirm !== true || formData.need_manual_confirm,
     ),
   );
-  const isValid = computed(() => visibleStates.value.every((state) => {
-    const value = formData.expire_config[state.value];
-    return value === -1 || (value !== undefined && Number.isInteger(value) && value >= 1 && value <= 2160);
-  }));
+  const isValid = computed(() =>
+    visibleStates.value.every((state) => {
+      const value = formData.expire_config[state.value];
+      return value === -1 || (value !== undefined && Number.isInteger(value) && value >= 1 && value <= 2160);
+    }),
+  );
 
   watch(isShow, (value) => {
     if (value) {
@@ -153,7 +172,10 @@
       formData.need_itsm = props.data.configs.need_itsm;
       formData.need_manual_confirm = props.data.configs.need_manual_confirm;
       formData.expire_config = Object.fromEntries(
-        props.data.supported_expire_types.map((state) => [state.value, props.data.configs.expire_config?.[state.value] ?? -1]),
+        props.data.supported_expire_types.map((state) => [
+          state.value,
+          props.data.configs.expire_config?.[state.value] ?? -1,
+        ]),
       );
     } else {
       releaseSourceChanged(changeSource);
@@ -172,16 +194,14 @@
     changedTimeoutKeys.add(key);
     markChanged();
   };
-  const handleBeforeClose = () => isSubmitting.value ? false : beforeClose(dirty.value);
+  const handleBeforeClose = () => (isSubmitting.value ? false : beforeClose(dirty.value));
 
   const handleSave = async () => {
     if (!dirty.value || !isValid.value || isSubmitting.value) return;
     const configs: Parameters<typeof updateTicketFlowConfig>[0]['configs'] = {};
-    if (props.data.editable) {
-      changedFlowKeys.forEach((key) => {
-        configs[key] = formData[key];
-      });
-    }
+    changedFlowKeys.forEach((key) => {
+      if (props.data[`editable_${key}`] === true) configs[key] = formData[key];
+    });
     // 仅提交操作过且当前生效的状态，免确认时保留后端原有待执行配置。
     const expireConfig: NonNullable<typeof configs.expire_config> = {};
     visibleStates.value.forEach((state) => {
@@ -206,6 +226,10 @@
     } finally {
       isSubmitting.value = false;
     }
+  };
+
+  const handleCancel = async () => {
+    if (await sidesliderRef.value!.beforeClose()) isShow.value = false;
   };
 
   onUnmounted(() => releaseSourceChanged(changeSource));

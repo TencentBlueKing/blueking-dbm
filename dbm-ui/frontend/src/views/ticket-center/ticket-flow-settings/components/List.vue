@@ -212,10 +212,10 @@
               </DbTag>
               <AuthTemplate
                 actionId='biz_ticket_config_set'
-                disabled={!row.editable}
+                disabled={!row.isApprovalEditable}
                 permission={row.permission.biz_ticket_config_set}
                 resource={props.dbType}>
-                {row.editable ? (
+                {row.isApprovalEditable ? (
                   <BkButton
                     class='ml-16'
                     text
@@ -251,10 +251,10 @@
             {!hasChildren && <span class='tree-icon-placeholder' />}
             <AuthTemplate
               actionId='biz_ticket_config_set'
-              disabled={!row.editable}
+              disabled={!row.isApprovalEditable}
               permission={row.permission.biz_ticket_config_set}
               resource={props.dbType}>
-              {row.editable ? (
+              {row.isApprovalEditable ? (
                 <BkButton
                   text
                   theme='primary'
@@ -273,7 +273,7 @@
                 {t('自定义')}
               </DbTag>
             )}
-            {!row.editable && (
+            {!row.isApprovalEditable && (
               <BkPopover
                 content={t('平台已锁定，不可更改设置')}
                 placement='top'
@@ -391,18 +391,18 @@
             <AuthTemplate
               actionId='biz_ticket_config_set'
               class='action-btns'
-              disabled={!row.editable}
+              disabled={!row.isApprovalEditable}
               permission={row.permission.biz_ticket_config_set}
               resource={props.dbType}>
               <BkButton
-                disabled={!row.editable}
+                disabled={!row.isApprovalEditable}
                 text
                 theme='primary'
                 onClick={() => handleEdit(row)}>
                 {t('编辑')}
               </BkButton>
               <BkButton
-                disabled={!row.editable}
+                disabled={!row.isApprovalEditable}
                 text
                 theme='primary'
                 onClick={() => handleDeleteChild(row)}>
@@ -415,18 +415,18 @@
           <AuthTemplate
             actionId='biz_ticket_config_set'
             class='action-btns'
-            disabled={!row.editable}
+            disabled={!row.isApprovalEditable}
             permission={row.permission.biz_ticket_config_set}
             resource={props.dbType}>
             <BkButton
-              disabled={!row.editable}
+              disabled={!row.isApprovalEditable}
               text
               theme='primary'
               onClick={() => handleEdit(row)}>
               {t('编辑')}
             </BkButton>
             <BkButton
-              disabled={!row.editable}
+              disabled={!row.isApprovalEditable}
               text
               theme='primary'
               onClick={() => handleAddChild(row)}>
@@ -434,7 +434,7 @@
             </BkButton>
             {row.isCustom && (
               <BkButton
-                disabled={!row.editable}
+                disabled={!row.isApprovalEditable}
                 text
                 theme='primary'
                 onClick={() => handleRestoreDefault(row)}>
