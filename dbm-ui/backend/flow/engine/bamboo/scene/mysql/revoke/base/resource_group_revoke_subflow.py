@@ -20,8 +20,11 @@ specific language governing permissions and limitations under the License.
          GROUP_RECYCLE 判决产出瞬间同步写入 FlowSummary（预申报语义，而非清理完成台账）
       3) :class:`ResourceGroupCleanupComponent`：按 verdict evidence 精确清元数据；
          不写 trans_data、不写 FlowSummary（职责纯粹化）
-      4) :class:`ResourceGroupMachineClearComponent`：自主基于 ``trans_data.group_verdict``
-         筛选 F4=yes 的 IP 作为 exec_ips，空则 no-op；不再依赖 ``pending_clear_ips`` 字段
+      4) :class:`ResourceGroupMachineClearComponent`：GROUP_RECYCLE 契约下先复跑
+         F2 全量红线（F2.a~F2.d 按角色路由，与段 2 判定同源同口径；fail-closed，
+         命中/无法确认则节点挂起），复检通过后对组内全部机器下发清机脚本
+         （不按 F4 筛选：清机脚本为全量幂等清理，"进程没起来但目录已铺"
+         的 F4=NO 机器同样需要清理）
 
 设计要点：
   - **合并为单 SubProcess 是必需的**：bamboo SubProcess 之间 ``trans_data`` 无法回写，
@@ -155,11 +158,20 @@ def build_group_revoke_subflow(
         },
     )
 
-    # ---- 段 4：机器脚本清理（自主基于 trans_data.group_verdict 筛选 F4=yes 的 IP；空则 no-op）----
+    # ---- 段 4：机器脚本清理（GROUP_RECYCLE 全组下发 + 清理前 F2 红线全量复检）----
+    # 不再按 F4 筛选：清机脚本是"杀进程 + 清目录 + 清 crontab + 清配置"的全量幂等清理，
+    # 门控依据是组决策（机器要还池），F4=NO 只能证明无需杀进程、不能证明机器干净
+    # （如"install 铺完目录但 mysqld 启动失败"的机器正是 F4=NO 但必须清理的场景）；
+    # 下发前复跑 F2 全量红线（F2.a~F2.d 按角色路由，与段 2 同源），fail-closed 拦截判定异常
     sub_pipeline.add_act(
         act_name=_("机器脚本清理 [{ips}]").format(ips=ips_display),
         act_component_code=ResourceGroupMachineClearComponent.code,
-        kwargs={},
+        kwargs={
+            # 红线复检器构造需要原单据对象（与段 2 判定同源）
+            "ticket_id": ticket_id,
+            # 红线复检输入：units / clb_regions / access_layer_proxies 与段 2 完全同源
+            "group_dict": asdict(group),
+        },
     )
 
     return sub_pipeline.build_sub_process(sub_name=_("资源组主机退回 [{ips}]").format(ips=ips_display))
