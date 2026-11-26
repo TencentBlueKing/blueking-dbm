@@ -338,6 +338,7 @@ def test_business_preset_still_rejects_update_before_deletion():
         patch("backend.ticket.handler.transaction.atomic", return_value=nullcontext()),
         patch("backend.ticket.handler.TicketFlowsConfig.objects.filter", return_value=queryset),
         patch("backend.ticket.handler.TicketHandler.create_ticket_flow_config") as create,
+        patch.dict("backend.ticket.handler.BuilderFactory.registry", {"MYSQL_SINGLE_APPLY": PresetFlowBuilder}),
     ):
         with pytest.raises(TicketFlowsConfigException):
             TicketHandler.update_ticket_flow_config(
