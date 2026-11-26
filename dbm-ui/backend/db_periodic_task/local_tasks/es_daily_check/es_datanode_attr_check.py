@@ -499,6 +499,10 @@ def _build_report(cluster: Cluster, app: str, dba, machine: Machine, node_role: 
     )
 
 
+def _should_persist_report(report: EsDatanodeAttrReport) -> bool:
+    return report.state == ReportStateType.ABNORMAL
+
+
 def _build_abnormal_report(cluster: Cluster, app: str, dba, machine: Machine, node_role: str, msg: str):
     return EsDatanodeAttrReport(
         bk_biz_id=cluster.bk_biz_id,
@@ -612,16 +616,16 @@ def _collect_cluster_reports(cluster: Cluster):
         if not _should_check(node_role, node_config):
             continue
 
-        reports.append(
-            _build_report(
-                cluster=cluster,
-                app=app,
-                dba=es_dba,
-                machine=machine,
-                node_role=node_role,
-                config=node_config,
-            )
+        report = _build_report(
+            cluster=cluster,
+            app=app,
+            dba=es_dba,
+            machine=machine,
+            node_role=node_role,
+            config=node_config,
         )
+        if _should_persist_report(report):
+            reports.append(report)
 
     return reports
 
@@ -631,6 +635,7 @@ def check_es_datanode_attr():
     通过 bkjob 远程读取 ES 数据节点 elasticsearch.yml 中的 node.attr
     并与 db_meta_machine 元数据进行一致性校验
     仅校验同时配置了 idc_id/rack_id/sub_zone_id 且 idc_id != 1 的数据节点
+    仅持久化异常巡检报告，正常节点和全正常集群不写入数据库
     对 bkjob 执行失败节点输出异常巡检报告
     对同一主机多个候选配置要求配置一致，否则输出异常巡检报告
     按集群串行下发 bkjob 脚本，当前集群完成后再处理下一个集群
@@ -643,7 +648,7 @@ def check_es_datanode_attr():
             logger.info("serial dispatch bkjob for es cluster %s", cluster.immute_domain)
             reports = _collect_cluster_reports(cluster)
             if not reports:
-                logger.info("cluster %s has no datanodes matched attr-check rule", cluster.immute_domain)
+                logger.info("cluster %s has no abnormal es datanode attr reports to save", cluster.immute_domain)
                 continue
 
             for report in reports:
