@@ -30,7 +30,6 @@ paginated_resource_example = {
                 {"node_ip": "0.0.0.3", "node_port": 6333, "node_role": "peer", "status": "healthy"},
             ],
             "bcs_cluster_name": "k8s-cluster-001",
-            "namespace": "qdrant-namespace",
             "version": "v1.8.0",
             "status": "running",
             "create_at": "2024-01-01 10:00:00",
