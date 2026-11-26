@@ -14,7 +14,7 @@ from django.utils.translation import gettext_lazy as _
 
 from backend.components.kubernetes.client import KubernetesApi
 from backend.db_meta.api.cluster.k8s_vm.victoriametricscluster.detail import scan_cluster
-from backend.db_meta.enums import ClusterType, InstanceRole
+from backend.db_meta.enums import ClusterEntryRole, ClusterType, InstanceRole
 from backend.db_meta.models.cluster import Cluster
 from backend.db_services.dbbase.resources.query import ResourceList
 from backend.db_services.dbbase.resources.register import register_resource_decorator
@@ -66,9 +66,24 @@ class VictoriaMetricsClusterListRetrieveResource(VictoriaMetricsBaseListRetrieve
         """
         cluster_details = super()._retrieve_cluster(cluster_details, cluster_id)
         cluster_details["storage_entry"] = cls._get_storage_entry(
-            cluster_details.get("master_domain", ""), cls._fetch_cluster_spec(cluster_details)
+            cls._get_cluster_domain(cluster_details, cluster_id), cls._fetch_cluster_spec(cluster_details)
         )
         return cluster_details
+
+    @classmethod
+    def _get_cluster_domain(cls, cluster_details: Dict[str, Any], cluster_id: int) -> str:
+        """存储入口使用的集群唯一域名
+
+        cluster_details 中的 master_domain 只在 DNS 入口的 entry 与 immute_domain 相同时才有值，
+        而 k8s VM 集群落库的是 CLBDNS 入口（role=master_entry），master_domain 恒为空串，
+        因此这里按 master_entry 角色取入口域名，最后兜底 DB 中的 immute_domain。
+        """
+        if cluster_details.get("master_domain"):
+            return cluster_details["master_domain"]
+        for entry in cluster_details.get("cluster_entry") or []:
+            if entry.get("role") == ClusterEntryRole.MASTER_ENTRY.value and entry.get("entry"):
+                return entry["entry"]
+        return Cluster.objects.filter(id=cluster_id).values_list("immute_domain", flat=True).first() or ""
 
     @classmethod
     def _fetch_cluster_spec(cls, cluster_details: Dict[str, Any]) -> dict:
