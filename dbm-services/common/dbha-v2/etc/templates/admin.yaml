@@ -124,8 +124,8 @@ probeProxyAdmin:
 # GetProbeConfig. If any cached row for the requesting IP is older than cacheMaxAge, the whole
 # machine is re-read from the DBM API, so a probe never builds its config from a partially
 # updated view. Rows older than tombstoneAge are ignored entirely: metadata sync never deletes,
-# so rows left behind by decommissioned instances would otherwise be permanently stale and send
-# every request for that IP to DBM.
+# so rows left behind by decommissioned instances stay stale until analysis retention removes
+# them (14 days by default) and would send every request for that IP to DBM meanwhile.
 # Both accept a Go duration; an empty or zero value means "use the default"
 # (cacheMaxAge 10m, tombstoneAge 24h). cacheMaxAge is clamped up to 1m.
 probeMetadata:

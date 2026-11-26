@@ -189,7 +189,10 @@ func (s *Synchronizer) saveRespond(resp *dbm.Response) error {
 		datas = append(datas, meta)
 	}
 
+	// A zero DeletedAt is written as 0000-00-00, which strict MySQL rejects. That failure would
+	// skip the updated_at refresh retention relies on, so the column stays unset and stores NULL.
 	err := s.db.DB().Session(&gorm.Session{FullSaveAssociations: true}).
+		Omit(hamodel.DbmMetadataFieldDeletedAt).
 		Clauses(clause.OnConflict{UpdateAll: true}).
 		Create(datas).Error
 

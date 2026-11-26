@@ -17,6 +17,8 @@
 | [gen-config 设计](flows/gen-config-design.md) | `gen-config` 加锁原子落盘、`--clear-port` 端口裁剪、`--reload` 通知、失败退出码 |
 | [采集与上报](flows/probe-harvest-and-report.md) | Harvester 采集 → Reporter（gRPC / GSE）→ Receiver → MySQL |
 | [故障判定与切换](flows/failure-detection-and-failover.md) | Analysis：同步元数据、Scan、二次探测条件入窗、滑动窗口、策略匹配、执行切换 |
+| [过期数据清理](flows/data-retention.md) | Analysis 定期删除 `t_dbm_metadata`、`t_dbha_status` 中超过保留期的行：规则、让路机制、配置、上线预检 |
+| [过期数据清理设计](flows/data-retention-design.md) | 清理的目标、工作原理，以及性能、安全性、业务正确性的保障机制与备选方案否决原因 |
 
 ## 3. 探测设计
 
@@ -54,7 +56,7 @@ Discovery、APM 指标服务、Storage、gRPC 和 Web 服务。单个资源更�
 
 | 文档 | 说明 |
 | --- | --- |
-| [analysis 指标](observability/analysis-metrics.md) | 扫描、滑窗、切换、外部依赖与采集覆盖指标，含 Grafana 配置 |
+| [analysis 指标](observability/analysis-metrics.md) | 扫描、滑窗、切换、外部依赖、采集覆盖与数据清理指标，含 Grafana 配置与清理告警 |
 | [admin 指标](observability/admin-metrics.md) | HTTP、gRPC、元数据回退与配置热重载指标，含 Grafana 配置 |
 | [receiver 指标](observability/receiver-metrics.md) | Probe / Kafka 接收、MySQL 写入与 Sink 延迟丢弃指标，含 Grafana 配置 |
 

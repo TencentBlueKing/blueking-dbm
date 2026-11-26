@@ -124,7 +124,7 @@ type DbmMetadata struct {
 	ProxyInstanceSet string                             `gorm:"column:proxy_insts;type:mediumtext"`
 	BinlogDumperSet  string                             `gorm:"column:binlog_dumpers;type:mediumtext"`
 	CreatedAt        time.Time                          `gorm:"column:created_at;autoCreateTime"`
-	UpdatedAt        time.Time                          `gorm:"column:updated_at;autoUpdateTime"`
+	UpdatedAt        time.Time                          `gorm:"column:updated_at;autoUpdateTime;index:idx_updated_at"`
 	DeletedAt        time.Time                          `gorm:"column:deleted_at;index:idx_deleted_at"`
 	SyncDuration     time.Duration                      `gorm:"column:sync_duration;type:bigint"`
 }

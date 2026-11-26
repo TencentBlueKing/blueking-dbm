@@ -86,6 +86,7 @@ var Cfg = Configuration{
 				CommandTimeout: 10 * time.Second,
 			},
 		},
+		Retention: DefaultRetentionConfig(),
 	},
 
 	Monitor: MonitorConfig{
@@ -176,6 +177,7 @@ type WorkflowConfig struct {
 	SwitchTimeout              time.Duration    `yaml:"switchTimeout"              mapstructure:"switchTimeout"`
 	DbmApiMetadataHashCnt      int              `yaml:"dbmApiMetadataHashCnt"      mapstructure:"dbmApiMetadataHashCnt"`
 	SwitchFlow                 SwitchFlowConfig `yaml:"switchflow"                 mapstructure:"switchflow"`
+	Retention                  RetentionConfig  `yaml:"retention"                  mapstructure:"retention"`
 	DbmApiMetadata             DbmApi           `yaml:"dbmApiMetadata"             mapstructure:"dbmApiMetadata"`
 	DbmApiUpdateStatus         DbmApi           `yaml:"dbmApiUpdateStatus"         mapstructure:"dbmApiUpdateStatus"`
 	DbmApiSwapMysqlRole        DbmApi           `yaml:"dbmApiSwapMysqlRole"        mapstructure:"dbmApiSwapMysqlRole"`

@@ -222,6 +222,8 @@ func (w *Workflow) Run(ctx context.Context) error {
 	w.wg.Add(1)
 	go w.runDbTableStatsLoop(ctx)
 
+	w.startRetention(ctx)
+
 	return nil
 }
 
