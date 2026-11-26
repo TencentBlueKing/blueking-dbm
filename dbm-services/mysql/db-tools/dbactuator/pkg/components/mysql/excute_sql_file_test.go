@@ -11,15 +11,184 @@
 package mysql
 
 import (
+	"crypto/md5"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
 
+	"dbm-services/mysql/db-tools/dbactuator/internal/subcmd"
 	"dbm-services/mysql/db-tools/dbactuator/pkg/native"
 )
+
+func TestCheckSQLFilesMd5(t *testing.T) {
+	dir := t.TempDir()
+	body := []byte("select 1;\n")
+	if err := os.WriteFile(filepath.Join(dir, "a.sql"), body, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	sum := md5.Sum(body)
+	match := hex.EncodeToString(sum[:])
+
+	reads := 0
+	orig := readSQLFileMD5
+	readSQLFileMD5 = func(filePath string) (string, error) {
+		reads++
+		return orig(filePath)
+	}
+	t.Cleanup(func() { readSQLFileMD5 = orig })
+
+	empty := ExecuteSQLFileComp{Params: &ExecuteSQLFileParam{}}
+	empty.taskdir = dir
+	if err := empty.checkSQLFilesMd5(); err != nil {
+		t.Fatalf("empty map should continue, got %v", err)
+	}
+	if reads != 0 {
+		t.Fatalf("empty map hashed %d times, want 0", reads)
+	}
+
+	okComp := ExecuteSQLFileComp{
+		Params: &ExecuteSQLFileParam{
+			SqlFilesMd5:    map[string]string{"a.sql": strings.ToUpper(match), "other.sql": match},
+			ExecuteObjects: []ExecuteSQLFileObj{{SQLFiles: []string{"a.sql", "a.sql"}}},
+		},
+	}
+	okComp.taskdir = dir
+	reads = 0
+	if err := okComp.checkSQLFilesMd5(); err != nil {
+		t.Fatalf("matching file should pass, got %v", err)
+	}
+	if reads != 1 {
+		t.Fatalf("same file hashed %d times, want 1", reads)
+	}
+
+	bad := ExecuteSQLFileComp{
+		Params: &ExecuteSQLFileParam{
+			SqlFilesMd5:    map[string]string{"a.sql": "00000000000000000000000000000000"},
+			ExecuteObjects: []ExecuteSQLFileObj{{SQLFiles: []string{"a.sql"}}},
+		},
+	}
+	bad.taskdir = dir
+	if err := bad.checkSQLFilesMd5(); err == nil || !strings.Contains(err.Error(), "不一致") {
+		t.Fatalf("mismatch should fail, got %v", err)
+	}
+
+	missing := ExecuteSQLFileComp{
+		Params: &ExecuteSQLFileParam{
+			SqlFilesMd5:    map[string]string{"b.sql": match},
+			ExecuteObjects: []ExecuteSQLFileObj{{SQLFiles: []string{"a.sql"}}},
+		},
+	}
+	missing.taskdir = dir
+	if err := missing.checkSQLFilesMd5(); err == nil || !strings.Contains(err.Error(), "缺失") {
+		t.Fatalf("missing digest should fail, got %v", err)
+	}
+
+	illegal := ExecuteSQLFileComp{
+		Params: &ExecuteSQLFileParam{
+			SqlFilesMd5:    map[string]string{"a.sql": "not-an-md5"},
+			ExecuteObjects: []ExecuteSQLFileObj{{SQLFiles: []string{"a.sql"}}},
+		},
+	}
+	illegal.taskdir = dir
+	if err := illegal.checkSQLFilesMd5(); err == nil || !strings.Contains(err.Error(), "非法") {
+		t.Fatalf("illegal digest should fail, got %v", err)
+	}
+
+	gone := ExecuteSQLFileComp{
+		Params: &ExecuteSQLFileParam{
+			SqlFilesMd5:    map[string]string{"gone.sql": match},
+			ExecuteObjects: []ExecuteSQLFileObj{{SQLFiles: []string{"gone.sql"}}},
+		},
+	}
+	gone.taskdir = dir
+	if err := gone.checkSQLFilesMd5(); err == nil || !strings.Contains(err.Error(), "读取SQL文件失败") {
+		t.Fatalf("missing file should fail, got %v", err)
+	}
+}
+
+func TestMd5MismatchStopsBeforeSedAndExecute(t *testing.T) {
+	dir := t.TempDir()
+	body := []byte("select 1;\n")
+	if err := os.WriteFile(filepath.Join(dir, "a.sql"), body, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	comp := ExecuteSQLFileComp{
+		Params: &ExecuteSQLFileParam{
+			SqlFilesMd5:    map[string]string{"a.sql": "00000000000000000000000000000000"},
+			ExecuteObjects: []ExecuteSQLFileObj{{SQLFiles: []string{"a.sql"}}},
+			IsSpider:       true,
+		},
+	}
+	comp.taskdir = dir
+	sedCalled := false
+	executeCalled := false
+	err := (subcmd.Steps{
+		{FunName: "Pre-Check", Func: comp.PreCheck},
+		{FunName: "执行前预处理", Func: func() error { sedCalled = true; return nil }},
+		{FunName: "执行导入SQL文件", Func: func() error { executeCalled = true; return nil }},
+	}).Run()
+	if err == nil || !strings.Contains(err.Error(), "不一致") {
+		t.Fatalf("mismatch should stop the steps, got %v", err)
+	}
+	if sedCalled || executeCalled {
+		t.Fatalf("later steps ran, sed=%v execute=%v", sedCalled, executeCalled)
+	}
+	got, readErr := os.ReadFile(filepath.Join(dir, "a.sql"))
+	if readErr != nil {
+		t.Fatal(readErr)
+	}
+	if string(got) != string(body) {
+		t.Fatalf("sql file changed: %q", got)
+	}
+}
+
+func TestEmptyMd5ContinuesToLaterSteps(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "a.sql"), []byte("select 1;\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	comp := ExecuteSQLFileComp{
+		Params: &ExecuteSQLFileParam{
+			ExecuteObjects: []ExecuteSQLFileObj{{SQLFiles: []string{"a.sql"}}},
+		},
+	}
+	comp.taskdir = dir
+	executeCalled := false
+	if err := (subcmd.Steps{
+		{FunName: "Pre-Check", Func: comp.PreCheck},
+		{FunName: "执行导入SQL文件", Func: func() error { executeCalled = true; return nil }},
+	}).Run(); err != nil {
+		t.Fatalf("empty map should continue, got %v", err)
+	}
+	if !executeCalled {
+		t.Fatal("empty map should reach execute")
+	}
+}
+
+func TestSQLFilesMd5SurvivesPayloadJSON(t *testing.T) {
+	raw := []byte(`{"general":{},"extend":{"host":"127.0.0.1","ports":[3306],"charset":"utf8","sql_files_md5":{"a.sql":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"execute_objects":[{"sql_files":["a.sql"]}]}}`)
+	var comp ExecuteSQLFileComp
+	if err := json.Unmarshal(raw, &comp); err != nil {
+		t.Fatal(err)
+	}
+	if comp.Params == nil || comp.Params.SqlFilesMd5["a.sql"] != "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" {
+		t.Fatalf("md5 not parsed: %+v", comp.Params)
+	}
+
+	var omitted ExecuteSQLFileComp
+	if err := json.Unmarshal([]byte(`{"extend":{"host":"127.0.0.1","charset":"utf8"}}`), &omitted); err != nil {
+		t.Fatal(err)
+	}
+	if len(omitted.Params.SqlFilesMd5) != 0 {
+		t.Fatalf("omitted key should be empty, got %+v", omitted.Params.SqlFilesMd5)
+	}
+}
 
 func TestCheckSQLFileNameLength(t *testing.T) {
 	t.Parallel()
