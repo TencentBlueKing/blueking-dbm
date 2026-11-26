@@ -52,7 +52,6 @@ class McpCalleePlanFlowBuilder(TicketFlowBuilder):
     retry_type = FlowRetryType.MANUAL_RETRY
 
     default_need_itsm = False
-    default_need_manual_confirm = True
     # enable_ai_details_summary = True
 
     group = "common"

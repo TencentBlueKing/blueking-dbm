@@ -59,7 +59,10 @@ class MysqlDtsPrecheckFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlDtsPrecheckDetailSerializer
     inner_flow_builder = MysqlDtsPrecheckFlowParamBuilder
     inner_flow_name = _("MySQL DTS 迁移预检查")
-    editable = False
+    editable_need_itsm = False
+    editable_need_manual_confirm = False
+    default_need_itsm = False
+    default_need_manual_confirm = False
 
     @property
     def need_itsm(self):

@@ -137,6 +137,7 @@ class MySQLDBHAAFRegisterFlowBuilder(BaseMySQLTicketFlowBuilder):
     inner_flow_name = _("MySQL DBHA 故障自愈事件注册")
     default_need_itsm = False
     default_need_manual_confirm = False
+    editable_need_itsm = False
 
     @property
     def need_itsm(self):

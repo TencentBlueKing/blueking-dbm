@@ -53,7 +53,8 @@ class MongoDBInstanceFixStatusFlowBuilder(BaseMongoDBTicketFlowBuilder):
 
     # 需要审批和人工确认（自愈自动创单可通过 details 关闭）
     default_need_itsm = True
-    default_need_manual_confirm = True
+    editable_need_itsm = None
+    editable_need_manual_confirm = None
 
     @property
     def need_itsm(self):

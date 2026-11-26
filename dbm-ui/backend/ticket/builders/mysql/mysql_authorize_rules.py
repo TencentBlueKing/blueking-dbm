@@ -97,7 +97,8 @@ class MySQLAuthorizeRulesFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLAuthorizeRulesSerializer
     inner_flow_builder = MySQLAuthorizeRulesFlowParamBuilder
     inner_flow_name = _("MySQL 授权执行")
-    editable = False
+    editable_need_itsm = False
+    editable_need_manual_confirm = False
     default_need_itsm = False
     default_need_manual_confirm = False
 

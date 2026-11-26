@@ -64,7 +64,8 @@ class SQLServerRulesFlowBuilder(BaseSQLServerTicketFlowBuilder):
 
     default_need_itsm = False
     default_need_manual_confirm = False
-    editable = False
+    editable_need_itsm = False
+    editable_need_manual_confirm = False
 
     def patch_ticket_detail(self):
         details = self.ticket.details

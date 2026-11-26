@@ -56,6 +56,7 @@ class MySQLDtsChecksumDetailSerializer(MySQLChecksumDetailSerializer):
 @builders.BuilderFactory.register(TicketType.MYSQL_DTS_CHECKSUM)
 class MySQLDtsChecksumFlowBuilder(MySQLChecksumFlowBuilder):
     serializer = MySQLDtsChecksumDetailSerializer
+    editable_need_itsm = False
 
     @property
     def need_itsm(self):

@@ -50,6 +50,25 @@ def get_described_flow_types(nodes):
     return {node.flow_type for node in nodes}
 
 
+def get_query_expire_types(builder, nodes):
+    """按流程描述返回超时类型，排除 Builder 固定关闭的节点。"""
+    from backend.ticket.builders import TicketFlowBuilder
+
+    flow_types = get_described_flow_types(nodes)
+    for field, flow_type in (("need_itsm", FlowType.BK_ITSM), ("need_manual_confirm", FlowType.PAUSE)):
+        if flow_type not in flow_types or getattr(builder, f"editable_{field}") is not False:
+            continue
+        # 开关可以锁定但仍从配置读取，此时按流程描述判断。
+        switch = getattr(builder, field, None)
+        if (
+            isinstance(switch, property)
+            and switch is not getattr(TicketFlowBuilder, field)
+            and switch.fget(None) is False
+        ):
+            flow_types.discard(flow_type)
+    return get_supported_expire_types(flow_types)
+
+
 def get_configurable_expire_types(builder, ticket_type, config_map):
     """计算可配置的超时类型，包含打开开关后可启用的节点。"""
     capability_map = {
@@ -117,8 +136,8 @@ def plan_flow_config_update(config, update_configs, builder):
 
     # 单据预设允许调整适用的超时时间，但不允许提交审批和人工确认开关。
     switches = {"need_itsm", "need_manual_confirm"} & update_configs.keys()
-    if switches and not config.editable:
-        for field in sorted(switches):
+    for field in sorted(switches):
+        if getattr(builder, f"editable_{field}") is False:
             error(field, "preset", _("单据预设：不允许修改审批或人工确认配置"))
 
     # 能力判断与是否启用分开：免审批/免确认属于当前不生效，而非不支持该节点。

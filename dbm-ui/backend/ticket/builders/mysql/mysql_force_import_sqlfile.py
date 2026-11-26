@@ -45,9 +45,8 @@ class MysqlForceSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlForceSqlImportDetailSerializer
     backup_builder = MysqlSqlImportBackUpFlowParamBuilder
     inner_flow_builder = MysqlForceSqlImportFlowParamBuilder
-    editable = False
-    default_need_itsm = True
-    default_need_manual_confirm = True
+    editable_need_itsm = None
+    editable_need_manual_confirm = False
 
     def patch_ticket_detail(self):
         upload_sql_path = BKREPO_SQLFILE_PATH.format(biz=self.ticket.bk_biz_id)

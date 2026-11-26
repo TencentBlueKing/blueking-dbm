@@ -98,8 +98,8 @@ class RedisBackupAutoFlowBuilder(BaseRedisTicketFlowBuilder):
     serializer = RedisBackupAutoDetailSerializer
     inner_flow_builder = RedisBackupAutoFlowParamBuilder
     inner_flow_name = _("待执行备份")
-    editable = False
-    default_need_manual_confirm = True
+    editable_need_itsm = False
+    editable_need_manual_confirm = False
     # 由内部流程发起，跳过 ITSM 审批
     default_need_itsm = False
     # 备份的执行动作需要 DBA 手动确认触发，因此保留人工确认（pause）节点

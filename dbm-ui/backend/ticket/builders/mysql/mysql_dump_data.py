@@ -175,9 +175,8 @@ class MySQLDumpDataFlowBuilder(BaseMySQLTicketFlowBuilder):
     itsm_flow_maintainer_builder = MySQLDumpDataItsmMaintainerFlowParamsBuilder
     itsm_flow_productor_builder = MySQLDumpDataItsmProductorFlowParamsBuilder
     validator = MySQLController.dbconsole_dump_scene.validator
-    editable = False
+    editable_need_itsm = None
     default_need_itsm = True
-    default_need_manual_confirm = True
 
     def init_ticket_flows(self):
         flows = []

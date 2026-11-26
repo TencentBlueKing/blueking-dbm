@@ -122,9 +122,8 @@ class SQLServerDataExportFlowBuilder(BaseSQLServerTicketFlowBuilder):
     inner_flow_name = _("数据导出执行")
     itsm_flow_maintainer_builder = SQLServerDataExportItsmMaintainerFlowParamsBuilder
     itsm_flow_productor_builder = SQLServerDataExportItsmProductorFlowParamsBuilder
-    editable = False
-    default_need_itsm = True
-    default_need_manual_confirm = True
+    editable_need_itsm = False
+    editable_need_manual_confirm = False
 
     def init_ticket_flows(self):
         flows = []

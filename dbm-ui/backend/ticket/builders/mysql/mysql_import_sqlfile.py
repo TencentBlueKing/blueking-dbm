@@ -176,6 +176,7 @@ class MysqlSqlImportFlowBuilder(BaseMySQLTicketFlowBuilder):
     itsm_flow_builder = MysqlSqlImportItsmParamBuilder
     backup_flow_builder = MysqlSqlImportBackUpFlowParamBuilder
     import_flow_builder = MysqlSqlImportFlowParamBuilder
+    editable_need_itsm = None
 
     @property
     def need_itsm(self):

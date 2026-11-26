@@ -98,6 +98,7 @@ class RedisClusterAutofixFlowBuilder(RedisClusterCutOffFlowBuilder):
     resource_batch_apply_builder = RedisClusterAutofixResourceParamBuilder
     default_need_itsm = False
     default_need_manual_confirm = False
+    editable_need_itsm = False
 
     @property
     def need_itsm(self):

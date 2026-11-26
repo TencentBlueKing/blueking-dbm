@@ -35,6 +35,10 @@ class MySQLDataMigrateFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MySQLFakeDetailSerializer
     inner_flow_builder = MySQLFakeFlowParamBuilder
     inner_flow_name = "Fake Test"
+    editable_need_itsm = False
+    editable_need_manual_confirm = False
+    default_need_itsm = False
+    default_need_manual_confirm = False
 
     @property
     def need_itsm(self):

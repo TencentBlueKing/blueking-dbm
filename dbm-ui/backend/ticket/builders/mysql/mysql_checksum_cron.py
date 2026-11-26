@@ -23,6 +23,7 @@ class MySQLChecksumCronDetailSerializer(MySQLChecksumDetailSerializer):
 @builders.BuilderFactory.register(TicketType.MYSQL_CHECKSUM_CRON)
 class MySQLChecksumCronFlowBuilder(MySQLChecksumFlowBuilder):
     serializer = MySQLChecksumCronDetailSerializer
+    editable_need_itsm = False
 
     @property
     def need_itsm(self):

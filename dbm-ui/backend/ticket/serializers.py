@@ -569,6 +569,8 @@ class SupportedExpireTypeSerializer(serializers.Serializer):
 
 
 class TicketFlowDescribeDetailSerializer(serializers.Serializer):
+    editable_need_itsm = serializers.BooleanField(read_only=True, allow_null=True)
+    editable_need_manual_confirm = serializers.BooleanField(read_only=True, allow_null=True)
     configs = serializers.DictField(help_text=_("流程配置，平台配置的 expire_config 正数以小时返回"), read_only=True)
     supported_expire_types = SupportedExpireTypeSerializer(help_text=_("当前规则支持配置的超时类型及名称"), many=True, read_only=True)
     flow_desc = serializers.ListField(help_text=_("单据流程描述"), child=serializers.CharField())

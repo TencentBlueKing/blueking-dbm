@@ -191,9 +191,8 @@ class RecycleHostFlowBuilder(TicketFlowBuilder):
     recycle_flow_builder = RecycleHostParamBuilder
     # 此单据不属于任何db，暂定为common
     group = "common"
-    editable = False
     default_need_itsm = False
-    default_need_manual_confirm = True
+    editable_need_itsm = False
 
 
 @builders.BuilderFactory.register(TicketType.RECYCLE_APPLY_HOST)
@@ -230,6 +229,7 @@ class RecycleApplyHostFlowBuilder(RecycleHostFlowBuilder):
 @builders.BuilderFactory.register(TicketType.RECYCLE_OLD_HOST)
 class RecycleOldHostFlowBuilder(RecycleHostFlowBuilder):
     default_need_manual_confirm = False
+    editable_need_manual_confirm = False
     machine_idle_check_flow_builder = MachineIdleCheckParamBuilder
 
     def check_independent_recycle(self):

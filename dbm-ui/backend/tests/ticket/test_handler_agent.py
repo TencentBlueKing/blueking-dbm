@@ -201,7 +201,6 @@ def init_global_flow_config():
         bk_biz_id=PLAT_BIZ_ID,
         group=DBType.MySQL.value,
         ticket_type=TicketType.MYSQL_SINGLE_APPLY.value,
-        editable=True,
         configs={
             FlowTypeConfig.NEED_ITSM: False,
             FlowTypeConfig.NEED_MANUAL_CONFIRM: False,
@@ -833,7 +832,6 @@ class TestTicketHandlerFlowConfig:
 
         mock_flow_class = MagicMock()
         mock_flow_class.group = DBType.MySQL.value
-        mock_flow_class.editable = True
         mock_flow_class.default_need_manual_confirm = False
         mock_flow_class.default_need_itsm = False
         mock_flow_class.default_expire_config = {"enable": False}
@@ -980,7 +978,6 @@ class TestTicketHandlerFlowConfig:
             bk_biz_id=test_ticket_bk_biz_id,
             group=DBType.MySQL.value,
             ticket_type=TicketType.MYSQL_SINGLE_APPLY.value,
-            editable=True,
             configs={"need_itsm": True, "need_manual_confirm": False},
             creator="admin",
             updater="admin",
@@ -1022,6 +1019,8 @@ class TestTicketHandlerFlowConfig:
         ).exclude(id=init_global_flow_config.id).delete()
 
         mock_flow_class = MagicMock()
+        mock_flow_class.editable_need_itsm = None
+        mock_flow_class.editable_need_manual_confirm = False
         mock_flow_class.describe_ticket_flows.return_value = [
             FlowNodeDescription(FlowType.BK_ITSM, "单据审批"),
             FlowNodeDescription(FlowType.INNER_FLOW, "执行"),
@@ -1039,6 +1038,9 @@ class TestTicketHandlerFlowConfig:
         assert "flow_desc" in result[0]
         assert isinstance(result[0]["flow_desc"], list)
         assert result[0]["ticket_type"] == TicketType.MYSQL_SINGLE_APPLY.value
+        assert "editable" not in result[0]
+        assert result[0]["editable_need_itsm"] is None
+        assert result[0]["editable_need_manual_confirm"] is False
         assert result[0]["supported_expire_types"] == [
             {"value": "itsm_expire", "label": "待审批"},
             {"value": "inner_flow_expire", "label": "已失败"},
