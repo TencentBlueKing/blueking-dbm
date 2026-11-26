@@ -577,6 +577,7 @@ func (m *MyLoader) Loader() (err error) {
 		logger.Error("set env failed %s", err.Error())
 		return
 	}
+	cmutil.LogBinaryVersion(m.BinPath, logger.Info, logger.Warn)
 	var stderr string
 	loadcmd := m.buildCommand()
 	stderr, err = osutil.StandardShellCommand(false, loadcmd)
@@ -594,6 +595,7 @@ func (m *MyDumper) Dumper() (err error) {
 		logger.Error("set env failed %s", err.Error())
 		return
 	}
+	cmutil.LogBinaryVersion(m.BinPath, logger.Info, logger.Warn)
 	var stderr string
 	stderr, err = osutil.StandardShellCommand(false, m.buildCommand())
 	if err != nil {
@@ -610,6 +612,7 @@ func (m *MyDumper) DumperByEachDb() (err error) {
 		logger.Error("set env failed %s", err.Error())
 		return
 	}
+	cmutil.LogBinaryVersion(m.BinPath, logger.Info, logger.Warn)
 	var stderr string
 	stderr, err = osutil.StandardShellCommand(false, m.buildCommand())
 	if err != nil {
@@ -651,6 +654,8 @@ func (s *MyStreamDumpLoad) Run() (err error) {
 	s.Loader.BinPath = filepath.Join(cst.DbbackupGoInstallPath, "bin/myloader")
 	var stderr string
 	command := s.buildCommand()
+	cmutil.LogBinaryVersion(s.Dumper.BinPath, logger.Info, logger.Warn)
+	cmutil.LogBinaryVersion(s.Loader.BinPath, logger.Info, logger.Warn)
 	logger.Info("the stream dump load command is %s", command)
 	stderr, err = osutil.StandardShellCommand(false, command)
 	if err != nil {
