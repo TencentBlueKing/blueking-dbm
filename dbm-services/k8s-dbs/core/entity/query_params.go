@@ -25,6 +25,9 @@ type ComponentQueryParams struct {
 	ClusterName    string `json:"clusterName"`
 	Namespace      string `json:"namespace"`
 	ComponentName  string `json:"componentName"`
+	Node           string `json:"node,omitempty"`
+	PodName        string `json:"podName,omitempty"`
+	Status         string `json:"status,omitempty"`
 }
 
 // K8sPodDetailQueryParams 封装 pod detail 请求参数
