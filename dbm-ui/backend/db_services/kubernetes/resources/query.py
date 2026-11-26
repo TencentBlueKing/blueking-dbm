@@ -15,7 +15,7 @@ from django.utils.translation import gettext_lazy as _
 
 from backend.components.kubernetes.client import KubernetesApi
 from backend.db_meta.enums import ClusterType
-from backend.db_meta.models import AppCache, Cluster, Tag
+from backend.db_meta.models import Cluster, Tag
 from backend.db_services.dbbase.resources import query
 from backend.db_services.dbbase.resources.query import CommonExportQueryResourceMixin, ResourceList
 from backend.db_services.kubernetes.utils import offset_to_page, parse_deploy_params
@@ -168,78 +168,22 @@ class KubernetesBaseListRetrieveResource(query.ListRetrieveResource, KubernetesB
         )
 
     @classmethod
-    def _filter_cluster_hook(
-        cls,
-        bk_biz_id,
-        cluster_queryset,
-        proxy_queryset,
-        storage_queryset,
-        limit: int,
-        offset: int,
-        **kwargs,
-    ):
-        cluster_map = {}
-        # 注意：必须迭代 cluster_queryset 的副本(.all())，避免提前评估传入父类的同一 QuerySet 对象，
-        # 否则父类 _filter_cluster_hook 中对 cluster_queryset 切片会得到 list 而非 QuerySet，导致 prefetch_related 报错
-        # 仅请求当前页的远程数据，分页范围与父类保持一致。
-        page_queryset = cluster_queryset.all()
-        page_queryset = page_queryset[offset:] if limit == -1 else page_queryset[offset : offset + limit]
-        for cluster in page_queryset:
-            cluster_detail = KubernetesApi.cluster_detail({"cluster_id": cluster.id}, use_admin=True)
-            cluster_map[cluster.name] = {}
-            cluster_map[cluster.name]["detail"] = cluster_detail
-        kwargs["cluster_map"] = cluster_map
-        return super()._filter_cluster_hook(
-            bk_biz_id, cluster_queryset, proxy_queryset, storage_queryset, limit, offset, **kwargs
-        )
+    def _retrieve_cluster(cls, cluster_details: Dict[str, Any], cluster_id: int) -> Dict[str, Any]:
+        """集群详情补充 k8s 元数据
 
-    @classmethod
-    def _to_cluster_representation(
-        cls,
-        cluster: Cluster,
-        cluster_entry: List[Dict[str, str]],
-        db_module_names_map: Dict[int, str],
-        cluster_entry_map: Dict[int, Dict[str, str]],
-        cluster_operate_records_map: Dict[int, List],
-        cloud_info: Dict[str, Any],
-        biz_info: AppCache,
-        cluster_stats_map: Dict[str, Dict[str, int]],
-        cluster_zone_map: Dict[str, str],
-        dns_to_clb: bool = False,
-        **kwargs,
-    ) -> Dict[str, Any]:
-        """将集群对象转为可序列化的 dict 结构"""
-
-        cluster_map = kwargs.get("cluster_map", {})
-        cluster_info_map = cluster_map.get(cluster.name) or {}
-        cluster_detail = cluster_info_map.get("detail") or KubernetesApi.cluster_detail(
-            {"cluster_id": cluster.id}, use_admin=True
+        k8s_cluster_name / namespace / components 依赖第三方接口（cluster_detail），
+        仅在详情接口返回；列表接口不再逐集群请求，避免 N+1 拖慢列表。
+        """
+        cluster_details = super()._retrieve_cluster(cluster_details, cluster_id)
+        cluster_detail = KubernetesApi.cluster_detail({"cluster_id": cluster_id}, use_admin=True) or {}
+        cluster_details.update(
+            {
+                "k8s_cluster_name": (cluster_detail.get("k8sClusterConfig") or {}).get("clusterName", ""),
+                "namespace": cluster_detail.get("namespace", ""),
+                "components": (cluster_detail.get("addonInfo") or {}).get("topology", {}).get("components", []),
+            }
         )
-        k8s_cluster_name = cluster_detail.get("k8sClusterConfig", {}).get("clusterName", "")
-        namespace = cluster_detail.get("namespace", "")
-        components = cluster_detail.get("addonInfo", {}).get("topology", {}).get("components", [])
-
-        cluster_extra_info = {
-            "k8s_cluster_name": k8s_cluster_name,
-            "namespace": namespace,
-            "components": components,
-            "major_version": cluster_detail.get("serviceVersion", ""),
-        }
-        cluster_info = super()._to_cluster_representation(
-            cluster,
-            cluster_entry,
-            db_module_names_map,
-            cluster_entry_map,
-            cluster_operate_records_map,
-            cloud_info,
-            biz_info,
-            cluster_stats_map,
-            cluster_zone_map,
-            dns_to_clb,
-            **kwargs,
-        )
-        cluster_info.update(cluster_extra_info)
-        return cluster_info
+        return cluster_details
 
     @classmethod
     def _list_instances(
