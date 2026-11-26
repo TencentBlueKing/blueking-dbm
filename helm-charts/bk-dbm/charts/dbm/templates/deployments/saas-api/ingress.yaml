@@ -1,6 +1,7 @@
 {{- if .Values.ingress.enabled -}}
 {{- $fullName := include "bk-dbm.fullname" . -}}
 {{- $svcPort := .Values.service.port -}}
+{{- $aiEnabled := eq (.Values.envs.dbmEnableAI | toString | lower) "true" -}}
 {{- if and .Values.ingress.className (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
   {{- if not (hasKey .Values.ingress.annotations "kubernetes.io/ingress.class") }}
   {{- $_ := set .Values.ingress.annotations "kubernetes.io/ingress.class" .Values.ingress.className}}
@@ -41,6 +42,24 @@ spec:
     - host: {{ .Values.ingress.hostname }}
       http:
         paths:
+          {{- if and $aiEnabled .Values.saas.aidevApi.enabled .Values.saas.aidevApi.ingress.enabled }}
+          {{- range .Values.saas.aidevApi.ingress.paths }}
+          - path: {{ .path | quote }}
+            {{- if and .pathType (semverCompare ">=1.18-0" $.Capabilities.KubeVersion.GitVersion) }}
+            pathType: {{ .pathType }}
+            {{- end }}
+            backend:
+              {{- if semverCompare ">=1.19-0" $.Capabilities.KubeVersion.GitVersion }}
+              service:
+                name: {{ include "dbm.aidev-api.fullname" $ }}
+                port:
+                  number: {{ $svcPort }}
+              {{- else }}
+              serviceName: {{ include "dbm.aidev-api.fullname" $ }}
+              servicePort: {{ $svcPort }}
+              {{- end }}
+          {{- end }}
+          {{- end }}
           {{- range .Values.ingress.paths }}
           - path: {{ .path }}
             {{- if and .pathType (semverCompare ">=1.18-0" $.Capabilities.KubeVersion.GitVersion) }}
