@@ -9,16 +9,24 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
-import re
 from datetime import datetime
 
 from celery.schedules import crontab
+from django.utils.translation import gettext as _
 
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterPhase, ClusterType
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_check import check_mysql_affinity
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo import tendbcluster, tendbha
+from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.clb_snapshot_submit import (
+    TMP_CLUSTER_DOMAIN,
+    submit_mysql_clb_snapshot,
+)
+from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.entry_consistency import (
+    load_clb_snapshots,
+    write_mysql_entry_report,
+)
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.redis_cluster_check import (
     check_redis_clusters,
     submit_redis_clb_snapshot,
@@ -42,6 +50,14 @@ def redis_clb_snapshot_task():
     submit_redis_clb_snapshot()
 
 
+@register_periodic_task(run_every=crontab(minute=13, hour=0))
+def mysql_clb_snapshot_task():
+    """
+    为 MySQL、TenDBCluster 入口巡检提前生成 CLB 快照（早于 02:30 的巡检）
+    """
+    submit_mysql_clb_snapshot()
+
+
 @register_periodic_task(run_every=crontab(minute=3, hour=2))
 def redis_meta_check_task():
     """
@@ -50,13 +66,23 @@ def redis_meta_check_task():
     check_redis_clusters()
 
 
+def _safe_write_mysql_entry_report(cluster: Cluster, snapshot):
+    try:
+        write_mysql_entry_report(cluster.id, snapshot=snapshot)
+    except Exception:
+        logger.exception(_("集群 {} 访问入口一致性检查失败").format(cluster.immute_domain))
+
+
 @register_periodic_task(run_every=crontab(hour=2, minute=30))
 def tendbha_topo_daily_check():
-    for c in Cluster.objects.filter(cluster_type=ClusterType.TenDBHA):
+    clusters = list(Cluster.objects.filter(cluster_type=ClusterType.TenDBHA, phase=ClusterPhase.ONLINE))
+    snapshots = load_clb_snapshots([c.id for c in clusters])
+    for c in clusters:
         r: MetaCheckReport
         res = tendbha.health_check(c.id)
         for r in res:
             r.save()
+        _safe_write_mysql_entry_report(c, snapshots.get(c.id))
 
         if res:
             try:
@@ -80,15 +106,18 @@ def tendbha_topo_daily_check():
 
 @register_periodic_task(run_every=crontab(hour=2, minute=30))
 def tendbcluster_topo_daily_check():
-    pattern = r"^.*-tmp[0-9]{8}-[0-9]{7}.*$"
-    for c in Cluster.objects.filter(cluster_type=ClusterType.TenDBCluster):
+    clusters = [
+        c
+        for c in Cluster.objects.filter(cluster_type=ClusterType.TenDBCluster, phase=ClusterPhase.ONLINE)
+        if not TMP_CLUSTER_DOMAIN.match(c.immute_domain.lower())
+    ]
+    snapshots = load_clb_snapshots([c.id for c in clusters])
+    for c in clusters:
         r: MetaCheckReport
-        if re.match(pattern=pattern, string=c.immute_domain.lower()):
-            continue
-
         res = tendbcluster.health_check(c.id)
         for r in res:
             r.save()
+        _safe_write_mysql_entry_report(c, snapshots.get(c.id))
 
         if res:
             try:

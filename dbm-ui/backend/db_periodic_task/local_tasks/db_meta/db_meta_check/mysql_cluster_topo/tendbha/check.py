@@ -16,7 +16,6 @@ from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_to
     _cluster_proxy_access_master,
 )
 from backend.db_periodic_task.local_tasks.db_meta.db_meta_check.mysql_cluster_topo.tendbha.entry_bind import (
-    _cluster_clb_exists_and_rs_match,
     _cluster_master_entry_on_proxy,
     _cluster_master_entry_on_storage,
 )
@@ -57,8 +56,7 @@ def health_check(cluster_id: int) -> List[MetaCheckReport]:
     standby slave 状态正常
     主入口 bind 的 proxy 必须和集群正常 proxy 数量一致
     主入口不能 bind 到存储
-    若存在 CLB 入口：名字服务可查询且后端 RS 与元数据一致
-    ToDo 检查域名真实的 bind 配置
+    CLB 和 DNS 真实解析写到访问入口报告，不进这份元数据巡检
     proxy 只能访问 master
     master 只能作为 ejector
     slave 只能作为 receiver
@@ -92,8 +90,6 @@ def health_check(cluster_id: int) -> List[MetaCheckReport]:
     # entry_bind.py
     res.extend(_cluster_master_entry_on_proxy(cluster_obj))
     res.extend(_cluster_master_entry_on_storage(cluster_obj))
-    res.extend(_cluster_clb_exists_and_rs_match(cluster_obj))
-    # res.extend(_cluster_entry_real_bind(cluster_obj))
     # access_relate.py
     res.extend(_cluster_proxy_access_master(cluster_obj))
     # replicate.py
