@@ -24,6 +24,7 @@ data:
   ENABLE_MULTI_TENANT_MODE: "{{ .Values.global.enableMultiTenantMode }}"
   DJANGO_SETTINGS_MODULE: "{{ .Values.dbm.envs.djangoSettingsModule }}"
   RUN_VER: "{{ .Values.dbm.envs.runVer }}"
+  IS_COMMUNITY_ENABLE: "{{ .Values.dbm.envs.isCommunityEnable }}"
   SERVICE_ONLY: "True"
   BK_TENANT_ID: "{{ .Values.global.tenantId }}"
   BK_APP_CODE: "{{ .Values.dbm.envs.bkAppCode }}"

@@ -156,6 +156,8 @@ dbm:
   envs:
     djangoSettingsModule: "config.prod"
     runVer: "open"
+    # 是否社区版，默认关闭
+    isCommunityEnable: false
     bkAppCode: "bk_dbm"
     bkAppToken: "bk_dbm_token"
     bkSaasUrl: "https://bkdbm.example.com/"
