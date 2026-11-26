@@ -28,7 +28,7 @@ from backend.db_meta.enums.comm import SystemTagEnum
 from backend.db_meta.models import Cluster
 from backend.db_package.exceptions import DBPackageBaseException
 from backend.db_package.models import Package
-from backend.db_periodic_task.models import TaskStatus
+from backend.db_periodic_task.models import MySQLBackupRecoverTask, TaskStatus
 from backend.db_services.cmdb.biz import get_or_create_resource_module, get_resource_biz
 from backend.db_services.ipchooser.constants import BkOsType
 from backend.flow.consts import DBA_ROOT_USER, MediumEnum, MysqlVersionToDBBackupForMap, RollbackType
@@ -318,6 +318,7 @@ class MySQLRollbackExerciseFlow(object):
             kwargs={
                 "task_id": self.root_id,
                 "task_status": TaskStatus.DEPLOY_SUCCESS,
+                "update_recover_time": False,
             },
         )
         my_cluster = {
@@ -349,18 +350,18 @@ class MySQLRollbackExerciseFlow(object):
             kwargs=asdict(exec_act_kwargs),
         )
         backup_info = self.data.get("backup_record", {})
-        # 阶段2 下载备份文件
-        sub_pipeline.add_sub_pipeline(
-            sub_flow=mysql_restore_download_sub_flow(
-                root_id=self.root_id,
-                uid=self.ticket_data["uid"],
-                bk_cloud_id=cluster_class.bk_cloud_id,
-                file_target_path=my_cluster["file_target_path"],
-                task_ids=backup_info["task_ids"],
-                dest_ips=[my_cluster["rollback_ip"]],
-                source_ip=None,
-            )
+        backup_download_node_ids = []
+        download_sub = mysql_restore_download_sub_flow(
+            root_id=self.root_id,
+            uid=self.ticket_data["uid"],
+            bk_cloud_id=cluster_class.bk_cloud_id,
+            file_target_path=my_cluster["file_target_path"],
+            task_ids=backup_info["task_ids"],
+            dest_ips=[my_cluster["rollback_ip"]],
+            source_ip=None,
+            download_node_ids=backup_download_node_ids,
         )
+        sub_pipeline.add_sub_pipeline(sub_flow=download_sub)
         # 恢复数据
         my_cluster["change_master"] = False
         my_cluster["backupinfo"] = backup_info
@@ -417,13 +418,7 @@ class MySQLRollbackExerciseFlow(object):
                 skip_send_db_actuator_package=True,
             )
         )
-        sub_pipeline.add_act(
-            act_name=_("延迟100秒/等待节点管理异步任务执行完成"),
-            act_component_code=DelayComponent.code,
-            kwargs={
-                "delay_seconds": 100,
-            },
-        )
+        # clean db exporter
         sub_pipeline.add_act(
             act_name=_("清理 db exporter"),
             act_component_code=CleanDbExporterComponent.code,
@@ -431,6 +426,14 @@ class MySQLRollbackExerciseFlow(object):
                 "bk_biz_id": get_resource_biz(),
                 "bk_cloud_id": self.rollback_host["bk_cloud_id"],
                 "exec_ip": self.rollback_host["ip"],
+            },
+        )
+        # 延迟100秒/等待节点管理异步任务执行完成
+        sub_pipeline.add_act(
+            act_name=_("延迟100秒/等待节点管理异步任务执行完成"),
+            act_component_code=DelayComponent.code,
+            kwargs={
+                "delay_seconds": 100,
             },
         )
 
@@ -499,19 +502,32 @@ class MySQLRollbackExerciseFlow(object):
         #     act_component_code=DisableAlarmShieldComponent.code,
         #     kwargs={},
         # )
-        # 更新任务状态
+        self._save_exercise_timing_nodes(backup_download_node_ids, source_act.id)
         return sub_pipeline.build_sub_process(sub_name=_("{}回档演练".format(cluster_class.immute_domain)))
 
-    def _add_task_status_act(self, pipeline, act_name, task_status, extend=False):
+    def _add_task_status_act(self, pipeline, act_name, task_status, extend=False, update_recover_time=True):
+        kwargs = {
+            "task_id": self.root_id,
+            "task_status": task_status,
+            "root_id": self.root_id,
+        }
+        if not update_recover_time:
+            kwargs["update_recover_time"] = False
         return pipeline.add_act(
             act_name=act_name,
             act_component_code=MySQLBackupRecoverTaskMetaComponent.code,
-            kwargs={
-                "task_id": self.root_id,
-                "task_status": task_status,
-                "root_id": self.root_id,
-            },
+            kwargs=kwargs,
             extend=extend,
+        )
+
+    def _save_exercise_timing_nodes(self, backup_download_node_ids, recover_node_id):
+        if not backup_download_node_ids:
+            logger.warning(_("演练未收集到全备下载步骤，不记录下载耗时，root_id={}").format(self.root_id))
+        MySQLBackupRecoverTask.objects.filter(task_id=self.root_id).update(
+            exercise_timing_nodes={
+                "backup_download_node_ids": backup_download_node_ids,
+                "recover_node_id": recover_node_id or "",
+            }
         )
 
     def _build_binlog_apply_subflow(self, cluster_class: Cluster, my_cluster: dict):
@@ -531,7 +547,9 @@ class MySQLRollbackExerciseFlow(object):
             error_ignorable=True,
             extend=False,
         )
-        apply_ok = self._add_task_status_act(apply_pipeline, _("更新演练任务状态为成功"), TaskStatus.RECOVER_SUCCESS)
+        apply_ok = self._add_task_status_act(
+            apply_pipeline, _("更新演练任务状态为成功"), TaskStatus.RECOVER_SUCCESS, update_recover_time=False
+        )
         apply_fail = self._add_task_status_act(
             apply_pipeline, _("更新演练任务状态为binlog apply失败"), TaskStatus.BINLOG_APPLY_FAILED
         )

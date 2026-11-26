@@ -306,14 +306,55 @@ class MySQLBackupRecoverTask(BaseReportABS):
     exercise_host_ip = models.CharField(
         _("演练机器IP"), max_length=constants.LEN_NORMAL, default="", help_text=_("用于演练的机器IP地址")
     )
+    exercise_host_spec = models.JSONField(
+        _("演练主机规格快照"), default=dict, blank=True, null=True, help_text=_("演练主机申请时的硬件规格快照")
+    )
+    backup_download_start_time = models.DateTimeField(
+        _("下载全备开始时间"), null=True, blank=True, default=None, help_text=_("下载全备文件开始时间")
+    )
+    backup_download_duration = models.IntegerField(
+        _("下载全备耗时(秒)"), null=True, blank=True, default=None, help_text=_("下载全备文件耗时，单位秒")
+    )
+    exercise_timing_nodes = models.JSONField(
+        _("演练计时步骤"),
+        default=dict,
+        blank=True,
+        help_text=_("全备下载、恢复数据步骤编号"),
+    )
     # 关联单据id
     recover_start_time = models.DateTimeField(_("备份恢复开始时间"), default=timezone.now)
     recover_end_time = models.DateTimeField(_("备份恢复结束时间"), default=timezone.now)
+    recover_duration = models.IntegerField(
+        _("纯备份恢复耗时(秒)"),
+        null=True,
+        blank=True,
+        default=None,
+        help_text=_("纯备份恢复数据阶段耗时，不含下载与binlog前滚，单位秒"),
+    )
     task_id = models.CharField(_("关联的任务ID"), max_length=constants.LEN_LONG, default="")
     task_status = models.CharField(_("任务状态"), max_length=constants.LEN_SHORT, default="")
     task_info = models.TextField(_("任务信息"), default="")
     # 定义任务的运行阶段
     phase = models.CharField(_("阶段"), max_length=constants.LEN_SHORT, default="")
+
+    HOST_SPEC_SNAPSHOT_FIELDS = (
+        "ip",
+        "bk_host_id",
+        "bk_cloud_id",
+        "device_class",
+        "svr_type_name",
+        "cpu_num",
+        "dram_cap",
+        "total_storage_cap",
+        "total_data_storage_cap",
+        "storage_device",
+        "os_type",
+        "os_name",
+        "city",
+        "sub_zone",
+        "idc_name",
+        "rack_id",
+    )
 
     class Meta:
         indexes = [
@@ -321,6 +362,26 @@ class MySQLBackupRecoverTask(BaseReportABS):
             models.Index(fields=["cluster_id", "task_status"], name="idx_cluster_task_status"),
             models.Index(fields=["backup_id", "task_status"], name="idx_backup_task_status"),
         ]
+
+    @classmethod
+    def build_host_spec_snapshot(cls, mch_info) -> dict:
+        """从资源池主机信息中抽取演练主机硬件规格快照。"""
+        if not isinstance(mch_info, dict):
+            return {}
+        snapshot = {}
+        for field in cls.HOST_SPEC_SNAPSHOT_FIELDS:
+            if field not in mch_info:
+                continue
+            val = mch_info.get(field)
+            if val is None or val == "":
+                continue
+            if field == "storage_device" and isinstance(val, str):
+                try:
+                    val = json.loads(val)
+                except (ValueError, TypeError):
+                    pass
+            snapshot[field] = val
+        return snapshot
 
     @classmethod
     def get_all_practiced_biz_ids(cls):

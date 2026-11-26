@@ -9,6 +9,7 @@ specific language governing permissions and limitations under the License.
 """
 import logging
 from dataclasses import asdict
+from typing import List, Optional
 
 from django.utils.translation import gettext as _
 
@@ -42,6 +43,7 @@ def mysql_restore_download_sub_flow(
     task_ids: list[str],
     dest_ips: list[str],
     source_ip: str = None,
+    download_node_ids: Optional[List[str]] = None,
 ):
     """
     定义 mysql 恢复下载备份文件子流程
@@ -52,6 +54,7 @@ def mysql_restore_download_sub_flow(
     @param task_ids:  备份文件任务ID
     @param dest_ips:  目标IP
     @param source_ip:  源IP,如果源ip为None,表示从远程下载。
+    @param download_node_ids:  传入列表时，追加各批次下载/传输步骤的节点ID，供调用方计时
     @return:  子流程
     """
     ticket_data = {
@@ -102,6 +105,8 @@ def mysql_restore_download_sub_flow(
                     }
                 )
             sub_pipeline.add_parallel_acts(download_sub_pipeline_list)
+            if download_node_ids is not None:
+                download_node_ids.extend(act["kwargs"]["node_id"] for act in download_sub_pipeline_list)
     else:
         # 点对点传输备份文件
         sub_pipeline.add_act(
@@ -117,7 +122,7 @@ def mysql_restore_download_sub_flow(
         )
         for task_ids_bat in task_ids_split:
             batch_num = batch_num + 1
-            sub_pipeline.add_act(
+            trans_act = sub_pipeline.add_act(
                 retryable=False,
                 act_name=_("第 {} 批 从本地 {} 点对点传输文件到 {} 总数: {}").format(
                     batch_num, source_ip, dest_ips, len(task_ids_bat)
@@ -133,6 +138,8 @@ def mysql_restore_download_sub_flow(
                     )
                 ),
             )
+            if download_node_ids is not None:
+                download_node_ids.append(trans_act.id)
     return sub_pipeline.build_sub_process(sub_name=_("下载文件 总数: {} 总批次: {}".format(len(task_ids), len(task_ids_split))))
 
 

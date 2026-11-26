@@ -8,26 +8,26 @@
 
 ### 状态映射
 
-该处理器实现了以下flow状态到任务状态的映射：
+该处理器只维护`phase`与`state`，`task_status`由流程中的`MySQLBackupRecoverTaskMetaComponent`节点更新：
 
-| Flow状态 | 任务状态 | 说明 |
-|---------|---------|------|
-| `StateType.FAILED` | `TaskStatus.COMMIT_FAILED` | 流程失败 |
-| `StateType.REVOKED` | `TaskStatus.COMMIT_FAILED` | 流程撤销 |
-| `StateType.FINISHED` | `TaskStatus.RECOVER_SUCCESS` | 流程完成，恢复成功 |
-| `StateType.RUNNING` | `TaskStatus.COMMIT_SUCCESS` | 流程运行中 |
-| `StateType.CREATED` | `TaskStatus.COMMIT_SUCCESS` | 流程创建 |
-| `StateType.READY` | `TaskStatus.COMMIT_SUCCESS` | 流程准备就绪 |
+| Flow状态 | phase | 说明 |
+|---------|-------|------|
+| `StateType.FAILED` | `TaskPhase.DONE` | 流程失败，未恢复成功时`state`置为`abnormal` |
+| `StateType.REVOKED` | `TaskPhase.DONE` | 流程撤销，未恢复成功时`state`置为`abnormal` |
+| `StateType.FINISHED` | `TaskPhase.DONE` | 节点或流程完成 |
+| `StateType.RUNNING` | `TaskPhase.RUNNING` | 流程运行中 |
+| `StateType.CREATED` | `TaskPhase.RUNNING` | 流程创建 |
+| `StateType.READY` | `TaskPhase.RUNNING` | 流程准备就绪 |
 
-### 特殊处理
+### 耗时记录
 
-1. **成功完成时**：
-   - 更新`recover_end_time`为当前时间
-   - 设置`status`字段为`True`（巡检结果正常）
+流程构建时把全备下载步骤与恢复数据步骤的节点ID写入`exercise_timing_nodes`，节点 FINISHED 信号到达时按节点ID计时（取`FlowNode.started_at/updated_at`），只写一次：
 
-2. **失败时**：
-   - 尝试从flow engine获取错误信息并记录到`task_info`字段
-   - 设置`status`字段为`False`（巡检结果异常）
+1. **全备下载耗时**：所有下载批次都正常完成（非跳过、非忽略错误）后，写入`backup_download_start_time`（最早开始时间）与`backup_download_duration`（各批次耗时之和，秒）
+2. **纯备份恢复耗时**：恢复数据步骤正常完成且`rollback_code == 0`后，按该步骤自身起止时间写入`recover_start_time`、`recover_end_time`、`recover_duration`（秒），不依赖下载耗时
+3. binlog 下载与前滚不计入任何耗时
+
+报表中新流程（`exercise_timing_nodes`非空）只展示`recover_duration`，未完成或恢复失败时留空；旧记录仍按起止时间计算。
 
 ## 使用方法
 

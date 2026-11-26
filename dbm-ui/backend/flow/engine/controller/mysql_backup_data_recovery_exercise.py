@@ -19,6 +19,7 @@ from django.forms.models import model_to_dict
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
+from backend.components.dbresource.client import DBResourceApi
 from backend.db_meta.models import Cluster
 from backend.db_periodic_task.models import MySQLBackupRecoverTask, TaskPhase, TaskStatus
 from backend.db_report.models.mysql_backup_result import MysqlBackupResult
@@ -66,6 +67,37 @@ def backup_info_format(backup_info: dict) -> Dict[str, Any]:
     backup_info["task_ids"] = task_ids
     backup_info["local_files"] = local_files
     return backup_info
+
+
+def _resolve_exercise_host_spec(rollback_host: Dict[str, Any]) -> Dict[str, Any]:
+    """构建手动触发演练的主机规格快照；入参缺少硬件信息时尽力从资源池补齐，不阻塞主流程。"""
+    snapshot = MySQLBackupRecoverTask.build_host_spec_snapshot(rollback_host)
+    if any(k in snapshot for k in ("device_class", "cpu_num", "storage_device")):
+        return snapshot
+
+    ip = rollback_host.get("ip") if isinstance(rollback_host, dict) else None
+    if not ip:
+        return snapshot
+
+    bk_cloud_id = int(rollback_host.get("bk_cloud_id", 0) or 0)
+    try:
+        resp = DBResourceApi.resource_list(
+            params={"hosts": [ip], "bk_cloud_id": bk_cloud_id, "limit": -1, "offset": 0},
+            raw=True,
+        )
+        if isinstance(resp, dict) and resp.get("code") == 0:
+            details = (resp.get("data") or {}).get("details") or []
+            for item in details:
+                if (
+                    isinstance(item, dict)
+                    and item.get("ip") == ip
+                    and int(item.get("bk_cloud_id", 0) or 0) == bk_cloud_id
+                ):
+                    return MySQLBackupRecoverTask.build_host_spec_snapshot(item)
+    except Exception as exc:  # pylint: disable=broad-except
+        logger.warning(_("查询演练主机 {} 规格快照失败: {}").format(ip, str(exc)))
+
+    return snapshot
 
 
 class MySQLBackupDataRecoveryController(BaseController):
@@ -186,6 +218,7 @@ class MySQLBackupDataRecoveryController(BaseController):
             task_status=TaskStatus.COMMIT_SUCCESS,
             phase=TaskPhase.RUNNING,
             exercise_host_ip=rollback_host["ip"],
+            exercise_host_spec=_resolve_exercise_host_spec(rollback_host),
             creator="system",
             updater="system",
         )
