@@ -36,7 +36,9 @@ export default class TicketFlowDescribe {
     need_manual_confirm: boolean;
   };
   creator: string;
-  editable: boolean;
+  // true：允许编辑，false：单据预设，null：逐单判定。
+  editable_need_itsm: boolean | null;
+  editable_need_manual_confirm: boolean | null;
   flow_desc: string[];
   group: string;
   has_child_config: boolean;
@@ -70,7 +72,8 @@ export default class TicketFlowDescribe {
       need_manual_confirm: false,
     };
     this.creator = payload.creator || '';
-    this.editable = payload.editable || false;
+    this.editable_need_itsm = payload.editable_need_itsm ?? null;
+    this.editable_need_manual_confirm = payload.editable_need_manual_confirm ?? null;
     this.flow_desc = payload.flow_desc || [];
     this.group = payload.group || '';
     this.has_child_config = payload.has_child_config || false;
@@ -96,7 +99,7 @@ export default class TicketFlowDescribe {
 
   get effectiveExpireTypes() {
     return this.orderedExpireTypes.filter(
-      (item) => item.value !== 'pause' || !this.editable || this.configs.need_manual_confirm,
+      (item) => item.value !== 'pause' || this.editable_need_manual_confirm !== true || this.configs.need_manual_confirm,
     );
   }
 

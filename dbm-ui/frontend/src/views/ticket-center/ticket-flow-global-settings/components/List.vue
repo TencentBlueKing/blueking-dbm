@@ -16,7 +16,11 @@
     <BkAlert
       class="mb-16"
       closable>
-      {{ t('待审批、待执行按流程控制方式与节点提供；其他等待状态统一提供，待补货仅适用于涉及资源申请的单据类型。') }}
+      {{
+        t(
+          '审批、确认执行各自按步骤控制来源展示：平台设置可编辑；单据预设、逐单判定的值后加锁，本页不可修改。待审批、待执行超时按对应步骤的控制来源提供。',
+        )
+      }}
     </BkAlert>
     <div class="top-operation">
       <span
@@ -98,31 +102,18 @@
           :min-width="200"
           :title="t('单据 ID')" />
         <TableColumn
-          col-key="editable"
-          :min-width="150"
-          :title="t('流程控制方式')">
+          v-for="field in flowFields"
+          :key="field.key"
+          :col-key="field.key"
+          :min-width="120"
+          :title="field.label">
           <template #default="{ row: data }: { row: TicketFlowDescribeModel }">
-            <span>{{ data.editable ? t('平台设置') : t('单据预设') }}</span>
+            {{ flowValueText(data, field.key) }}
             <DbIcon
-              v-bk-tooltips="data.editable ? t('审批与确认执行由本页设置控制') : t('审批与确认执行由该单据流程预先确定，不受本页设置影响')"
+              v-if="data[`editable_${field.key}`] !== true"
+              v-bk-tooltips="flowLockedHint(data, field.key)"
               class="ml-4"
-              type="help" />
-          </template>
-        </TableColumn>
-        <TableColumn
-          col-key="need_itsm"
-          :min-width="120"
-          :title="t('审批')">
-          <template #default="{ row: data }: { row: TicketFlowDescribeModel }">
-            {{ data.configs.need_itsm ? t('需审批') : t('免审批') }}
-          </template>
-        </TableColumn>
-        <TableColumn
-          col-key="need_manual_confirm"
-          :min-width="120"
-          :title="t('确认执行')">
-          <template #default="{ row: data }: { row: TicketFlowDescribeModel }">
-            {{ data.configs.need_manual_confirm ? t('需确认') : t('免确认') }}
+              type="lock-fill" />
           </template>
         </TableColumn>
         <TableColumn
@@ -223,9 +214,26 @@
   const isShowBatch = ref(false);
 
   const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.TICKET_FLOW_GLOBAL_SETTINGS, {
-    checked: ['ticket_type_display', 'editable', 'need_itsm', 'need_manual_confirm', 'expire_config', 'updater', 'update_at', 'operations'],
+    checked: [
+      'ticket_type_display',
+      'need_itsm',
+      'need_manual_confirm',
+      'expire_config',
+      'updater',
+      'update_at',
+      'operations',
+    ],
     disabled: ['ticket_type_display'],
-    order: ['ticket_type_display', 'ticket_type', 'editable', 'need_itsm', 'need_manual_confirm', 'expire_config', 'updater', 'update_at', 'operations'],
+    order: [
+      'ticket_type_display',
+      'ticket_type',
+      'need_itsm',
+      'need_manual_confirm',
+      'expire_config',
+      'updater',
+      'update_at',
+      'operations',
+    ],
   });
   const batchActions: { label: string; mode: BatchMode }[] = [
     { label: t('批量设置审批'), mode: 'approve' },
@@ -234,11 +242,31 @@
   ];
 
   const { searchSelectList } = useSearchSelect();
+  type FlowKey = 'need_itsm' | 'need_manual_confirm';
+  const flowFields: { key: FlowKey; label: string }[] = [
+    { key: 'need_itsm', label: t('审批') },
+    { key: 'need_manual_confirm', label: t('确认执行') },
+  ];
+  const flowValueText = (row: TicketFlowDescribeModel, key: FlowKey) => {
+    if (row[`editable_${key}`] === null) return t('逐单判定');
+    return key === 'need_itsm'
+      ? row.configs[key]
+        ? t('需审批')
+        : t('免审批')
+      : row.configs[key]
+        ? t('需确认')
+        : t('免确认');
+  };
+  const flowLockedHint = (row: TicketFlowDescribeModel, key: FlowKey) =>
+    row[`editable_${key}`] === null
+      ? t('取值不固定；由该单据在提交时按提单内容判定，本页不可修改')
+      : t('固定为{value}；由该单据流程预先确定，本页不可修改', { value: flowValueText(row, key) });
 
   const batchDisabledReason = (mode: BatchMode) => {
     if (!selected.value.length) return t('请先勾选要批量设置的单据类型');
-    if (mode !== 'timeout' && !selected.value.some((row) => row.editable)) {
-      return mode === 'approve' ? t('所选单据类型的审批均为单据预设') : t('所选单据类型的确认执行均为单据预设');
+    const key = mode === 'approve' ? 'editable_need_itsm' : 'editable_need_manual_confirm';
+    if (mode !== 'timeout' && !selected.value.some((row) => row[key] === true)) {
+      return mode === 'approve' ? t('所选单据类型的审批均不由本页设置') : t('所选单据类型的确认执行均不由本页设置');
     }
     return '';
   };
@@ -254,13 +282,21 @@
     const matched = results.filter((row) => {
       if (filters.db_type && !filters.db_type.split(',').includes(props.dbType)) return false;
       if (filters.ticket_type__in && !filters.ticket_type__in.split(',').includes(row.ticket_type)) return false;
-      if (filters.editable && !filters.editable.split(',').includes(String(row.editable))) return false;
       for (const key of ['need_itsm', 'need_manual_confirm'] as const) {
-        if (filters[key] && !filters[key].split(',').includes(String(row.configs[key]))) return false;
+        const value = row[`editable_${key}`] === null ? 'null' : String(row.configs[key]);
+        if (filters[key] && !filters[key].split(',').includes(value)) return false;
       }
       const timestamp = new Date(row.update_at).getTime();
-      if (filters.update_at__gte && (!Number.isFinite(timestamp) || timestamp < new Date(filters.update_at__gte).getTime())) return false;
-      if (filters.update_at__lte && (!Number.isFinite(timestamp) || timestamp > new Date(filters.update_at__lte).getTime())) return false;
+      if (
+        filters.update_at__gte &&
+        (!Number.isFinite(timestamp) || timestamp < new Date(filters.update_at__gte).getTime())
+      )
+        return false;
+      if (
+        filters.update_at__lte &&
+        (!Number.isFinite(timestamp) || timestamp > new Date(filters.update_at__lte).getTime())
+      )
+        return false;
       return true;
     });
     const ordering = typeof params.ordering === 'string' ? params.ordering : '';
@@ -311,9 +347,12 @@
     clearSelection();
     fetchData();
   });
-  watch(() => props.dbType, () => {
-    searchValue.value = {};
-  });
+  watch(
+    () => props.dbType,
+    () => {
+      searchValue.value = {};
+    },
+  );
   onMounted(fetchData);
 </script>
 

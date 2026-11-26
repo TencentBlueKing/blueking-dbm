@@ -35,8 +35,8 @@ export interface TableRow {
     need_itsm: boolean;
     need_itsm_duplicated: boolean;
   };
-  editable: boolean;
   id: number;
+  isApprovalEditable: boolean;
   isChildRow: boolean;
   isCustom: boolean;
   isDuplicate: boolean;
@@ -117,8 +117,8 @@ export const useFetchData = () => {
         cluster_tags: item.cluster_tags,
         clusters: item.clusters,
         configs: item.configs,
-        editable: item.editable,
         id: item.id,
+        isApprovalEditable: item.editable_need_itsm === true,
         isChildRow: item.isChildPolicy,
         isCustom: false,
         isDuplicate: item.isChildPolicy && item.configs.need_itsm_duplicated,
@@ -161,8 +161,7 @@ export const useFetchData = () => {
             return a.scopeType === 'cluster' ? -1 : 1;
           }
           // 组内按更新时间倒序（最新在前），空更新时间视为最早
-          const timeDiff =
-            new Date(b.rawData.update_at || 0).getTime() - new Date(a.rawData.update_at || 0).getTime();
+          const timeDiff = new Date(b.rawData.update_at || 0).getTime() - new Date(a.rawData.update_at || 0).getTime();
           // 时间相同时按 id 升序保证稳定
           return timeDiff !== 0 ? timeDiff : a.rawData.id - b.rawData.id;
         });

@@ -43,19 +43,11 @@ export const useSearchSelect = () => {
       type: 'multiple-cascader',
     },
     {
-      id: 'editable',
-      list: [
-        { label: t('平台设置'), value: 'true' },
-        { label: t('单据预设'), value: 'false' },
-      ],
-      name: t('流程控制方式'),
-      type: 'multiple',
-    },
-    {
       id: 'need_itsm',
       list: [
         { label: t('需审批'), value: 'true' },
         { label: t('免审批'), value: 'false' },
+        { label: t('逐单判定'), value: 'null' },
       ],
       name: t('审批'),
       type: 'multiple',
@@ -65,6 +57,7 @@ export const useSearchSelect = () => {
       list: [
         { label: t('需确认'), value: 'true' },
         { label: t('免确认'), value: 'false' },
+        { label: t('逐单判定'), value: 'null' },
       ],
       name: t('确认执行'),
       type: 'multiple',
