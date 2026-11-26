@@ -17,7 +17,15 @@ from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.components import BKMonitorV3Api
 from backend.db_services.plugin.constants import SWAGGER_TAG
-from backend.db_services.plugin.monitor.serializers import MonitorImageRenderSerializer, MonitorImageResultSerializer
+from backend.db_services.plugin.monitor.handlers import SubscribeRelationHandler
+from backend.db_services.plugin.monitor.serializers import (
+    ListSubscribeRelationsSerializer,
+    MonitorImageRenderSerializer,
+    MonitorImageResultSerializer,
+)
+from backend.db_services.plugin.view import BaseOpenAPIViewSet
+from backend.iam_app.dataclass.actions import ActionEnum
+from backend.iam_app.handlers.drf_perm.base import ResourceActionPermission
 from backend.iam_app.handlers.drf_perm.cluster import ClusterDashboardPermission
 
 
@@ -48,3 +56,19 @@ class MonitorPluginViewSet(viewsets.SystemViewSet):
         data = self.params_validate(self.get_serializer_class())
         resp = BKMonitorV3Api.get_render_image_result(params=data, use_admin=True)
         return Response(resp)
+
+
+class MonitorSubscribeOpenViewSet(BaseOpenAPIViewSet):
+    """告警订阅开放接口，仅允许经网关(JWT)调用，且调用用户需具备平台管理权限"""
+
+    default_permission_class = [ResourceActionPermission([ActionEnum.PLATFORM_MANAGE])]
+
+    @common_swagger_auto_schema(
+        operation_summary=_("查询个人告警订阅关系明细"),
+        query_serializer=ListSubscribeRelationsSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(methods=["GET"], detail=False, serializer_class=ListSubscribeRelationsSerializer)
+    def relations(self, request, *args, **kwargs):
+        data = self.params_validate(self.get_serializer_class())
+        return Response(SubscribeRelationHandler.list_relations(**data))

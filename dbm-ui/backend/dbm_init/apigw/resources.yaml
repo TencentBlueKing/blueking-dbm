@@ -915,6 +915,28 @@ paths:
           appVerifiedRequired: true
           resourcePermissionRequired: true
         descriptionEn:
+  /plugin/monitor/subscribe/relations/:
+    get:
+      operationId: list_monitor_subscribe_relations
+      description: 查询个人告警订阅关系明细(账号 x 集群)
+      tags: []
+      x-bk-apigateway-resource:
+        isPublic: true
+        allowApplyPermission: true
+        matchSubpath: false
+        
+        backend:
+          name: default
+          method: get
+          path: /apis/plugin/monitor/subscribe/relations/
+          matchSubpath: false
+          timeout: 0
+        pluginConfigs: []
+        authConfig:
+          userVerifiedRequired: false
+          appVerifiedRequired: true
+          resourcePermissionRequired: true
+        descriptionEn:
   /sqlserver/bizs/{bk_biz_id}/permission/authorize/pre_check_rules/:
     post:
       operationId: sqlserver_pre_check_rules
