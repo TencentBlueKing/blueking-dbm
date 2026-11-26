@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+import json
 import logging
 import time
 from datetime import datetime, timedelta
@@ -23,6 +24,12 @@ from backend.db_meta.enums import ClusterType
 from backend.db_periodic_task.local_tasks import start_new_span
 from backend.db_periodic_task.local_tasks.mysql_config_ai_inspect.batch import ensure_open_batch
 from backend.db_periodic_task.local_tasks.mysql_config_ai_inspect.parse_result import parse_config_ai_inspect_res
+from backend.db_periodic_task.local_tasks.mysql_config_ai_inspect.scoring import (
+    CATEGORIES,
+    CHECK_STATUSES,
+    REQUIRED_CHECKS,
+    calculate_config_score,
+)
 from backend.db_report.models.mysql_config_ai_inspect import MysqlConfigAiInspect, MysqlConfigAiInspectStatus
 from backend.db_report.portrait import MysqlPortraitDimensionCode, ingest_summary
 from backend.db_report.portrait.exceptions import PortraitSDKBaseException
@@ -40,7 +47,42 @@ DISPATCH_LOCK_TTL = WORKER_HARD_TIME_LIMIT + 300
 STALE_RUNNING_SEC = DEFAULT_AGENT_CHAT_TIMEOUT + 120
 BATCH_LEASE_TTL = 120
 
-_OUTPUT_SCHEMA = '{"report_id":"<uuid>","share_url":"https://.../ai-chat/share/<uuid>/","summary":"<text>"}'
+_OUTPUT_SCHEMA = json.dumps(
+    {
+        "report_id": "<uuid>",
+        "share_url": "https://.../ai-chat/share/<uuid>/",
+        "summary": "<text>",
+        "checks": [{"code": code, "status": "<status>", "reason": "<evidence or reason>"} for code in REQUIRED_CHECKS],
+        "findings": [
+            {
+                "issue_key": "<risk_type:sorted_parameters:role>",
+                "category": "<category>",
+                "parameters": ["<parameter_name>"],
+                "scope": {"role": "<instance_role>", "instances": ["<ip:port>"]},
+                "severity": "<high|medium|low>",
+                "evidence": "<current values, baseline and runtime context>",
+                "impact": "<risk and impact>",
+            }
+        ],
+    }
+)
+_SCORING_REQUIREMENTS = _(
+    "\n评分依据要求：不要自行输出分数，分数由后端计算。checks 必须完整包含所有核心检查项，不能遗漏。"
+    "config_rationality 检查配置与规格、角色及资源使用是否匹配；config_consistency 检查主从、同角色或分片差异；"
+    "version_compatibility 检查版本及引擎适配。每项 status 只能是 {}，reason 必须提供检查依据或无法检查的原因。"
+    "completed 表示已完成检查，不代表没有问题；数据不足必须标记 insufficient_data，禁止推测为检查完成。"
+    "仅 TenDBSingle 的 config_consistency 允许标记 not_applicable，并说明没有可比较实例的原因。"
+    "findings 必须包含本次完整报告中全部有依据的独立问题，不能只取摘要中的部分问题；确实无问题时返回空列表。"
+    "category 只能是 {}。severity 只能是 high、medium、low："
+    "high 需要明确的数据可靠性、可用性或严重资源风险证据；medium 为明确的非紧急性能、稳定性或一致性问题；"
+    "low 为有依据的轻量优化建议。不能仅凭参数偏离推荐值判高危，必须结合角色、版本、规格及已知业务要求。"
+    "未知业务要求或无证据的推测写入报告待确认事项，不纳入扣分；合理的角色差异和业务取舍不算问题。"
+    "同一根因、同一角色影响多个实例或分片应合并为一个问题，关联参数造成同一风险也应合并。"
+    "issue_key 按风险类型、排序后的参数组、适用角色生成稳定标识，仅使用小写英文字母、数字和 _ . : + -，"
+    "不得包含 IP、分片号等实例标识；不同角色的不同风险分别列出。"
+    "scope.role 使用实例角色，scope.instances 列出受影响实例；evidence 和 impact 必须非空。"
+    "详细建议存入报告，最终返回完整 JSON，不要因摘要字数限制截断 checks 或 findings。"
+).format(", ".join(CHECK_STATUSES), ", ".join(CATEGORIES))
 
 
 def _inspect_lock_key(batch_id: str, cluster_id: int) -> str:
@@ -208,6 +250,7 @@ def run_mysql_config_ai_inspect(row_id: int, lock_key: str):
                 "对该集群做 MySQL 配置优化分析，完成后给我如下 JSON 格式结果（双引号键名）: "
             ).format(row.bk_biz_id, row.cluster_type, row.cluster_id, row.cluster_domain)
             + _OUTPUT_SCHEMA
+            + _SCORING_REQUIREMENTS
         )
 
         logger.info(_("配置巡检开始调用 agent: id={} domain={}").format(row.id, row.cluster_domain))
@@ -236,6 +279,11 @@ def run_mysql_config_ai_inspect(row_id: int, lock_key: str):
             )
             return
 
+        score, score_detail = calculate_config_score(parsed, row.cluster_type)
+        if score is None:
+            logger.warning(
+                _("配置巡检评分不可用: id={} domain={} reasons={}").format(row.id, row.cluster_domain, score_detail["errors"])
+            )
         updated = MysqlConfigAiInspect.objects.filter(
             id=row.id,
             status=MysqlConfigAiInspectStatus.RUNNING.value,
@@ -244,6 +292,8 @@ def run_mysql_config_ai_inspect(row_id: int, lock_key: str):
             report_id=parsed["report_id"],
             share_url=parsed["share_url"],
             summary=parsed.get("summary") or "",
+            score=score,
+            score_detail=score_detail,
             agent_cost_ms=cost_ms,
             error_msg="",
             updater="system",
@@ -257,6 +307,8 @@ def run_mysql_config_ai_inspect(row_id: int, lock_key: str):
         row.report_id = parsed["report_id"]
         row.share_url = parsed["share_url"]
         row.summary = parsed.get("summary") or ""
+        row.score = score
+        row.score_detail = score_detail
         row.agent_cost_ms = cost_ms
         logger.info(
             _("配置巡检成功: id={} domain={} cost_ms={} report_id={}").format(
@@ -272,6 +324,7 @@ def run_mysql_config_ai_inspect(row_id: int, lock_key: str):
                 report_time=datetime.now(),
                 summary=row.summary or "",
                 detail_url=row.share_url,
+                score=row.score,
             )
         except PortraitSDKBaseException:
             logger.exception(_("配置巡检上报画像失败: id={} domain={}").format(row.id, row.cluster_domain))
