@@ -225,6 +225,41 @@ func (suite *ClusterProviderTestSuite) TestFindClusterByID() {
 	assert.Equal(t, addedEntity.Description, foundEntity.Description)
 }
 
+func (suite *ClusterProviderTestSuite) TestFindByDbmClusterIDs() {
+	addon, err := suite.addonStorageProvider.CreateStorageAddon(addonDbsContext, k8sCrdStorageAddonEntity)
+	suite.Require().NoError(err)
+	config, err := suite.clusterConfigProvider.CreateConfig(k8sClusterConfigEntity)
+	suite.Require().NoError(err)
+
+	for idx, sample := range K8sCrdClusterEntityList {
+		cluster := *sample
+		cluster.ID = 0
+		cluster.DbmClusterID = uint64(101 + idx)
+		cluster.AddonID = addon.ID
+		cluster.K8sClusterConfigID = config.ID
+		cluster.Tags = []*metaenitty.K8sCrdClusterTagEntity{{ClusterTag: "batch", Active: true}}
+		_, err := suite.clusterProvider.CreateCluster(&cluster)
+		suite.Require().NoError(err)
+	}
+
+	clusters, err := suite.clusterProvider.FindByDbmClusterIDs([]uint64{999, 102, 101, 102})
+	suite.Require().NoError(err)
+	wantIDs := []uint64{102, 101, 102}
+	suite.Require().Len(clusters, len(wantIDs))
+	for idx, cluster := range clusters {
+		suite.Equal(wantIDs[idx], cluster.DbmClusterID)
+		single, err := suite.clusterProvider.FindClusterByID(cluster.ID)
+		suite.Require().NoError(err)
+		suite.Equal(single, cluster)
+		suite.Require().Len(cluster.Tags, 1)
+		suite.Equal("batch", cluster.Tags[0].ClusterTag)
+	}
+
+	clusters, err = suite.clusterProvider.FindByDbmClusterIDs([]uint64{999})
+	suite.Require().NoError(err)
+	suite.Empty(clusters)
+}
+
 func (suite *ClusterProviderTestSuite) TestFindByParams() {
 	t := suite.T()
 	for _, entity := range K8sCrdClusterEntityList {

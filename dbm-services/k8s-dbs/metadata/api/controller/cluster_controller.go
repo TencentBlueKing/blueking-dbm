@@ -27,6 +27,7 @@ import (
 	"k8s-dbs/errors"
 	"k8s-dbs/metadata/entity"
 	"k8s-dbs/metadata/provider"
+	"k8s-dbs/metadata/vo/request"
 	"k8s-dbs/metadata/vo/response"
 	"log/slog"
 	"strconv"
@@ -116,6 +117,36 @@ func (c *ClusterController) GetClusterInfoByClusterID(ctx *gin.Context) {
 		return
 	}
 	c.respondCluster(ctx, clusterInfo.ID)
+}
+
+// BatchGetClusterInfoByClusterIDs 按请求顺序返回匹配的集群详情，跳过不存在的 DBM cluster ID
+func (c *ClusterController) BatchGetClusterInfoByClusterIDs(ctx *gin.Context) {
+	ctx.Set(commconst.APIName, commconst.APIMetaClusterBatchByClusterIDs)
+	var req request.BatchGetClusterRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		api.HandleValidationError(ctx, err, &req)
+		return
+	}
+	if len(req.ClusterIDs) > request.MaxBatchClusterIDs {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.ParameterInvalidError,
+			fmt.Errorf("clusterIds must contain at most %d IDs", request.MaxBatchClusterIDs)))
+		return
+	}
+	clusters, err := c.clusterProvider.FindByDbmClusterIDs(req.ClusterIDs)
+	if err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
+		return
+	}
+	data := make([]response.K8sCrdClusterResponse, 0, len(clusters))
+	if err := copier.Copy(&data, clusters); err != nil {
+		api.ErrorResponse(ctx, errors.NewK8sDbsError(errors.GetMetaDataError, err))
+		return
+	}
+	for idx := range data {
+		data[idx].BkBizTitle = fmt.Sprintf("[%d]%s", data[idx].BkBizID, data[idx].BkBizName)
+		data[idx].TopoNameAlias = getTopoNameAlias(data[idx].AddonInfo.AddonType, data[idx].TopoName)
+	}
+	api.SuccessResponse(ctx, data, commconst.Success)
 }
 
 // GetClusterInfo 按照 ID 获取存储集群实例

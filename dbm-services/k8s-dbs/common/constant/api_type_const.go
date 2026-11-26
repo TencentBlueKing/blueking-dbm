@@ -165,6 +165,7 @@ const (
 const (
 	APIMetaClusterDetail            = "v4_dbs_meta_cluster_detail"
 	APIMetaClusterDetailByClusterID = "v4_dbs_meta_cluster_detail_by_cluster_id"
+	APIMetaClusterBatchByClusterIDs = "v4_dbs_meta_cluster_batch_by_cluster_ids"
 	APIMetaClusterList              = "v4_dbs_meta_cluster_list"
 	APIMetaClusterTopologyDetail    = "v4_dbs_meta_cluster_topology_detail"
 )
@@ -416,6 +417,7 @@ func initClusterMetaGroups(groups map[string]string) {
 	add(groups, APIGroupMeta,
 		APIMetaClusterDetail,
 		APIMetaClusterDetailByClusterID,
+		APIMetaClusterBatchByClusterIDs,
 		APIMetaClusterList,
 		APIMetaClusterTopologyDetail,
 	)
