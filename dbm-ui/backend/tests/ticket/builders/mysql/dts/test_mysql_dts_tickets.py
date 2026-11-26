@@ -17,12 +17,14 @@ from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.mysql.dts.mysql_dts_tickets import (
     DtsMigrateFlowBuilder,
     DtsMigrateFlowParamBuilder,
+    DtsMigratePrecheckFlowParamBuilder,
     MigrateTargetSerializer,
     MysqlDtsClusterDestroyDetailSerializer,
     MysqlDtsClusterDestroyFlowBuilder,
     MysqlDtsClusterReinstallDetailSerializer,
     MysqlDtsClusterReinstallFlowBuilder,
     MysqlDtsClusterReinstallFlowParamBuilder,
+    MysqlHaToClusterMigrateDetailSerializer,
     MysqlHaToClusterMigrateFlowBuilder,
     MysqlHaToClusterMigrateFlowParamBuilder,
     MysqlMigrateBaseDetailSerializer,
@@ -35,6 +37,7 @@ from backend.ticket.builders.mysql.dts.mysql_dts_tickets import (
     _maybe_create_destroy_after_migrate,
     _patch_migrate_task_names,
     _validate_mysql_to_mysql_cluster_types,
+    parse_target_schema_sql,
 )
 from backend.ticket.constants import EXCLUSIVE_TICKET_EXCEL_PATH, TicketFlowStatus, TicketStatus, TicketType
 from backend.ticket.exceptions import TicketParamsVerifyException
@@ -1262,6 +1265,15 @@ class MysqlMigrateFlowParamBuilderUidTest(SimpleTestCase):
         self.assertEqual(ticket_data["created_by"], "tester")
         self.assertNotIn("migrate_plan", ticket_data)
 
+    def test_precheck_get_params_keeps_ticket_context(self):
+        builder = DtsMigratePrecheckFlowParamBuilder(self._ticket(TicketType.MYSQL_DTS_DATA_MIGRATE_HETERO.value))
+        ticket_data = builder.get_params()["ticket_data"]
+        self.assertEqual(ticket_data["uid"], 18801)
+        self.assertEqual(ticket_data["ticket_type"], TicketType.MYSQL_DTS_DATA_MIGRATE_HETERO.value)
+        self.assertEqual(ticket_data["created_by"], "tester")
+        self.assertEqual(ticket_data["bk_biz_id"], 1)
+        self.assertEqual(ticket_data["infos"][0]["migrate"]["topology"], "one_to_one")
+
     def test_rename_get_params_does_not_pin_migrate_type(self):
         builder = MysqlRenameMigrateFlowParamBuilder(self._ticket(TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME.value))
         params = builder.get_params()
@@ -2165,7 +2177,7 @@ class MysqlDtsDestroyAfterMigrateHookTest(SimpleTestCase):
                 "recycle_hosts": True,
             }
         )
-        ticket.ticket_type = TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.value
+        ticket.ticket_type = TicketType.MYSQL_DTS_DATA_MIGRATE_HETERO.value
         _maybe_create_destroy_after_migrate(ticket)
         mock_create.assert_called_once()
         self.assertEqual(mock_create.call_args.kwargs["details"]["dts_cluster_id"], 11)
@@ -2320,7 +2332,7 @@ class MysqlDtsDestroyAfterMigrateHookTest(SimpleTestCase):
                     ),
                 ],
             },
-            ticket_type=TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.value,
+            ticket_type=TicketType.MYSQL_DTS_DATA_MIGRATE_HETERO.value,
         )
         ticket.current_flow = MagicMock(return_value=SimpleNamespace(status=TicketFlowStatus.SUCCEEDED))
         ticket.add_related_ticket = MagicMock()
@@ -2377,7 +2389,7 @@ class MysqlDtsMigrateSucceededDestroyTriggerTest(SimpleTestCase):
     @patch("backend.ticket.flow_manager.manager.notify.send_msg.apply_async")
     @patch("backend.ticket.flow_manager.manager.add_ticket_audit_event.apply_async")
     def test_failed_does_not_trigger_destroy_task(self, _mock_audit, _mock_notify, mock_destroy):
-        manager, _ticket = self._manager(TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.value)
+        manager, _ticket = self._manager(TicketType.MYSQL_DTS_DATA_MIGRATE_HETERO.value)
         manager.ticket_status_trigger(TicketStatus.RUNNING, TicketStatus.FAILED)
         mock_destroy.assert_not_called()
 
@@ -2398,7 +2410,7 @@ class MysqlDtsMigrateTerminateRecycleTest(SimpleTestCase):
     def test_three_migrate_types_are_apply_tickets(self):
         apply_types = (
             TicketType.MYSQL_DTS_DATA_MIGRATE.value,
-            TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.value,
+            TicketType.MYSQL_DTS_DATA_MIGRATE_HETERO.value,
             TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME.value,
         )
         for ticket_type in apply_types:
@@ -2416,7 +2428,7 @@ class MysqlDtsMigrateTerminateRecycleTest(SimpleTestCase):
 
         for ticket_type in (
             TicketType.MYSQL_DTS_DATA_MIGRATE.value,
-            TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.value,
+            TicketType.MYSQL_DTS_DATA_MIGRATE_HETERO.value,
             TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME.value,
         ):
             mock_recycle.reset_mock()
@@ -2548,7 +2560,7 @@ class MysqlDtsExclusiveTicketMapTest(SimpleTestCase):
 
     def test_dts_migrate_not_exclusive_with_mysql_checksum_cron(self):
         exclusive_map = self._exclusive_bool_map()
-        # MYSQL_HA_TO_CLUSTER_MIGRATE 互斥关系由 exclusive_ticket.xlsx 补齐后再加回
+        # MYSQL_DTS_DATA_MIGRATE_HETERO 互斥关系由 exclusive_ticket.xlsx 补齐后再加回
         migrate_types = [
             TicketType.MYSQL_DTS_DATA_MIGRATE.value,
             TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME.value,
@@ -2564,12 +2576,12 @@ class MysqlDtsExclusiveTicketMapTest(SimpleTestCase):
                 msg=f"{migrate} should not be exclusive with active {checksum}",
             )
 
-    @skip("exclusive_ticket.xlsx 待补齐 MYSQL_HA_TO_CLUSTER_MIGRATE / 库改名迁移 与 TenDB Cluster 校验定时任务的并行关系")
+    @skip("exclusive_ticket.xlsx 待补齐 MYSQL_DTS_DATA_MIGRATE_HETERO / 库改名迁移 与 TenDB Cluster 校验定时任务的并行关系")
     def test_ha_to_cluster_migrate_not_exclusive_with_tendbcluster_checksum_cron(self):
         exclusive_map = self._exclusive_bool_map()
         checksum = TicketType.TENDBCLUSTER_CHECKSUM_CRON.value
         for migrate in (
-            TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.value,
+            TicketType.MYSQL_DTS_DATA_MIGRATE_HETERO.value,
             TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME.value,
         ):
             self.assertFalse(exclusive_map[checksum].get(migrate, True))
@@ -2826,3 +2838,118 @@ class MysqlDtsMigrateStructurePrecheckTest(SimpleTestCase):
         for scene, builder in zip(scenes, builders):
             self.assertIs(scene.validator, MysqlDtsMigrateFlowValidator)
             self.assertIs(builder.validator, scene.validator)
+
+
+_HETERO_SCHEMA_SQL = """
+-- cluster header
+USE `db_a`;
+CREATE TABLE `t1` (
+  `id` int
+) COMMENT='shard_key "id"';
+"""
+
+
+def _hetero_details():
+    details = _minimal_layered_details()
+    details["target_schema_sql"] = _HETERO_SCHEMA_SQL
+    details["migrate"]["one_to_one"]["target"]["spider_mnt"] = "127.0.0.1"
+    return details
+
+
+class _ProxyQuerySet:
+    def __init__(self, proxies):
+        self._proxies = list(proxies)
+
+    def filter(self, **kwargs):
+        return self
+
+    def __iter__(self):
+        return iter(self._proxies)
+
+    def first(self):
+        return self._proxies[0] if self._proxies else None
+
+    def exists(self):
+        return bool(self._proxies)
+
+
+class MysqlDtsHeteroMigrateSerializerTest(SimpleTestCase):
+    def test_parse_shard_key_from_table_comment(self):
+        tables = parse_target_schema_sql(_HETERO_SCHEMA_SQL)
+        self.assertEqual(tables, [("db_a", "t1", "id")])
+
+    def test_parse_missing_shard_key(self):
+        sql = "USE `db_a`;\nCREATE TABLE `t1` (id int);"
+        self.assertEqual(parse_target_schema_sql(sql), [("db_a", "t1", "")])
+
+    def _clusters(self, source_type=ClusterType.TenDBHA.value):
+        target = SimpleNamespace(
+            id=200,
+            bk_biz_id=1,
+            major_version="MySQL-5.7",
+            cluster_type=ClusterType.TenDBCluster.value,
+            proxyinstance_set=_ProxyQuerySet([SimpleNamespace(port=25000)]),
+            storageinstance_set=_LooseStorageQS(),
+        )
+        source = SimpleNamespace(
+            id=100,
+            bk_biz_id=1,
+            major_version="MySQL-5.7",
+            cluster_type=source_type,
+            proxyinstance_set=_ProxyQuerySet([]),
+            storageinstance_set=_LooseStorageQS(),
+        )
+        return {100: source, 200: target}
+
+    def _validate(self, details, clusters):
+        def _filter(**kwargs):
+            if "id__in" in kwargs:
+                return [clusters[i] for i in kwargs["id__in"]]
+            cluster = clusters.get(kwargs.get("id"))
+            return SimpleNamespace(first=lambda: cluster)
+
+        with patch(
+            "backend.ticket.builders.mysql.dts.mysql_dts_tickets.RemoteServiceHandler.show_database_with_pattern",
+            return_value=["db_a"],
+        ), patch(
+            "backend.ticket.builders.mysql.dts.mysql_dts_tickets.Cluster.objects.filter",
+            side_effect=_filter,
+        ):
+            slz = MysqlHaToClusterMigrateDetailSerializer(data=details, context={"bk_biz_id": 1})
+            return slz
+
+    def test_accepts_mnt_and_schema_sql(self):
+        slz = self._validate(_hetero_details(), self._clusters())
+        self.assertTrue(slz.is_valid(), slz.errors)
+        target = slz.validated_data["migrate"]["one_to_one"]["target"]
+        self.assertEqual(target["spider_mnt"], "127.0.0.1")
+        self.assertEqual(target["target_spider"], "127.0.0.1:25000")
+
+    def test_rejects_missing_spider_mnt(self):
+        details = _hetero_details()
+        details["migrate"]["one_to_one"]["target"].pop("spider_mnt")
+        slz = self._validate(details, self._clusters())
+        self.assertFalse(slz.is_valid())
+        self.assertIn("Spider 运维节点", str(slz.errors))
+
+    def test_rejects_missing_shardkey(self):
+        details = _hetero_details()
+        details["target_schema_sql"] = "USE `db_a`;\nCREATE TABLE `t1` (id int);"
+        slz = self._validate(details, self._clusters())
+        self.assertFalse(slz.is_valid())
+        self.assertIn("shardkey", str(slz.errors))
+
+    def test_rejects_tendbcluster_source(self):
+        slz = self._validate(_hetero_details(), self._clusters(ClusterType.TenDBCluster.value))
+        self.assertFalse(slz.is_valid())
+        self.assertIn("TenDBHA/TenDBSingle", str(slz.errors))
+
+    def test_builder_has_precheck_and_iam(self):
+        from backend.iam_app.dataclass.actions import ActionEnum
+        from backend.ticket.builders.mysql.dts.mysql_dts_tickets import DtsMigratePrecheckFlowParamBuilder
+
+        self.assertIs(MysqlHaToClusterMigrateFlowBuilder.precheck_flow_builder, DtsMigratePrecheckFlowParamBuilder)
+        self.assertIs(
+            BuilderFactory.ticket_type__iam_action.get(TicketType.MYSQL_DTS_DATA_MIGRATE_HETERO),
+            ActionEnum.MYSQL_DTS_DATA_MIGRATE_HETERO,
+        )

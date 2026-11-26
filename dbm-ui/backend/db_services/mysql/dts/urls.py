@@ -7,4 +7,8 @@ urlpatterns = [
         "dts/tasks/reset/",
         MySQLDtsMigrateViewSet.as_view({"post": "reset_task"}),
     ),
+    path(
+        "dts/schema_sql/",
+        MySQLDtsMigrateViewSet.as_view({"post": "schema_sql"}),
+    ),
 ]

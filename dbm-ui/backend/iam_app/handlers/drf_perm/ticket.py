@@ -276,7 +276,7 @@ def create_ticket_permission(ticket_type: TicketType, batch: bool = False) -> Li
         # 对于未注册到iam的单据动作，默认只开放给superuser
         logger.warning(_("单据动作ID:{} 不存在").format(action))
         return [RejectPermission()]
-    if ticket_type == TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME:
+    if ticket_type in (TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME, TicketType.MYSQL_DTS_DATA_MIGRATE_HETERO):
         return [CreateTicketMysqlOrTendbclusterPermission(ticket_type=ticket_type, batch=batch)]
     if len(action.related_resource_types) <= 1:
         return [CreateTicketOneResourcePermission(ticket_type=ticket_type, batch=batch)]

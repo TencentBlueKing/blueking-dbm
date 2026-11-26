@@ -57,7 +57,7 @@ class MysqlDtsMigrateHandlerRecycleTest(TestCase):
         mock_engine_cls.return_value = self._mock_engine(
             {"global_data": {"ticket_id": self.ticket_id, "created_by": "tester"}}
         )
-        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.lower())
+        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_DTS_DATA_MIGRATE_HETERO.lower())
         self.assertIsNotNone(handler)
         handler(root_id="root-recycle-1", node_id="node-1", status=StateType.FAILED)
 
@@ -98,7 +98,7 @@ class MysqlDtsMigrateHandlerRecycleTest(TestCase):
         mock_engine_cls.return_value = self._mock_engine(
             {"global_data": {"ticket_id": self.ticket_id, "created_by": "tester"}}
         )
-        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.lower())
+        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_DTS_DATA_MIGRATE_HETERO.lower())
         handler(root_id="root-recycle-1", node_id="node-1", status=StateType.REVOKED)
 
         mock_drop.assert_called_once()
@@ -114,7 +114,7 @@ class MysqlDtsMigrateHandlerRecycleTest(TestCase):
         mock_engine_cls.return_value = self._mock_engine(
             {"global_data": {"ticket_id": self.ticket_id, "created_by": "tester"}}
         )
-        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.lower())
+        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_DTS_DATA_MIGRATE_HETERO.lower())
         handler(root_id="root-recycle-1", node_id="node-1", status=StateType.FINISHED)
 
         mock_drop.assert_not_called()
@@ -129,7 +129,7 @@ class MysqlDtsMigrateHandlerRecycleTest(TestCase):
         mock_engine_cls.return_value = self._mock_engine(
             {"global_data": {"ticket_id": self.ticket_id, "created_by": "tester"}}
         )
-        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.lower())
+        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_DTS_DATA_MIGRATE_HETERO.lower())
         handler(root_id="root-recycle-1", node_id="node-cutover-meta", status=StateType.FINISHED)
 
         mock_drop.assert_not_called()
@@ -144,7 +144,7 @@ class MysqlDtsMigrateHandlerRecycleTest(TestCase):
         mock_engine_cls.return_value = self._mock_engine(
             {"global_data": {"ticket_id": self.ticket_id, "created_by": "tester"}}
         )
-        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.lower())
+        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_DTS_DATA_MIGRATE_HETERO.lower())
         handler(root_id="root-recycle-1", node_id="node-task-clean", status=StateType.RUNNING)
 
         mock_drop.assert_not_called()
@@ -159,7 +159,7 @@ class MysqlDtsMigrateHandlerRecycleTest(TestCase):
         mock_engine_cls.return_value = self._mock_engine(
             {"global_data": {"ticket_id": self.ticket_id, "created_by": "tester"}}
         )
-        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.lower())
+        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_DTS_DATA_MIGRATE_HETERO.lower())
         handler(root_id="root-recycle-1", node_id="node-task-clean", status=StateType.FAILED)
 
         mock_drop.assert_not_called()
@@ -174,7 +174,7 @@ class MysqlDtsMigrateHandlerRecycleTest(TestCase):
         mock_engine_cls.return_value = self._mock_engine(
             {"global_data": {"ticket_id": self.ticket_id, "created_by": "tester"}}
         )
-        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.lower())
+        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_DTS_DATA_MIGRATE_HETERO.lower())
         handler(root_id="root-recycle-1", node_id="node-1", status=StateType.REVOKED)
 
         mock_drop.assert_called_once()
@@ -205,7 +205,7 @@ class MysqlDtsMigrateHandlerRecycleTest(TestCase):
         mock_engine_cls.return_value = self._mock_engine(
             {"global_data": {"ticket_id": self.ticket_id, "created_by": "tester"}}
         )
-        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.lower())
+        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_DTS_DATA_MIGRATE_HETERO.lower())
         handler(root_id="root-recycle-1", node_id="node-1", status=StateType.REVOKED)
 
         done = MysqlDtsInfo.objects.get(ticket_id=self.ticket_id, dts_task_id="task-done")
@@ -244,7 +244,7 @@ class MysqlDtsMigrateHandlerRecycleTest(TestCase):
                 },
             }
         )
-        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.lower())
+        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_DTS_DATA_MIGRATE_HETERO.lower())
         handler(root_id="root-recycle-1", node_id="node-1", status=StateType.FAILED)
 
         mock_drop.assert_not_called()
@@ -265,7 +265,7 @@ class MysqlDtsMigrateHandlerRecycleTest(TestCase):
                 },
             }
         )
-        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.lower())
+        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_DTS_DATA_MIGRATE_HETERO.lower())
         handler(root_id="root-recycle-1", node_id="node-1", status=StateType.REVOKED)
 
         mock_drop.assert_called_once()
@@ -276,7 +276,7 @@ class MysqlDtsMigrateHandlerRecycleTest(TestCase):
     def test_recycle_exception_does_not_raise(self, mock_engine_cls, mock_drop):
         mock_drop.side_effect = RuntimeError("rpc down")
         mock_engine_cls.return_value = self._mock_engine({"global_data": {"ticket_id": self.ticket_id}})
-        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.lower())
+        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_DTS_DATA_MIGRATE_HETERO.lower())
         # 不得阻断终止回调
         handler(root_id="root-recycle-1", node_id="node-1", status=StateType.REVOKED)
 
@@ -302,7 +302,7 @@ class MysqlDtsMigrateHandlerRecycleTest(TestCase):
         mock_engine_cls.return_value = self._mock_engine(
             {"global_data": {"ticket_id": self.ticket_id, "created_by": "tester"}}
         )
-        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.lower())
+        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_DTS_DATA_MIGRATE_HETERO.lower())
         handler(root_id="root-recycle-1", node_id="node-1", status=StateType.FAILED)
         mock_drop.assert_not_called()
 
@@ -330,7 +330,7 @@ class MysqlDtsMigrateHandlerRecycleTest(TestCase):
         mock_engine_cls.return_value = self._mock_engine(
             {"global_data": {"ticket_id": self.ticket_id, "task_name": "task-1"}}
         )
-        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.lower())
+        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_DTS_DATA_MIGRATE_HETERO.lower())
         handler(root_id="root-recycle-1", node_id="node-1", status=StateType.FAILED)
 
         failed = MysqlDtsInfo.objects.get(ticket_id=self.ticket_id, dts_task_id="task-1")
@@ -345,7 +345,7 @@ class MysqlDtsMigrateHandlerRecycleTest(TestCase):
         """多行且节点无 dts_task_id：不回写，避免误伤兄弟行。"""
         self._create_sibling("task-2")
         mock_engine_cls.return_value = self._mock_engine({"global_data": {"ticket_id": self.ticket_id}})
-        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_HA_TO_CLUSTER_MIGRATE.lower())
+        handler = TICKET_TYPE_HANDLERS.get(TicketType.MYSQL_DTS_DATA_MIGRATE_HETERO.lower())
         handler(root_id="root-recycle-1", node_id="node-1", status=StateType.FAILED)
 
         statuses = set(MysqlDtsInfo.objects.filter(ticket_id=self.ticket_id).values_list("status", flat=True))

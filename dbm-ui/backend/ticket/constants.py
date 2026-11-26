@@ -296,8 +296,8 @@ class TicketType(StrStructuredEnum):
     MYSQL_DTS_CLUSTER_DESTROY = TicketEnumField("MYSQL_DTS_CLUSTER_DESTROY", _("MySQL DTS 集群销毁"))
     MYSQL_DTS_CLUSTER_REINSTALL = TicketEnumField("MYSQL_DTS_CLUSTER_REINSTALL", _("MySQL DTS 集群重装"))
     MYSQL_DTS_DATA_MIGRATE = TicketEnumField("MYSQL_DTS_DATA_MIGRATE", _("MySQL DTS 同名迁移"), _("数据处理"))
-    MYSQL_HA_TO_CLUSTER_MIGRATE = TicketEnumField(
-        "MYSQL_HA_TO_CLUSTER_MIGRATE", _("MySQL HA到Cluster数据迁移"), _("数据处理")
+    MYSQL_DTS_DATA_MIGRATE_HETERO = TicketEnumField(
+        "MYSQL_DTS_DATA_MIGRATE_HETERO", _("MySQL DTS 异构迁移"), _("数据处理")
     )
     MYSQL_DTS_DATA_MIGRATE_RENAME = TicketEnumField("MYSQL_DTS_DATA_MIGRATE_RENAME", _("MySQL DTS 库改名迁移"), _("数据处理"))
     MYSQL_SINGLE_RENAME_DATABASE = TicketEnumField("MYSQL_SINGLE_RENAME_DATABASE", _("MySQL 单节点DB重命名"), _("集群维护"))  # noqa
