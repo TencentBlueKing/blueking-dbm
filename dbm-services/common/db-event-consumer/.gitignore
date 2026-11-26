@@ -1,8 +1,4 @@
 .idea
 build
-*.yaml
-main.yaml
-config.yaml
-data.*yaml
 .DS_Store
 logs

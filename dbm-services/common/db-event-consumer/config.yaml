@@ -1,0 +1,30 @@
+kafka_info:
+  cluster_config:
+    brokers: "<kafka_brokers_ip>"
+    port: 9092
+  auth_info:
+    username: "******"
+    password: "******"
+    sasl_mechanisms: SCRAM-SHA-512
+    security_protocol: SASL_PLAINTEXT
+log:
+  console: true
+  debug: true
+  source: true
+  json: false
+  log_file_dir: logs
+
+bkm_api_info:
+  bk_app_code: "******"
+  bk_app_secret: "******"
+  bk_biz_id: <bk_biz_id>
+  bk_username: "******"
+  bkmonitor_api_url: https://bk-monitor.apigwxxxx.com/prod/
+  bklog_api_url: https://log-search.apigwxxxx.com/prod
+
+bkm_report:
+  data_id: <report_bk_data_id>
+  token: "******"
+  report_url: http://bk-report-1.xxxx.com:10205/v2/push/
+
+otel_port: 8003

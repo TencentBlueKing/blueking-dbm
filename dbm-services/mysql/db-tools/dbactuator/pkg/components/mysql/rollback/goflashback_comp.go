@@ -66,7 +66,6 @@ func (f *GoFlashback) Init() error {
 		WorkDir:            f.WorkDir,
 		WorkID:             f.WorkID,
 		ParseConcurrency:   f.ParseConcurrency,
-		QuickMode:          true,
 		SourceBinlogFormat: "ROW", // 这里只代表 flashback 要求 ROW 模式，源实例 binlog_format 在 PreCheck 里会判断
 		ParseOnly:          true,
 		BinlogOpt: &restore.GoMySQLBinlogUtil{

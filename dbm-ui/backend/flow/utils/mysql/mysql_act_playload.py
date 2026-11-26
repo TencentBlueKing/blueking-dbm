@@ -2021,7 +2021,7 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
         """
         使用 gomysqlbinlog 前滚 binlog。
         库表过滤条件由 actuator 从 backup_index_file 的 backup_filter 中读取，
-        gomysqlbinlog 支持完整的 --databases/--exclude-databases 语法
+        gomysqlbinlog 支持完整的 --databases/--exclude-databases/--tables/--exclude-tables 语法
         """
         return {
             "db_type": DBActuatorTypeEnum.MySQL.value,
@@ -2038,6 +2038,10 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                         "idempotent": True,
                         "disable_log_bin": True,
                         "skip_gtids": True,
+                        "databases": self.cluster["databases"],
+                        "tables": self.cluster["tables"],
+                        "exclude_databases": self.cluster["databases_ignore"],
+                        "exclude_tables": self.cluster["tables_ignore"],
                     },
                     "mysql_client_opt": {"max_allowed_packet": 1073741824, "binary_mode": True},
                     # 用 binlog_start_file + binlog_start_pos 定位起点，不使用 start_time
@@ -2045,7 +2049,6 @@ class MysqlActPayload(PayloadHandler, ProxyActPayload, TBinlogDumperActPayload):
                     "binlog_start_file": binlog_start_file,
                     "binlog_start_pos": binlog_start_pos,
                     "parse_only": False,
-                    "quick_mode": True,
                     "backup_index_file": backup_index_file,
                 },
             },

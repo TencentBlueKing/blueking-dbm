@@ -31,11 +31,17 @@ var rootCmd = &cobra.Command{
 	Short: "db-event-consumer",
 	Long:  "db-event-consumer",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		config.InitConfig(configFile)
+		if err := config.InitConfig(configFile, enableDefaults); err != nil {
+			return err
+		}
 		initLogger(config.MainConfig.Log)
 		if err := sinkerPkg.InitDatasource(); err != nil {
 			return err
 		}
+		slog.Info("effective sinkers config",
+			slog.Int("count", len(config.SinkerConfigs)),
+			slog.String("keys", config.SinkerKeys()),
+			slog.String("sinkers", config.EffectiveSinkersYaml()))
 
 		base.GetTopicMetrics()
 		initMetricsReporter()
@@ -53,18 +59,25 @@ var rootCmd = &cobra.Command{
 
 		wg := &sync.WaitGroup{}
 		for _, sink := range config.SinkerConfigs {
-			// 创建 DSWriter 是致命错误（配置问题），失败则退出程序
 			ds, ok := sinkerPkg.DatasourceMap[sink.Datasource]
 			if !ok {
-				return fmt.Errorf("datasource %q not found, please check datasource name in config", sink.Datasource)
+				// datasource 未配置：按 on_missing_datasource 策略处理
+				if config.MainConfig.OnMissingDatasource == config.OnMissingDatasourceFail {
+					return fmt.Errorf("datasource %q not found, please check datasource name in config", sink.Datasource)
+				}
+				slog.Warn("datasource not found, skip this sinker",
+					slog.String("datasource", sink.Datasource),
+					slog.String("table", sink.ModelTable))
+				continue
 			}
+			// 创建 DSWriter 是致命错误（配置问题），失败则退出程序
 			dsWriter, err := sinkerPkg.GetDSWriter(ds)
 			if err != nil {
 				return err
 			}
 			dsWriter.SetWriteMode(sink.WriteMode)
 
-			if sink.Enable != nil && *sink.Enable == false {
+			if !sink.IsEnabled() {
 				// 禁用的 sinker 不启动 kafka consumer，但仍注册 handler 到 ModelDSWriterMap
 				// 供 retry_event 路由时使用，避免仅消费 retry_event 时需要启用所有其它 event_type
 				registerSinkerHandler(sink, dsWriter, collectorsMap)
@@ -99,6 +112,11 @@ func initHTTPServer() {
 	mux.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("pong"))
+	})
+	// 合并后最终生效的入库项配置，不含 datasource dsn 等敏感信息
+	mux.HandleFunc("/debug/config", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		_, _ = w.Write([]byte(config.EffectiveSinkersYaml()))
 	})
 
 	mux.HandleFunc("/debug/pprof/", pprof.Index)
