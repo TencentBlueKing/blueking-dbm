@@ -63,7 +63,23 @@ class MysqlDtsPrecheckFlow:
         self.data["pairs"] = pairs
         return pairs
 
+    def _fill_ticket_context(self):
+        """旧预检查参数没有单据字段。重试时按 root_id 从单据补回，否则建 FlowTree 会缺 ticket_type。"""
+        if self.data.get("ticket_type") and self.data.get("created_by"):
+            return
+        from backend.ticket.models import Flow
+
+        flow = Flow.objects.select_related("ticket").filter(flow_obj_id=self.root_id).order_by("-id").first()
+        if flow is None:
+            return
+        ticket = flow.ticket
+        self.data.setdefault("uid", ticket.id)
+        self.data.setdefault("ticket_type", ticket.ticket_type)
+        self.data.setdefault("created_by", ticket.creator)
+        self.data.setdefault("bk_biz_id", ticket.bk_biz_id)
+
     def run_flow(self):
+        self._fill_ticket_context()
         self.data.setdefault("uid", self.root_id)
         pairs = self.resolve_pairs()
         pipeline = Builder(root_id=self.root_id, data=self.data)

@@ -1351,7 +1351,11 @@ class DtsMigratePrecheckFlowParamBuilder(builders.FlowParamBuilder):
 
     def format_ticket_data(self):
         rows = self.ticket_data.get("infos") or [self.ticket_data]
+        # 只留下预检查要的 migrate。uid / ticket_type / created_by 是建 FlowTree 必需的，不能一起裁掉。
         self.ticket_data = {
+            "uid": self.ticket.id,
+            "ticket_type": self.ticket.ticket_type,
+            "created_by": self.ticket.creator,
             "bk_biz_id": self.ticket.bk_biz_id,
             "infos": [{"migrate": row["migrate"]} for row in rows],
         }

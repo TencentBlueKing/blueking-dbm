@@ -17,6 +17,7 @@ from backend.ticket.builders import BuilderFactory
 from backend.ticket.builders.mysql.dts.mysql_dts_tickets import (
     DtsMigrateFlowBuilder,
     DtsMigrateFlowParamBuilder,
+    DtsMigratePrecheckFlowParamBuilder,
     MigrateTargetSerializer,
     MysqlDtsClusterDestroyDetailSerializer,
     MysqlDtsClusterDestroyFlowBuilder,
@@ -1263,6 +1264,15 @@ class MysqlMigrateFlowParamBuilderUidTest(SimpleTestCase):
         self.assertEqual(ticket_data["migrate_type"], "ha_to_cluster")
         self.assertEqual(ticket_data["created_by"], "tester")
         self.assertNotIn("migrate_plan", ticket_data)
+
+    def test_precheck_get_params_keeps_ticket_context(self):
+        builder = DtsMigratePrecheckFlowParamBuilder(self._ticket(TicketType.MYSQL_DTS_DATA_MIGRATE_HETERO.value))
+        ticket_data = builder.get_params()["ticket_data"]
+        self.assertEqual(ticket_data["uid"], 18801)
+        self.assertEqual(ticket_data["ticket_type"], TicketType.MYSQL_DTS_DATA_MIGRATE_HETERO.value)
+        self.assertEqual(ticket_data["created_by"], "tester")
+        self.assertEqual(ticket_data["bk_biz_id"], 1)
+        self.assertEqual(ticket_data["infos"][0]["migrate"]["topology"], "one_to_one")
 
     def test_rename_get_params_does_not_pin_migrate_type(self):
         builder = MysqlRenameMigrateFlowParamBuilder(self._ticket(TicketType.MYSQL_DTS_DATA_MIGRATE_RENAME.value))

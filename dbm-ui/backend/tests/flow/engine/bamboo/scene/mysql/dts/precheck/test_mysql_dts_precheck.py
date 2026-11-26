@@ -38,6 +38,19 @@ def _data(**overrides):
 
 
 class MysqlDtsPrecheckFlowTest(SimpleTestCase):
+    def test_fill_ticket_context_from_existing_flow(self):
+        ticket = SimpleNamespace(id=6071, ticket_type="MYSQL_DTS_DATA_MIGRATE_HETERO", creator="tester", bk_biz_id=3)
+        flow = SimpleNamespace(ticket=ticket)
+        data = {"bk_biz_id": 3, "infos": []}
+        with patch(
+            "backend.ticket.models.Flow.objects.select_related",
+        ) as select_related:
+            select_related.return_value.filter.return_value.order_by.return_value.first.return_value = flow
+            MysqlDtsPrecheckFlow(root_id="aa41f514e8ab11", data=data)._fill_ticket_context()
+        self.assertEqual(data["uid"], 6071)
+        self.assertEqual(data["ticket_type"], "MYSQL_DTS_DATA_MIGRATE_HETERO")
+        self.assertEqual(data["created_by"], "tester")
+
     @patch("backend.flow.engine.bamboo.scene.mysql.dts.precheck.mysql_dts_precheck.Cluster.objects.filter")
     def test_resolve_pairs_by_biz_and_cluster_id(self, mock_filter):
         mock_filter.return_value = [
