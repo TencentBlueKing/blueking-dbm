@@ -2172,7 +2172,8 @@
   ],
   "schemaVersion": 39,
   "tags": [
-    "k8s_victoriametrics_ha"
+    "k8s_victoriametrics_cluster",
+    "k8s_victoriametrics_select"
   ],
   "templating": {
     "list": [
