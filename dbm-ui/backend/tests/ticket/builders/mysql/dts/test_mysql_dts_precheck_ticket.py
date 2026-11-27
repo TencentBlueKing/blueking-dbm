@@ -125,14 +125,12 @@ class MysqlDtsPrecheckSerializerTest(SimpleTestCase):
 
 
 class MysqlDtsPrecheckBuilderTest(SimpleTestCase):
-    def test_builder_registered(self):
-        self.assertIn(TicketType.MYSQL_DTS_PRECHECK, BuilderFactory.registry)
+    def test_builder_is_not_registered(self):
+        self.assertNotIn(TicketType.MYSQL_DTS_PRECHECK, BuilderFactory.registry)
 
     def test_builder_wiring(self):
         self.assertEqual(MysqlDtsPrecheckFlowBuilder.serializer, MysqlDtsPrecheckDetailSerializer)
         self.assertEqual(MysqlDtsPrecheckFlowBuilder.inner_flow_builder, MysqlDtsPrecheckFlowParamBuilder)
-        self.assertIs(MysqlDtsPrecheckFlowBuilder.editable_need_itsm, False)
-        self.assertIs(MysqlDtsPrecheckFlowBuilder.editable_need_manual_confirm, False)
 
     def test_flow_param_builder_controller(self):
         from backend.flow.engine.controller.mysql import MySQLController

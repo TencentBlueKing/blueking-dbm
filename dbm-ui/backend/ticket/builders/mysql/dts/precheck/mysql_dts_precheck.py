@@ -18,7 +18,6 @@ from backend.flow.utils.mysql.dts.precheck.base import all_items
 from backend.flow.utils.mysql.dts.precheck.migrate_input import expand_precheck_pairs
 from backend.ticket import builders
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder
-from backend.ticket.constants import TicketType
 
 
 class MysqlDtsPrecheckDetailSerializer(serializers.Serializer):
@@ -54,15 +53,10 @@ class MysqlDtsPrecheckFlowParamBuilder(builders.FlowParamBuilder):
     controller = MySQLController.mysql_dts_precheck_scene
 
 
-@builders.BuilderFactory.register(TicketType.MYSQL_DTS_PRECHECK)
 class MysqlDtsPrecheckFlowBuilder(BaseMySQLTicketFlowBuilder):
     serializer = MysqlDtsPrecheckDetailSerializer
     inner_flow_builder = MysqlDtsPrecheckFlowParamBuilder
     inner_flow_name = _("MySQL DTS 迁移预检查")
-    editable_need_itsm = False
-    editable_need_manual_confirm = False
-    default_need_itsm = False
-    default_need_manual_confirm = False
 
     @property
     def need_itsm(self):
