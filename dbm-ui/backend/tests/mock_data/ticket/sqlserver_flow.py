@@ -74,6 +74,7 @@ SQLSERVER_SINGLE_APPLY_TICKET_DATA = {
     "details": {
         "bk_cloud_id": 0,
         "city_code": "深圳",
+        "bk_cloud_region": "ap-shenzhen",
         "db_module_id": DB_MODULE_ID,
         "cluster_count": 1,
         "inst_num": 1,
@@ -85,7 +86,7 @@ SQLSERVER_SINGLE_APPLY_TICKET_DATA = {
                 "spec_cluster_type": "sqlserver_single",
                 "spec_machine_type": "sqlserver_single",
                 "affinity": "SAME_SUBZONE_CROSS_SWTICH",
-                "location_spec": {"city": "default", "sub_zone_ids": []},
+                "location_spec": {"bk_cloud_region": "ap-shenzhen", "bk_cloud_zone_list": []},
                 "count": 2,
                 "cpu": {"max": 4, "min": 2},
                 "mem": {"max": 8, "min": 4},
@@ -114,6 +115,7 @@ SQLSERVER_SINGLE_MANUAL_DATA = {
     "details": {
         "bk_cloud_id": 0,
         "city_code": "深圳",
+        "bk_cloud_region": "ap-shenzhen",
         "db_module_id": DB_MODULE_ID,
         "cluster_count": 1,
         "inst_num": 1,
@@ -140,6 +142,7 @@ SQLSERVER_HA_APPLY_TICKET_DATA = {
     "details": {
         "bk_cloud_id": 0,
         "city_code": "深圳",
+        "bk_cloud_region": "ap-shenzhen",
         "db_module_id": DB_MODULE_ID,
         "cluster_count": 2,
         "inst_num": 1,
@@ -152,7 +155,7 @@ SQLSERVER_HA_APPLY_TICKET_DATA = {
                 "spec_cluster_type": "sqlserver_ha",
                 "spec_machine_type": "sqlserver_ha",
                 "affinity": "SAME_SUBZONE_CROSS_SWTICH",
-                "location_spec": {"city": "default", "sub_zone_ids": []},
+                "location_spec": {"bk_cloud_region": "ap-shenzhen", "bk_cloud_zone_list": []},
                 "count": 2,
                 "cpu": {"max": 4, "min": 2},
                 "mem": {"max": 8, "min": 4},
@@ -185,6 +188,7 @@ SQLSERVER_HA_MANUAL_DATA = {
     "details": {
         "bk_cloud_id": 0,
         "city_code": "深圳",
+        "bk_cloud_region": "ap-shenzhen",
         "db_module_id": DB_MODULE_ID,
         "cluster_count": 1,
         "inst_num": 1,

@@ -266,11 +266,16 @@ class MongoDBMigrateMeta(object):
             )
             clbdns_cluster_entry.save()
             clbdns_cluster_entry.proxyinstance_set.add(*proxy_objs)
+        # CLB 侧已按云地域收参：只认上游透传的 bk_cloud_region，取不到就留空
+        # （巡检会标记为元数据不完整），不能把中文城市名写进去——CLB 已经不做 city -> region 的转换。
+        clb_region = str(self.info.get("bk_cloud_region") or "").strip()
+        if not clb_region:
+            logger.warning("[add_clb_domain] no bk_cloud_region passed, clb_region left blank")
         clb_entry = CLBEntryDetail.objects.create(
             clb_ip=self.info["clb"]["clb_ip"],
             clb_id=self.info["clb"]["clb_id"],
             listener_id=self.info["clb"]["clb_listener_id"],
-            clb_region=self.info["region"],
+            clb_region=clb_region,
             entry_id=clb_cluster_entry.id,
             creator=self.info["created_by"],
         )

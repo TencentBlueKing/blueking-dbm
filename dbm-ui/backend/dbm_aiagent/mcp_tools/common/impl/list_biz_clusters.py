@@ -98,7 +98,7 @@ def list_biz_clusters(
             "bk_cloud_id": cluster_obj.bk_cloud_id,
             "cluster_type": cluster_obj.cluster_type,
             "cluster_domain": cluster_obj.immute_domain,
-            "region": cluster_obj.region,
+            "region": cluster_obj.bk_cloud_region or cluster_obj.region,
             "affinity": cluster_obj.disaster_tolerance_level,
             "status": cluster_obj.status,
             "phase": cluster_obj.phase,

@@ -97,6 +97,8 @@ def tendis_cluster(clusters: QuerySet) -> List[Dict]:
                 "cluster_type": cluster.cluster_type,
                 "major_version": cluster.major_version,
                 "region": cluster.region,
+                # CLB 注册/写 meta 用云地域，flatten 出来供 nameservice 直接取
+                "bk_cloud_region": cluster.bk_cloud_region or "",
                 "{}_status_set".format(MachineType.TWEMPROXY): proxy_status_set,
                 "{}_set".format(MachineType.TWEMPROXY): proxyinstance_set,
                 "{}_set".format(InstanceRole.REDIS_MASTER): master_instance_set,

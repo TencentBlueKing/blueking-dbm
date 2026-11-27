@@ -165,10 +165,12 @@ class TenDBClusterApplyExtractor(HostExtractor):
         spider_ports: Tuple[int, ...] = (spider_port_i, ctl_port_i)
         mysql_ports: Tuple[int, ...] = tuple(start_mysql_port_i + i for i in range(remote_shard_num_i))
 
-        # F2.b CLB region：部署类单据直接取 ticket_data["city"]（Cluster 尚未入库，不能走 Cluster.region）；
-        # 非字符串 / 空串时降级为空元组（下游 check_clb_mapping 遇空返回 NO_REGION_INPUT）
-        city = ticket_data.get("city")
-        clb_regions: Tuple[str, ...] = (city.strip(),) if isinstance(city, str) and city.strip() else ()
+        # F2.b CLB region：部署类单据取 details 顶层的云地域（Cluster 尚未入库）；城市口径已下线。
+        # 非字符串 / 空串 / default（地域随机）时降级为空元组（下游 check_clb_mapping 遇空返回 NO_REGION_INPUT）
+        region = ticket_data.get("bk_cloud_region")
+        clb_regions: Tuple[str, ...] = (
+            (region.strip(),) if isinstance(region, str) and region.strip() and region.strip() != "default" else ()
+        )
 
         # ---- 5. 装配单组并返回 ----
         group: ResourceGroup = self._build_single_group(

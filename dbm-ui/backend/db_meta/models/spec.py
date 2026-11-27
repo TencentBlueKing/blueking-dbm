@@ -27,6 +27,18 @@ from backend.db_meta.enums.spec import SpecClusterType, SpecMachineType
 
 logger = logging.getLogger("root")
 
+# 资源申请里承载位置条件的字段。只要有一个非空，location_spec 就代表「有位置约束」。
+# 园区口径的老字段（city / sub_zone_ids）也列在这里：它们在申请层是「已下线、出现即报错」的，
+# 如果这里先判成「没有位置约束」直接丢掉，就变成静默放宽容灾要求了。
+LOCATION_SPEC_FIELDS = (
+    "city",
+    "sub_zone_ids",
+    "bk_cloud_zone_list",
+    "bk_cloud_region",
+    "exclude_sub_zone_ids",
+    "exclude_bk_cloud_zone_list",
+)
+
 
 class Spec(AuditedModel):
     """
@@ -102,9 +114,13 @@ class Spec(AuditedModel):
         os_type=None,
         exclude_os_name=False,
     ):
-        # 如果没有城市信息，default表示无城市信息
-        if location_spec and location_spec["city"] == "default":
-            location_spec = None
+        # 位置条件只按「有没有真实字段」判断：所有位置字段都为空时才视为「不限位置」，
+        # 这样 v2 只需要云地域 + 云可用区。园区口径的老字段不再清洗，直接交给
+        # apply_protocol 报错（静默丢弃会让容灾约束失效）。
+        if location_spec:
+            has_location = any(location_spec.get(field) for field in LOCATION_SPEC_FIELDS)
+            if not has_location:
+                location_spec = None
 
         # 如果亲和性为空，则忽略current_hosts
         if affinity == AffinityEnum.NONE.value:
@@ -150,14 +166,16 @@ class Spec(AuditedModel):
             }
             apply_params.update(spec=spec)
 
-        # 格式化参数，将bk_sub_zone_id/exclude_rack_ids/exclude_sub_zone_ids转成str，本身为空也不影响
+        # 云可用区、排除可用区统一成字符串列表（值本身就是可用区名，这里只为口径一致）
         if location_spec:
-            location_spec["sub_zone_ids"] = list(map(str, location_spec.get("sub_zone_ids") or []))
-            location_spec["exclude_rack_ids"] = list(map(str, location_spec.get("exclude_rack_ids") or []))
-            location_spec["exclude_sub_zone_ids"] = list(map(str, location_spec.get("exclude_sub_zone_ids") or []))
+            if location_spec.get("bk_cloud_zone_list"):
+                location_spec["bk_cloud_zone_list"] = list(map(str, location_spec["bk_cloud_zone_list"]))
+            if location_spec.get("exclude_bk_cloud_zone_list"):
+                location_spec["exclude_bk_cloud_zone_list"] = list(
+                    map(str, location_spec["exclude_bk_cloud_zone_list"])
+                )
 
         for host in apply_params["current_hosts"]:
-            host["sub_zone_id"] = str(host["sub_zone_id"])
             host["rack_id"] = str(host["rack_id"])
 
         return apply_params

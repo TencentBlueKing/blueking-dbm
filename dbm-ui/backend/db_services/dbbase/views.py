@@ -95,6 +95,10 @@ from backend.ticket.models import Todo
 
 SWAGGER_TAG = _("集群通用接口")
 
+# 这几个筛选项不是 Cluster 表的列：可用区是 JSON 列表(cloud_zone_list)，城市是旧口径(region)。
+# 它们不能走 getattr(Cluster, attr) / values() 的通用聚合分支，需要单独算，否则接口直接报错。
+CLUSTER_DERIVED_ATTRS = {"bk_cloud_zone", "bk_cloud_region", "city"}
+
 
 class DBBaseViewSet(viewsets.SystemViewSet):
     """
@@ -291,14 +295,17 @@ class DBBaseViewSet(viewsets.SystemViewSet):
         # 聚合每个属性字段
         cluster_attrs: Dict[str, Union[List, Set]] = defaultdict(list)
         existing_values: Dict[str, Set[str]] = defaultdict(set)
+        # 拆成「普通列」和「派生属性」：派生属性见 CLUSTER_DERIVED_ATTRS
+        derived_attrs = [attr for attr in data["cluster_attrs"] if attr in CLUSTER_DERIVED_ATTRS]
+        plain_attrs = [attr for attr in data["cluster_attrs"] if attr not in CLUSTER_DERIVED_ATTRS]
         # 过滤一些不合格的数据
-        if data["cluster_attrs"]:
+        if plain_attrs:
             # 获取choice map
             field__choice_map = {
                 attr: {value: label for value, label in getattr(Cluster, attr).field.choices or []}
-                for attr in data["cluster_attrs"]
+                for attr in plain_attrs
             }
-            for attr in clusters.values(*data["cluster_attrs"]):
+            for attr in clusters.values(*plain_attrs):
                 for key, value in attr.items():
                     # 保留bk_cloud_id有等于0的情况
                     if value is not None and value not in existing_values[key]:
@@ -324,6 +331,20 @@ class DBBaseViewSet(viewsets.SystemViewSet):
                 {"value": bk_cloud_id, "text": cloud_info.get(str(bk_cloud_id), {}).get("bk_cloud_name", "")}
                 for bk_cloud_id in existing_values["bk_cloud_id"]
             ]
+
+        if "bk_cloud_zone" in derived_attrs:
+            # 选项取本页列表里已经出现过的可用区，去重后展示
+            cluster_zones = sorted({zone for cluster in clusters for zone in (cluster.cloud_zone_list or []) if zone})
+            cluster_attrs["bk_cloud_zone"] = [{"value": zone, "text": zone} for zone in cluster_zones]
+
+        if "bk_cloud_region" in derived_attrs:
+            cluster_regions = sorted({cluster.bk_cloud_region for cluster in clusters if cluster.bk_cloud_region})
+            cluster_attrs["bk_cloud_region"] = [{"value": region, "text": region} for region in cluster_regions]
+
+        if "city" in derived_attrs:
+            # 城市只用于筛选，取值仍是集群记录的逻辑城
+            cluster_cities = sorted({cluster.region for cluster in clusters if cluster.region})
+            cluster_attrs["city"] = [{"value": city, "text": city} for city in cluster_cities]
 
         # 实例的部署角色
         if "role" in data["instances_attrs"]:
@@ -562,6 +583,26 @@ class DBBaseViewSet(viewsets.SystemViewSet):
             storage_zones = storage_queryset.values_list("machine__bk_sub_zone", flat=True)
             zones = set(proxy_zones) | (set(storage_zones))
             instance_attrs["bk_sub_zone"] = [{"value": zone, "text": zone if zone else "--"} for zone in zones]
+
+        if "bk_cloud_zone" in data["instances_attrs"]:
+            proxy_zones = proxy_query.values_list("machine__bk_cloud_zone", flat=True)
+            storage_zones = storage_queryset.values_list("machine__bk_cloud_zone", flat=True)
+            # 字段允许 NULL，排序前先剔除，否则 str 和 None 比较会抛 TypeError
+            cloud_zones = {zone for zone in set(proxy_zones) | set(storage_zones) if zone}
+            instance_attrs["bk_cloud_zone"] = [{"value": zone, "text": zone} for zone in sorted(cloud_zones)]
+
+        if "bk_cloud_region" in data["instances_attrs"]:
+            proxy_regions = proxy_query.values_list("machine__bk_cloud_region", flat=True)
+            storage_regions = storage_queryset.values_list("machine__bk_cloud_region", flat=True)
+            cloud_regions = {region for region in set(proxy_regions) | set(storage_regions) if region}
+            instance_attrs["bk_cloud_region"] = [{"value": region, "text": region} for region in sorted(cloud_regions)]
+
+        if "city" in data["instances_attrs"]:
+            # 城市只出现在筛选里，取实例所在机器 IDC 城市名
+            proxy_cities = proxy_query.values_list("machine__bk_city__bk_idc_city_name", flat=True)
+            storage_cities = storage_queryset.values_list("machine__bk_city__bk_idc_city_name", flat=True)
+            cities = {city for city in set(proxy_cities) | set(storage_cities) if city}
+            instance_attrs["city"] = [{"value": city, "text": city} for city in sorted(cities)]
 
         return Response(instance_attrs)
 

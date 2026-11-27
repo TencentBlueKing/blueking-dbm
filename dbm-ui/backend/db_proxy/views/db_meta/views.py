@@ -132,10 +132,12 @@ class DBMetaApiProxyPassViewSet(BaseProxyPassViewSet):
     @action(methods=["POST"], detail=False, serializer_class=BKCityNameSerializer, url_path="dbmeta/bk_city_name")
     def bk_city_name(self, request):
         logic_city_name = self.params_validate(self.get_serializer_class())["logic_city_name"]
-        bk_city_name = BKCity.objects.filter(logical_city__name=logic_city_name).values_list(
-            "bk_idc_city_name", flat=True
-        )
-        return Response(list(set(bk_city_name)))
+        # 空串 / default 表示「随机 / 不限地域」：资源池用它把逻辑城翻译成 IDC 城市做过滤，
+        # 这里返回全部 IDC 城市，等价于「不按城市限制」。资源预览在部署页选「地域随机」时就走这条路径。
+        cities = BKCity.objects.all()
+        if logic_city_name and logic_city_name != "default":
+            cities = cities.filter(logical_city__name=logic_city_name)
+        return Response(list(set(cities.values_list("bk_idc_city_name", flat=True))))
 
     @common_swagger_auto_schema(
         operation_summary=_("[dbmeta]构建测试单节点集群数据"),

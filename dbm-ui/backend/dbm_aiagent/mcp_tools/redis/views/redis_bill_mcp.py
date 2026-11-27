@@ -169,6 +169,7 @@ class RedisBillMcpToolsViewSet(McpToolsViewSet):
         db_version = self.get_param("db_version")
         bk_cloud_id = self.get_param("bk_cloud_id", 0)
         city_code = self.get_param("city_code", "")
+        bk_cloud_region = self.get_param("bk_cloud_region", "")
         disaster_tolerance_level = self.get_param("disaster_tolerance_level")
         proxy_spec_id = self.get_param("proxy_spec_id")
         proxy_count = self.get_param("proxy_count")
@@ -195,6 +196,7 @@ class RedisBillMcpToolsViewSet(McpToolsViewSet):
                 cluster_alias=cluster_alias,
                 bk_cloud_id=bk_cloud_id,
                 city_code=city_code,
+                bk_cloud_region=bk_cloud_region,
                 disaster_tolerance_level=disaster_tolerance_level,
                 proxy_pwd=proxy_pwd,
                 port=port,

@@ -50,7 +50,9 @@ from backend.db_meta.models import (
     StorageInstance,
     StorageInstanceTuple,
 )
+from backend.db_meta.models.city_map import resolve_apply_region
 from backend.db_services.dbbase.constants import IP_PORT_DIVIDER, SPACE_DIVIDER
+from backend.db_services.dbresource.apply_protocol import normalize_location_zones
 from backend.db_services.redis.rollback.constants import ROLLBACK_VERSION
 from backend.db_services.redis.rollback.credentials import rollback_temp_password
 from backend.db_services.redis.rollback.models import TbTendisRollbackTasks
@@ -503,8 +505,9 @@ class RedisDBMeta(object):
                 "slave_domain": slave_domain,
                 "creator": self.cluster["created_by"],
                 "region": self.cluster.get("region", ""),
+                "bk_cloud_region": resolve_apply_region(self.cluster),
                 "disaster_tolerance_level": self.cluster.get("disaster_tolerance_level", ""),
-                "zone_list": self.cluster.get("zone_list", []),
+                "cloud_zone_list": normalize_location_zones(self.cluster),
             }
         )
         return True
@@ -555,8 +558,9 @@ class RedisDBMeta(object):
             "storages": storages,
             "creator": self.cluster["created_by"],
             "region": self.cluster.get("region", ""),
+            "bk_cloud_region": resolve_apply_region(self.cluster),
             "disaster_tolerance_level": self.cluster.get("disaster_tolerance_level", ""),
-            "zone_list": self.cluster.get("zone_list", []),
+            "cloud_zone_list": normalize_location_zones(self.cluster),
         }
         if self.cluster["cluster_type"] == ClusterType.TendisPredixyTendisplusInstance.value:
             create_params["ip_port_storages"] = ip_port_storages
@@ -592,8 +596,9 @@ class RedisDBMeta(object):
                 "storages": storages,
                 "creator": self.cluster["created_by"],
                 "region": self.cluster.get("region", ""),
+                "bk_cloud_region": resolve_apply_region(self.cluster),
                 "disaster_tolerance_level": self.cluster.get("disaster_tolerance_level", ""),
-                "zone_list": self.cluster.get("zone_list", []),
+                "cloud_zone_list": normalize_location_zones(self.cluster),
             }
         )
         return True
@@ -1085,7 +1090,7 @@ class RedisDBMeta(object):
             clb_ip=self.cluster["ip"],
             clb_id=self.cluster["id"],
             listener_id=self.cluster["listener_id"],
-            clb_region=self.cluster["region"],
+            clb_region=resolve_apply_region(self.cluster),
             entry_id=clb_cluster_entry.id,
             creator=self.cluster["created_by"],
         )

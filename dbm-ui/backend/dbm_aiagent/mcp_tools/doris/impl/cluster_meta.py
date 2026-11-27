@@ -92,7 +92,7 @@ def doris_list_clusters(bk_biz_id: int) -> List[Dict]:
             "cluster_type": cluster.cluster_type,
             "cluster_domain": cluster.immute_domain,
             "alias": cluster.alias,
-            "region": cluster.region,
+            "region": cluster.bk_cloud_region or cluster.region,
             "major_version": cluster.major_version,
             # 未部署的角色不会出现在此字典中
             "role_node_counts": dict(sorted(role_counts.get(cluster.id, {}).items())),
@@ -295,7 +295,7 @@ def cluster_overview(cluster_domain: str) -> Dict:
         "cluster_type": cluster.cluster_type,
         "major_version": cluster.major_version,
         "phase": cluster.phase,
-        "region": cluster.region,
+        "region": cluster.bk_cloud_region or cluster.region,
         "disaster_tolerance_level": cluster.disaster_tolerance_level,
         "tags": ["{}:{}".format(tag.key, tag.value) for tag in cluster.tags.all()],
         "cluster_entries": [

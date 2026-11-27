@@ -248,7 +248,7 @@ class MySQLQueryMcpToolsViewSet(McpToolsViewSet):
             {
                 "bk_cloud_id": cluster_obj.bk_cloud_id,
                 "bk_biz_id": cluster_obj.bk_biz_id,
-                "region": cluster_obj.region,
+                "region": cluster_obj.bk_cloud_region or cluster_obj.region,
                 "tolerance_level": cluster_obj.disaster_tolerance_level,
                 "time_zone": cluster_obj.time_zone,
                 **mysql_cluster_topo(cluster_obj=cluster_obj),

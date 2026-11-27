@@ -49,7 +49,7 @@ def es_list_clusters(bk_biz_id: int) -> List:
             "cluster_type": c.cluster_type,
             "immute_domain": c.immute_domain,
             "alias": c.alias,
-            "region": c.region,
+            "region": c.bk_cloud_region or c.region,
             "master_count": c.master_count,
             "hot_count": c.hot_count,
             "cold_count": c.cold_count,
@@ -198,7 +198,7 @@ def cluster_overview(immute_domain: str) -> Dict:
         "cluster_type": cluster_obj.cluster_type,
         "major_version": cluster_obj.major_version,
         "phase": cluster_obj.phase,
-        "region": cluster_obj.region,
+        "region": cluster_obj.bk_cloud_region or cluster_obj.region,
         "disaster_tolerance_level": cluster_obj.disaster_tolerance_level,
         "tags": ["{}:{}".format(tag.key, tag.value) for tag in cluster_obj.tags.all()],
         "cluster_entries": [

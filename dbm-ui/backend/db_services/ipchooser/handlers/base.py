@@ -70,6 +70,8 @@ class BaseHandler:
                     "name": cloud_id__info_map.get(bk_cloud_id, bk_cloud_id),
                 },
                 "bk_sub_zone": host.get("sub_zone"),
+                "bk_cloud_region": host.get("bk_cloud_region"),
+                "bk_cloud_zone": host.get("bk_cloud_zone"),
                 "bk_rack_id": host.get("rack_id"),
                 "bk_svr_device_class_name": host.get("svr_device_class"),
                 # 暂不需要的字段，留作扩展

@@ -44,8 +44,9 @@ class SqlserverSingleClusterHandler(ClusterHandler):
         bk_cloud_id: int,
         resource_spec: dict,
         region: str,
-        zone_list: list,
+        cloud_zone_list: list,
         is_increment: bool = False,
+        bk_cloud_region: str = "",
     ):
         """
         1: 录入机器信息
@@ -98,7 +99,8 @@ class SqlserverSingleClusterHandler(ClusterHandler):
                     creator=creator,
                     bk_cloud_id=bk_cloud_id,
                     region=region,
-                    zone_list=zone_list,
+                    bk_cloud_region=bk_cloud_region,
+                    cloud_zone_list=cloud_zone_list,
                 )
             )
 

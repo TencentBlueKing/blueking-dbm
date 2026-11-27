@@ -19,6 +19,7 @@ from typing import Any, ClassVar, Dict, Iterable, List, Optional, Set, Tuple
 from backend.components import NameServiceApi
 from backend.db_meta.enums import ClusterEntryType
 from backend.db_meta.models import ClusterEntry
+from backend.db_meta.models.city_map import is_unknown_cloud_region
 from backend.db_periodic_task.clb_snapshot.snapshot import CLBEntrySnapshot, ClusterCLBSnapshot, write_many
 from backend.db_periodic_task.dispatch.base import DispatchTask
 from backend.db_periodic_task.dispatch.config import DispatchTaskConfig
@@ -106,7 +107,7 @@ def _snapshot_entry(entry: ClusterEntry, health_cache: Dict[Tuple[str, str], Tup
         listener_id=detail.listener_id,
         region=detail.clb_region,
     )
-    if not (detail.clb_id or "").strip() or not (detail.clb_region or "").strip():
+    if not (detail.clb_id or "").strip() or is_unknown_cloud_region(detail.clb_region):
         snap.meta_error = "CLB metadata incomplete: blank load balancer id or region"
         return snap
 

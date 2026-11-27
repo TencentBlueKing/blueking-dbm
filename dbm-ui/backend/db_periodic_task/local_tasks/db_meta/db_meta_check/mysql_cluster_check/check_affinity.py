@@ -13,7 +13,7 @@ import logging
 import math
 import re
 from collections import defaultdict
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional
 
 from django.db.models import Q
 from django.utils.translation import gettext as _
@@ -26,7 +26,7 @@ from backend.db_report.enums import ReportStateType
 from backend.ticket.constants import TICKET_RUNNING_STATUS_SET, TicketType
 from backend.ticket.models.ticket import ClusterOperateRecord
 
-from .base import create_or_update_affinity_report, delete_old_affinity_reports, get_cluster_expected_city_ids
+from .base import create_or_update_affinity_report, delete_old_affinity_reports
 
 logger = logging.getLogger("root")
 
@@ -54,9 +54,12 @@ class MySQLAffinityChecker:
     - TenDBCluster: 检查 spider_master 分布和 remote master-slave pair 亲和性
 
     支持的亲和性级别:
-    - SAME_SUBZONE_CROSS_SWTICH: 同园区跨交换机
-    - CROS_SUBZONE: 跨园区
+    - SAME_SUBZONE_CROSS_SWTICH: 同可用区跨机架
+    - CROS_SUBZONE: 跨可用区
     - CROSS_RACK: 跨机架
+
+    判定单元为**云可用区**（``Machine.bk_cloud_zone``）：同一云可用区下的多个园区网络等同，
+    不再视为已分散；机架判断保持不变。
     """
 
     PROXY_DISTRIBUTION_CHECK = "proxy_distribution"
@@ -154,13 +157,16 @@ class MySQLAffinityChecker:
         # 获取亲和性级别（已在查询时过滤，这里直接使用）
         affinity_level = cluster.disaster_tolerance_level
 
-        # 检查 region 是否为空或为 default
-        if not cluster.region or cluster.region.lower() == "default":
-            region_value = cluster.region if cluster.region else _("空")
-            error_msg = _(
-                "集群配置错误: region 为 '{}' 无法进行亲和性检查\n" "集群亲和性级别: {}\n" "亲和性检查要求 region 必须配置为有效的城市/地域，不能为空或 'default'"
-            ).format(region_value, affinity_level)
-            logger.error(_("亲和性检查: 集群 {} - region 配置错误").format(cluster.immute_domain))
+        # 容灾判定单元是云可用区，城市不参与判断。只有「指定可用区」这类级别才依赖
+        # 集群记录的可用区；记录为空说明部署时选的是随机，或数据没回填，无法校验
+        if (
+            affinity_level in [AffinityEnum.SAME_SUBZONE.value, AffinityEnum.SAME_SUBZONE_CROSS_SWTICH.value]
+            and not cluster.cloud_zone_list
+        ):
+            error_msg = _("集群配置错误: 集群未记录可用区，无法校验「指定可用区」\n" "集群亲和性级别: {}\n" "请确认部署时选择的可用区，或检查集群元数据").format(
+                affinity_level
+            )
+            logger.error(_("亲和性检查: 集群 {} - 未记录可用区").format(cluster.immute_domain))
             create_or_update_affinity_report(
                 cluster=cluster,
                 affinity_type=affinity_level,
@@ -170,14 +176,11 @@ class MySQLAffinityChecker:
             )
             return
 
-        # 获取集群期望的城市ID（用于CROS_SUBZONE检查）
-        expected_city_ids = get_cluster_expected_city_ids(cluster)
-
         # 根据集群类型执行不同的检查
         if cluster.cluster_type == ClusterType.TenDBHA.value:
-            self._check_tendbha_affinity(cluster, affinity_level, expected_city_ids, creator)
+            self._check_tendbha_affinity(cluster, affinity_level, creator)
         elif cluster.cluster_type == ClusterType.TenDBCluster.value:
-            self._check_tendbcluster_affinity(cluster, affinity_level, expected_city_ids, creator)
+            self._check_tendbcluster_affinity(cluster, affinity_level, creator)
 
     def _should_ignore_cluster(self, cluster: Cluster) -> bool:
         """检查是否应该忽略该集群"""
@@ -192,16 +195,14 @@ class MySQLAffinityChecker:
 
         return False
 
-    def _check_tendbha_affinity(
-        self, cluster: Cluster, affinity_level: str, expected_city_ids: Set[int], creator: str
-    ) -> None:
+    def _check_tendbha_affinity(self, cluster: Cluster, affinity_level: str, creator: str) -> None:
         """检查 TenDBHA 集群的亲和性"""
         check_results = []
 
         # 1. 检查 proxy 分布（只检查 online 状态的实例）
         proxy_instances = cluster.proxyinstance_set.filter(phase=InstancePhase.ONLINE.value)
         if proxy_instances.exists():
-            proxy_result = self._validate_proxies_affinity(proxy_instances, affinity_level, expected_city_ids)
+            proxy_result = self._validate_proxies_affinity(proxy_instances, affinity_level)
             proxy_result["result_type"] = self.PROXY_DISTRIBUTION_CHECK
             proxy_result["identifier"] = "proxies"
             check_results.append(proxy_result)
@@ -210,7 +211,7 @@ class MySQLAffinityChecker:
         master_instances = cluster.storageinstance_set.filter(
             instance_role=InstanceRole.BACKEND_MASTER.value, phase=InstancePhase.ONLINE.value
         )
-        backend_results = self._validate_backends_affinity(master_instances, affinity_level, expected_city_ids)
+        backend_results = self._validate_backends_affinity(master_instances, affinity_level)
         for machine_ip, result in backend_results.items():
             result["result_type"] = self.BACKEND_PAIRS_CHECK
             result["identifier"] = machine_ip
@@ -224,9 +225,7 @@ class MySQLAffinityChecker:
             creator=creator,
         )
 
-    def _check_tendbcluster_affinity(
-        self, cluster: Cluster, affinity_level: str, expected_city_ids: Set[int], creator: str
-    ) -> None:
+    def _check_tendbcluster_affinity(self, cluster: Cluster, affinity_level: str, creator: str) -> None:
         """检查 TenDBCluster 集群的亲和性"""
         check_results = []
 
@@ -236,7 +235,7 @@ class MySQLAffinityChecker:
             phase=InstancePhase.ONLINE.value,
         )
         if spider_masters.exists():
-            spider_result = self._validate_proxies_affinity(spider_masters, affinity_level, expected_city_ids)
+            spider_result = self._validate_proxies_affinity(spider_masters, affinity_level)
             spider_result["result_type"] = self.SPIDER_DISTRIBUTION_CHECK
             spider_result["identifier"] = "spider_masters"
             check_results.append(spider_result)
@@ -245,7 +244,7 @@ class MySQLAffinityChecker:
         remote_masters = cluster.storageinstance_set.filter(
             instance_role=InstanceRole.REMOTE_MASTER.value, phase=InstancePhase.ONLINE.value
         )
-        remote_results = self._validate_backends_affinity(remote_masters, affinity_level, expected_city_ids)
+        remote_results = self._validate_backends_affinity(remote_masters, affinity_level)
         for machine_ip, result in remote_results.items():
             result["result_type"] = self.REMOTE_PAIRS_CHECK
             result["identifier"] = machine_ip
@@ -260,26 +259,24 @@ class MySQLAffinityChecker:
         )
 
     @classmethod
-    def _validate_proxies_affinity(
-        cls, proxy_instances, affinity_level: str, expected_city_ids: Set[int]
-    ) -> Dict[str, any]:
+    def _validate_proxies_affinity(cls, proxy_instances, affinity_level: str) -> Dict[str, any]:
         """
         检查 proxy/spider 实例是否满足亲和性要求
 
         Returns:
             dict: {msg: str, state: ReportStateType, proxy_count: int}
         """
-        subzones_racks_map = defaultdict(set)
-        subzones_machines_map = defaultdict(int)
-        subzones_ips_map = defaultdict(list)
+        cloud_zones_racks_map = defaultdict(set)
+        cloud_zones_machines_map = defaultdict(int)
+        cloud_zones_ips_map = defaultdict(list)
 
         for proxy_obj in proxy_instances:
-            subzone_id = proxy_obj.machine.bk_sub_zone_id
+            cloud_zone = proxy_obj.machine.bk_cloud_zone
             rack_id = proxy_obj.machine.bk_rack_id
 
-            subzones_racks_map[subzone_id].add(rack_id)
-            subzones_machines_map[subzone_id] += 1
-            subzones_ips_map[(subzone_id, rack_id)].append(proxy_obj.machine.ip)
+            cloud_zones_racks_map[cloud_zone].add(rack_id)
+            cloud_zones_machines_map[cloud_zone] += 1
+            cloud_zones_ips_map[(cloud_zone, rack_id)].append(proxy_obj.machine.ip)
 
         result = {
             "state": ReportStateType.NORMAL.value,
@@ -289,16 +286,19 @@ class MySQLAffinityChecker:
 
         msg, state = None, ReportStateType.NORMAL
         if affinity_level == AffinityEnum.SAME_SUBZONE_CROSS_SWTICH.value:
-            msg, state = cls._check_proxies_same_subzone(
-                subzones_racks_map, subzones_machines_map, subzones_ips_map, proxy_instances
+            msg, state = cls._check_proxies_same_cloud_zone(
+                cloud_zones_racks_map, cloud_zones_machines_map, cloud_zones_ips_map, proxy_instances
             )
         elif affinity_level == AffinityEnum.CROS_SUBZONE.value:
-            msg, state = cls._check_proxies_cross_subzone(
-                subzones_racks_map, subzones_machines_map, subzones_ips_map, expected_city_ids, proxy_instances
+            msg, state = cls._check_proxies_cross_cloud_zone(
+                cloud_zones_racks_map,
+                cloud_zones_machines_map,
+                cloud_zones_ips_map,
+                proxy_instances,
             )
         elif affinity_level == AffinityEnum.CROSS_RACK.value:
             msg, state = cls._check_proxies_cross_rack(
-                subzones_racks_map, subzones_machines_map, subzones_ips_map, proxy_instances
+                cloud_zones_racks_map, cloud_zones_machines_map, cloud_zones_ips_map, proxy_instances
             )
 
         if msg:
@@ -308,92 +308,88 @@ class MySQLAffinityChecker:
         return result
 
     @classmethod
-    def _check_proxies_same_subzone(cls, racks_map: dict, machines_map: dict, ips_map: dict, proxy_instances) -> tuple:
+    def _check_proxies_same_cloud_zone(
+        cls, racks_map: dict, machines_map: dict, ips_map: dict, proxy_instances
+    ) -> tuple:
         """检查 SAME_SUBZONE_CROSS_SWTICH 级别的 proxy 分布"""
         proxy_count = sum(machines_map.values())
-        subzone_count = len(racks_map.keys())
+        cloud_zone_count = len(racks_map.keys())
 
-        if subzone_count != 1:
+        if cloud_zone_count != 1:
             # 收集所有 proxy 的详细位置信息
             proxy_details = []
             for proxy_obj in proxy_instances:
                 city_name = proxy_obj.machine.bk_city.bk_idc_city_name
-                subzone = proxy_obj.machine.bk_sub_zone or _("未知园区")
+                cloud_zone = proxy_obj.machine.bk_cloud_zone or _("未知可用区")
                 rack = proxy_obj.machine.bk_rack or _("未知机架")
-                proxy_details.append(f"{proxy_obj.machine.ip} ({city_name}/{subzone}/{_('机架')}{rack})")
+                proxy_details.append(f"{proxy_obj.machine.ip} ({city_name}/{cloud_zone}/{_('机架')}{rack})")
             proxies_info = ", ".join(proxy_details)
             return (
-                _("亲和性违规: proxies 分布在 {} 个不同的园区，期望只在 1 个园区\n详情: {}").format(subzone_count, proxies_info),
+                _("亲和性违规: proxies 分布在 {} 个不同的可用区，期望只在 1 个可用区\n详情: {}").format(cloud_zone_count, proxies_info),
                 ReportStateType.ABNORMAL,
             )
 
-        subzone_id = list(racks_map.keys())[0]
+        cloud_zone = list(racks_map.keys())[0]
         rack_count = len(list(racks_map.values())[0])
 
-        # 计算该园区内每个机架的机器数量
+        # 计算该可用区内每个机架的机器数量
         rack_machine_counts = {}
-        for (sz_id, r_id), ips in ips_map.items():
-            if sz_id == subzone_id:
+        for (cz, r_id), ips in ips_map.items():
+            if cz == cloud_zone:
                 rack_machine_counts[r_id] = len(ips)
 
         ok, max_machine_per_rack, violating_rack = cls._cross_rack_check_and_get_limits(
             proxy_count, rack_count, rack_machine_counts
         )
         if not ok:
-            # 收集该园区内所有 proxy 的详细信息
+            # 收集该可用区内所有 proxy 的详细信息
             proxy_details = []
             for proxy_obj in proxy_instances:
-                if proxy_obj.machine.bk_sub_zone_id == subzone_id:
+                if proxy_obj.machine.bk_cloud_zone == cloud_zone:
                     city_name = proxy_obj.machine.bk_city.bk_idc_city_name
-                    subzone = proxy_obj.machine.bk_sub_zone or _("未知园区")
-                    rack = proxy_obj.machine.bk_rack or _("未知机架")
+                    cloud_zone_display = proxy_obj.machine.bk_cloud_zone or _("未知可用区")
                     rack_id = proxy_obj.machine.bk_rack_id
-                    proxy_details.append(f"{proxy_obj.machine.ip} ({city_name}/{subzone}/{_('机架ID')}:{rack_id})")
+                    proxy_details.append(
+                        f"{proxy_obj.machine.ip} ({city_name}/{cloud_zone_display}/{_('机架ID')}:{rack_id})"
+                    )
             proxies_info = ", ".join(proxy_details)
             r_id, cnt = violating_rack
-            msg = _("亲和性违规: {} 个 proxies 在园区 {} 中，机架机器数超过限制 {}\n" "超限机架: {}\n详情: {}").format(
-                proxy_count, subzone_id, max_machine_per_rack, _("机架ID {} 有 {} 台").format(r_id, cnt), proxies_info
+            msg = _("亲和性违规: {} 个 proxies 在可用区 {} 中，机架机器数超过限制 {}\n" "超限机架: {}\n详情: {}").format(
+                proxy_count,
+                cloud_zone or _("未知可用区"),
+                max_machine_per_rack,
+                _("机架ID {} 有 {} 台").format(r_id, cnt),
+                proxies_info,
             )
             return msg, ReportStateType.ABNORMAL
         return None, ReportStateType.NORMAL
 
     @classmethod
-    def _check_proxies_cross_subzone(
-        cls, racks_map: dict, machines_map: dict, ips_map: dict, expected_city_ids: Set[int], proxy_instances
+    def _check_proxies_cross_cloud_zone(
+        cls, racks_map: dict, machines_map: dict, ips_map: dict, proxy_instances
     ) -> tuple:
         """检查 CROS_SUBZONE 级别的 proxy 分布"""
         proxy_count = sum(machines_map.values())
-        max_proxies_per_subzone = math.ceil(proxy_count * 0.5)
-        # 检查城市I
-        if expected_city_ids:
-            for proxy_obj in proxy_instances:
-                machine_city_id = proxy_obj.machine.bk_city.bk_idc_city_id
-                if machine_city_id not in expected_city_ids:
-                    city_name = proxy_obj.machine.bk_city.bk_idc_city_name
-                    subzone = proxy_obj.machine.bk_sub_zone or _("未知园区")
-                    return (
-                        _("亲和性违规: proxy {} 的城市 {}(ID:{}) 不在集群期望的城市ID集合 {} 中").format(
-                            proxy_obj.machine.ip, city_name, machine_city_id, expected_city_ids
-                        ),
-                        ReportStateType.ABNORMAL,
-                    )
+        max_proxies_per_cloud_zone = math.ceil(proxy_count * 0.5)
 
-        for subzone_id, rack_set in racks_map.items():
-            sub_proxy_count = machines_map[subzone_id]
+        for cloud_zone, rack_set in racks_map.items():
+            sub_proxy_count = machines_map[cloud_zone]
 
-            # 收集该园区内的 proxy 详细信息
+            # 收集该可用区内的 proxy 详细信息
             proxy_details = []
             for proxy_obj in proxy_instances:
-                if proxy_obj.machine.bk_sub_zone_id == subzone_id:
+                if proxy_obj.machine.bk_cloud_zone == cloud_zone:
                     city_name = proxy_obj.machine.bk_city.bk_idc_city_name
-                    subzone = proxy_obj.machine.bk_sub_zone or _("未知园区")
+                    cloud_zone_display = proxy_obj.machine.bk_cloud_zone or _("未知可用区")
                     rack_id = proxy_obj.machine.bk_rack_id
-                    proxy_details.append(f"{proxy_obj.machine.ip} ({city_name}/{subzone}/{_('机架ID')}:{rack_id})")
+                    proxy_details.append(
+                        f"{proxy_obj.machine.ip} ({city_name}/{cloud_zone_display}/{_('机架ID')}:{rack_id})"
+                    )
             proxies_info = ", ".join(proxy_details)
 
-            if sub_proxy_count > max_proxies_per_subzone:
-                msg = _("亲和性违规: {} 个 proxies 在园区(id:{}) 中超过限制 {}\n详情: {}").format(
-                    sub_proxy_count, subzone_id, max_proxies_per_subzone, proxies_info
+            if sub_proxy_count > max_proxies_per_cloud_zone:
+                msg = _("亲和性违规: {} 个 proxies 在可用区 {} 中超过限制 {}\n详情: {}").format(
+                    sub_proxy_count, cloud_zone or _("未知可用区"), max_proxies_per_cloud_zone, proxies_info
                 )
                 return msg, ReportStateType.ABNORMAL
 
@@ -403,33 +399,35 @@ class MySQLAffinityChecker:
     def _check_proxies_cross_rack(cls, racks_map: dict, machines_map: dict, ips_map: dict, proxy_instances) -> tuple:
         """检查 CROSS_RACK 级别的 proxy 分布"""
         msg = ""
-        for subzone_id, rack_set in racks_map.items():
+        for cloud_zone, rack_set in racks_map.items():
             rack_count = len(rack_set)
-            sub_proxy_count = machines_map[subzone_id]
+            sub_proxy_count = machines_map[cloud_zone]
 
-            # 计算该园区内每个机架的机器数量
+            # 计算该可用区内每个机架的机器数量
             rack_machine_counts = {}
-            for (sz_id, r_id), ips in ips_map.items():
-                if sz_id == subzone_id:
+            for (cz, r_id), ips in ips_map.items():
+                if cz == cloud_zone:
                     rack_machine_counts[r_id] = len(ips)
 
             ok, max_machine_per_rack, violating_rack = cls._cross_rack_check_and_get_limits(
                 sub_proxy_count, rack_count, rack_machine_counts
             )
             if not ok:
-                # 收集该园区内的 proxy 详细信息
+                # 收集该可用区内的 proxy 详细信息
                 proxy_details = []
                 for proxy_obj in proxy_instances:
-                    if proxy_obj.machine.bk_sub_zone_id == subzone_id:
+                    if proxy_obj.machine.bk_cloud_zone == cloud_zone:
                         city_name = proxy_obj.machine.bk_city.bk_idc_city_name
-                        subzone = proxy_obj.machine.bk_sub_zone or _("未知园区")
+                        cloud_zone_display = proxy_obj.machine.bk_cloud_zone or _("未知可用区")
                         rack_id = proxy_obj.machine.bk_rack_id
-                        proxy_details.append(f"{proxy_obj.machine.ip} ({city_name}/{subzone}/{_('机架ID')}:{rack_id})")
+                        proxy_details.append(
+                            f"{proxy_obj.machine.ip} ({city_name}/{cloud_zone_display}/{_('机架ID')}:{rack_id})"
+                        )
                 proxies_info = ", ".join(proxy_details)
                 r_id, cnt = violating_rack
-                msg += _("亲和性违规: {} 个 proxies 在园区(id:{}) 中，机架机器数超过限制 {}\n" "超限机架: {}\n详情: {}\n").format(
+                msg += _("亲和性违规: {} 个 proxies 在可用区 {} 中，机架机器数超过限制 {}\n" "超限机架: {}\n详情: {}\n").format(
                     sub_proxy_count,
-                    subzone_id,
+                    cloud_zone or _("未知可用区"),
                     max_machine_per_rack,
                     _("机架ID {} 有 {} 台").format(r_id, cnt),
                     proxies_info,
@@ -470,9 +468,7 @@ class MySQLAffinityChecker:
         return True, max_machine_per_rack, None
 
     @classmethod
-    def _validate_backends_affinity(
-        cls, master_instances, affinity_level: str, expected_city_ids: Set[int]
-    ) -> Dict[str, Dict[str, any]]:
+    def _validate_backends_affinity(cls, master_instances, affinity_level: str) -> Dict[str, Dict[str, any]]:
         """
         检查 master-slave pairs 是否满足亲和性要求
 
@@ -485,17 +481,13 @@ class MySQLAffinityChecker:
             if machine_ip in backend_results:
                 continue
 
-            backend_result = cls._check_master_slave_affinity(
-                master_obj=master_obj, affinity_level=affinity_level, expected_city_ids=expected_city_ids
-            )
+            backend_result = cls._check_master_slave_affinity(master_obj=master_obj, affinity_level=affinity_level)
             backend_results[machine_ip] = backend_result
 
         return backend_results
 
     @classmethod
-    def _check_master_slave_affinity(
-        cls, master_obj: StorageInstance, affinity_level: str, expected_city_ids: Set[int]
-    ) -> Dict[str, any]:
+    def _check_master_slave_affinity(cls, master_obj: StorageInstance, affinity_level: str) -> Dict[str, any]:
         """检查单个 master-slave pair 的亲和性"""
         result = {
             "msg": "",
@@ -517,9 +509,9 @@ class MySQLAffinityChecker:
 
         msg = None
         if affinity_level == AffinityEnum.SAME_SUBZONE_CROSS_SWTICH.value:
-            msg = cls._check_backend_same_subzone(master_obj, slave_obj)
+            msg = cls._check_backend_same_cloud_zone(master_obj, slave_obj)
         elif affinity_level == AffinityEnum.CROS_SUBZONE.value:
-            msg = cls._check_backend_cross_subzone(master_obj, slave_obj, expected_city_ids)
+            msg = cls._check_backend_cross_cloud_zone(master_obj, slave_obj)
         elif affinity_level == AffinityEnum.CROSS_RACK.value:
             msg = cls._check_backend_cross_rack(master_obj, slave_obj)
 
@@ -534,46 +526,27 @@ class MySQLAffinityChecker:
         return result
 
     @classmethod
-    def _check_backend_same_subzone(
+    def _check_backend_same_cloud_zone(
         cls,
         master_obj: StorageInstance,
         slave_obj: StorageInstance,
     ) -> Optional[str]:
         """检查 SAME_SUBZONE_CROSS_SWTICH 级别的 master-slave pair"""
-        if master_obj.machine.bk_sub_zone_id != slave_obj.machine.bk_sub_zone_id:
+        if master_obj.machine.bk_cloud_zone != slave_obj.machine.bk_cloud_zone:
             master_info = cls._format_machine_info(master_obj.machine)
             slave_info = cls._format_machine_info(slave_obj.machine)
-            return _("亲和性违规: Master 和 Slave 在不同的园区，期望在同一园区\nMaster: {}\nSlave: {}").format(master_info, slave_info)
+            return _("亲和性违规: Master 和 Slave 在不同的可用区，期望在同一可用区\nMaster: {}\nSlave: {}").format(master_info, slave_info)
 
         return cls._check_backend_cross_rack(master_obj, slave_obj)
 
     @classmethod
-    def _check_backend_cross_subzone(
-        cls, master_obj: StorageInstance, slave_obj: StorageInstance, expected_city_ids: Set[int]
-    ) -> Optional[str]:
+    def _check_backend_cross_cloud_zone(cls, master_obj: StorageInstance, slave_obj: StorageInstance) -> Optional[str]:
         """检查 CROS_SUBZONE 级别的 master-slave pair"""
-        # 检查是否在不同园区
-        if master_obj.machine.bk_sub_zone_id == slave_obj.machine.bk_sub_zone_id:
+        # 检查是否在不同可用区
+        if master_obj.machine.bk_cloud_zone == slave_obj.machine.bk_cloud_zone:
             master_info = cls._format_machine_info(master_obj.machine)
             slave_info = cls._format_machine_info(slave_obj.machine)
-            return _("亲和性违规: Master 和 Slave 在同一园区，期望在不同园区\nMaster: {}\nSlave: {}").format(master_info, slave_info)
-
-        # 检查城市ID是否一致
-        if expected_city_ids:
-            master_city_id = master_obj.machine.bk_city.bk_idc_city_id
-            slave_city_id = slave_obj.machine.bk_city.bk_idc_city_id
-
-            if master_city_id not in expected_city_ids:
-                master_info = cls._format_machine_info(master_obj.machine)
-                return _("亲和性违规: Master 的城市ID {} 不在集群期望的城市ID集合 {} 中\nMaster: {}").format(
-                    master_city_id, expected_city_ids, master_info
-                )
-
-            if slave_city_id not in expected_city_ids:
-                slave_info = cls._format_machine_info(slave_obj.machine)
-                return _("亲和性违规: Slave 的城市ID {} 不在集群期望的城市ID集合 {} 中\nSlave: {}").format(
-                    slave_city_id, expected_city_ids, slave_info
-                )
+            return _("亲和性违规: Master 和 Slave 在同一可用区，期望在不同可用区\nMaster: {}\nSlave: {}").format(master_info, slave_info)
 
         return None
 
@@ -584,11 +557,11 @@ class MySQLAffinityChecker:
         slave_obj: StorageInstance,
     ) -> Optional[str]:
         """检查 CROSS_RACK 级别的 master-slave pair"""
-        # 如果在不同园区，自动满足
-        if master_obj.machine.bk_sub_zone_id != slave_obj.machine.bk_sub_zone_id:
+        # 如果在不同可用区，自动满足
+        if master_obj.machine.bk_cloud_zone != slave_obj.machine.bk_cloud_zone:
             return None
 
-        # 同一园区，必须在不同机架
+        # 同一可用区，必须在不同机架
         if master_obj.machine.bk_rack_id == slave_obj.machine.bk_rack_id:
             master_info = cls._format_machine_info(master_obj.machine)
             slave_info = cls._format_machine_info(slave_obj.machine)
@@ -599,11 +572,10 @@ class MySQLAffinityChecker:
     def _format_machine_info(cls, machine) -> str:
         """格式化机器位置信息"""
         city_name = machine.bk_city.bk_idc_city_name
-        subzone = machine.bk_sub_zone or _("未知园区")
-        subzone_id = machine.bk_sub_zone_id
+        cloud_zone = machine.bk_cloud_zone or _("未知可用区")
         rack = machine.bk_rack or _("未知机架")
         rack_id = machine.bk_rack_id
-        return f"{machine.ip} ({_('城市')}:{city_name}, {_('园区')}:{subzone}[ID:{subzone_id}], {_('机架')}:{rack}[ID:{rack_id}])"
+        return f"{machine.ip} ({_('城市')}:{city_name}, {_('可用区')}:{cloud_zone}, {_('机架')}:{rack}[ID:{rack_id}])"
 
     @classmethod
     def _create_affinity_reports(

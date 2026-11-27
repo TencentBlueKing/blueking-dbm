@@ -20,6 +20,7 @@ from backend.components import DBConfigApi
 from backend.components.dbconfig.constants import FormatType, LevelName
 from backend.db_meta.enums import ClusterEntryRole, ClusterEntryType, ClusterType, InstanceInnerRole
 from backend.db_meta.models import Cluster, ClusterEntry
+from backend.db_meta.models.city_map import resolve_apply_region
 from backend.db_meta.models.cluster_entry import CLBEntryDetail, PolarisEntryDetail
 from backend.db_meta.models.storage_set_dtl import NosqlStorageSetDtl
 from backend.flow.consts import DEFAULT_DB_MODULE_ID, ConfigFileEnum, ConfigTypeEnum
@@ -395,6 +396,8 @@ def import_redis_cluster(
     alias = clusterinfo.get("alias", "")
     major_version = clusterinfo["db_version"]
     region = clusterinfo.get("region", "")
+    # 导出再导入时沿用原集群的云地域；老数据没有该字段就按可用区反推
+    bk_cloud_region = resolve_apply_region(clusterinfo)
     creator = creator or clusterinfo.get("creater", "")
 
     is_tendisplus = cluster_type in _TENDISPLUS_CLUSTER_TYPES
@@ -443,6 +446,7 @@ def import_redis_cluster(
             creator=creator,
             bk_cloud_id=bk_cloud_id,
             region=region,
+            bk_cloud_region=bk_cloud_region,
             cluster_type=cluster_type,
             machine_specs=machine_specs,
             redis_password=redis_password,
@@ -461,6 +465,7 @@ def import_redis_cluster(
             creator=creator,
             bk_cloud_id=bk_cloud_id,
             region=region,
+            bk_cloud_region=bk_cloud_region,
             machine_specs=machine_specs,
             redis_password=redis_password,
             redis_proxy_password=redis_proxy_password,

@@ -65,7 +65,7 @@ def redis_list_clusters(bk_biz_id: int, page: int = 1, page_size: int = 30) -> d
                 "immute_domain": c.immute_domain,
                 "cluster_type": c.cluster_type,
                 "alias": c.alias,
-                "region": c.region,
+                "region": c.bk_cloud_region or c.region,
             }
             for c in clusters
         ],
@@ -117,7 +117,7 @@ def cluster_basic_overview(immute_domain: str) -> Dict:
             "alias": cluster_obj.alias,
             "cluster_type": cluster_obj.cluster_type,
             "major_version": cluster_obj.major_version,
-            "region": cluster_obj.region,
+            "region": cluster_obj.bk_cloud_region or cluster_obj.region,
             "disaster_tolerance_level": cluster_obj.disaster_tolerance_level,
             "tags": ["{}:{}".format(tag.key, tag.value) for tag in cluster_obj.tags.all()],
             "cluster_entries": [

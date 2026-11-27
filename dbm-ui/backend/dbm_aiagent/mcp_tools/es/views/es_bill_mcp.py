@@ -76,6 +76,7 @@ class EsBillMcpToolsViewSet(McpToolsViewSet):
         version = validated_params["version"]
         http_port = validated_params.get("http_port", 9200)
         city_code = validated_params["city_code"]
+        bk_cloud_region = validated_params.get("bk_cloud_region", "")
         cluster_alias = validated_params.get("cluster_alias", "")
         bk_cloud_id = validated_params.get("bk_cloud_id", 0)
         disaster_tolerance_level = validated_params.get("disaster_tolerance_level", "MAX_EACH_ZONE_EQUAL")
@@ -88,6 +89,7 @@ class EsBillMcpToolsViewSet(McpToolsViewSet):
             version=version,
             http_port=http_port,
             city_code=city_code,
+            bk_cloud_region=bk_cloud_region,
             cluster_alias=cluster_alias,
             bk_cloud_id=bk_cloud_id,
             disaster_tolerance_level=disaster_tolerance_level,

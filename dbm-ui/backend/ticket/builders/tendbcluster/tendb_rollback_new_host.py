@@ -21,6 +21,7 @@ from backend.configuration.constants import AffinityEnum
 from backend.db_meta.enums import ClusterType, InstanceRole, TenDBClusterSpiderRole
 from backend.db_meta.enums.comm import SystemTagEnum, TagType
 from backend.db_meta.models import AppCache, Cluster, Machine, Tag
+from backend.db_meta.models.city_map import resolve_logical_city
 from backend.db_services.dbbase.constants import IpSource
 from backend.flow.engine.bamboo.scene.mysql.common.get_master_config import get_cluster_config_for_rollback
 from backend.flow.engine.controller.spider import SpiderController
@@ -116,17 +117,17 @@ def get_cluster_role_resource_spec(cluster: Cluster) -> Dict[str, Dict]:
 
 def get_apply_city(cluster: Cluster) -> str:
     """目标集群与源集群同城部署，城市为空时取默认城市"""
-    return cluster.region or "default"
+    return resolve_logical_city(cluster) or "default"
 
 
 def get_apply_zone_list(cluster: Cluster) -> List[str]:
-    """与集群部署单据保持一致：只有子zone级别的容灾才限定机房列表"""
+    """与集群部署单据保持一致：只有可用区级别的容灾才限定可用区列表"""
     if cluster.disaster_tolerance_level in [
         AffinityEnum.CROS_SUBZONE,
         AffinityEnum.SAME_SUBZONE,
         AffinityEnum.SAME_SUBZONE_CROSS_SWTICH,
     ]:
-        return cluster.zone_list or []
+        return cluster.cloud_zone_list or []
     return []
 
 
@@ -248,8 +249,12 @@ class TendbRollbackNewHostResourceParamBuilder(BaseOperateResourceParamBuilder):
         info = self.ticket_data["infos"][0]
         cluster = Cluster.objects.get(id=info["cluster_id"])
         resource_spec = get_cluster_role_resource_spec(cluster)
-        # 位置信息与集群部署单据保持一致：同城部署，非子zone容灾不限定机房
-        location_spec = {"city": get_apply_city(cluster), "sub_zone_ids": get_apply_zone_list(cluster)}
+        # 位置信息与集群部署单据保持一致：只下发云地域 + 云可用区
+        location_spec = {
+            "bk_cloud_zone_list": get_apply_zone_list(cluster),
+            # 带上源集群记录的云地域，资源申请走 v2 时可直接使用
+            "bk_cloud_region": cluster.bk_cloud_region or "",
+        }
         # 资源标签由提单时指定，各角色共用同一份：labels 为标签ID，label_names 为标签名称
         label = info.get("label") or {}
 

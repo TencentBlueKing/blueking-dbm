@@ -72,7 +72,7 @@ def _role_host_ids(cluster_obj: Cluster, instance_role: str) -> List[int]:
 
 
 def _enrich_es_resource_spec(
-    resource_spec: Dict, city_code: str = "default", affinity: str = "MAX_EACH_ZONE_EQUAL"
+    resource_spec: Dict, bk_cloud_region: str = "", affinity: str = "MAX_EACH_ZONE_EQUAL"
 ) -> Dict:
     """补充 ES 资源池规格的亲和性、位置等字段，用于资源池申请与前端展示"""
     if not resource_spec:
@@ -82,7 +82,7 @@ def _enrich_es_resource_spec(
         if not isinstance(spec, dict):
             continue
         spec.setdefault("affinity", affinity)
-        spec.setdefault("location_spec", {"city": city_code, "sub_zone_ids": []})
+        spec.setdefault("location_spec", {"bk_cloud_region": bk_cloud_region})
         spec.setdefault("labels", [])
         spec.setdefault("label_names", [])
 
@@ -110,6 +110,7 @@ def submit_es_apply_bill(
     resource_spec: Dict,
     version: str,
     city_code: str,
+    bk_cloud_region: str = "",
     http_port: int = ES_DEFAULT_PORT,
     disaster_tolerance_level: str = "MAX_EACH_ZONE_EQUAL",
     cluster_alias: str = "",
@@ -126,7 +127,8 @@ def submit_es_apply_bill(
         resource_spec: 资源池规格
         version: ES 版本号
         http_port: 端口，默认 9200
-        city_code: 城市代码
+        city_code: 城市代码（仅用于单据展示，选机地域请用 bk_cloud_region）
+        bk_cloud_region: 云地域，如 ap-guangzhou；不指定时留空表示不限地域
         disaster_tolerance_level: 容灾级别，默认 MAX_EACH_ZONE_EQUAL
         cluster_alias: 集群别名，默认空字符串
         bk_cloud_id: 云区域ID，默认 0
@@ -145,7 +147,7 @@ def submit_es_apply_bill(
         "city_code": city_code,
         "disaster_tolerance_level": disaster_tolerance_level,
         "http_port": http_port,
-        "resource_spec": _enrich_es_resource_spec(resource_spec, city_code, disaster_tolerance_level),
+        "resource_spec": _enrich_es_resource_spec(resource_spec, bk_cloud_region, disaster_tolerance_level),
     }
 
     ticket_param = {
@@ -182,7 +184,7 @@ def submit_es_scale_up_bill(
     cluster_obj = _get_cluster(bk_biz_id, cluster_domain)
     cluster_id = cluster_obj.id
 
-    enriched_spec = _enrich_es_resource_spec(resource_spec, cluster_obj.region or "default") or {}
+    enriched_spec = _enrich_es_resource_spec(resource_spec, cluster_obj.bk_cloud_region or "") or {}
 
     # 计算 ext_info：按角色统计扩容磁盘与主机数，供前端渲染单据需求信息
     ext_info = {}
@@ -324,7 +326,7 @@ def submit_es_replace_bill(
         "cluster_id": cluster_id,
         "old_nodes": old_nodes,
         "ip_source": IpSource.RESOURCE_POOL.value,
-        "resource_spec": _enrich_es_resource_spec(resource_spec, cluster_obj.region or "default"),
+        "resource_spec": _enrich_es_resource_spec(resource_spec, cluster_obj.bk_cloud_region or ""),
     }
 
     ticket_param = {

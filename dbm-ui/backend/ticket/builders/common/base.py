@@ -14,7 +14,7 @@ import operator
 import re
 from collections import defaultdict
 from functools import reduce
-from typing import Any, Dict, List, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from django.db.models import F, Q
 from django.forms.models import model_to_dict
@@ -36,6 +36,7 @@ from backend.db_meta.models import (
     StorageInstance,
 )
 from backend.db_services.dbbase.constants import IpSource
+from backend.db_services.dbresource.apply_protocol import normalize_location_zones
 from backend.db_services.dbresource.handlers import ResourceHandler
 from backend.db_services.ipchooser.query.resource import ResourceQueryHelper
 from backend.db_services.mysql.cluster.handlers import ClusterServiceHandler
@@ -58,6 +59,36 @@ def get_filtered_items(details: Dict[str, Any], match_keys: List[str], valid_typ
     return [item for item in targets if isinstance(item, valid_types) and item]
 
 
+def cluster_location_spec(cluster: Cluster, cloud_zone_list: List = None) -> Optional[Dict[str, Any]]:
+    """构造资源申请的位置参数
+
+    只输出云口径：云地域 + 云可用区。都为空时返回 None，表示「不限位置」，
+    不再用 `city="default"` 这种哨兵值表达随机。
+
+    @param cloud_zone_list: 指定可用区列表；不传则用集群自己记录的 cloud_zone_list（空表示随机）
+    """
+    zones = cluster.cloud_zone_list if cloud_zone_list is None else cloud_zone_list
+    location_spec: Dict[str, Any] = {}
+    if cluster.bk_cloud_region:
+        location_spec["bk_cloud_region"] = cluster.bk_cloud_region
+    if zones:
+        # 值就是云可用区名，不是园区 ID
+        location_spec["bk_cloud_zone_list"] = list(zones)
+    return location_spec or None
+
+
+def get_location_zones(location_spec: dict) -> List:
+    """取 location_spec 里的云可用区列表
+
+    部署单据由前端直接传 `bk_cloud_zone_list`。返回值会被写进 `Cluster.cloud_zone_list`，
+    必须和 `Machine.bk_cloud_zone` 同一口径；解析不出来直接拒单，不把脏值写进新字段。
+    """
+    try:
+        return normalize_location_zones(location_spec, strict=True)
+    except ValueError as error:
+        raise TicketParamsVerifyException(_("以下园区未登记云可用区，无法确定集群的可用区信息：{}").format(error)) from error
+
+
 def get_ticket_zone_list(ticket_data, role="backend_group"):
     zone_list = []
     if ticket_data["ip_source"] == IpSource.RESOURCE_POOL and ticket_data["disaster_tolerance_level"] in [
@@ -65,7 +96,8 @@ def get_ticket_zone_list(ticket_data, role="backend_group"):
         AffinityEnum.SAME_SUBZONE,
         AffinityEnum.SAME_SUBZONE_CROSS_SWTICH,
     ]:
-        zone_list = ticket_data["resource_spec"][role]["location_spec"].get("sub_zone_ids", [])
+        # 前端传的是 bk_cloud_zone_list，值就是云可用区
+        zone_list = get_location_zones(ticket_data["resource_spec"][role]["location_spec"])
     return zone_list
 
 
@@ -139,16 +171,16 @@ def format_bigdata_resource_spec(attrs: Dict[str, Any]) -> Dict[str, Any]:
     # 移除无用的资源角色申请
     remove_useless_spec(attrs)
     # 获取集群所在的城市
-    cluster_location_spec = {}
+    default_location_spec = {}
     if "cluster_id" in attrs:
         cluster = Cluster.objects.get(id=attrs["cluster_id"])
-        cluster_location_spec = {"city": cluster.region, "sub_zone_ids": []}
-    # 格式化资源规格的亲和性和城市
+        default_location_spec = cluster_location_spec(cluster, cloud_zone_list=[])
+    # 格式化资源规格的亲和性和地域
     for role, resource_spec in attrs["resource_spec"].items():
         # 大数据亲和性固定为MAX_EACH_ZONE_EQUAL
         resource_spec["affinity"] = AffinityEnum.MAX_EACH_ZONE_EQUAL
-        # 城市优先以传递的为准，然后以集群为准
-        resource_spec["location_spec"] = resource_spec.get("location_spec") or cluster_location_spec
+        # 地域优先以传递的为准，然后以集群为准
+        resource_spec["location_spec"] = resource_spec.get("location_spec") or default_location_spec
 
 
 def get_mongodb_cluster_tolerance(disaster_tolerance_level, role=None):
@@ -172,6 +204,11 @@ class HostInfoSerializer(serializers.Serializer):
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
     ip = serializers.CharField(help_text=_("IP地址"))
     bk_sub_zone = serializers.CharField(help_text=_("园区"), allow_null=True, allow_blank=True, required=False)
+    bk_cloud_zone = serializers.CharField(help_text=_("云可用区"), allow_null=True, allow_blank=True, required=False)
+    # 兼容早期命名，入参两个都收，取值时统一用 bk_cloud_zone
+    bk_cloud_sub_zone = serializers.CharField(
+        help_text=_("云可用区(旧字段名，兼容用)"), allow_null=True, allow_blank=True, required=False
+    )
     bk_host_id = serializers.IntegerField(help_text=_("主机ID"))
     bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), required=False)
     port = serializers.IntegerField(help_text=_("端口号"), required=False)
@@ -200,6 +237,19 @@ class ResourceSpecBaseSerializer(serializers.Serializer):
 
 
 class TicketBaseValidateSerializerMixin(object):
+    # 这里放「所有单据都要透传、但各组件序列化器不用各自声明」的字段。
+    # DRF 的元类会把基类的 _declared_fields 合并进子类的已声明字段，所以子类不用重复声明，
+    # 单据详情序列化时（非 SkipToRepresentationMixin 的严格序列化器）才能把它回显给前端。
+    _declared_fields = {
+        # 部署时在 details 顶层选的地域，写集群元数据用；地域选「随机」时是 default
+        "bk_cloud_region": serializers.CharField(
+            help_text=_("云地域 region，如 ap-guangzhou；地域选随机时为 default"),
+            required=False,
+            allow_blank=True,
+            allow_null=True,
+        ),
+    }
+
     # 检查提单集群所在业务是否与当前业务一致
     def validated_biz(self, attrs):
         # 特殊单据需要跨业务提单 跳过校验
@@ -232,6 +282,8 @@ class TicketBaseValidateSerializerMixin(object):
     def validate(self, attrs):
         attrs = self.validated_biz(attrs)
         attrs = self.validated_biz_managed(attrs)
+        # bk_cloud_region 已在 _declared_fields 里声明，DRF 会自己解析进 attrs；
+        # 没传时不会补默认值，保持「漏传」可被识别（写集群元数据时会打 warning 日志）
         return attrs
 
 

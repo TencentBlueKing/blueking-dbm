@@ -73,95 +73,83 @@ def _autofix_followup_remark(prefix: str, core: MongoAutofixCore) -> str:
     return _(base)
 
 
-def mongos_get_resource_spec(cluster_id: int, mongos_list: list) -> dict:
-    """获取申请机器规格信息，mongos申请机器，判断如果一半机器在同一园区，则排除该园区，否则任意园区"""
+def _pick_dominant_cloud_zone(cloud_zone_counter: dict, total: int) -> str:
+    """
+    返回健康实例占比 >= 50% 的云可用区，没有则返回空串。
 
-    include_or_exclue = True
-    sub_zone_ids = []
-    # 获取mongos的机器
-    all_mongos = Cluster.objects.get(id=cluster_id).proxyinstance_set.all()
-    # 获取健康mongos机器在园区的比重 {sub_zone_id: number}
-    health_mongos_number = len(all_mongos) - len(mongos_list)  # 所有健康mongos的数量
-    health_mongos_sub_zone = {}  # 健康mongos在每个园区的数量
-    for mongos in all_mongos:
-        if mongos.machine.ip in [host["ip"] for host in mongos_list]:
+    容灾判定单元为云可用区（同一可用区下多个园区网络等同），因此这里按可用区统计占比；
+    数量相同时按可用区名排序，保证结果稳定。
+    """
+    if total <= 0:
+        return ""
+    candidates = [
+        (cloud_zone, count) for cloud_zone, count in cloud_zone_counter.items() if cloud_zone and count / total >= 0.5
+    ]
+    if not candidates:
+        return ""
+    return sorted(candidates, key=lambda item: (-item[1], item[0]))[0][0]
+
+
+def mongos_get_resource_spec(cluster_id: int, mongos_list: list) -> dict:
+    """获取申请机器规格信息：健康 mongos 若某可用区占比过半，申请时排除该可用区"""
+
+    cluster = Cluster.objects.get(id=cluster_id)
+    fault_ips = {host["ip"] for host in mongos_list}
+    health_mongos_number = 0  # 所有健康mongos的数量
+    health_mongos_cloud_zone = {}  # 健康mongos在每个云可用区的数量
+    for mongos in cluster.proxyinstance_set.select_related("machine").all():
+        if mongos.machine.ip in fault_ips:
             continue
-        if not health_mongos_sub_zone.get(str(mongos.machine.bk_sub_zone_id)):
-            health_mongos_sub_zone[str(mongos.machine.bk_sub_zone_id)] = 0
-        health_mongos_sub_zone[str(mongos.machine.bk_sub_zone_id)] += 1
-    #  健康mongos在每个园区的机器数量占所有健康mongos的数量的百分比
-    if health_mongos_number > 0:
-        mongos_sub_zone_percent = {
-            sub_zone: num / health_mongos_number for sub_zone, num in health_mongos_sub_zone.items()
-        }
-        for sub_zone, sub_zone_percent in mongos_sub_zone_percent.items():
-            if sub_zone_percent >= 0.5:
-                include_or_exclue = False
-                sub_zone_ids.append(int(sub_zone))
-                break
+        health_mongos_number += 1
+        zone_key = mongos.machine.bk_cloud_zone or ""
+        health_mongos_cloud_zone[zone_key] = health_mongos_cloud_zone.get(zone_key, 0) + 1
+
+    # 健康mongos在某云可用区的占比达到一半时，排除该可用区
+    dominant_cloud_zone = _pick_dominant_cloud_zone(health_mongos_cloud_zone, health_mongos_number)
+    exclude_cloud_zones = [dominant_cloud_zone] if dominant_cloud_zone else []
 
     resource_spec = {}
     for host in mongos_list:
-        effective_sub_zone_ids = [z for z in sub_zone_ids if z]
-        effective_include = include_or_exclue if effective_sub_zone_ids else True
-        resource_spec.update(
-            {
-                host["ip"]: {
-                    "spec_id": host["spec_id"],
-                    "count": 1,
-                    "spec_config": host["spec_config"],
-                    "location_spec": {
-                        "city": host["city"],
-                        "sub_zone_ids": effective_sub_zone_ids,
-                        "include_or_exclue": effective_include,
-                    },
-                    "labels": host.get("labels") or [],
-                    "label_names": host.get("label_names") or [],
-                }
-            }
-        )
-    return resource_spec
-
-
-def mongod_get_resource_spec(cluster_id: int, mongod_list: list) -> dict:
-    """获取申请机器规格信息：优先同城；健康存储实例若某园区占比 >=50% 则排除该园区。"""
-
-    include_or_exclue = True
-    sub_zone_ids = []
-    all_mongod = Cluster.objects.get(id=cluster_id).storageinstance_set.select_related("machine").all()
-    fault_ips = {host["ip"] for host in mongod_list}
-    health_mongod_sub_zone = {}
-    health_mongod_number = 0
-    for inst in all_mongod:
-        if inst.machine.ip in fault_ips:
-            continue
-        health_mongod_number += 1
-        zone_key = str(inst.machine.bk_sub_zone_id)
-        health_mongod_sub_zone[zone_key] = health_mongod_sub_zone.get(zone_key, 0) + 1
-
-    if health_mongod_number > 0:
-        mongod_sub_zone_percent = {
-            sub_zone: num / health_mongod_number for sub_zone, num in health_mongod_sub_zone.items()
-        }
-        for sub_zone, sub_zone_percent in mongod_sub_zone_percent.items():
-            if sub_zone_percent >= 0.5:
-                include_or_exclue = False
-                sub_zone_ids.append(int(sub_zone))
-                break
-
-    resource_spec = {}
-    for host in mongod_list:
-        # 园区 id 为 0/空 表示未打园区，排除无意义且会导致本地资源池申请不到机
-        effective_sub_zone_ids = [z for z in sub_zone_ids if z]
-        effective_include = include_or_exclue if effective_sub_zone_ids else True
         resource_spec[host["ip"]] = {
             "spec_id": host["spec_id"],
             "count": 1,
             "spec_config": host["spec_config"],
             "location_spec": {
-                "city": host["city"],
-                "sub_zone_ids": effective_sub_zone_ids,
-                "include_or_exclue": effective_include,
+                "bk_cloud_region": cluster.bk_cloud_region or "",
+                "exclude_bk_cloud_zone_list": exclude_cloud_zones,
+            },
+            "labels": host.get("labels") or [],
+            "label_names": host.get("label_names") or [],
+        }
+    return resource_spec
+
+
+def mongod_get_resource_spec(cluster_id: int, mongod_list: list) -> dict:
+    """获取申请机器规格信息：健康存储实例若某可用区占比 >=50%，申请时排除该可用区"""
+
+    cluster = Cluster.objects.get(id=cluster_id)
+    fault_ips = {host["ip"] for host in mongod_list}
+    health_mongod_cloud_zone = {}
+    health_mongod_number = 0
+    for inst in cluster.storageinstance_set.select_related("machine").all():
+        if inst.machine.ip in fault_ips:
+            continue
+        health_mongod_number += 1
+        zone_key = inst.machine.bk_cloud_zone or ""
+        health_mongod_cloud_zone[zone_key] = health_mongod_cloud_zone.get(zone_key, 0) + 1
+
+    dominant_cloud_zone = _pick_dominant_cloud_zone(health_mongod_cloud_zone, health_mongod_number)
+    exclude_cloud_zones = [dominant_cloud_zone] if dominant_cloud_zone else []
+
+    resource_spec = {}
+    for host in mongod_list:
+        resource_spec[host["ip"]] = {
+            "spec_id": host["spec_id"],
+            "count": 1,
+            "spec_config": host["spec_config"],
+            "location_spec": {
+                "bk_cloud_region": cluster.bk_cloud_region or "",
+                "exclude_bk_cloud_zone_list": exclude_cloud_zones,
             },
             # 与部署/替换单据一致：有标签的资源池必须带 labels，否则只会匹配无标签主机
             "labels": host.get("labels") or [],

@@ -22,6 +22,7 @@ from backend.ticket import builders
 from backend.ticket.builders.common.base import (
     DeployClusterTagsField,
     TicketBaseValidateSerializerMixin,
+    get_location_zones,
     get_mongodb_cluster_tolerance,
     get_ticket_zone_list,
 )
@@ -174,9 +175,10 @@ class MongoReplicaSetApplyFlowBuilder(BaseMongoReplicaSetTicketFlowBuilder):
                 AffinityEnum.SAME_SUBZONE_CROSS_SWTICH,
             ]
         ):
-            sub_zone_ids = ticket_data["resource_spec"]["mongo_machine_set"]["location_spec"]["sub_zone_ids"]
+            # 只有「指定可用区」才把可用区列表下发下去；跨可用区/跨机架/无 交给资源池自己打散
+            cloud_zone_list = get_location_zones(ticket_data["resource_spec"]["mongo_machine_set"]["location_spec"])
         else:
-            sub_zone_ids = []
+            cloud_zone_list = []
 
         infos = [
             {
@@ -187,8 +189,10 @@ class MongoReplicaSetApplyFlowBuilder(BaseMongoReplicaSetTicketFlowBuilder):
                         "spec_name": spec.spec_name,
                         "affinity": ticket_data["disaster_tolerance_level"],
                         "location_spec": {
-                            "city": ticket_data["city_code"],
-                            "sub_zone_ids": sub_zone_ids,
+                            # 地域取 details 顶层（前端从容灾组件提到顶层，随机时是 default）；
+                            # 只有可用区、没有地域时选机不受地域约束，必须显式带上
+                            "bk_cloud_region": ticket_data.get("bk_cloud_region") or "",
+                            "bk_cloud_zone_list": cloud_zone_list,
                         },
                         # # 副本集的亲和性要求至少跨两个机房
                         "count": ticket_data["node_count"],
