@@ -364,7 +364,7 @@ class ResourceGroup:
 
     :param group_id: 组唯一标识（如 "apply_info_0"）
     :param units: 组内所有 RevokeUnit
-    :param cluster_domains: 组承载的所有集群主域名
+    :param cluster_domains: 组承载的所有集群主域名，目前可以不传，不会参与任何决策类逻辑，只是参与日志打印逻辑。
     :param clb_regions: F2.b CLB 校验所需的 region 列表。由 Extractor 装配：
         - 部署类单据（Single/HA/Spider Apply）：填 ``ticket_data["city"]`` 单元素元组
         - 非部署类单据（Add/Restore Slave / Migrate / Proxy Add/Switch）：由

@@ -78,12 +78,16 @@ from backend.flow.engine.bamboo.scene.mysql.revoke.base.log_utils import (
     f2_zh,
     f3_zh,
     f4_zh,
+    format_ctl_address,
     g1_zh,
     group_decision_zh,
     host_decision_zh,
 )
 from backend.flow.engine.bamboo.scene.mysql.revoke.base.models import (
+    F2_SUB_KEY_CLB,
     F2_SUB_KEY_DNS,
+    F2_SUB_KEY_PROXY_BACKENDS,
+    F2_SUB_KEY_TDBCTL,
     FactCheckOutcome,
     FactState,
     GroupDecision,
@@ -93,6 +97,7 @@ from backend.flow.engine.bamboo.scene.mysql.revoke.base.models import (
     RevokeUnit,
     RevokeVerdict,
 )
+from backend.flow.engine.bamboo.scene.mysql.revoke.base.role_consts import SPIDER
 from backend.flow.plugins.components.collections.common.base_service import BaseService
 from backend.flow.utils.base.flow_output import FlowOutputHandler
 from backend.ticket.models import Ticket
@@ -211,7 +216,7 @@ class ResourceGroupJudgeService(BaseService):
         # 流程唯一目的是主机退回：MANUAL/SKIP/KEEP 均表示本组主机不能自动退回，
         # 显式失败告知用户结论与原因，避免静默成功让用户对结果产生疑问
         if gv.decision != GroupDecision.GROUP_RECYCLE:
-            self._emit_non_recycle_failure_log(gv)
+            self._emit_non_recycle_failure_log(gv=gv, ticket=ticket)
             return False
 
         return True
@@ -571,7 +576,126 @@ class ResourceGroupJudgeService(BaseService):
             logger.exception(err)
             return False
 
-    def _emit_non_recycle_failure_log(self, gv: GroupVerdict) -> None:
+    def _build_hit_guidance_blocks(self, gv: GroupVerdict, ticket_id: int) -> str:
+        """按组内 F2 红线命中的引用面构建场景化处置指引块（A 块）。
+
+        数据来源：``gv.verdicts`` 各 unit 的 ``facts.f2_traffic.evidence``——
+        DNS 域名列表 / CLB 命中 / 中控路由行（ctl 地址 + Server_name）/ proxy 后端命中行
+        均为判据阶段已落盘的现成数据，本方法只做展示层组装，不做任何探测。
+
+        :param gv: 组决策结果
+        :param ticket_id: 原（父）单据 id，用于指引中定位路由写入来历
+        :return: 多行指引文本；组内无红线命中时返回排查占位文案
+        """
+        blocks: List[str] = []
+        for v in gv.verdicts:
+            f2 = v.facts.f2_traffic
+            if f2.state != FactState.YES:
+                continue
+            ip: str = v.unit.ip
+            ev = f2.evidence if isinstance(f2.evidence, dict) else {}
+
+            # ---- A · DNS 解析残留 ----
+            dns_ev = ev.get(F2_SUB_KEY_DNS) or {}
+            if dns_ev.get("state") == "yes":
+                domains = dns_ev.get("domain_names") or []
+                domain_lines = "\n".join("            - {}".format(d) for d in domains) or _(
+                    "            -（域名明细见该机 ② 检测项）"
+                )
+                blocks.append(
+                    _(
+                        "    A.【DNS 解析残留 · {ip}】删除解析记录后点击【重试】本节点：\n"
+                        "         1) 以下域名仍解析到 {ip}，请逐一确认确实不应再指向它\n"
+                        "            （如怀疑人工误配/跨业务混用，先与域名归属方确认，勿盲目删除）：\n"
+                        "{domain_lines}\n"
+                        "         2) 在 DNS 管理侧删除上述解析记录\n"
+                        "         3) 回到 pipeline 点击【重试】本节点，重新判定通过即自动退回\n"
+                    ).format(ip=ip, domain_lines=domain_lines)
+                )
+
+            # ---- A · CLB 后端注册残留 ----
+            clb_ev = ev.get(F2_SUB_KEY_CLB) or {}
+            if clb_ev.get("state") == "yes":
+                blocks.append(
+                    _(
+                        "    A.【CLB 后端注册残留 · {ip}】从监听器摘除该机器后点击【重试】本节点：\n"
+                        "         1) 在 CLB 控制台定位 {ip} 的后端注册（命中明细见该机 ② 检测项 evidence）\n"
+                        "         2) 确认业务流量已切走后，摘除该后端\n"
+                        "         3) 回到 pipeline 点击【重试】本节点，重新判定通过即自动退回\n"
+                    ).format(ip=ip)
+                )
+
+            # ---- A · 中控路由（按角色二分：spider 无状态可自助清理 / remote 有数据须平台介入）----
+            ctl_ev = ev.get(F2_SUB_KEY_TDBCTL) or {}
+            if ctl_ev.get("state") == "yes":
+                ctl_addr: str = format_ctl_address(ctl_ev.get("ctl_primary"))
+                rows = ctl_ev.get("matched_rows") or []
+                row_lines = "\n".join(
+                    "            mysql.servers: Server_name={server}, Host={ip}, Port={port}".format(
+                        server=r.get("Server_name"), ip=r.get("Host"), port=r.get("Port")
+                    )
+                    for r in rows
+                ) or _("            （命中行明细见该机 ② 检测项 evidence）")
+                if v.unit.role == SPIDER:
+                    drop_lines = "\n".join(
+                        "            TDBCTL DROP NODE IF EXISTS {server};".format(server=r.get("Server_name"))
+                        for r in rows
+                        if r.get("Server_name")
+                    ) or _("            （Server_name 见上方命中行）")
+                    blocks.append(
+                        _(
+                            "    A.【中控路由残留 · spider 接入层 · {ip}】摘除路由后点击【重试】本节点：\n"
+                            "         1) 确认路由来历——单据 {ticket_id} 执行过程中写入，命中行：\n"
+                            "{row_lines}\n"
+                            "         2) 在集群中控 {ctl_addr} 上执行（如不确定该路由用途，\n"
+                            "            请先找 DBM 平台侧确认，勿盲目删除）：\n"
+                            "{drop_lines}\n"
+                            "         3) 同步路由到集群其余节点：tdbctl flush routing;\n"
+                            "         4) 回到 pipeline 点击【重试】本节点，重新判定通过即自动退回\n"
+                        ).format(
+                            ip=ip, ticket_id=ticket_id, row_lines=row_lines, ctl_addr=ctl_addr, drop_lines=drop_lines
+                        )
+                    )
+                else:
+                    blocks.append(
+                        _(
+                            "    A.【中控路由引用 · remote 存储节点 · {ip}】不可自行清理，请联系 DBM 平台侧：\n"
+                            "         {ip} 为集群存储节点，中控 {ctl_addr} 路由仍指向它，分片数据可能仍在机器上：\n"
+                            "{row_lines}\n"
+                            "         1) 不要直接执行 TDBCTL DROP NODE（有分片数据丢失风险）\n"
+                            "         2) 请联系 DBM 平台侧确认数据归属与主从关系，\n"
+                            "            通过「主从迁移 / 节点下线」正式流程处理\n"
+                            "         3) 处理完成后点击【重试】本节点\n"
+                        ).format(ip=ip, ctl_addr=ctl_addr, row_lines=row_lines)
+                    )
+
+            # ---- A · proxy 后端引用（有数据，须平台介入）----
+            f2d_ev = ev.get(F2_SUB_KEY_PROXY_BACKENDS) or {}
+            if f2d_ev.get("state") == "yes":
+                hits = f2d_ev.get("matched_hits") or []
+                hit_lines = "\n".join(
+                    "            proxy {proxy} backends -> {backend}".format(
+                        proxy=h.get("proxy_address"), backend=h.get("backend_address")
+                    )
+                    for h in hits
+                ) or _("            （命中明细见该机 ② 检测项 evidence）")
+                blocks.append(
+                    _(
+                        "    A.【proxy 后端引用 · MySQL 存储节点 · {ip}】不可自行清理，请联系 DBM 平台侧：\n"
+                        "         {ip} 仍被 proxy 作为后端引用：\n"
+                        "{hit_lines}\n"
+                        "         1) 不要手工修改 backends 表或直接重启 proxy\n"
+                        "         2) 请联系 DBM 平台侧确认主从拓扑与读写路由，\n"
+                        "            通过「主从迁移 / 整机替换」正式流程处理\n"
+                        "         3) 处理完成后点击【重试】本节点\n"
+                    ).format(ip=ip, hit_lines=hit_lines)
+                )
+
+        if not blocks:
+            return _("    （本组无红线命中场景块；请查看单机日志块【判定结果】说明排查——\n" "      判据探测失败 / 进程状态未知 / 组内结论不一致等）\n")
+        return "".join(blocks)
+
+    def _emit_non_recycle_failure_log(self, gv: GroupVerdict, ticket: Ticket) -> None:
         """非 GROUP_RECYCLE 判决（MANUAL/SKIP/KEEP）下输出失败引导日志（配合 _execute return False）。
 
         设计意图：
@@ -582,25 +706,47 @@ class ResourceGroupJudgeService(BaseService):
               * DBA 在 pipeline UI 看到判定节点 FAILED，点开可读到完整的单机日志块 + 组级结论
               * DBA 确认后可选：处置完外部问题后 \"重试\" / 直接 \"跳过\" 本节点
           - 该失败不影响已写入的 trans_data（_write_trans_data 已提前落盘）
+          - 处置指引按 F2 红线命中面场景化（A 块由 :meth:`_build_hit_guidance_blocks`
+            从判据 evidence 组装：DNS 域名 / CLB / 中控路由行 + DROP 命令 / proxy 命中行），
+            并显式说明【跳过】= 不做退回、【重试】的适用条件——避免把"判定结论正常"
+            误读成"无需操作"（三种非 RECYCLE 结论均停住，只有人工放行才能走完）
 
         :param gv: 组决策结果（非 GROUP_RECYCLE）
+        :param ticket: 原（父）单据对象（id 用于指引中定位路由写入来历）
         """
+        guidance: str = self._build_hit_guidance_blocks(gv=gv, ticket_id=int(ticket.id))
         self.log_error(
             _(
                 "\n{sep}\n"
                 "本组判定结果为【{decision}】，主机不可自动退回，节点主动失败供人工确认\n"
                 "  原因：{reason}\n"
-                "  处置指引：\n"
-                "    1) 查看上方单机日志块（标题行含主机 IP），确认具体机器结论\n"
-                "    2) GROUP_SKIP（不属于本单据）/ GROUP_KEEP（仍在服务）属正常业务结论：\n"
-                "       确认无误后可直接在 pipeline 上点击【跳过】本节点\n"
-                "    3) GROUP_MANUAL（无法自动判断）：处置外部问题（如手动摘除 DNS / 确认机器归属 /\n"
-                "       手动清理残留进程）后在 pipeline 上点击【重试】本节点\n"
+                "\n"
+                "  处置指引（按场景对号入座）：\n"
+                "{guidance}"
+                "\n"
+                "  ◆ 节点为何停住：非【整组回收】结论均需人工放行（机器退回是不可逆动作，\n"
+                "     判定节点不做静默通过；流程引擎无暂停原语，以节点失败代替人工确认门）\n"
+                "  ◆ 各结论的出路：\n"
+                "     - GROUP_SKIP（判定到有机器脱离单据管控范围）：结论明确——不退回。\n"
+                "       确认无误后点击【跳过】本节点\n"
+                "     - GROUP_KEEP（判定疑似已对外提供服务）：结论明确——在役不退回。\n"
+                "       确认无误后点击【跳过】本节点\n"
+                "     - GROUP_MANUAL（无法自动裁决是否退回）：\n"
+                "       a) 按上方 A 块处置外部引用/状态后点击【重试】本节点\n"
+                "          → 重新判定 → 达到【整组回收】即自动退回\n"
+                "       b) 确认放弃退回 → 点击【跳过】本节点\n"
+                "     - 【整组回收 GROUP_RECYCLE】：自动继续，无需任何操作\n"
+                "  ◆ 按钮后果说明：\n"
+                "     - 【跳过】= 对本组机器本次不做退回处理：机器保持现状（进程、路由、\n"
+                "       DNS/CLB、DBM 记录均不动），流程继续收尾；后续如需退回须另行人工处理\n"
+                "     - 【重试】= 重新判定本节点；SKIP/KEEP 的成因不随重试改变，\n"
+                "       重试仅对 MANUAL（处置完外部状态后）有意义\n"
                 "{sep}"
             ).format(
                 sep="━" * 60,
                 decision=group_decision_zh(gv.decision.value),
                 reason=extract_decision_reason(gv.reason),
+                guidance=guidance,
             )
         )
 
