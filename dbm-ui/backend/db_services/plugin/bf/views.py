@@ -15,7 +15,6 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from backend import env
-from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.configuration.constants import SystemSettingsEnum
 from backend.configuration.models import DBAdministrator, SystemSettings
@@ -23,11 +22,12 @@ from backend.db_meta.enums import ClusterType
 from backend.db_meta.models import Machine
 from backend.db_services.plugin.bf.serializers import HasBFPrivSerializer
 from backend.db_services.plugin.constants import SWAGGER_TAG
+from backend.db_services.plugin.view import BaseOpenAPIViewSet
 
 logger = logging.getLogger("root")
 
 
-class BFPluginViewSet(viewsets.SystemViewSet):
+class BFPluginViewSet(BaseOpenAPIViewSet):
     default_permission_class = []
 
     @common_swagger_auto_schema(

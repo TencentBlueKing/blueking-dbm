@@ -13,10 +13,10 @@ from django.utils.translation import gettext as _
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_services.plugin.constants import SWAGGER_TAG
 from backend.db_services.plugin.mysql.apply.serializers import MysqlHaApplyQuickMinorPassSerializer
+from backend.db_services.plugin.view import BaseOpenAPIViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
 from backend.ticket.constants import TicketType
 from backend.ticket.contexts import TicketContext
@@ -24,7 +24,7 @@ from backend.ticket.models import Ticket
 from backend.ticket.serializers import TicketSerializer
 
 
-class ApplyPluginViewSet(viewsets.SystemViewSet):
+class ApplyPluginViewSet(BaseOpenAPIViewSet):
     default_permission_class = [DBManagePermission()]
 
     @common_swagger_auto_schema(
