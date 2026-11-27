@@ -152,6 +152,14 @@ class MonitorPolicySerializer(AuditedSerializer, serializers.ModelSerializer):
         fields = "__all__"
 
 
+class MonitorPolicyCreateSerializer(MonitorPolicySerializer):
+    """创建策略：平台级策略只由后台同步监控模板生成，接口侧只允许创建业务级策略"""
+
+    bk_biz_id = serializers.IntegerField(
+        help_text=_("业务ID"), min_value=1, error_messages={"min_value": _("不支持通过接口创建平台级告警策略")}
+    )
+
+
 class MonitorPolicyListSerializer(MonitorPolicySerializer):
     event_count = serializers.SerializerMethodField(method_name="get_event_count")
 
@@ -270,8 +278,30 @@ class BatchUpdateMonitorPolicyNotifySerializer(serializers.Serializer):
         groups = serializers.ListField(help_text=_("告警组ID列表"), child=serializers.IntegerField())
 
     notify_groups = serializers.ListSerializer(help_text=_("告警组ID列表"), child=NoticeGroupInfoSerializer())
-    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"))
+    bk_biz_id = serializers.IntegerField(help_text=_("业务ID"), min_value=1)
     voice_notice = serializers.CharField(help_text=_("语音拨打类型"), required=False)
+
+    def validate(self, attrs):
+        """补充校验: 仅允许操作平台策略(会克隆到当前业务)或当前业务下的策略, 避免跨业务修改告警组"""
+        bk_biz_id = attrs["bk_biz_id"]
+        policy_ids = [info["policy_id"] for info in attrs["notify_groups"]]
+        policy_map = MonitorPolicy.objects.in_bulk(id_list=policy_ids)
+
+        illegal_policy_ids = [
+            policy_id
+            for policy_id in policy_ids
+            if policy_id not in policy_map
+            or (
+                policy_map[policy_id].target_level != TargetLevel.PLATFORM.value
+                and policy_map[policy_id].bk_biz_id != bk_biz_id
+            )
+        ]
+        if illegal_policy_ids:
+            raise serializers.ValidationError(
+                _("以下策略不存在或不属于当前业务，无法修改告警组：{}").format(", ".join(map(str, illegal_policy_ids)))
+            )
+
+        return attrs
 
 
 class MonitorPolicyCloneSerializer(MonitorPolicyUpdateSerializer):

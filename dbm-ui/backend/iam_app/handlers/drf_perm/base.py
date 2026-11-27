@@ -10,7 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 import itertools
 import logging
-from typing import Callable, List
+from typing import Callable, List, Tuple
 
 from bk_audit.constants.log import DEFAULT_EMPTY_VALUE, DEFAULT_SENSITIVITY
 from bk_audit.contrib.bk_audit.client import bk_audit_client
@@ -304,6 +304,29 @@ class BizOrGlobalResourceActionPermission(ResourceActionPermission):
         return []
 
 
+def build_biz_dbtype_pairs(biz_ids: List, db_types: List) -> List[Tuple]:
+    """
+    将业务列表与DB类型列表组合成(业务, DB类型)资源对
+    - 两者长度一致: 按序一一对应(如多条策略各自所属的业务与DB类型)
+    - 一方只有一个元素: 与该方全部元素组合(兼容单业务单DB类型的常规场景)
+    - 两者长度不一致且都大于1: 按序截断组合, 避免错位串行
+    """
+    biz_ids = [biz_id for biz_id in (biz_ids or []) if biz_id not in (None, "")]
+    db_types = [db_type for db_type in (db_types or []) if db_type not in (None, "")]
+    if not biz_ids or not db_types:
+        return []
+
+    if len(biz_ids) == 1:
+        pairs = [(biz_ids[0], db_type) for db_type in db_types]
+    elif len(db_types) == 1:
+        pairs = [(biz_id, db_types[0]) for biz_id in biz_ids]
+    else:
+        pairs = list(zip(biz_ids, db_types))
+
+    # 去重, 避免多条策略命中同一资源时发起重复鉴权
+    return list(dict.fromkeys(pairs))
+
+
 class BizDBTypeResourceActionPermission(MoreResourceActionPermission):
     """
     关联业务-集群类型资源动作的鉴权
@@ -312,9 +335,9 @@ class BizDBTypeResourceActionPermission(MoreResourceActionPermission):
     def __init__(self, actions: List[ActionMeta], instance_biz_getter: Callable, instance_dbtype_getter: Callable):
 
         resource_metes = [ResourceEnum.BUSINESS, ResourceEnum.DBTYPE]
-        instance_ids_getters = lambda request, view: [  # noqa
-            (instance_biz_getter(request, view)[0], instance_dbtype_getter(request, view)[0])
-        ]
+        instance_ids_getters = lambda request, view: build_biz_dbtype_pairs(  # noqa
+            instance_biz_getter(request, view), instance_dbtype_getter(request, view)
+        )
         super().__init__(actions, resource_metes, instance_ids_getters)
 
 
