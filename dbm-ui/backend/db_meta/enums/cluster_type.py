@@ -24,6 +24,8 @@ class ClusterType(StrStructuredEnum):
     TBinlogDumper = EnumField("tbinlogdumper", _("TBinlogDumper"))
     # MySQL DTS 集群
     MySQLDTS = EnumField("mysqldts", _("MySQLDTS"))
+    # 跨 DB 执行机（仅 Machine.cluster_type，不建业务 Cluster/域名）
+    ExecHost = EnumField("exechost", _("执行机"))
 
     RedisCluster = EnumField("redis", _("Redis"))
     TendisPredixyRedisCluster = EnumField("PredixyRedisCluster", _("RedisCluster集群"))

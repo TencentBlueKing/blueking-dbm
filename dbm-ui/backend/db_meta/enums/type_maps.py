@@ -20,6 +20,7 @@ MachineTypeAccessLayerMap = {
     MachineType.MYSQL_DTS_WORKER: AccessLayer.STORAGE,
     # 同机双角色：Machine 层记 PROXY（管控面入口），实例层各自写 access_layer
     MachineType.MYSQL_DTS_COLOCATED: AccessLayer.PROXY,
+    MachineType.EXEC_HOST: AccessLayer.PROXY,
     MachineType.TENDISPLUS: AccessLayer.STORAGE,
     MachineType.TENDISCACHE: AccessLayer.STORAGE,
     MachineType.TENDISSSD: AccessLayer.STORAGE,
@@ -62,6 +63,7 @@ ClusterTypeMachineTypeDefine = {
         MachineType.MYSQL_DTS_WORKER,
         MachineType.MYSQL_DTS_COLOCATED,
     ],
+    ClusterType.ExecHost: [MachineType.EXEC_HOST],
     ClusterType.TendisRedisInstance: [MachineType.TENDISCACHE],
     ClusterType.TendisPredixyRedisCluster: [MachineType.PREDIXY, MachineType.TENDISCACHE],
     ClusterType.TendisPredixyTendisplusCluster: [MachineType.PREDIXY, MachineType.TENDISPLUS],
@@ -150,6 +152,9 @@ ClusterMachineAccessTypeDefine = {
         AccessLayer.PROXY: MachineType.MYSQL_DTS_MASTER,
         AccessLayer.STORAGE: MachineType.MYSQL_DTS_WORKER,
     },
+    ClusterType.ExecHost: {
+        AccessLayer.PROXY: MachineType.EXEC_HOST,
+    },
     ClusterType.Riak: {
         AccessLayer.STORAGE: MachineType.RIAK,
     },
@@ -173,6 +178,7 @@ MachineTypeInstanceRoleMap = {
         InstanceRole.MYSQL_DTS_MASTER_MASTER,
         InstanceRole.MYSQL_DTS_WORKER_MASTER,
     ],
+    MachineType.EXEC_HOST: [InstanceRole.EXEC_HOST],
     MachineType.TENDISCACHE: [
         InstanceRole.REDIS_SLAVE,
         InstanceRole.REDIS_MASTER,
@@ -265,6 +271,7 @@ InstanceRoleInstanceInnerRoleMap = {
     InstanceRole.REMOTE_REPEATER: InstanceInnerRole.REPEATER,
     InstanceRole.MYSQL_DTS_WORKER_MASTER: InstanceInnerRole.MASTER,
     InstanceRole.MYSQL_DTS_MASTER_MASTER: InstanceInnerRole.MASTER,
+    InstanceRole.EXEC_HOST: InstanceInnerRole.ORPHAN,
     InstanceRole.REDIS_SLAVE: InstanceInnerRole.SLAVE,
     InstanceRole.REDIS_MASTER: InstanceInnerRole.MASTER,
     InstanceRole.ES_MASTER: InstanceInnerRole.ORPHAN,

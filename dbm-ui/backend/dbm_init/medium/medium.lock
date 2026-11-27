@@ -324,6 +324,15 @@ mongodb:
     full_version: 1.0.0
     os_type: "Linux"
     os_version:
+- mongo-dts:
+    buildPath: /toolkit/mongo-dts.tar.gz
+    name: mongo-dts.tar.gz
+    version: 1.0.0
+    distribution_name: DBM
+    version_series: latest
+    full_version: 1.0.0
+    os_type: "Linux"
+    os_version:
 mysql:
 # ----介质列表----
 - actuator:

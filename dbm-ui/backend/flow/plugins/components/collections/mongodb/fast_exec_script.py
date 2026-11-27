@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 import base64
 import logging
 import re
@@ -22,13 +23,14 @@ from backend import env
 from backend.components import JobApi
 from backend.flow.models import FlowNode
 from backend.flow.plugins.components.collections.common.base_service import BkJobService
+from backend.flow.utils.log_redact import RedactingLogMixin
 from backend.flow.utils.mongodb.mongodb_script_template import make_script_common_kwargs
 
 logger = logging.getLogger("json")
 cpl = re.compile("<ctx>(?P<context>.+?)</ctx>")  # 非贪婪模式，只匹配第一次出现的自定义tag
 
 
-class _ExecBkJobService(BkJobService):
+class _ExecBkJobService(RedactingLogMixin, BkJobService):
     """
     根据db-actuator组件，绑定fast_execute_script api接口访问。
     """
@@ -64,7 +66,10 @@ class _ExecBkJobService(BkJobService):
             )
         )
 
-        self.log_info("_execute trans_data {} global_data {} kwargs {}".format(trans_data, global_data, kwargs))
+        safe_kwargs = {k: v for k, v in kwargs.items() if k != "script_content"}
+        if "script_content" in kwargs:
+            safe_kwargs["script_content"] = "<redacted len={}>".format(len(kwargs.get("script_content") or ""))
+        self.log_info("_execute trans_data {} global_data {} kwargs {}".format(trans_data, global_data, safe_kwargs))
         # 兜底处理 trans_data 不是合法上下文实例（None / 占位符 / dict 等）的场景，避免后续 trans_data.set(...) 报 AttributeError
         if trans_data is None or trans_data == "${trans_data}" or not hasattr(trans_data, "set"):
             trans_data = getattr(flow_context, kwargs["set_trans_data_dataclass"])()
@@ -82,8 +87,7 @@ class _ExecBkJobService(BkJobService):
             self.log_error(_("该节点获取到执行ip信息为空，请联系系统管理员{}").format(exec_ips))
             return False
 
-        self.log_info("kwargs {}".format(kwargs))
-        self.log_info("data {}".format(data))
+        self.log_info("kwargs {}".format(safe_kwargs))
 
         target_ip_info = kwargs["bk_host_list"]
         self.log_info("{} exec {}".format(target_ip_info, kwargs["node_name"]))
@@ -114,9 +118,24 @@ class _ExecBkJobService(BkJobService):
             "target_server": {"ip_list": target_ip_info},
         }
 
-        self.log_info("[{}] ready start task with body {} {}".format(node_name, "", body))
+        # body.script_content is base64; do not log it (may contain DBA / temp passwords).
+        self.log_info(
+            "[{}] ready start task ips={} script_b64_len={}".format(
+                node_name,
+                [item.get("ip") for item in target_ip_info],
+                len(body.get("script_content") or ""),
+            )
+        )
         resp = JobApi.fast_execute_script(
-            {**(make_script_common_kwargs(timeout=3600, exec_account=kwargs["exec_account"])), **body}, raw=True
+            {
+                **(
+                    make_script_common_kwargs(
+                        timeout=int(kwargs.get("job_timeout") or 3600), exec_account=kwargs["exec_account"]
+                    )
+                ),
+                **body,
+            },
+            raw=True,
         )
 
         # 传入调用结果，并单调监听任务状态

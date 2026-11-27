@@ -86,6 +86,7 @@ INIT_DB_PKG_SETTINGS = {
         {"value": PackageType.DbMon, "version_num": 3},
         {"value": PackageType.DBTools, "version_num": 3},
         {"value": PackageType.MongoToolKit, "version_num": 3},
+        {"value": PackageType.MongoDts, "version_num": 3},
     ],
     DBType.Es.value: [
         {"value": PackageType.Es, "version_num": 3},

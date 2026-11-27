@@ -14,7 +14,7 @@ V1 / V2 共用 `Package` 表。运营侧只在 V2（`/version-files`）维护；
 | 介质 `pkg_type` | `version_series.name`（series） | 版本形态 |
 |-----------------|----------------------------------|----------|
 | `mongodb` | `mongodb-x.y`（如 `mongodb-7.0`） | 具体版本为 `x.y.z`（流程常用 `mongodb-x.y.z`） |
-| `actuator` / `dbmon` / `dbtools` / `mongo-toolkit` | **`latest`** | 挂在 `latest` 系列下 |
+| `actuator` / `dbmon` / `dbtools` / `mongo-toolkit` / `mongo-dts` | **`latest`** | 挂在 `latest` 系列下 |
 
 V2 取包还会过滤：
 
@@ -24,7 +24,7 @@ V2 取包还会过滤：
 
 ---
 
-## 2. 周边介质（actuator / dbmon / dbtools / mongo-toolkit）
+## 2. 周边介质（actuator / dbmon / dbtools / mongo-toolkit / mongo-dts）
 
 - series **必须**为 `latest`（代码默认 `PkgSeries.LATEST`）。
 - 调用：`get_mongodb_package_v2_release(pkg_type)`（不读 `REPO_VERSION_FOR_DEV`）。
@@ -58,6 +58,7 @@ V2 取包还会过滤：
 
 ## 4. 相关调用点
 
-- `mongodb_install_dbmon.get_pkg_info`：周边四类
+- `mongodb_install_dbmon.get_pkg_info`：actuator / dbmon / dbtools / mongo-toolkit
+- MongoDB DTS：`get_mongodb_package_v2_release(mongo-dts)`，下发 `mongo-dts.tar.gz` 到已注册的 MongoDts 机器后解包。Linux 启动文件是包内的 `collector.linux`
 - `GetFileList`（`db_type=MongoDB`）：actuator；`mongodb_pkg` → `lookup_mongodb_package`
 - `ActKwargs.get_pkg` / 升级流程：`lookup_mongodb_package`
