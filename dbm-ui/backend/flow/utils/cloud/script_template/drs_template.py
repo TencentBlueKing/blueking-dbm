@@ -19,6 +19,9 @@ cp /data/install/server.crt /data/install/server.key /home/mysql/db-remote-servi
 tmp_new=$(mktemp)
 trap 'rm -f "$tmp_new"' EXIT
 
+# 拆开历史版本写坏的 "nameserver a.b.c.dnameserver e.f.g.h" 行
+sed -i -E ':a;s/^(nameserver [0-9.]+)(nameserver )/\\1\\n\\2/;ta' /etc/resolv.conf
+
 echo "{{ dns_nameserver }}" | while IFS= read -r ns; do
     if ! grep -Fxq "$ns" /etc/resolv.conf; then
         echo "$ns" >> "$tmp_new"
