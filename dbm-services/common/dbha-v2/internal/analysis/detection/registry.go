@@ -29,8 +29,10 @@ package detection
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 
+	"dbm-services/common/dbha-v2/pkg/logger"
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 )
 
@@ -85,13 +87,26 @@ func RegisteredDbTypes() []haprobe.DbType {
 }
 
 // Validate reports an error when a registered Detectable does not match its key.
-func Validate() error {
+// It logs a warning when a switcher DbType is registered but has no detection provider.
+func Validate(switcherTypes []haprobe.DbType) error {
 	mu.RLock()
 	defer mu.RUnlock()
 	for dt, d := range detectables {
 		if d.DbTypeName() != dt {
 			return fmt.Errorf("detection: DbType %s has mismatched Detectable %s", dt, d.DbTypeName())
 		}
+	}
+
+	missing := make([]string, 0)
+	for _, dt := range switcherTypes {
+		if _, ok := detectables[dt]; !ok {
+			missing = append(missing, string(dt))
+		}
+	}
+	if len(missing) > 0 {
+		sort.Strings(missing)
+		logger.Warn("detection: switcher DbTypes without detection provider, dbTypes: [%s]",
+			strings.Join(missing, ","))
 	}
 	return nil
 }

@@ -115,7 +115,7 @@ func TestLookupAndRegisteredDbTypes(t *testing.T) {
 func TestValidateAcceptsMatchingDetectable(t *testing.T) {
 	resetForTest(t)
 	Register(haprobe.DbTypeMySql, fakeDetectable{haprobe.DbTypeMySql})
-	if err := Validate(); err != nil {
+	if err := Validate(nil); err != nil {
 		t.Fatalf("Validate failed, errmsg: %s", err)
 	}
 }
@@ -123,7 +123,35 @@ func TestValidateAcceptsMatchingDetectable(t *testing.T) {
 func TestValidateDetectsMismatchedDetectable(t *testing.T) {
 	resetForTest(t)
 	Register(haprobe.DbTypeEs, fakeDetectable{haprobe.DbTypeKafka})
-	if err := Validate(); err == nil {
+	if err := Validate(nil); err == nil {
 		t.Fatal("Validate must fail when Detectable does not match its key")
+	}
+}
+
+func TestValidateAcceptsCoveredSwitcherDbTypes(t *testing.T) {
+	resetForTest(t)
+	Register(haprobe.DbTypeMySql, fakeDetectable{haprobe.DbTypeMySql})
+	Register(haprobe.DbTypeRedis, fakeDetectable{haprobe.DbTypeRedis})
+	if err := Validate([]haprobe.DbType{
+		haprobe.DbTypeMySql, haprobe.DbTypeRedis,
+	}); err != nil {
+		t.Fatalf("Validate failed, errmsg: %s", err)
+	}
+}
+
+func TestValidateAcceptsUncoveredSwitcherDbTypes(t *testing.T) {
+	resetForTest(t)
+	Register(haprobe.DbTypeMySql, fakeDetectable{haprobe.DbTypeMySql})
+	if err := Validate([]haprobe.DbType{
+		haprobe.DbTypeRedis, haprobe.DbTypeKafka, haprobe.DbTypeMySql,
+	}); err != nil {
+		t.Fatalf("Validate must not fail for uncovered switcher DbTypes, errmsg: %s", err)
+	}
+}
+
+func TestValidateAcceptsEmptySwitcherTypes(t *testing.T) {
+	resetForTest(t)
+	if err := Validate(nil); err != nil {
+		t.Fatalf("Validate failed, errmsg: %s", err)
 	}
 }

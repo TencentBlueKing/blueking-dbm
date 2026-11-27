@@ -165,7 +165,7 @@ func logAnalysisProviderSelfCheck() error {
 	if len(detectionTypes) == 0 {
 		return gerrors.Newf(gerrors.Failure, "no detection providers registered; blank-import provider/allanalysis")
 	}
-	if err := detection.Validate(); err != nil {
+	if err := detection.Validate(switcherTypes); err != nil {
 		return gerrors.Newf(gerrors.Failure, "detection validation failed, errmsg: %s", err)
 	}
 	if err := switcher.Validate(); err != nil {

@@ -6,6 +6,7 @@
 
 - Probe harvester 实际加载 3 个插件实例：`mysql`、`mysqlProxyAdmin`（MySQL 插件变体，专用于 TenDBHA proxy admin 端口）、`redis`（由 `provider/*/harvest` 经 `harvester.Register` 自注册，probe 入口 blank-import `provider/allprobe`）。
 - Analysis 侧 **switcher 注册 MySQL 与 Redis**，分别由 `provider/mysql/switch`、`provider/redis/switch` 经 `switcher.Register` 自注册；`workflow.New` 调用 `switcher.Build()`，analysis 入口 blank-import `provider/allanalysis`。
+- Analysis 侧 **detection 注册 MySQL 与 Redis**，分别由 `provider/mysql/detection`、`provider/redis/detection` 经 `detection.Register` 自注册（manifest `CapDetection`）；业务扫描只放行已注册 detection 的 DbType，启动自检对未注册 detection 的 switcher DbType 仅记录 warn 日志，不阻断启动。
 - Redis 另经 `failure.RegisterNonSwitchableMatcher` 注册不可切换规则：集群协议类型（`PredixyRedisCluster` / `PredixyTendisplusCluster`）中非 predixy 的实例二次探测失败后只告警、不入窗。
 - 切换指标（`switching_*`）由框架 `internal/analysis/apm` 统一注册并按 `db_type` 区分；`provider/<db>/metrics` 当前为空占位包。
 - Analysis 侧基于 metrics 的一次解析：`CheckDbHosts`（`ParseHostStatus`）**当前为 stub**；`CheckDbStatus` 中 MySQL parser 为 stub，Redis parser 会把复制/心跳/读检查异常解析为 `DetectFailure` 并交给 `CheckEventWithBizId` 触发二次探测（见下文）。MySQL 故障主链路依赖「probe 直报事件 + missed probe + SSH 二次探测」。
@@ -136,6 +137,7 @@ type EventData struct {
 - **Provider 注册表（推荐）**：在 `internal/provider/<db>/` 按能力分子包自注册，并在 [`manifest.go`](../../internal/provider/manifest.go) 登记后 `go generate`；详见 [新增 DB 类型扩展指南](./add-db-type-guide.md)。
 - `harvester.Register`（[harvester/registry.go](../../internal/probe/harvester/registry.go)）：采集块名 + DbType + Factory。
 - `switcher.Register` / `Build`（[switcher/registry.go](../../internal/analysis/switcher/registry.go)）：DbType -> Switcher。
+- `detection.Register` / `RegisteredDbTypes` / `Validate`（[analysis/detection](../../internal/analysis/detection/)）：DbType -> Detectable（业务扫描准入）；`Validate(switcherTypes)` 校验注册项一致性，并对未覆盖的 switcher DbType 记录 warn 日志。
 - `parser.Register`（[analysis/parser](../../internal/analysis/parser/)）：DbType -> Processer。
 - `pkg/dbtype` catalog（[pkg/dbtype](../../pkg/dbtype)）：`ClusterType -> DbType`；MySQL 等内建，Redis 等走 provider `dbtypedesc`。
 - `switchcore` 抽象（[switcher/switchcore](../../internal/analysis/switcher/switchcore)）：标准切换流程接口。

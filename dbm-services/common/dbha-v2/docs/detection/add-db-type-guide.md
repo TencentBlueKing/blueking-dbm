@@ -22,6 +22,7 @@
 | `harvest` | 注册采集 Factory；端点路由（`RegisterEndpointRouter` 或 `RegisterHarvestBlock`） | 仅 probe |
 | `switch` | 注册切换器 + 切换告警事件名 | 仅 analysis |
 | `parse` | 注册 status parser（`parser.Register`） | 仅 analysis |
+| `detection` | 已注册的 db_type 可以进入业务扫描；switcher 已注册但 detection 未注册时仅记录 warn 日志，不阻断启动（可能仍在开发中、暂不启用扫描） | 仅 analysis |
 | `metrics` | 注册 DB 专属 APM 指标（`apm.RegisterDbMetrics`）；当前 MySQL / Redis 的 `metrics` 子包为空占位，切换指标由框架 `internal/analysis/apm` 统一注册 | 仅 analysis |
 | `credential` | 注册实例凭证解析器（admin 生成 probe 配置时按实例取凭证） | 仅 admin（via `allcredential`） |
 
@@ -43,7 +44,7 @@ Redis 故意不在 builtin 中，作为纯 provider 范例；其映射在 `provi
 },
 ```
 
-**注意**：`Caps` 中填了哪项能力（`CapDesc` / `CapHarvest` / `CapSwitch` / `CapParse` / `CapMetrics` / `CapCredential`）就必须建对应子包，否则生成的 import 指向不存在的包会编译失败。
+**注意**：`Caps` 中填了哪项能力（`CapDesc` / `CapHarvest` / `CapSwitch` / `CapParse` / `CapDetection` / `CapMetrics` / `CapCredential`）就必须建对应子包，否则生成的 import 指向不存在的包会编译失败。
 
 然后：
 
@@ -56,7 +57,7 @@ make check-generate
 生成物：
 
 - `provider/allprobe`：注入 `dbtypedesc` + `harvest`
-- `provider/allanalysis`：注入 `dbtypedesc` + `switch` + `parse` + `metrics`
+- `provider/allanalysis`：注入 `dbtypedesc` + `switch` + `parse` + `detection` + `metrics`
 - `provider/alldesc`：仅注入 `dbtypedesc`（供 admin / receiver）
 - `provider/allcredential`：注入 `dbtypedesc` + `credential`（供 admin）
 
@@ -103,10 +104,12 @@ Probe `genconfig` 经 `dbtype.RouteEndpoint` 分派端点：
 - 上报数据必须设置 `HarvestBaseData.HarvestType`：只有一档采集的 DB 填 `haprobe.HarvestTypeDefault`；`harvest_type` 是 `t_dbha_status` 主键的一部分，缺失时 receiver 会静默兜底为 `default`。
 - `heartbeatInterval` / `replDelayInterval` 是 MySQL 家族专属，通用凭证块（`probeHarvesters` / `RawHarvesterConfig` 的对应字段）留空即可，新 DB 只用 `interval`。
 
-## 切换与解析
+## 切换、解析与探测准入
 
 - 在 `provider/<db>/switch` 的 `init()` 中调用 `switcher.Register` 与 `dbtype.RegisterSwitchAlarmEvents`（顺序：先 Register switcher 再注册告警亦可；启动期 `switcher.Validate()` 会校验告警事件已注册）。
 - 在 `provider/<db>/parse` 的 `init()` 中调用 `parser.Register(dbType, processer)`。
+- 在 `provider/<db>/detection` 的 `init()` 中调用 `detection.Register(dbType, detectable)` 并在 manifest 声明 `CapDetection`；业务扫描只放行 detection 注册表内的 DbType，未注册的实例在扫描前被过滤。
+- 启动期 `detection.Validate(switcherTypes)` 校验注册项与 key 一致；switcher 已注册但 detection 未注册时仅记录 warn 日志、不阻断启动，便于开发中类型暂不进入扫描。
 - 未注册的 `DbType` 在 `TriggerSwitching` 中记录 warn 日志后跳过，不发切换告警（行为不变）。
 - 新主信息经 `switchcore.NewMasterInfo` 返回；各 DB 可实现 `switchcore.InstanceNewMasterProvider` / `ClusterNewMasterProvider` 写入 `switcher.Response`。
 
@@ -145,11 +148,13 @@ func init() {
 
 **`provider/kafka/parse/register.go`** — `parser.Register(haprobe.DbTypeKafka, &KafkaStatus{})`
 
+**`provider/kafka/detection/detection.go`** — `detection.Register(haprobe.DbTypeKafka, ...)`
+
 **manifest 条目**
 
 ```go
 {Name: "kafka", BasePath: providerRoot + "/kafka",
- Caps: []Capability{CapDesc, CapHarvest, CapSwitch, CapParse}},
+ Caps: []Capability{CapDesc, CapHarvest, CapSwitch, CapParse, CapDetection}},
 ```
 
 ## 非对称性说明
@@ -158,9 +163,10 @@ func init() {
 |------|------------|------------|
 | parse | 实现 + 注册均在 `provider/mysql/parse` | 同左 |
 | switch | 实现 + 注册均在 `provider/mysql/switch` | 同左 |
+| detection | 实现 + 注册均在 `provider/mysql/detection` | 同左；未注册仅告警，不阻断启动 |
 | harvest | 实现 + Factory + Router 均在 `provider/mysql/harvest` | 同左；单块用 HarvestBlock，双产必须 Router |
 
-框架包 `internal/analysis/parser` 与 `internal/analysis/switcher` 仅保留接口与注册表；analysis 启动要求 parser / switcher 注册表非空（当前由 MySQL 与 Redis 的 `CapParse` / `CapSwitch` 满足）。
+框架包 `internal/analysis/parser`、`internal/analysis/switcher` 与 `internal/analysis/detection` 仅保留接口与注册表；analysis 启动要求 parser / switcher / detection 注册表非空（当前由 MySQL 与 Redis 的 `CapParse` / `CapSwitch` / `CapDetection` 满足）。
 
 ## 自检清单
 
@@ -173,4 +179,5 @@ func init() {
 - [ ] 若需双产：已用 `RegisterEndpointRouter`，未依赖 Match 首命中
 - [ ] 若有多块（无 Router）：Match 谓词与至多一个兜底块已验证
 - [ ] 若有切换：switcher + 告警事件名已注册；启动自检通过
+- [ ] 若需进入业务扫描：`detection.Register` 已调用且 manifest 已声明 `CapDetection`
 - [ ] 若有解析：`parser.Register` 已调用；analysis 启动日志 `parser_db_types` 非空

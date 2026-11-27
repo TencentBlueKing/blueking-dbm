@@ -317,17 +317,18 @@ func filterBySupportedDbTypesForScan(
 
 	keptMeta := make(map[string]*hamodel.DbmMetadata, len(bizMeta.MetaInsts))
 	keptConds := make([]*storage.DbInstance, 0, len(bizMeta.Conds))
+	skippedCount := 0
 	skippedTypes := make(map[haprobe.DbType]struct{})
-	skippedRecords := make([]string, 0, len(bizMeta.MetaInsts))
+	skippedClusters := make(map[string]struct{})
 
 	for key, meta := range bizMeta.MetaInsts {
 		dt := meta.GetDbType()
 		if _, ok := supported[dt]; !ok {
+			skippedCount++
 			skippedTypes[dt] = struct{}{}
-			skippedRecords = append(skippedRecords, fmt.Sprintf(
-				"%s:%d(clusterName:%s,clusterType:%s,dbType:%s)",
-				meta.IP, meta.Port, meta.Cluster, meta.ClusterType.String(), dt.Normalize().String(),
-			))
+			clusterKey := fmt.Sprintf("clusterName:%s,clusterType:%s,dbType:%s",
+				meta.Cluster, meta.ClusterType.String(), dt.Normalize().String())
+			skippedClusters[clusterKey] = struct{}{}
 			continue
 		}
 
@@ -339,12 +340,16 @@ func filterBySupportedDbTypesForScan(
 		})
 	}
 
-	if len(skippedRecords) > 0 {
+	if skippedCount > 0 {
+		clusterNames := make([]string, 0, len(skippedClusters))
+		for name := range skippedClusters {
+			clusterNames = append(clusterNames, name)
+		}
 		logger.Info(
 			"filtered unsupported db types for scan, bizId: %d, total: %d, kept: %d, "+
-				"skipped: %d, supportedDbTypes: [%s], skippedDbTypes: [%s], skippedInstances: [%s]",
-			bizID, len(bizMeta.MetaInsts), len(keptMeta), len(skippedRecords),
-			formatDbTypeSet(supported), formatDbTypeSet(skippedTypes), strings.Join(skippedRecords, ", "),
+				"skipped: %d, supportedDbTypes: [%s], skippedDbTypes: [%s], skippedClusters: [%s]",
+			bizID, len(bizMeta.MetaInsts), len(keptMeta), skippedCount,
+			formatDbTypeSet(supported), formatDbTypeSet(skippedTypes), strings.Join(clusterNames, ", "),
 		)
 	}
 
