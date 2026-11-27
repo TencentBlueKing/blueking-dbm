@@ -34,6 +34,7 @@ from backend.db_proxy.views.db_meta.serializers import (
     InstancesResponseSerializer,
     InstancesSerializer,
     MachinesClusterSerializer,
+    SetMachineUnavailableSerializer,
     SwapRoleSerializer,
     TendbInstancesSerializer,
     TendisClusterSwapSerializer,
@@ -111,6 +112,23 @@ class DBMetaApiProxyPassViewSet(BaseProxyPassViewSet):
     def update_status(self, request):
         validated_data = self.params_validate(self.get_serializer_class())
         return Response(DBHA.update_status(validated_data["payloads"], validated_data["bk_cloud_id"]))
+
+    @common_swagger_auto_schema(
+        operation_summary=_("[dbmeta]设置机器为不可用"),
+        request_body=SetMachineUnavailableSerializer(),
+        tags=[SWAGGER_TAG],
+    )
+    @action(
+        methods=["POST"],
+        detail=False,
+        serializer_class=SetMachineUnavailableSerializer,
+        url_path="dbmeta/dbha/set_machines_unavailable",
+    )
+    def set_machines_unavailable(self, request):
+        validated_data = self.params_validate(self.get_serializer_class())
+        return Response(
+            DBHA.set_machines_unavailable(iplist=validated_data["iplist"], bk_cloud_id=validated_data["bk_cloud_id"])
+        )
 
     @common_swagger_auto_schema(
         operation_summary=_("[dbmeta]查询entry信息"),

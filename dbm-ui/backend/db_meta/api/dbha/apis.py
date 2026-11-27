@@ -19,6 +19,7 @@ from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import connection, transaction
 from django.db.models import F, Q
+from django.utils import timezone as dtz
 from django.utils.translation import gettext_lazy as _
 
 from backend.constants import DEFAULT_BK_CLOUD_ID, IP_PORT_DIVIDER
@@ -270,6 +271,22 @@ def update_status(payloads: List, bk_cloud_id: int):
             cluster.save(update_fields=["status"])
 
         logger.info("update_status update {} status success".format(pl))
+
+
+@transaction.atomic
+def set_machines_unavailable(bk_cloud_id: int, iplist: List[str]):
+    now = dtz.now()
+    storage_instances = StorageInstance.objects.filter(machine__bk_cloud_id=bk_cloud_id, machine__ip__in=iplist)
+    proxy_instances = ProxyInstance.objects.filter(machine__bk_cloud_id=bk_cloud_id, machine__ip__in=iplist)
+
+    cluster_ids = set(storage_instances.values_list("cluster__id", flat=True)) | set(
+        proxy_instances.values_list("cluster__id", flat=True)
+    )
+
+    storage_instances.update(status=InstanceStatus.UNAVAILABLE, update_at=now)
+    proxy_instances.update(status=InstanceStatus.UNAVAILABLE, update_at=now)
+    if cluster_ids:
+        Cluster.objects.filter(id__in=cluster_ids).update(status=ClusterStatus.ABNORMAL, update_at=now)
 
 
 @transaction.atomic

@@ -86,6 +86,11 @@ class UpdateStatusSerializer(BaseProxyPassSerializer):
     bk_cloud_id = serializers.IntegerField()
 
 
+class SetMachineUnavailableSerializer(BaseProxyPassSerializer):
+    bk_cloud_id = serializers.IntegerField()
+    iplist = serializers.ListField(child=serializers.CharField(), help_text=_("ip 列表"))
+
+
 class EntryDetailSerializer(BaseProxyPassSerializer):
     domains = serializers.ListField(help_text=_("查询的domain列表"), child=serializers.CharField())
 

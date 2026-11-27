@@ -9,20 +9,29 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
-import threading
 import traceback
 from typing import List
+
+from django.core.cache import cache
 
 from backend.components.bkmonitorv3.client import BKMonitorV3EventApi
 from backend.db_monitor.constants import MonitorEventType
 from backend.db_monitor.dataclass import BaseEventBody, MonitorEvent
-from backend.db_monitor.models import MySQLDBHAAutofixTicketStageQueue, TicketQueueCommitException
+from backend.db_monitor.models import (
+    MySQLDBHAAutofixTicketStageQueue,
+    TicketQueueCommitException,
+    TicketQueueUncommitStatus,
+)
 from backend.ticket.constants import TicketStatus
 from backend.ticket.models import Ticket
 
 logger = logging.getLogger("celery.mysql_dbha_autofix")
 
-mysql_dbha_af_commiter_lock = threading.Lock()
+# 周期任务会被多个 pod 并发执行, 进程内的 threading.Lock 拦不住,
+# 所以提单前按 queue_uuid 抢一把 Redis 锁
+COMMIT_LOCK_KEY_PREFIX = "mysql_dbha_af_commit:lock:"
+# 只需要覆盖一次提单的耗时, pod 挂了让它自然过期
+COMMIT_LOCK_TIMEOUT = 300
 
 
 # @transaction.atomic
@@ -30,18 +39,33 @@ def commit_ticket(uncommit_tickets: List[MySQLDBHAAutofixTicketStageQueue]):
     """
     这里拿到的输入, queue_uuid 可能会有重复的
     每一个 queue_uuid 只要随便拿一行来提单就行
+
+    输入是查询时刻的快照, 别的 pod 可能已经提过单了,
+    所以抢到锁之后必须回查一次状态, 不能只看手上的快照
     """
     if not uncommit_tickets:
         return
 
-    with mysql_dbha_af_commiter_lock:
-        logger.info("[commit_ticket] start, input queue_uuids=%s", [ut.queue_uuid for ut in uncommit_tickets])
-        commited = []
-        for ut in uncommit_tickets:
-            if ut.queue_uuid in commited:
-                continue
+    logger.info("[commit_ticket] start, input queue_uuids=%s", [ut.queue_uuid for ut in uncommit_tickets])
+    commited = []
+    for ut in uncommit_tickets:
+        if ut.queue_uuid in commited:
+            continue
 
+        lock_key = f"{COMMIT_LOCK_KEY_PREFIX}{ut.queue_uuid}"
+        if not cache.add(lock_key, 1, timeout=COMMIT_LOCK_TIMEOUT):
+            logger.warning("[commit_ticket] queue_uuid=%s locked by another pod, skip", ut.queue_uuid)
+            continue
+
+        try:
             try:
+                # 锁内回查, 防止多个 pod 拿着同一份未提交快照重复提单
+                if not MySQLDBHAAutofixTicketStageQueue.objects.filter(
+                    queue_uuid=ut.queue_uuid, status=TicketQueueUncommitStatus
+                ).exists():
+                    logger.info("[commit_ticket] queue_uuid=%s already committed, skip", ut.queue_uuid)
+                    continue
+
                 ticket_param = ut.ticket_param
                 tk = Ticket.create_ticket(**ticket_param)
                 MySQLDBHAAutofixTicketStageQueue.objects.filter(queue_uuid=ut.queue_uuid).update(
@@ -73,5 +97,7 @@ def commit_ticket(uncommit_tickets: List[MySQLDBHAAutofixTicketStageQueue]):
                         )
                     ]
                 )
+        finally:
+            cache.delete(lock_key)
 
-        logger.info("[commit_ticket] done, committed queue_uuids=%s", commited)
+    logger.info("[commit_ticket] done, committed queue_uuids=%s", commited)
