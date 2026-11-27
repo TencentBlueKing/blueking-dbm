@@ -39,8 +39,8 @@
 
   interface Props {
     allowEmpty?: boolean;
-    /** 标签候选查询的业务 ID，管理页跳转链接跟随该业务 */
-    bizId: number;
+    /** 标签候选查询的业务 ID，管理页跳转链接跟随该业务；未选择业务时不传 */
+    bizId?: number;
     data?: TagsPairType[];
     disabled?: boolean;
     keyValueMap: KeyValueMapType;
@@ -54,6 +54,7 @@
 
   const props = withDefaults(defineProps<Props>(), {
     allowEmpty: true,
+    bizId: undefined,
     data: undefined,
     disabled: false,
   });

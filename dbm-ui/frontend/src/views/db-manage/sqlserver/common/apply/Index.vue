@@ -438,7 +438,7 @@
       disaster_tolerance_level: isSingleType ? Affinity.NONE : Affinity.CROS_SUBZONE, // 容灾
       domains: [{ key: '' }] as Array<{
         key: string;
-        // tags?: Record<string, string>[];
+        tags?: Record<string, string>[];
       }>,
       inst_num: 1,
       ip_source: 'resource_pool',

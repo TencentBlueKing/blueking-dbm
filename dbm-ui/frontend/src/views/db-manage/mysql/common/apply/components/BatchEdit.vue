@@ -19,9 +19,10 @@
     theme="light"
     trigger="manual"
     :width="540">
-    <i
+    <DbIcon
       v-bk-tooltips="t('快捷编辑_可通过换行分隔_快速编辑多个域名')"
-      class="db-icon-bulk-edit mysql-apply-batch-edit-trigger"
+      class="mysql-apply-batch-edit-trigger"
+      type="bulk-edit"
       @click="() => (state.isShow = true)" />
     <template #content>
       <div class="batch-edit-content">
@@ -200,7 +201,7 @@
 
 <style lang="less">
   .mysql-apply-batch-edit-trigger {
-    margin-left: 5px;
+    margin-left: 4px;
     color: @primary-color;
     cursor: pointer;
   }

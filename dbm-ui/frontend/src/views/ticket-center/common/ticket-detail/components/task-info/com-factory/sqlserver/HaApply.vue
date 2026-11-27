@@ -122,14 +122,16 @@
             </div>
           </template>
         </TicketInfoTableColumn>
-        <!-- <TicketInfoTableColumn
+        <TicketInfoTableColumn
           col-key="tags"
           :min-width="160"
           :title="t('集群标签')">
           <template #default="{ row }: { row: Props['ticketDetails']['details']['domains'][number] }">
-            <TagDisplay direction="vertical" :tags="row.tags" />
+            <TagDisplay
+              direction="vertical"
+              :tags="row.tags" />
           </template>
-        </TicketInfoTableColumn> -->
+        </TicketInfoTableColumn>
       </TicketInfoTable>
     </InfoItem>
   </InfoList>
@@ -148,7 +150,8 @@
 
   import SpecDetailPopover from '@components/spec-detail-popover/Index.vue';
 
-  // import TagDisplay from '@views/db-manage/common/deploy-cluster-tag/Index.vue';
+  import TagDisplay from '@views/db-manage/common/deploy-cluster-tag/Index.vue';
+
   import InfoList, { Item as InfoItem } from '../components/info-list/Index.vue';
   import NotifyRelatedPersons from '../components/NotifyRelatedPersons.vue';
   import RegionRequirements from '../components/RegionRequirements.vue';

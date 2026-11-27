@@ -43,6 +43,7 @@
   import { ClusterTypes, TicketTypes } from '@common/const';
   import { clusterNameFormatRegx, clusterNameSymbolRegx } from '@common/regex.ts';
 
+  import BatchEditTag from '@views/db-manage/common/deploy-cluster-tag/components/BatchEditTag.vue';
   import EditTagDialog from '@views/db-manage/common/deploy-cluster-tag/components/EditTagDialog.vue';
   import TagDisplay from '@views/db-manage/common/deploy-cluster-tag/Index.vue';
   import { getDomainStrategy } from '@views/db-manage/utils/getDomainPreview.ts';
@@ -202,7 +203,18 @@
       cell: (_, { rowIndex }) => renderTagCell(rowIndex),
       colKey: 'tags',
       minWidth: 200,
-      title: t('集群标签'),
+      title: () => (
+        <span>
+          {t('集群标签')}
+          {tableData.value.length === 0 || isAdjustApply ? null : (
+            <BatchEditTag
+              bizId={props.formdata.bk_biz_id}
+              class='ml-4'
+              onChange={handleBatchTagConfirm}
+            />
+          )}
+        </span>
+      ),
     });
     return columns;
   });
@@ -260,6 +272,12 @@
     domains[editingRowIndex.value] = { ...domains[editingRowIndex.value], tags };
     emits('update:domains', domains);
     editingRowIndex.value = undefined;
+  }
+
+  /** 统一设置：把标签写回所有行 */
+  function handleBatchTagConfirm(tags: Record<string, string>[]) {
+    const domains = props.formdata.details.domains.map((item) => ({ ...item, tags: [...tags] }));
+    emits('update:domains', domains);
   }
 
   /** 渲染「集群标签」列：标签只读展示 + 编辑图标 */
