@@ -2,6 +2,9 @@ package redismonitor
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -10,6 +13,7 @@ import (
 	"dbm-services/redis/db-tools/dbmon/models/myredis"
 	"dbm-services/redis/db-tools/dbmon/mylog"
 	"dbm-services/redis/db-tools/dbmon/pkg/consts"
+	"dbm-services/redis/db-tools/dbmon/util"
 
 	"github.com/dustin/go-humanize"
 )
@@ -69,6 +73,10 @@ func (task *RedisMonitorTask) RunMonitor() {
 		return
 	}
 	task.CheckPersist()
+	if task.Err != nil {
+		return
+	}
+	task.CheckAofDirOrphanFiles()
 	if task.Err != nil {
 		return
 	}
@@ -389,17 +397,19 @@ func (task *RedisMonitorTask) CheckPersist() {
 			continue
 		}
 		appendonly, _ = confmap["appendonly"]
-		if task.ServerConf.CacheBackupMode == consts.CacheBackupModeRdb {
-			if strings.ToLower(appendonly) == "yes" {
-				// 如果集群配置是rdb备份,但是aof开启,则关闭aof
-				_, task.Err = cliItem.ConfigSet("appendonly", "no")
-				if task.Err != nil {
-					continue
-				}
-				cliItem.ConfigRewrite()
-			}
-			return
-		}
+
+		// cluster模式，或者 指定了rdb备份， aof 可以不管，正常情况会自动清理， 但的注意异常情况的磁盘空间
+		// if task.ServerConf.CacheBackupMode == consts.CacheBackupModeRdb {
+		// 	if strings.ToLower(appendonly) == "yes" {
+		// 		// 如果集群配置是rdb备份,但是aof开启,则关闭aof
+		// 		_, task.Err = cliItem.ConfigSet("appendonly", "no")
+		// 		if task.Err != nil {
+		// 			continue
+		// 		}
+		// 		cliItem.ConfigRewrite()
+		// 	}
+		// 	return
+		// }
 		if strings.ToLower(appendonly) == "no" {
 			var _ok string
 			// 备份要求是AOF ， 那我把这个AOF 再打开呗
@@ -419,6 +429,262 @@ func (task *RedisMonitorTask) CheckPersist() {
 			return
 		}
 	}
+}
+
+// versionGE7 redis 版本是否 >= 7.0 (7+ 才有多部分 AOF/manifest).
+func versionGE7(version string) bool {
+	major := 0
+	for i := 0; i < len(version) && version[i] >= '0' && version[i] <= '9'; i++ {
+		major = major*10 + int(version[i]-'0')
+	}
+	return major >= 7
+}
+
+// parseAofManifest 解析 redis 7 多部分 AOF 的 manifest 内容, 返回其中列出的有效文件名集合.
+// 每行形如 "file appendonly.aof.5.base.rdb seq 5 type b", 只取 file 后的第一个 token 作为文件名,
+// 不依赖后续列, 以兼容不同小版本可能多出的字段.
+func parseAofManifest(content string) map[string]struct{} {
+	valid := make(map[string]struct{})
+	for _, line := range strings.Split(content, "\n") {
+		fields := strings.Fields(line)
+		if len(fields) >= 2 && fields[0] == "file" {
+			valid[fields[1]] = struct{}{}
+		}
+	}
+	return valid
+}
+
+// aofOrphanFile aof 目录里一个不在 manifest 清单内的孤儿文件.
+type aofOrphanFile struct {
+	Name    string
+	Size    int64
+	ModTime time.Time
+}
+
+// findAofOrphans 列出 aofDir 下 prefix 前缀的数据文件(排除 manifest/tmp), 返回不在 valid 清单里的孤儿文件.
+func findAofOrphans(aofDir, prefix string, valid map[string]struct{}) ([]aofOrphanFile, error) {
+	entries, err := os.ReadDir(aofDir)
+	if err != nil {
+		return nil, err
+	}
+	pattern := prefix + "."
+	var orphans []aofOrphanFile
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		name := e.Name()
+		if !strings.HasPrefix(name, pattern) {
+			continue
+		}
+		if strings.HasSuffix(name, ".manifest") || strings.HasSuffix(name, ".tmp") {
+			continue
+		}
+		if _, ok := valid[name]; ok {
+			continue
+		}
+		info, err := e.Info()
+		if err != nil {
+			continue
+		}
+		orphans = append(orphans, aofOrphanFile{Name: name, Size: info.Size(), ModTime: info.ModTime()})
+	}
+	return orphans, nil
+}
+
+// hasAofDataFiles aofDir 下是否存在 prefix 前缀的数据文件(不含 manifest).
+func hasAofDataFiles(aofDir, prefix string) bool {
+	entries, err := os.ReadDir(aofDir)
+	if err != nil {
+		return false
+	}
+	pattern := prefix + "."
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		name := e.Name()
+		if strings.HasPrefix(name, pattern) && !strings.HasSuffix(name, ".manifest") {
+			return true
+		}
+	}
+	return false
+}
+
+// CheckAofDirOrphanFiles 检查 redis 7+ 且 appendonly=yes 实例的 AOF 目录,
+// 找出 manifest 清单之外、因异常遗留的孤儿 base/incr 文件并上报告警, 防止长期占用数据盘.
+//
+// 当前只做检测+告警, 不删除任何文件; 清理动作留在下方扩展点, 待线上观察孤儿文件真实规模后再放开.
+func (task *RedisMonitorTask) CheckAofDirOrphanFiles() {
+	var dbtype, appendonly, version, appenddirname, prefix string
+	var confmap map[string]string
+	for _, cli01 := range task.redisClis {
+		cliItem := cli01
+		task.eventSender.SetInstance(cliItem.Addr)
+		// 只处理 cache redis 实例
+		dbtype, task.Err = cliItem.GetTendisType()
+		if task.Err != nil {
+			continue
+		}
+		if dbtype != consts.TendisTypeRedisInstance {
+			continue
+		}
+		// 只处理 7.x 及以上(才有 multi-part AOF/manifest)
+		version, task.Err = cliItem.GetTendisVersion()
+		if task.Err != nil {
+			continue
+		}
+		if !versionGE7(version) {
+			continue
+		}
+		// 只处理开启了 appendonly 的实例
+		confmap, task.Err = cliItem.ConfigGet("appendonly")
+		if task.Err != nil {
+			continue
+		}
+		appendonly, _ = confmap["appendonly"]
+		if strings.ToLower(appendonly) != "yes" {
+			continue
+		}
+		// 定位 AOF 目录: dir + appenddirname(redis 7 才有, 默认 appendonlydir; 空或"."时就在 dir 根下)
+		dir, err := cliItem.GetDir()
+		if err != nil {
+			mylog.Logger.Warn(fmt.Sprintf("redis(%s) get dir failed,err:%v", cliItem.Addr, err))
+			continue
+		}
+		confmap, task.Err = cliItem.ConfigGet("appenddirname")
+		if task.Err != nil {
+			continue
+		}
+		appenddirname = strings.TrimSpace(confmap["appenddirname"])
+		aofDir := dir
+		if appenddirname != "" && appenddirname != "." {
+			aofDir = filepath.Join(dir, appenddirname)
+		}
+		// 文件名前缀取 appendfilename, 默认 appendonly.aof
+		confmap, task.Err = cliItem.ConfigGet("appendfilename")
+		if task.Err != nil {
+			continue
+		}
+		prefix = strings.TrimSpace(confmap["appendfilename"])
+		if prefix == "" {
+			prefix = "appendonly.aof"
+		}
+		task.checkAofOrphansOnce(cliItem, dir, aofDir, prefix)
+	}
+}
+
+// checkAofOrphansOnce 对单个实例做一次 AOF 孤儿文件检查、告警并清理. 只记录日志/告警, 不设置 task.Err,
+// 避免某个实例的 manifest 读取失败中断整轮监控.
+func (task *RedisMonitorTask) checkAofOrphansOnce(cliItem *myredis.RedisClient, dir, aofDir, prefix string) {
+	manifestFile := filepath.Join(aofDir, prefix+".manifest")
+	raw, err := os.ReadFile(manifestFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// manifest 缺失但仍有 base/incr 残留: 更严重的持久化异常, 只告警绝不清理
+			if hasAofDataFiles(aofDir, prefix) {
+				msg := fmt.Sprintf("redis(%s) aof manifest missing(%s) but aof data files exist,persistence may be broken",
+					cliItem.Addr, manifestFile)
+				mylog.Logger.Error(msg)
+				task.eventSender.SendWarning(consts.EventRedisAofOrphan, msg, consts.WarnLevelError,
+					task.ServerConf.ServerIP)
+			}
+			return
+		}
+		mylog.Logger.Warn(fmt.Sprintf("redis(%s) read aof manifest(%s) failed,err:%v", cliItem.Addr, manifestFile, err))
+		return
+	}
+	valid := parseAofManifest(string(raw))
+	orphans, err := findAofOrphans(aofDir, prefix, valid)
+	if err != nil {
+		mylog.Logger.Warn(fmt.Sprintf("redis(%s) scan aof dir(%s) failed,err:%v", cliItem.Addr, aofDir, err))
+		return
+	}
+	if len(orphans) == 0 {
+		return
+	}
+	sort.Slice(orphans, func(i, j int) bool { return orphans[i].Name < orphans[j].Name })
+	var total int64
+	for _, f := range orphans {
+		total += f.Size
+	}
+	// 告警只列前几个文件名, 避免消息过长
+	const maxNames = 5
+	names := make([]string, 0, maxNames)
+	for i, f := range orphans {
+		if i >= maxNames {
+			break
+		}
+		names = append(names, f.Name)
+	}
+	msg := fmt.Sprintf("redis(%s) aof dir(%s) has %d orphan file(s) not in manifest,total %s: %s",
+		cliItem.Addr, aofDir, len(orphans), humanize.IBytes(uint64(total)), strings.Join(names, ","))
+	if len(orphans) > maxNames {
+		msg += ",..."
+	}
+	mylog.Logger.Warn(msg)
+	task.eventSender.SendWarning(consts.EventRedisAofOrphan, msg, consts.WarnLevelWarning, task.ServerConf.ServerIP)
+	// 留痕: 逐条记录检测到的孤儿文件(含大小/mtime), 供审计
+	for _, f := range orphans {
+		mylog.Logger.Warn(fmt.Sprintf("redis(%s) aof orphan file detected: %s (%s, mtime %s)",
+			cliItem.Addr, filepath.Join(aofDir, f.Name), humanize.IBytes(uint64(f.Size)),
+			f.ModTime.Format("2006-01-02 15:04:05")))
+	}
+	// 满足条件时清理孤儿文件
+	task.cleanAofOrphans(cliItem, dir, aofDir, manifestFile, orphans)
+}
+
+// cleanAofOrphans 清理 AOF 孤儿文件.
+// 满足以下任一条件才删除单个孤儿文件:
+//  1. 数据盘利用率达到高水位 consts.AofOrphanCleanDiskThreshold(70%);
+//  2. 文件 mtime 距今超过 consts.AofOrphanFileAgeSeconds(10天).
+//
+// 删除前重读一次 manifest 复核, 仍不在清单内的才删, 避免与 rewrite 竞态;
+// 只删孤儿文件, 不碰 manifest/清单内文件/tmp.
+func (task *RedisMonitorTask) cleanAofOrphans(cliItem *myredis.RedisClient, dir, aofDir, manifestFile string,
+	orphans []aofOrphanFile) {
+	diskUsg, err := util.GetLocalDirDiskUsg(dir)
+	if err != nil {
+		mylog.Logger.Warn(fmt.Sprintf("redis(%s) get data disk(%s) usage failed,err:%v,skip clean aof orphans",
+			cliItem.Addr, dir, err))
+		return
+	}
+	highWater := diskUsg.UsageRatio >= consts.AofOrphanCleanDiskThreshold
+	// 删除前重读一次 manifest 复核, 避免与 rewrite 竞态
+	raw, err := os.ReadFile(manifestFile)
+	if err != nil {
+		mylog.Logger.Warn(fmt.Sprintf("redis(%s) re-read aof manifest(%s) failed,err:%v,skip clean aof orphans",
+			cliItem.Addr, manifestFile, err))
+		return
+	}
+	freshValid := parseAofManifest(string(raw))
+	now := time.Now()
+	var removed, removedBytes, skippedAge, skippedInManifest int64
+	for _, f := range orphans {
+		age := now.Sub(f.ModTime)
+		if !highWater && age <= consts.AofOrphanFileAgeSeconds*time.Second {
+			skippedAge++
+			continue
+		}
+		if _, in := freshValid[f.Name]; in {
+			skippedInManifest++
+			continue
+		}
+		file := filepath.Join(aofDir, f.Name)
+		if err := os.Remove(file); err != nil {
+			mylog.Logger.Warn(fmt.Sprintf("redis(%s) remove aof orphan file(%s) failed,err:%v", cliItem.Addr, file, err))
+			continue
+		}
+		removed++
+		removedBytes += f.Size
+		mylog.Logger.Info(fmt.Sprintf("redis(%s) removed aof orphan file(%s, %s, age %s)",
+			cliItem.Addr, file, humanize.IBytes(uint64(f.Size)), age))
+	}
+	// 留痕: 本轮清理汇总
+	mylog.Logger.Info(fmt.Sprintf(
+		"redis(%s) aof orphan clean summary: candidate=%d removed=%d(space %s) skipped_age=%d skipped_in_manifest=%d disk_usage=%d%% high_water=%v",
+		cliItem.Addr, len(orphans), removed, humanize.IBytes(uint64(removedBytes)),
+		skippedAge, skippedInManifest, diskUsg.UsageRatio, highWater))
 }
 
 // TendisSSDCheck tendisssd check

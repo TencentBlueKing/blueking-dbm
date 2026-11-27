@@ -28,6 +28,11 @@ var MemUsedPercent = 70
 // tempKeysFilePattern 临时 keys 文件通配符, 如 v.30000.keys / v.30000.3.keys
 const tempKeysFilePattern = "v.*.keys"
 
+// hotKeyToolOverheadTimeout 热key工具采样时长之外的超时预留:
+// 工具启动到进入监控前的固定开销(初始化/连接集群等,实测约31s) + 退出收尾余量,合计70s.
+// 正常情况下工具在 启动开销+run_seconds 后自行退出, 该预留仅作卡死兜底, 不影响实际耗时
+const hotKeyToolOverheadTimeout = 10
+
 // Task 任务内容
 type Task struct {
 	statServers []Instance
@@ -259,15 +264,23 @@ func (t *Task) hotKeyWithMonitor(server Instance) (string, error) {
 	t.rotateFile(hkfile)
 
 	mylog.Logger.Info(fmt.Sprintf("do hot key analyse : %s", server.Addr))
-	hkCmd := fmt.Sprintf("%s hotkeys -A %s -S %s -a '%s' -D %s --raw -o %s > %s 2>&1",
-		consts.TendisKeyLifecycleBin, server.App, server.Addr, server.Password, server.Domain, t.logFile, hkfile)
-	hkCmdLog := fmt.Sprintf("%s hotkeys -A %s -S %s -a '%s' -D %s --raw -o %s > %s 2>&1",
-		consts.TendisKeyLifecycleBin, server.App, server.Addr, "xxxxx", server.Domain, t.logFile, hkfile)
+	hkCmd := fmt.Sprintf("%s hotkeys -A %s -S %s -a '%s' -D %s --raw --run_seconds %d -o %s > %s 2>&1",
+		consts.TendisKeyLifecycleBin, server.App, server.Addr, server.Password, server.Domain,
+		t.conf.HotKeyConf.Duration, t.logFile, hkfile)
+	hkCmdLog := fmt.Sprintf("%s hotkeys -A %s -S %s -a '%s' -D %s --raw --run_seconds %d -o %s > %s 2>&1",
+		consts.TendisKeyLifecycleBin, server.App, server.Addr, "xxxxx", server.Domain,
+		t.conf.HotKeyConf.Duration, t.logFile, hkfile)
 
 	mylog.Logger.Info(fmt.Sprintf("exec cmd : %s", hkCmdLog))
-	r1, r2 := util.RunBashCmd(hkCmd, "", nil, time.Second*(time.Duration(t.conf.HotKeyConf.Duration+10)))
+	// 超时 = 用户配置的采样时长(--run_seconds) + 工具启动/收尾开销兜底;
+	// 正常时工具在 开销+run_seconds 内自行退出, 实际耗时 ≈ 31s + run_seconds, 与该上限无关
+	r1, r2 := util.RunBashCmd(hkCmd, "", nil,
+		time.Second*time.Duration(t.conf.HotKeyConf.Duration+hotKeyToolOverheadTimeout))
 	mylog.Logger.Info(fmt.Sprintf("tools executed with result %s:%s:%s", server.Addr, r1, r2))
-
+	if r2 != nil {
+		// 工具执行失败(超时被杀等)时向上返回错误,避免上报空文件并误写 magic 标记
+		return hkfile, fmt.Errorf("exec hotkey tool failed %s:%+v", server.Addr, r2)
+	}
 	return hkfile, nil
 }
 
@@ -481,7 +494,7 @@ func (t *Task) waitOrIgnore(server Instance) bool {
 	// 2.  check aleary stated .
 	fh, err := os.Open(t.magicFile)
 	if os.IsNotExist(err) {
-		ioutil.WriteFile(t.magicFile, []byte(fmt.Sprintf("MAGIC_%s", time.Now().Format("20060102"))), 0644)
+		ioutil.WriteFile(t.magicFile, []byte(fmt.Sprintf("MAGIC_%s\n", time.Now().Format("20060102"))), 0644)
 		return false
 	}
 	ct, err := ioutil.ReadAll(fh)
@@ -498,14 +511,15 @@ func (t *Task) waitOrIgnore(server Instance) bool {
 				mylog.Logger.Warn(fmt.Sprintf("bad magic file format first line not magic :%s", lines[i]))
 				return false
 			}
-			if !strings.Contains(lines[i], fmt.Sprintf("MAGIC_%s", time.Now().Format("20060102"))) {
-				ioutil.WriteFile(t.magicFile, []byte(fmt.Sprintf("MAGIC_%s", time.Now().Format("20060102"))), 0644)
+			if !strings.Contains(lines[i], fmt.Sprintf("MAGIC_%s\n", time.Now().Format("20060102"))) {
+				ioutil.WriteFile(t.magicFile, []byte(fmt.Sprintf("MAGIC_%s\n", time.Now().Format("20060102"))), 0644)
 				mylog.Logger.Warn(fmt.Sprintf("stats not today  :%s", lines[i]))
 				return false
 			}
 		}
 		words := strings.Split(lines[i], " ")
-		if words[0] == strconv.Itoa(server.Port) {
+		// magic 记录格式为 "data_type port"(如 tendis_hotkeys 30000), 端口在第2列
+		if len(words) > 1 && words[1] == strconv.Itoa(server.Port) {
 			return true
 		}
 	}

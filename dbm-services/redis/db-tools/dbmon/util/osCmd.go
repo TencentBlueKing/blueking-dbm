@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"syscall"
 	"time"
 
 	"dbm-services/redis/db-tools/dbmon/mylog"
@@ -23,6 +24,25 @@ func RunBashCmd(cmd, outFile string, dealPidMethod DealLocalCmdPid,
 	timeout time.Duration) (retStr string, err error) {
 	opts := []string{"-c", cmd}
 	return RunLocalCmd("bash", opts, outFile, dealPidMethod, timeout)
+}
+
+// watchTimeoutKillGroup 超时后 kill 整个进程组.
+// bash -c 启动的 grandchildren(如 tendis-key-lifecycle 工具 fork 出的 monitor 子进程)
+// 不会随父进程被 exec.CommandContext 一起杀掉, 会残留并持有文件锁(flock),
+// 导致当天后续所有分析全部拿锁失败; 故子进程以独立进程组启动, 超时时对整组 SIGKILL
+func watchTimeoutKillGroup(ctx context.Context, cmdCtx *exec.Cmd) {
+	go func() {
+		<-ctx.Done()
+		// 仅在真正超时(而非命令正常结束后的 cancel)时清理进程组
+		if ctx.Err() != context.DeadlineExceeded {
+			return
+		}
+		if cmdCtx.Process != nil {
+			if err := syscall.Kill(-cmdCtx.Process.Pid, syscall.SIGKILL); err != nil {
+				mylog.Logger.Warn(fmt.Sprintf("kill process group(-%d) failed:%v", cmdCtx.Process.Pid, err))
+			}
+		}
+	}()
 }
 
 // RunLocalCmd 运行本地命令并得到命令结果
@@ -59,11 +79,14 @@ func RunLocalCmd(
 		cmdCtx.Stdout = outFileHandler
 	}
 	cmdCtx.Stderr = &errBuffer
+	// 独立进程组启动, 配合 watchTimeoutKillGroup 超时整组清理
+	cmdCtx.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 	if err = cmdCtx.Start(); err != nil {
 		mylog.Logger.Error(fmt.Sprintf("RunLocalCmd cmd Start fail,err:%v,cmd:%s", err, cmd))
 		return "", fmt.Errorf("RunLocalCmd cmd Start fail,err:%v", err)
 	}
+	watchTimeoutKillGroup(ctx, cmdCtx)
 	if dealPidMethod != nil {
 		dealPidMethod.DealProcessPid(cmdCtx.Process.Pid)
 	}
@@ -147,10 +170,13 @@ func RunLocalCmdNoLog(
 		cmdCtx.Stdout = outFileHandler
 	}
 	cmdCtx.Stderr = &errBuffer
+	// 独立进程组启动, 配合 watchTimeoutKillGroup 超时整组清理
+	cmdCtx.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 
 	if err = cmdCtx.Start(); err != nil {
 		return "", fmt.Errorf("RunLocalCmd cmd Start fail,err:%v", err)
 	}
+	watchTimeoutKillGroup(ctx, cmdCtx)
 	if dealPidMethod != nil {
 		dealPidMethod.DealProcessPid(cmdCtx.Process.Pid)
 	}

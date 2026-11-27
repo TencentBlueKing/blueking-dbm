@@ -21,6 +21,7 @@ const (
 	EventTendisBinlogLen   = "tendis_binlog_len"
 	EventRedisClusterState = "redis_cluster_state"
 	EventRedisLog          = "redis_log"
+	EventRedisAofOrphan    = "redis_aof_orphan"
 
 	EventTimeDiffWarning = 120
 	EventTimeDiffError   = 300
