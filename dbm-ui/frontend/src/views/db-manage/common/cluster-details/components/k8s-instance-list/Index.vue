@@ -19,7 +19,7 @@
       <AuthButton
         :action-id="manageActionId"
         class="ml-8"
-        :disabled="originalData.length === 0"
+        :disabled="total === 0"
         :permission="clusterData.permission[manageActionId as keyof typeof clusterData.permission]"
         :resource="clusterData.id"
         style="width: 105px"
@@ -29,7 +29,7 @@
       <AuthButton
         :action-id="manageActionId"
         class="ml-8"
-        :disabled="originalData.length === 0"
+        :disabled="total === 0"
         :permission="clusterData.permission[manageActionId as keyof typeof clusterData.permission]"
         :resource="clusterData.id"
         style="width: 105px"
@@ -38,11 +38,11 @@
       </AuthButton>
       <DbDropdown
         class="instance-batch-copy mr-8"
-        :disabled="originalData.length === 0">
+        :disabled="total === 0">
         <template #default="{ popoverShow }">
           <BkButton
             class="ml-8"
-            :disabled="originalData.length === 0"
+            :disabled="total === 0"
             style="width: 105px">
             {{ t('更多配置') }}
             <DbIcon
@@ -117,99 +117,94 @@
         style="width: 500px; margin-left: auto"
         @change="handleQuickSearchChange" />
     </div>
-    <div ref="rootRef">
-      <BkLoading :loading="isLoading">
-        <PrimaryTable
-          ref="instanceTable"
-          :data="tableFilterData"
-          :max-height="tableMaxHeight"
-          row-key="podName"
-          :selected-row-keys="selectedRowKeys"
-          @select-change="handleSelectChange">
-          <TableColumn
-            col-key="row-select"
-            fixed="left"
-            type="multiple"
-            :width="40" />
-          <InstanceAddressColumn
-            :cluster-data="clusterData"
-            :cluster-type="clusterType"
-            :role="role" />
-          <TableColumn
-            col-key="status"
-            :min-width="80"
-            :title="t('状态')">
-            <template #default="{ row }: { row: IColumnData }">
-              <ClusterK8sInstanceStatus :data="row.status" />
-            </template>
-          </TableColumn>
-          <TableColumn
-            col-key="resourceQuota"
-            :min-width="150"
-            :title="t('资源配置')">
-            <template #default="{ row }: { row: IColumnData }">
-              {{ row.resourceQuotaDisplay }}
-            </template>
-          </TableColumn>
-          <TableColumn
-            col-key="cpuPercent"
-            :min-width="240"
-            :title="t('CPU 使用率')">
-            <template #default="{ row }: { row: IColumnData }">
-              <UsageRate :data="row.resourceUsage.cpuPercent" />
-            </template>
-          </TableColumn>
-          <TableColumn
-            col-key="memoryPercent"
-            :min-width="240"
-            :title="t('内存使用率')">
-            <template #default="{ row }: { row: IColumnData }">
-              <UsageRate :data="row.resourceUsage.memoryPercent" />
-            </template>
-          </TableColumn>
-          <TableColumn
-            col-key="storagePercent"
-            :min-width="240"
-            :title="t('存储使用率')">
-            <template #default="{ row }: { row: IColumnData }">
-              <UsageRate :data="row.resourceUsage.storagePercent" />
-            </template>
-          </TableColumn>
-          <TableColumn
-            col-key="createdTimeDisplay"
-            :title="t('部署时间')"
-            :width="180" />
-          <TableColumn
-            col-key="action"
-            fixed="right"
-            :title="t('操作')"
-            :width="60">
-            <template #default="{ row }: { row: IColumnData }">
-              <AuthButton
-                :action-id="manageActionId"
-                :permission="clusterData.permission[manageActionId as keyof typeof clusterData.permission]"
-                :resource="clusterData.id"
-                text
-                theme="primary"
-                @click="
-                  handleDeleteInstance(
-                    {
-                      bk_username: userProfile.username,
-                      clusterName: clusterData.cluster_name,
-                      k8sClusterName: clusterData.k8s_cluster_name,
-                      namespace: clusterData.namespace,
-                      podName: row.podName,
-                    },
-                    row.node,
-                  )
-                ">
-                {{ t('重启') }}
-              </AuthButton>
-            </template>
-          </TableColumn>
-        </PrimaryTable>
-      </BkLoading>
-    </div>
+    <DbTable
+      ref="instanceTable"
+      :data-source="dataSource"
+      :filter-value="searchValue"
+      polling
+      releate-url-query
+      row-key="podName"
+      selectable
+      @filter-change="handleFilterChange"
+      @request-success="handleRequestSuccess"
+      @selection="handleSelectChange">
+      <InstanceAddressColumn
+        :cluster-data="clusterData"
+        :cluster-type="clusterType"
+        :role="role" />
+      <TableColumn
+        col-key="status"
+        :min-width="80"
+        :title="t('状态')">
+        <template #default="{ row }: { row: IColumnData }">
+          <ClusterK8sInstanceStatus :data="row.status" />
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="resourceQuota"
+        :min-width="150"
+        :title="t('资源配置')">
+        <template #default="{ row }: { row: IColumnData }">
+          {{ row.resourceQuotaDisplay }}
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="cpuPercent"
+        :min-width="240"
+        :title="t('CPU 使用率')">
+        <template #default="{ row }: { row: IColumnData }">
+          <UsageRate :data="row.resourceUsage.cpuPercent" />
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="memoryPercent"
+        :min-width="240"
+        :title="t('内存使用率')">
+        <template #default="{ row }: { row: IColumnData }">
+          <UsageRate :data="row.resourceUsage.memoryPercent" />
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="storagePercent"
+        :min-width="240"
+        :title="t('存储使用率')">
+        <template #default="{ row }: { row: IColumnData }">
+          <UsageRate :data="row.resourceUsage.storagePercent" />
+        </template>
+      </TableColumn>
+      <TableColumn
+        col-key="createdTimeDisplay"
+        :title="t('部署时间')"
+        :width="180" />
+      <TableColumn
+        col-key="action"
+        fixed="right"
+        :title="t('操作')"
+        :width="60">
+        <template #default="{ row }: { row: IColumnData }">
+          <AuthButton
+            :action-id="manageActionId"
+            :permission="clusterData.permission[manageActionId as keyof typeof clusterData.permission]"
+            :resource="clusterData.id"
+            text
+            theme="primary"
+            @click="
+              handleDeleteInstance(
+                {
+                  bk_username: userProfile.username,
+                  clusterName: clusterData.cluster_name,
+                  k8sClusterName: clusterData.k8s_cluster_name,
+                  namespace: clusterData.namespace,
+                  podName: row.podName,
+                },
+                row.node,
+              )
+            ">
+            {{ t('重启') }}
+          </AuthButton>
+        </template>
+      </TableColumn>
+    </DbTable>
     <PatchComponentConfig
       v-if="isPatchComponentConfigShow"
       v-model="isPatchComponentConfigShow"
@@ -219,25 +214,25 @@
     <VscalingComponent
       v-model="isVscalingComponentShow"
       :cluster-data="clusterData"
-      :data="originalData"
+      :data="tableData"
       :role="role"
       @success="handleOperateSuccess" />
     <VexpansionComponent
       v-model="isVexpansionComponentShow"
       :cluster-data="clusterData"
-      :data="originalData"
+      :data="tableData"
       :role="role"
       @success="handleOperateSuccess" />
     <HscalingComponent
       v-model="isHscalingComponentShow"
       :cluster-data="clusterData"
-      :count="originalData.length"
+      :count="total"
       :role="role"
       @success="handleOperateSuccess" />
     <HorizontalScalingComponent
       v-model="isHorizontalScalingShow"
       :cluster-data="clusterData"
-      :count="originalData.length"
+      :count="total"
       :role="role"
       @success="handleOperateSuccess" />
   </div>
@@ -248,7 +243,6 @@
   import _ from 'lodash';
   import type { VNode } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import { useRequest } from 'vue-request';
   import { useRoute, useRouter } from 'vue-router';
 
   import QdrantHaDetailModel from '@services/model/qdrant/qdrant-ha-detail';
@@ -257,6 +251,7 @@
   import VictoriametricsClusterDetailModel from '@services/model/victoriametrics/victoriametrics-cluster-detail';
   // import VictoriametricsClusterInstance from '@services/model/victoriametrics/victoriametrics-cluster-instance';
   import VictoriametricsSelectDetailModel from '@services/model/victoriametrics/victoriametrics-select-detail.ts';
+  import type { ListBase } from '@services/types';
 
   // import { toggleVictoriametricsStorageClb } from '@services/source/victoriametricsCluster.ts';
   // import { restartComponent } from '@services/source/kubernetesToolbox.ts';
@@ -267,12 +262,13 @@
   import { ClusterTypes } from '@common/const';
 
   import ClusterK8sInstanceStatus from '@components/cluster-k8s-instance-status/Index.vue';
+  import DbTable from '@components/db-table/IndexNew.vue';
 
   import { useK8sInstanceOperations } from '@views/db-manage/common/hooks';
   import InstanceBatchCopy from '@views/db-manage/common/instance-batch-copy/Index.vue';
   import useClusterInstanceList from '@views/db-manage/hooks/useClusterInstaceList';
 
-  import { getOffset, messageSuccess, parseQueryMemo } from '@utils';
+  import { messageSuccess, parseQueryMemo } from '@utils';
 
   import { URL_INSTANCE_MEMO_KEY } from '../../constants';
 
@@ -304,10 +300,7 @@
     role: string;
   }
 
-  export interface Emits {
-    (e: 'refresh'): void;
-    (e: 'request-success', list: IColumnData[]): void;
-  }
+  export type Emits = (e: 'refresh') => void;
 
   export interface Slots {
     role: () => VNode;
@@ -322,7 +315,7 @@
   const route = useRoute();
   const router = useRouter();
   const { getSearchParams, replaceSearchParams } = useUrlSearch();
-  const { handleFilterList, handleMergeSearchParams, quickSearchData, searchValue } = useQuickSearch();
+  const { handleMergeSearchParams, quickSearchData, searchValue } = useQuickSearch();
   const requestHandler = useClusterInstanceList(props.clusterType);
   const { handleDeleteInstance, handleRestartInstance } = useK8sInstanceOperations({
     onSuccess: () => handleOperateSuccess(),
@@ -407,26 +400,16 @@
   //   });
   // };
 
-  const rootRef = useTemplateRef('rootRef');
-
-  const isLoading = ref(false);
-  const tableMaxHeight = ref<number | 'auto'>('auto');
-  const tableFilterData = ref<IColumnData[]>([]);
+  const tableData = shallowRef<IColumnData[]>([]);
+  const total = ref(0);
   const isPatchComponentConfigShow = ref(false);
   const isVscalingComponentShow = ref(false);
   const isVexpansionComponentShow = ref(false);
   const isHscalingComponentShow = ref(false);
   const isHorizontalScalingShow = ref(false);
 
-  const selectedRowKeys = ref<number[]>([]);
+  const selectedRowKeys = ref<string[]>([]);
   const selectedList = shallowRef<IColumnData[]>([]);
-
-  const originalData = computed(() => {
-    const currentComponentName = props.role;
-    return (instanceData.value?.results || []).filter(
-      (item) => item.componentName === currentComponentName,
-    ) as IColumnData[];
-  });
 
   // vmstorage CLB 启停状态以实例的 is_clb_enabled 为准（显隐见 isVmstorageClbTab，仍由集群类型 + 角色控制）
   // const vmstorageClbEnabled = computed(
@@ -435,62 +418,60 @@
   //     originalData.value.some((item) => (item as VictoriametricsClusterInstance).is_clb_enabled),
   // );
 
-  const { data: instanceData, run } = useRequest(requestHandler, {
-    manual: true,
-    onAfter() {
-      isLoading.value = false;
-    },
-    onSuccess(result) {
-      emits('request-success', result.results);
-      // handleQuickSearchChange();
-    },
-    pollingInterval: 10 * 1000,
-  });
+  const instanceTableRef = useTemplateRef('instanceTable');
 
-  watch(originalData, () => {
-    handleQuickSearchChange();
-  });
-
-  // watch(
-  //   () => props.role,
-  //   () => {
-  //     fetchData();
-  //   },
-  // );
-
-  const getBatchCopyData = () => {
-    return Promise.resolve(originalData.value);
-  };
-
-  const fetchData = () => {
-    isLoading.value = true;
-    run({
+  const dataSource = (params: ServiceParameters<typeof requestHandler>) =>
+    requestHandler({
+      ...params,
       cluster_name: props.clusterData.cluster_name,
       k8s_cluster_name: props.clusterData.k8s_cluster_name,
       namespace: props.clusterData.namespace,
-      // role: props.role,
+    });
+
+  const fetchData = () => {
+    instanceTableRef.value?.fetchData({
+      ...searchValue.value,
+      component_name: props.role,
     });
   };
 
-  const handleQuickSearchChange = _.debounce(() => {
-    const filterList = handleFilterList(originalData.value);
+  const handleRequestSuccess = (result: ListBase<IColumnData[]>) => {
+    tableData.value = result.results;
+    total.value = result.count;
+  };
 
+  const handleFilterChange = (filterValue: Record<string, string>) => {
+    searchValue.value = filterValue;
+    fetchData();
+  };
+
+  const handleQuickSearchChange = _.debounce(() => {
+    fetchData();
     router.replace({
       query: {
         ...replaceSearchParams(handleMergeSearchParams(getSearchParams()), false),
         [URL_INSTANCE_MEMO_KEY]: encodeURIComponent(JSON.stringify(searchValue.value)),
       },
     });
-    tableFilterData.value = filterList;
   }, 100);
 
-  const handleSelectChange = (value: (string | number)[], { selectedRowData }: { selectedRowData: unknown[] }) => {
-    selectedRowKeys.value = value as number[];
-    selectedList.value = selectedRowData as IColumnData[];
+  const getBatchCopyData = () => instanceTableRef.value!.fetchAllData<IColumnData>();
+
+  watch(
+    () => props.role,
+    () => {
+      fetchData();
+    },
+  );
+
+  const handleSelectChange = (keys: string[], list: IColumnData[]) => {
+    selectedRowKeys.value = keys;
+    selectedList.value = list;
   };
 
   const handleOperateSuccess = () => {
     messageSuccess(t('操作成功'));
+    selectedRowKeys.value.forEach((key) => instanceTableRef.value?.removeSelectByKey(key));
     selectedRowKeys.value = [];
     selectedList.value = [];
     fetchData();
@@ -511,7 +492,7 @@
         ],
       },
       props.role,
-      originalData.value.length,
+      total.value,
     );
   };
 
@@ -554,10 +535,6 @@
   onMounted(() => {
     searchValue.value = parseQueryMemo(route.query[URL_INSTANCE_MEMO_KEY]);
     fetchData();
-
-    setTimeout(() => {
-      tableMaxHeight.value = window.innerHeight - getOffset(rootRef.value as HTMLElement).top - 60 - 20 - 20;
-    });
   });
 </script>
 <style lang="less">

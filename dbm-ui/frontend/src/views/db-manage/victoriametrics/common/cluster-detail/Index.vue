@@ -115,8 +115,7 @@
             :cluster-data="data"
             :cluster-type="ClusterTypes.K8S_VICTORIAMETRICS_CLUSTER"
             :role="role"
-            @refresh="handleRefresh"
-            @request-success="handleRequestSuccess">
+            @refresh="handleRefresh">
             <template #role>
               <BkRadioGroup
                 v-model="role"
@@ -141,7 +140,8 @@
   import { useRequest } from 'vue-request';
 
   import VictoriametricsClusterDetailModel from '@services/model/victoriametrics/victoriametrics-cluster-detail';
-  import VictoriametricsClusterInstanceModel from '@services/model/victoriametrics/victoriametrics-cluster-instance';
+
+  import { useUrlSearch } from '@hooks';
 
   import { ClusterTypes } from '@common/const';
 
@@ -160,8 +160,6 @@
 
   import { getVictoriametricsClusterDetail } from '@/services/source/victoriametricsCluster';
 
-  import useRoleList from './useRoleList';
-
   interface Props {
     clusterId: number;
   }
@@ -172,11 +170,18 @@
   const emits = defineEmits<Emits>();
 
   const { t } = useI18n();
+  const { getSearchParams } = useUrlSearch();
 
   const data = ref<VictoriametricsClusterDetailModel>();
   const isLoading = ref(false);
 
-  const { changeCountData, defaultRole: role, list: roleList } = useRoleList();
+  const roleList = [
+    { id: 'vminsert', name: 'vminsert' },
+    { id: 'vmselect', name: 'vmselect' },
+    { id: 'vmstorage', name: 'vmstorage' },
+  ];
+  const urlRole = getSearchParams().component_name;
+  const role = ref(roleList.some((item) => item.id === urlRole) ? urlRole : 'vminsert');
   const { run: fetchClusterDetail } = useRequest(getVictoriametricsClusterDetail, {
     manual: true,
     onAfter() {
@@ -220,20 +225,6 @@
       immediate: true,
     },
   );
-
-  const handleRequestSuccess = (list: VictoriametricsClusterInstanceModel[]) => {
-    const currantCountData = list.reduce(
-      (acc, cur) => {
-        return Object.assign(acc, { [cur.componentName]: (acc[cur.componentName as keyof typeof acc] || 0) + 1 });
-      },
-      {
-        vminsert: 0,
-        vmselect: 0,
-        vmstorage: 0,
-      } as Parameters<typeof changeCountData>[0],
-    );
-    changeCountData(currantCountData);
-  };
 
   const handleRefresh = () => {
     fetchDetailData();

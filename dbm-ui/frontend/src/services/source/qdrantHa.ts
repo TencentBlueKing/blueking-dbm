@@ -61,9 +61,16 @@ export const getQdrantHaInstanceList = function (params: {
   // 独占集群参数待后端就绪后放开
   // bkBizId?: number;
   cluster_name: string;
+  /** 后端 list_instances 约定，保持 snake_case */
+  component_name?: string;
   // isPublic?: boolean;
   k8s_cluster_name: string;
+  limit?: number;
   namespace: string;
+  node?: string;
+  offset?: number;
+  pod_name?: string;
+  status?: string;
   // role: string;
 }) {
   return http.get<ListBase<QdrantHaInstanceModel[]>>(`${getRootPath()}/list_instances/`, params).then((data) => ({
