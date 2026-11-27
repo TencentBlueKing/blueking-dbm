@@ -45,6 +45,7 @@ from backend.iam_app.views.cluster_provider import (
     TendbClusterResourceProvider,
 )
 from backend.iam_app.views.dbtype_provider import DBTypeResourceProvider
+from backend.iam_app.views.dns_domain_provider import DnsDomainResourceProvider
 from backend.iam_app.views.dumper_config_provider import DumperSubscribeConfigResourceProvider
 from backend.iam_app.views.flow_provider import FlowResourceProvider
 from backend.iam_app.views.monitor_policy_provider import MonitorPolicyResourceProvider
@@ -89,6 +90,7 @@ resource_providers = {
     r"k8s_milvus": K8sMilvusClusterResourceProvider(),
     r"k8s_qdrant": K8sQdrantClusterResourceProvider(),
     r"k8s_greptimedb": K8sGreptimedbClusterResourceProvider(),
+    r"dns_domain": DnsDomainResourceProvider(),
 }
 
 dispatcher = DjangoBasicResourceApiDispatcher(Permission.get_iam_client(), env.BK_IAM_SYSTEM_ID)

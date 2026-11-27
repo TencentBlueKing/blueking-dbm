@@ -8,6 +8,7 @@ Unless required by applicable law or agreed to in writing, software distributed 
 an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
 specific language governing permissions and limitations under the License.
 """
+
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -213,6 +214,75 @@ class TestPermission:
         data, url = perm.get_apply_data([ActionEnum.DB_MANAGE], [[resource]])
 
         assert len(data) > 0
+
+    def test_grant_dns_domain_manage(self, mock_iam_client, test_username):
+        """新建域名走属性授权，属性是负责人，不走路径授权。"""
+        from backend.iam_app.handlers.backends.v3 import _granted_resource_attrs
+
+        _granted_resource_attrs["dns_domain"].clear()
+        mock_iam_client.is_allowed.return_value = False
+        mock_iam_client.grant_resource_creator_action_attributes.return_value = (True, "success")
+        resource = ResourceEnum.DNS_DOMAIN.create_instance("eco.test.db", attr={"owner": [test_username]})
+
+        result = IAMV3Backend(mock_iam_client).grant_creator_actions(resource, test_username)
+
+        assert result == (True, "success")
+        application = mock_iam_client.grant_resource_creator_action_attributes.call_args[0][0]
+        assert application["type"] == "dns_domain"
+        assert application["creator"] == test_username
+        assert application["attributes"] == [
+            {"id": "owner", "name": "owner", "values": [{"id": test_username, "name": test_username}]}
+        ]
+        mock_iam_client.grant_or_revoke_path_permission.assert_not_called()
+        mock_iam_client.grant_or_revoke_instance_permission.assert_not_called()
+
+    def test_grant_dns_domain_each_owner(self, mock_iam_client):
+        """多个负责人各授一次，属性值是各自的用户名。"""
+        from backend.iam_app.handlers.backends.v3 import _granted_resource_attrs
+
+        _granted_resource_attrs["dns_domain"].clear()
+        mock_iam_client.is_allowed.return_value = False
+        mock_iam_client.grant_resource_creator_action_attributes.return_value = (True, "success")
+        resource = ResourceEnum.DNS_DOMAIN.create_instance("eco.test.db", attr={"owner": ["owner_a", "owner_b"]})
+
+        IAMV3Backend(mock_iam_client).grant_creator_actions(resource, "owner_a")
+
+        applications = [
+            call.args[0] for call in mock_iam_client.grant_resource_creator_action_attributes.call_args_list
+        ]
+        assert [item["creator"] for item in applications] == ["owner_a", "owner_b"]
+        assert applications[0]["attributes"] == [
+            {"id": "owner", "name": "owner", "values": [{"id": "owner_a", "name": "owner_a"}]}
+        ]
+        assert applications[1]["attributes"] == [
+            {"id": "owner", "name": "owner", "values": [{"id": "owner_b", "name": "owner_b"}]}
+        ]
+
+    def test_grant_dns_domain_skips_existing_attribute(self, mock_iam_client, test_username):
+        """权限中心已有该负责人的属性权限时，不再重复授权。"""
+        mock_iam_client.is_allowed.return_value = True
+        resource = ResourceEnum.DNS_DOMAIN.create_instance("eco.test.db", attr={"owner": [test_username]})
+
+        result = IAMV3Backend(mock_iam_client).grant_creator_actions(resource, test_username)
+
+        assert result is None
+        mock_iam_client.grant_resource_creator_action_attributes.assert_not_called()
+
+    def test_grant_dns_domain_again_after_attribute_removed(self, mock_iam_client, test_username):
+        """权限中心删掉属性权限后，再次创建会重新授权。"""
+        from backend.iam_app.handlers.backends.v3 import _granted_resource_attrs
+
+        _granted_resource_attrs["dns_domain"].clear()
+        mock_iam_client.is_allowed.return_value = False
+        mock_iam_client.grant_resource_creator_action_attributes.return_value = (True, "success")
+        resource = ResourceEnum.DNS_DOMAIN.create_instance("eco.test.db", attr={"owner": [test_username]})
+        backend = IAMV3Backend(mock_iam_client)
+
+        backend.grant_creator_actions(resource, test_username)
+        _granted_resource_attrs["dns_domain"].append((test_username,))
+        backend.grant_creator_actions(resource, test_username)
+
+        assert mock_iam_client.grant_resource_creator_action_attributes.call_count == 2
 
     def test_grant_creator_actions(self, test_username, mock_iam_backend, test_cluster_for_iam):
         """测试授权创建者。V3走属性授权、V4走角色实例授权，差异由后端消化"""

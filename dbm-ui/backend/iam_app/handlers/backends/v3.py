@@ -169,6 +169,45 @@ class IAMV3Backend(IAMBackend):
         return allowed_objs
 
     def grant_creator_actions(self, resource: Resource, creator: str) -> Any:
+        """V3给创建者做属性授权。域名按每个负责人各授一次，空属性会覆盖全部域名。"""
+        if resource.type == ResourceEnum.DNS_DOMAIN.id:
+            return self._grant_dns_domain_owners(resource, creator)
+        return self._grant_creator_attribute(resource, creator)
+
+    def _grant_dns_domain_owners(self, resource: Resource, creator: str) -> Any:
+        """每个负责人一条 owner 等于自己的属性规则。去掉负责人不在这里回收。"""
+        owners = ResourceEnum.DNS_DOMAIN._owner_names(
+            (resource.attribute or {}).get(ResourceEnum.DNS_DOMAIN.attribute)
+        )
+        if not owners:
+            owners = ResourceEnum.DNS_DOMAIN._owner_names(creator)
+        last = None
+        for owner in owners:
+            one = Resource(
+                resource.system,
+                resource.type,
+                resource.id,
+                {ResourceEnum.DNS_DOMAIN.attribute: owner},
+            )
+            if self._dns_attribute_granted(owner, one):
+                logger.info(
+                    f"[grant_creator_actions] attribute already granted, owner: {owner}, resource: {one.to_dict()}"
+                )
+                continue
+            last = self._grant_creator_attribute(one, owner, use_cache=False)
+        return last
+
+    def _dns_attribute_granted(self, owner: str, resource: Resource) -> bool:
+        """向权限中心确认这个人是否已有 owner 等于自己的域名管理权限。"""
+        request = self.make_request(owner, ActionEnum.DNS_MANAGE, [resource])
+        allowed = self.call_with_retry(self.iam.is_allowed, request, default=False)
+        logger.info(
+            f"[grant_creator_actions] attribute check, owner: {owner}, "
+            f"resource: {resource.to_dict()}, allowed: {allowed}"
+        )
+        return allowed is True
+
+    def _grant_creator_attribute(self, resource: Resource, creator: str, use_cache: bool = True) -> Any:
         """
         V3走属性授权：为 creator=xxx 这条规则授权，一次授权即覆盖该创建者名下所有同类资源，
         因此相同的属性组合只需要授权一次
@@ -179,7 +218,7 @@ class IAMV3Backend(IAMBackend):
             if attr_id not in self.EXCLUDED_GRANT_ATTRS
         }
         attr_tuple = tuple(sorted(attributes.values()))
-        if attr_tuple in _granted_resource_attrs[resource.type]:
+        if use_cache and attr_tuple in _granted_resource_attrs[resource.type]:
             return None
 
         application = {
@@ -193,7 +232,8 @@ class IAMV3Backend(IAMBackend):
         }
         try:
             result = self.iam.grant_resource_creator_action_attributes(application)
-            _granted_resource_attrs[resource.type].append(attr_tuple)
+            if use_cache:
+                _granted_resource_attrs[resource.type].append(attr_tuple)
             logger.info("[grant_creator_actions] success, resource: %s, result: %s", resource.to_dict(), result)
             return result
         except Exception as e:  # pylint: disable=broad-except

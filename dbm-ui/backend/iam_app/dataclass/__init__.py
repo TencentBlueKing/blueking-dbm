@@ -72,6 +72,8 @@ def generate_iam_migration_json(json_name: str = ""):
     for resource in _all_resources.values():
         if resource.system_id != env.BK_IAM_SYSTEM_ID or resource.iamv3_disable:
             continue
+        if not resource.should_register():
+            continue
 
         iam_resources.append(resource.to_json())
         # 顺便获取实例视图的信息
@@ -98,6 +100,8 @@ def generate_iam_migration_json(json_name: str = ""):
 
     # 获取动作的json内容
     for action in _all_actions.values():
+        if not action.should_register():
+            continue
         iam_actions.append(action.to_json())
         # 顺便获取操作组的信息
         if action.subgroup:
@@ -177,6 +181,8 @@ def generate_iam_migration_json(json_name: str = ""):
     iam_migrate_json_path = os.path.join(settings.BASE_DIR, f"backend/iam_app/migration_json_files/{json_name}")
     with open(iam_migrate_json_path, "w+") as f:
         f.write(json.dumps(dbm_iam_json, ensure_ascii=False, indent=4))
+    if env.RUN_VER != "ieod":
+        logger.info("RUN_VER=%s，域名服务动作未写入本次 IAM 模型", env.RUN_VER)
 
 
 def migrate_iamv4_model(dry_run: bool = False) -> Dict[str, Any]:
@@ -184,8 +190,16 @@ def migrate_iamv4_model(dry_run: bool = False) -> Dict[str, Any]:
     根据dataclass的定义迁移V4权限模型，包含系统、资源类型、操作和角色的创建与更新。
     与V3的差异：没有实例视图、操作组、常用操作和资源创建联动，常用操作的语义由角色承载
     """
-    v4_resource_types = [resource.to_json_v4() for resource in _all_resources.values() if not resource.iamv4_disable]
-    v4_actions = [action.to_json_v4() for action in _all_actions.values() if not action.is_disabled_v4()]
+    v4_resource_types = [
+        resource.to_json_v4()
+        for resource in _all_resources.values()
+        if not resource.iamv4_disable and resource.should_register()
+    ]
+    v4_actions = [
+        action.to_json_v4()
+        for action in _all_actions.values()
+        if not action.is_disabled_v4() and action.should_register()
+    ]
     v4_roles = [role.to_json_v4() for role in _all_roles.values()]
     model = {
         "system": IAM_V4_SYSTEM_DEFINITION,
@@ -267,6 +281,8 @@ def assign_auth_to_group(iam: IAM, biz: AppCache, group_id):
         ActionEnum.GLOBAL_MANAGE.group,
         ActionEnum.RESOURCE_MANAGE.group,
         ActionEnum.PLATFORM_MANAGE.group,
+        # 域名服务在独立管理空间里直接授给用户，不进业务用户组
+        ActionEnum.DNS_MANAGE.group,
     ]
     biz_actions = [
         action

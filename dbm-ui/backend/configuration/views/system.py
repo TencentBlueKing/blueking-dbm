@@ -132,6 +132,7 @@ class SystemSettingsViewSet(viewsets.SystemViewSet):
             "ENABLE_EXTERNAL_PROXY": env.ENABLE_EXTERNAL_PROXY,
             "DBA_ROBOT": SystemSettings.get_setting_value(key=SystemSettingsEnum.DBA_ROBOT.value, default={}),
             "ENABLE_DBM_AI": env.ENABLE_DBM_AI,
+            "DNS_DOMAIN_SERVICE_ENABLED": env.DNS_DOMAIN_SERVICE_ENABLED,
             "USER_MANAGE_FRONTEND_APIGW_DOMAIN": env.USER_MANAGE_FRONTEND_APIGW_DOMAIN,
             "LOG_DOWNLOAD_PAGE_SIZE": SystemSettings.get_setting_value(
                 SystemSettingsEnum.LOG_DOWNLOAD_PAGE_SIZE.value, default=DEFAULT_LOG_DOWNLOAD_PAGE_SIZE

@@ -90,6 +90,8 @@ ENABLE_WEBCONSOLE_WEBSOCKET = get_type_env(key="ENABLE_WEBCONSOLE_WEBSOCKET", _t
 ENABLE_WEBCONSOLE_HTTP = get_type_env(key="ENABLE_WEBCONSOLE_HTTP", _type=bool, default=True)
 # 开启所有路由，不屏蔽。！！这里只用在合作伙伴环境！！
 ENABLE_OPEN_EXTERNAL_PROXY = get_type_env(key="ENABLE_OPEN_EXTERNAL_PROXY", _type=bool, default=False)
+# 域名服务只在内部上云环境开放。其他环境接口返回 404，由页面跳回数据库管理。
+DNS_DOMAIN_SERVICE_ENABLED = get_type_env(key="DNS_DOMAIN_SERVICE_ENABLED", _type=bool, default=False)
 
 # ITSM 服务ID
 BK_ITSM_PROJECT_KEY = get_type_env(key="BK_ITSM_PROJECT_KEY", _type=str, default="0")
@@ -284,7 +286,7 @@ SYMMETRIC_CIPHER_TYPE = get_type_env(key="SYMMETRIC_CIPHER_TYPE", _type=str, def
 
 # 数据平台应用 token。敏感文本分类已改走插件网关，不再读取该 token
 BKDATA_DATA_TOKEN = get_type_env(key="BKDATA_DATA_TOKEN", _type=str, default="")
-# 敏感文本分类插件网关，形如 http://bp-sens-text.apigw.o.woa.com/prod/
+# 敏感文本分类插件网关，形如 http://bp-sens-text.apigw.example.com/prod/
 BKDATA_SENSI_TEXT_APIGW_DOMAIN = get_type_env(key="BKDATA_SENSI_TEXT_APIGW_DOMAIN", _type=str, default="")
 # 敏感信息检测 agent 网关地址，形如 https://xxx.apigw.example.com/stag/，配置后走 V2 检测
 BKDATA_SENSI_AGENT_URL = get_type_env(key="BKDATA_SENSI_AGENT_URL", _type=str, default="")

@@ -10,6 +10,7 @@ specific language governing permissions and limitations under the License.
 """
 
 import abc
+import logging
 from dataclasses import dataclass, field
 from typing import Dict, List, Tuple, Union
 
@@ -21,9 +22,11 @@ from backend.components import DBPrivManagerApi
 from backend.configuration.constants import DBType
 from backend.db_meta.enums import ClusterType, InstanceRole
 from backend.db_meta.models import AppCache
-from backend.env import BK_IAM_SYSTEM_ID, ENABLE_IAM_V4
+from backend.env import BK_IAM_SYSTEM_ID, ENABLE_IAM_V4, RUN_VER
 from backend.iam_app.constans import COMMON_DB_TYPE, GLOBAL_BIZ_ID_V4, TICKET_GROUP_OTHER
 from backend.iam_app.exceptions import ResourceNotExistError
+
+logger = logging.getLogger("root")
 
 
 @dataclass
@@ -53,9 +56,15 @@ class ResourceMeta(metaclass=abc.ABCMeta):
     iamv3_disable: bool = False
     # 资源创建后授予创建者的角色ID，为空表示不做创建者授权。V4没有属性授权，改为对实例直接授权
     creator_role_v4: str = None
+    # 仅内部版注册。开源环境不写入权限模型
+    internal_only: bool = False
 
     def __post_init__(self):
         self.select_id = self.select_id or self.id
+
+    def should_register(self) -> bool:
+        """是否注册到 IAM：internal_only 的资源只在内部版 RUN_VER=ieod 注册。"""
+        return not self.internal_only or RUN_VER == "ieod"
 
     @classmethod
     def Field(cls, value):
@@ -897,6 +906,112 @@ class DumperSubscribeConfigResourceMeta(ResourceMeta):
         return resource
 
 
+@dataclass
+class DnsDomainResourceMeta(ResourceMeta):
+    """域名服务里的完整域名。无父资源，平台管理员的授权范围是该资源无限制。"""
+
+    system_id: str = BK_IAM_SYSTEM_ID
+    id: str = "dns_domain"
+    name: str = _("完整域名")
+    selection_mode: str = "instance"
+
+    attribute: str = "owner"
+    attribute_display: str = _("负责人")
+    lookup_field: str = "domain"
+    display_fields: list = ResourceMeta.Field(["domain"])
+    # 创建自主维护域名后，把创建者授予该域名的管理角色
+    creator_role_v4: str = "dns_domain_manager"
+    internal_only: bool = True
+
+    def create_instance(self, instance_id: str, attr=None) -> Resource:
+        """域名不落本地表。鉴权资源的 owner 放当前负责人，属性策略按名单比对。"""
+        attribute = dict(attr or {})
+        if self.attribute in attribute:
+            owners = self._owner_names(attribute.get(self.attribute))
+        else:
+            owners = self._lookup_owners(instance_id)
+        attribute[self.attribute] = owners
+        # name 只用于无权限申请弹窗展示，属性授权会排除这个字段
+        attribute["name"] = str(instance_id)
+        return self._create_simple_instance(instance_id, attribute)
+
+    def batch_create_instances(self, instance_ids: list, attr=None) -> List[Resource]:
+        """一次查出这批域名的负责人，避免列表鉴权逐条检索。"""
+        if attr is not None and self.attribute in attr:
+            return [self.create_instance(instance_id, attr) for instance_id in instance_ids]
+        owners_by_domain = self._lookup_owners_batch(instance_ids)
+        return [
+            self.create_instance(instance_id, attr={self.attribute: owners_by_domain.get(str(instance_id), [])})
+            for instance_id in instance_ids
+        ]
+
+    @staticmethod
+    def _owner_names(value) -> list:
+        """负责人可以是名单，也可以是逗号拼接的字符串。"""
+        if value is None:
+            return []
+        raw = value if isinstance(value, (list, tuple)) else [value]
+        names = []
+        seen = set()
+        for item in raw:
+            for part in str(item or "").replace("，", ",").split(","):
+                name = part.strip()
+                if name and name not in seen:
+                    seen.add(name)
+                    names.append(name)
+        return names
+
+    @staticmethod
+    def _lookup_owners(domain: str) -> list:
+        """域名没有创建人字段，鉴权用当前负责人。查不到就留空名单，避免鉴权缺字段。"""
+        try:
+            from backend.configuration.constants import PLAT_BIZ_ID
+            from backend.constants import DEFAULT_BK_CLOUD_ID
+            from backend.db_services.dns_domain.dns_client import DnsDomainClient
+            from backend.db_services.dns_domain.format import normalize_domain
+
+            target = normalize_domain(domain)
+            data = DnsDomainClient(PLAT_BIZ_ID, DEFAULT_BK_CLOUD_ID).search_domains(
+                domain_name=target, page=1, page_size=20
+            )
+            for record in data.get("detail") or []:
+                name = normalize_domain(record.get("domain_name") or record.get("domain") or "")
+                if name == target:
+                    return DnsDomainResourceMeta._owner_names(record.get("manager"))
+        except Exception:  # pylint: disable=broad-except
+            logger.exception("lookup dns domain owners failed, domain=%s", domain)
+            return []
+        return []
+
+    @staticmethod
+    def _lookup_owners_batch(domains: list) -> dict:
+        """按域名批量取负责人。失败时留空名单，并记下日志。"""
+        from backend.configuration.constants import PLAT_BIZ_ID
+        from backend.constants import DEFAULT_BK_CLOUD_ID
+        from backend.db_services.dns_domain.dns_client import DnsDomainClient
+        from backend.db_services.dns_domain.format import normalize_domain
+
+        targets = {}
+        for domain in domains:
+            target = normalize_domain(str(domain))
+            if target:
+                targets[target] = str(domain)
+        if not targets:
+            return {}
+        try:
+            records = DnsDomainClient(PLAT_BIZ_ID, DEFAULT_BK_CLOUD_ID).list_records()
+        except Exception:  # pylint: disable=broad-except
+            logger.exception("batch lookup dns domain owners failed")
+            return {}
+        found = {instance_id: [] for instance_id in targets.values()}
+        for record in records:
+            name = normalize_domain(record.get("domain_name") or record.get("domain") or "")
+            instance_id = targets.get(name)
+            if instance_id:
+                found[instance_id] = DnsDomainResourceMeta._owner_names(record.get("manager"))
+        return found
+
+
 class ResourceEnum:
     """
     resource 枚举类
@@ -939,6 +1054,7 @@ class ResourceEnum:
     K8S_MILVUS = K8sMilvusResourceMeta()
     K8S_QDRANT = K8sQdrantResourceMeta()
     K8S_GREPTIMEDB = K8sGreptimedbResourceMeta()
+    DNS_DOMAIN = DnsDomainResourceMeta()
 
     @classmethod
     def get_resource_by_id(cls, resource_id: Union[ResourceMeta, str]):

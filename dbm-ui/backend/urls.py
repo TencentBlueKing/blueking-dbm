@@ -43,6 +43,7 @@ api_patterns = [
     path("tickets/", include("backend.ticket.urls")),
     path("configs/", include("backend.db_services.dbconfig.urls")),
     path("cluster_entry/", include("backend.db_services.cluster_entry.urls")),
+    path("dns_domain/", include("backend.db_services.dns_domain.urls")),
     path("dbresource/", include("backend.db_services.dbresource.urls")),
     path("partition/", include("backend.db_services.partition.urls")),
     path("packages/", include("backend.db_package.urls")),
