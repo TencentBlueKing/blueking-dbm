@@ -19,6 +19,7 @@ from backend.db_meta.api import common
 from backend.db_meta.enums import ClusterEntryType, ClusterPhase, ClusterStatus, ClusterType, InstanceRole
 from backend.db_meta.exceptions import DBMetaException
 from backend.db_meta.models import Cluster, ClusterEntry, StorageInstance
+from backend.db_services.dbbase.cluster.tags import add_cluster_tag_keys
 
 logger = logging.getLogger("root")
 
@@ -58,6 +59,7 @@ def create(
     creator: str = "",
     region: str = "",
     disaster_tolerance_level: str = "",
+    tags: Optional[List] = None,
 ) -> Cluster:
     """
     注册 Kafka 集群
@@ -88,6 +90,9 @@ def create(
     )
     cluster.storageinstance_set.add(*storage_objs)
     cluster.save()
+
+    # 绑定集群标签
+    add_cluster_tag_keys(bk_biz_id=bk_biz_id, cluster_ids=[cluster.id], tags=tags or [])
 
     cluster_entry = ClusterEntry.objects.create(
         cluster=cluster, cluster_entry_type=ClusterEntryType.DNS, entry=immute_domain, creator=creator
