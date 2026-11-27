@@ -312,6 +312,7 @@ func (c *ComponentProvider) ListPods(
 	if err != nil {
 		return nil, 0, err
 	}
+	pods = filterPods(pods, params)
 	count := uint64(len(pods))
 	if pagination == nil {
 		return pods, count, nil
@@ -333,4 +334,30 @@ func NewComponentProvider(
 		clusterConfigProvider,
 		clusterMetaProvider,
 	}
+}
+
+// filterPods 对 Pod 列表做 node/podName/status 的模糊(包含)过滤
+// 空参数不生效，多条件之间为 AND 关系
+func filterPods(pods []*coreentity.Pod, params *coreentity.ComponentQueryParams) []*coreentity.Pod {
+	if params.Node == "" && params.PodName == "" && params.Status == "" {
+		return pods
+	}
+	nodeKw := strings.ToLower(strings.TrimSpace(params.Node))
+	nameKw := strings.ToLower(strings.TrimSpace(params.PodName))
+	statusKw := strings.ToLower(strings.TrimSpace(params.Status))
+
+	result := make([]*coreentity.Pod, 0, len(pods))
+	for _, pod := range pods {
+		if nodeKw != "" && !strings.Contains(strings.ToLower(pod.Node), nodeKw) {
+			continue
+		}
+		if nameKw != "" && !strings.Contains(strings.ToLower(pod.PodName), nameKw) {
+			continue
+		}
+		if statusKw != "" && !strings.Contains(strings.ToLower(string(pod.Status)), statusKw) {
+			continue
+		}
+		result = append(result, pod)
+	}
+	return result
 }
