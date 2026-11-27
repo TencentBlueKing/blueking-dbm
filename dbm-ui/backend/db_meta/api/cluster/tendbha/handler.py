@@ -31,6 +31,7 @@ from backend.db_meta.exceptions import InstanceNotExistException
 from backend.db_meta.models import StorageInstance
 from backend.db_meta.models.extra_process import ExtraProcessInstance
 from backend.db_package.models import Package
+from backend.db_services.dbbase.cluster.tags import add_cluster_tag_keys
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version, get_proxy_real_version
 from backend.flow.utils.cc_manage import CcManage
@@ -140,23 +141,30 @@ class TenDBHAClusterHandler(ClusterHandler):
             api.cluster.tendbha.create_precheck(bk_biz_id, name, immute_domain, db_module_id, slave_domain)
             storage_objs.extend(api.storage_instance.create(instances=storages, creator=creator, time_zone=time_zone))
             proxy_objs.extend(api.proxy_instance.create(proxies=proxies, creator=creator, time_zone=time_zone))
-            new_clusters.append(
-                api.cluster.tendbha.create(
-                    bk_biz_id=bk_biz_id,
-                    name=name,
-                    immute_domain=immute_domain,
-                    db_module_id=db_module_id,
-                    slave_domain=slave_domain,
-                    proxies=proxies,
-                    storages=storages,
-                    creator=creator,
-                    bk_cloud_id=bk_cloud_id,
-                    time_zone=time_zone,
-                    major_version=major_version,
-                    region=region,
-                    disaster_tolerance_level=disaster_tolerance_level,
-                    zone_list=zone_list,
-                )
+            c = api.cluster.tendbha.create(
+                bk_biz_id=bk_biz_id,
+                name=name,
+                immute_domain=immute_domain,
+                db_module_id=db_module_id,
+                slave_domain=slave_domain,
+                proxies=proxies,
+                storages=storages,
+                creator=creator,
+                bk_cloud_id=bk_cloud_id,
+                time_zone=time_zone,
+                major_version=major_version,
+                region=region,
+                disaster_tolerance_level=disaster_tolerance_level,
+                zone_list=zone_list,
+            )
+            new_clusters.append(c)
+
+            # 增加集群标签的录取
+            cluster_tags = cluster.get("tags", [])
+            add_cluster_tag_keys(
+                bk_biz_id=bk_biz_id,
+                cluster_ids=[c.id],
+                tags=cluster_tags,
             )
 
         cc_topo_operator = MysqlCCTopoOperator(new_clusters)

@@ -22,6 +22,7 @@ from backend.db_meta.enums import (
     MachineType,
 )
 from backend.db_meta.models import Cluster, StorageInstance
+from backend.db_services.dbbase.cluster.tags import add_cluster_tag_keys
 from backend.flow.utils.sqlserver.sqlserver_host import Host
 from backend.flow.utils.sqlserver.sqlserver_module_operate import SqlserverCCTopoOperator
 
@@ -87,19 +88,25 @@ class SqlserverSingleClusterHandler(ClusterHandler):
                 )
             )
             api.cluster.sqlserversingle.create_pre_check(bk_biz_id, cluster["name"], immutable_domain, db_module_id)
-            new_clusters.append(
-                api.cluster.sqlserversingle.create(
-                    bk_biz_id=bk_biz_id,
-                    major_version=major_version,
-                    name=cluster["name"],
-                    immute_domain=immutable_domain,
-                    db_module_id=db_module_id,
-                    storage=storage,
-                    creator=creator,
-                    bk_cloud_id=bk_cloud_id,
-                    region=region,
-                    zone_list=zone_list,
-                )
+            c = api.cluster.sqlserversingle.create(
+                bk_biz_id=bk_biz_id,
+                major_version=major_version,
+                name=cluster["name"],
+                immute_domain=immutable_domain,
+                db_module_id=db_module_id,
+                storage=storage,
+                creator=creator,
+                bk_cloud_id=bk_cloud_id,
+                region=region,
+                zone_list=zone_list,
+            )
+            new_clusters.append(c)
+            # 增加集群标签的录取
+            cluster_tags = cluster.get("tags", [])
+            add_cluster_tag_keys(
+                bk_biz_id=bk_biz_id,
+                cluster_ids=[c.id],
+                tags=cluster_tags,
             )
 
         # 主机转移模块、添加对应的服务实例

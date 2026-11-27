@@ -19,6 +19,7 @@ from backend.db_meta.enums import ClusterType, InstancePhase, InstanceRole, Inst
 from backend.db_meta.exceptions import InstanceNotExistException
 from backend.db_meta.models import StorageInstance
 from backend.db_package.models import Package
+from backend.db_services.dbbase.cluster.tags import add_cluster_tag_keys
 from backend.flow.consts import MediumEnum
 from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version
 from backend.flow.utils.mysql.mysql_module_operate import MysqlCCTopoOperator
@@ -83,20 +84,26 @@ class TenDBSingleClusterHandler(ClusterHandler):
                 )
             )
             api.cluster.tendbsingle.create_precheck(bk_biz_id, cluster["name"], immute_domain, db_module_id)
-            new_clusters.append(
-                api.cluster.tendbsingle.create(
-                    bk_biz_id=bk_biz_id,
-                    major_version=major_version,
-                    name=cluster["name"],
-                    immute_domain=immute_domain,
-                    db_module_id=db_module_id,
-                    storage=storage,
-                    creator=creator,
-                    bk_cloud_id=bk_cloud_id,
-                    time_zone=time_zone,
-                    region=region,
-                    zone_list=zone_list,
-                )
+            c = api.cluster.tendbsingle.create(
+                bk_biz_id=bk_biz_id,
+                major_version=major_version,
+                name=cluster["name"],
+                immute_domain=immute_domain,
+                db_module_id=db_module_id,
+                storage=storage,
+                creator=creator,
+                bk_cloud_id=bk_cloud_id,
+                time_zone=time_zone,
+                region=region,
+                zone_list=zone_list,
+            )
+            new_clusters.append(cluster)
+            # 增加集群标签的录取
+            cluster_tags = cluster.get("tags", [])
+            add_cluster_tag_keys(
+                bk_biz_id=bk_biz_id,
+                cluster_ids=[c.id],
+                tags=cluster_tags,
             )
 
         # mysql主机转移模块、添加对应的服务实例

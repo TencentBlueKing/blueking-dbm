@@ -69,6 +69,7 @@ class SpiderDBMeta(object):
             "region": self.global_data["city"],
             "disaster_tolerance_level": self.global_data["disaster_tolerance_level"],
             "zone_list": self.global_data.get("zone_list", []),
+            "cluster_tags": self.global_data.get("tags", []),
         }
         TenDBClusterClusterHandler.create(**kwargs)
         return True
