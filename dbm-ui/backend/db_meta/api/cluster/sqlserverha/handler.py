@@ -25,6 +25,7 @@ from backend.db_meta.enums import (
     MachineType,
 )
 from backend.db_meta.models import Cluster, ClusterEntry, ClusterMonitorTopo, StorageInstance, StorageInstanceTuple
+from backend.db_services.dbbase.cluster.tags import add_cluster_tag_keys
 from backend.flow.utils.cc_manage import CcManage
 from backend.flow.utils.sqlserver.sqlserver_host import Host
 from backend.flow.utils.sqlserver.sqlserver_module_operate import SqlserverCCTopoOperator
@@ -106,23 +107,28 @@ class SqlserverHAClusterHandler(ClusterHandler):
 
             api.cluster.sqlserverha.create_pre_check(bk_biz_id, name, immute_domain, db_module_id, slave_domain)
             storage_objs.extend(api.storage_instance.create(instances=storages, creator=creator, time_zone=time_zone))
-
-            new_clusters.append(
-                api.cluster.sqlserverha.create(
-                    bk_biz_id=bk_biz_id,
-                    name=name,
-                    immute_domain=immute_domain,
-                    db_module_id=db_module_id,
-                    slave_domain=slave_domain,
-                    storages=storages,
-                    creator=creator,
-                    bk_cloud_id=bk_cloud_id,
-                    major_version=major_version,
-                    region=region,
-                    sync_type=sync_type,
-                    disaster_tolerance_level=disaster_tolerance_level,
-                    zone_list=zone_list,
-                )
+            c = api.cluster.sqlserverha.create(
+                bk_biz_id=bk_biz_id,
+                name=name,
+                immute_domain=immute_domain,
+                db_module_id=db_module_id,
+                slave_domain=slave_domain,
+                storages=storages,
+                creator=creator,
+                bk_cloud_id=bk_cloud_id,
+                major_version=major_version,
+                region=region,
+                sync_type=sync_type,
+                disaster_tolerance_level=disaster_tolerance_level,
+                zone_list=zone_list,
+            )
+            new_clusters.append(c)
+            # 增加集群标签的录取
+            cluster_tags = cluster.get("tags", [])
+            add_cluster_tag_keys(
+                bk_biz_id=bk_biz_id,
+                cluster_ids=[c.id],
+                tags=cluster_tags,
             )
 
         # 主机转移模块、添加对应的服务实例

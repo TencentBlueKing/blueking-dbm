@@ -30,6 +30,7 @@ from backend.db_meta.enums import (
 from backend.db_meta.exceptions import InstanceNotExistException
 from backend.db_meta.models import Cluster, ClusterEntry, ProxyInstance, StorageInstance, StorageInstanceTuple
 from backend.db_package.models import Package
+from backend.db_services.dbbase.cluster.tags import add_cluster_tag_keys
 from backend.flow.consts import MediumEnum, TenDBBackUpLocation
 from backend.flow.engine.bamboo.scene.common.get_real_version import get_mysql_real_version, get_spider_real_version
 from backend.flow.utils.cc_manage import CcManage
@@ -63,6 +64,7 @@ class TenDBClusterClusterHandler(ClusterHandler):
         region: str,
         disaster_tolerance_level: str,
         zone_list: list,
+        cluster_tags: list,
     ):
         """「必须」创建spider集群"""
 
@@ -150,6 +152,13 @@ class TenDBClusterClusterHandler(ClusterHandler):
             region=region,
             disaster_tolerance_level=disaster_tolerance_level,
             zone_list=zone_list,
+        )
+
+        # 增加集群标签的录取
+        add_cluster_tag_keys(
+            bk_biz_id=bk_biz_id,
+            cluster_ids=[cluster.id],
+            tags=cluster_tags,
         )
 
         cc_topo_operator = MysqlCCTopoOperator(cluster)
