@@ -89,7 +89,7 @@ func (pkg *DbToolsMediaPkg) Install() (err error) {
 	}
 	if overrideLocal {
 		// 最新介质覆盖本地
-		untarCmd := fmt.Sprintf("tar -zxf %s -C %s", installToolTar, backupDir)
+		untarCmd := fmt.Sprintf("mkdir -p %s && tar -zxf %s -C %s", backupDir, installToolTar, backupDir)
 		mylog.Logger.Info(untarCmd)
 		_, err = util.RunBashCmd(untarCmd, "", nil, 10*time.Minute)
 		if err != nil {

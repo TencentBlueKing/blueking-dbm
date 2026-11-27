@@ -326,6 +326,8 @@ func (job *BkDbmonInstall) UntarMedia() (err error) {
 		// 如果本地文件和远程文件一致(版本和md5都相同),则无需更新
 		job.runtime.Logger.Info("本地bk-dbmon版本%s 与 目标bk-dbmon版本%s 一致,md5相同,无需更新本地bk-dbmon介质",
 			localVersion, remoteVersion)
+		// bk-dbmon 无需更新, 但 dbtools 仍需确保安装(标准重跑场景下 bk-dbmon 未变而 dbtools 介质有更新)
+		err = job.params.DbToolsPkg.Install()
 		return
 	}
 	job.bkDbmonBinUpdated = true
