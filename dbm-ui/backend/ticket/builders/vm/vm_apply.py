@@ -19,7 +19,6 @@ from backend.db_services.dbbase.constants import VM_INSERT_PORT, VM_SELECT_PORT
 from backend.flow.consts import VM_DEFAULT_INSTANCE_NUM
 from backend.flow.engine.controller.vm import VmController
 from backend.ticket import builders
-from backend.ticket.builders.common.base import DeployClusterTagsField
 from backend.ticket.builders.common.bigdata import BaseVmTicketFlowBuilder, BigDataApplyDetailsSerializer
 from backend.ticket.constants import TicketType
 
@@ -27,7 +26,6 @@ logger = logging.getLogger("root")
 
 
 class VmApplyDetailSerializer(BigDataApplyDetailsSerializer):
-    tags = DeployClusterTagsField()
     vm_select_port = serializers.IntegerField(help_text=_("vm_select端口"), default=VM_SELECT_PORT)
     vm_insert_port = serializers.IntegerField(help_text=_("vm_insert端口"), default=VM_INSERT_PORT)
 
