@@ -35,7 +35,7 @@
   interface Props {
     /** 标签候选查询的业务 ID（本组件未使用，与 KeyValueMode 保持同参） */
     // eslint-disable-next-line vue/no-unused-properties
-    bizId?: number | '';
+    bizId?: number;
     data?: TagsPairType[];
     disabled?: boolean;
     keyValueMap: KeyValueMapType;
@@ -48,6 +48,7 @@
   type Emits = (e: 'change') => void;
 
   const props = withDefaults(defineProps<Props>(), {
+    bizId: undefined,
     data: undefined,
     disabled: false,
   });

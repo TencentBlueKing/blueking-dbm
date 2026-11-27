@@ -63,8 +63,8 @@
   import CreateValidateSelect from './CreateValidateSelect.vue';
 
   interface Props {
-    /** 标签候选查询的业务 ID，管理页跳转链接跟随该业务 */
-    bizId: number;
+    /** 标签候选查询的业务 ID，管理页跳转链接跟随该业务；未选择业务时不传 */
+    bizId?: number;
     data: typeof pairInfo.value;
     disabled?: boolean;
     excludeKeys: string[];

@@ -97,7 +97,7 @@
   // 调整申请模式只放开资源申请条件，密码只读；回填的密码仍会触发强度校验并抛出结果
   const isAdjustApply = Boolean(useTicketModifyState()?.isAdjustApply);
 
-  let tippyInstance: Instance;
+  let tippyInstance: Instance | undefined;
   let publicKey = '';
   let passwordPolicyMemo = {} as PasswordPolicy['rule'];
 
@@ -293,14 +293,14 @@
    * 密码框获取焦点
    */
   const handlePasswordFocus = () => {
-    tippyInstance.show();
+    tippyInstance?.show();
   };
 
   /**
    * 密码框失去焦点
    */
   const handlePasswordBlur = () => {
-    tippyInstance.hide();
+    tippyInstance?.hide();
   };
 
   watch(modelValue, () => {
@@ -308,7 +308,8 @@
   });
 
   onUnmounted(() => {
-    tippyInstance.destroy();
+    tippyInstance?.destroy();
+    tippyInstance = undefined;
   });
 
   defineExpose<Exposes>({

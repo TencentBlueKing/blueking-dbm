@@ -23,7 +23,7 @@ const routes: RouteRecordRaw[] = [
     path: 'victoriametrics',
     name: 'VictoriaMetricsManage',
     meta: {
-      navName: t('VictoriaMetrics'),
+      navName: 'VictoriaMetrics',
       skeleton: 'clusterList',
     },
     redirect: {

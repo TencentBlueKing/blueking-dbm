@@ -37,12 +37,15 @@
             :biz-id="formData.bk_biz_id"
             cluster-type="redis" />
           <BkFormItem :label="t('集群标签')">
-            <TagOperation
-              :key="tagEditorKey"
-              ref="tagOperationRef"
-              :allow-key-value-empty="false"
-              :biz-id="formData.bk_biz_id"
-              :data="tagEditorData" />
+            <div class="tag-setting-panel">
+              <TagOperation
+                :key="tagEditorKey"
+                ref="tagOperationRef"
+                :allow-key-value-empty="false"
+                :biz-id="formData.bk_biz_id"
+                :data="tagEditorData" />
+            </div>
+            <p class="tag-helper">{{ t('部署完成后，标签将自动绑定到该集群。') }}</p>
           </BkFormItem>
         </DbCard>
         <RegionRequirements
@@ -1175,6 +1178,19 @@
 
     .password-form-item {
       width: 435px;
+    }
+
+    .tag-setting-panel {
+      padding: 16px;
+      background-color: #f5f7fa;
+      border-radius: 2px;
+    }
+
+    .tag-helper {
+      margin-top: 8px;
+      font-size: 12px;
+      line-height: 20px;
+      color: #979ba5;
     }
 
     .resource-pool-item {

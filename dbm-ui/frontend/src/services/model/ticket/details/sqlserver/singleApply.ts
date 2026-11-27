@@ -17,7 +17,7 @@ export interface SingleApply extends DetailBase {
   domains: {
     key: string;
     master: string;
-    // tags: Record<string, string>[];
+    tags: Record<string, string>[];
   }[];
   inst_num: number;
   ip_source: string;

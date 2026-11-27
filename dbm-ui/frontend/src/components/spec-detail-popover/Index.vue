@@ -38,7 +38,9 @@
             <InfoItem :label="t('内存')"> ({{ data.mem.min }} ~ {{ data.mem.max }}) G </InfoItem>
           </template>
           <InfoItem :label="t('数据盘')">
-            <PrimaryTable :data="data.storage_spec">
+            <PrimaryTable
+              :data="data.storage_spec"
+              row-key="mount_point">
               <TableColumn
                 col-key="mount_point"
                 :title="t('挂载点')" />

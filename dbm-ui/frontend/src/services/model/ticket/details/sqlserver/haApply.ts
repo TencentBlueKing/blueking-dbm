@@ -18,7 +18,7 @@ export interface HaApply extends DetailBase {
     key: string;
     master: string;
     slave: string;
-    // tags: Record<string, string>[];
+    tags: Record<string, string>[];
   }[];
   inst_num: number;
   ip_source: string;

@@ -51,7 +51,7 @@
       :is="renderMode"
       ref="modeRef"
       :allow-empty="allowKeyValueEmpty"
-      :biz-id="bizId"
+      :biz-id="modeBizId"
       :data="tagsPairData"
       :disabled="isDisabled"
       :key-value-map="keyValueMap"
@@ -100,6 +100,7 @@
 
   // 未选择业务（空字符串）时禁用编辑；0 是全业务/公共业务，属于合法业务 ID
   const isDisabled = computed(() => props.bizId === '' || props.bizId === null || props.bizId === undefined);
+  const modeBizId = computed(() => (props.bizId === '' ? undefined : props.bizId));
 
   const { t } = useI18n();
 
