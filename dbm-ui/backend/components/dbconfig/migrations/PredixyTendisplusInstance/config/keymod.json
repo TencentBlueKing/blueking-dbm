@@ -17,7 +17,7 @@
   },
   {
     "conf_name": "hotkey.duration_seconds",
-    "value_default": "30",
+    "value_default": "10",
     "value_allowed": "",
     "value_type": "INT",
     "value_type_sub": "",

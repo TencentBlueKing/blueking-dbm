@@ -181,6 +181,12 @@ const (
 	// DiskUsageForceCleanThreshold data1(数据盘)空间保护阈值(%): binlog清理时数据盘利用率达到该值,
 	// 无论备份盘是否超阈值都会触发清理,且不再等待上传备份系统任务结束,直接强制删除本地文件,力保数据盘
 	DiskUsageForceCleanThreshold = 90
+	// AofOrphanFileAgeSeconds redis 7+ 多部分 AOF 孤儿文件清理的最小存活时长(秒):
+	// 文件 mtime 距今超过该值即可清理, 用于排除 rewrite 进行中产生的临时文件.
+	AofOrphanFileAgeSeconds = 10 * 24 * 3600
+	// AofOrphanCleanDiskThreshold redis 7+ 多部分 AOF 孤儿文件清理的数据盘利用率高水位(%):
+	// 数据盘利用率达到该值时, 无论孤儿文件 mtime 多新都触发清理, 力保数据盘.
+	AofOrphanCleanDiskThreshold = 70
 )
 
 const (
