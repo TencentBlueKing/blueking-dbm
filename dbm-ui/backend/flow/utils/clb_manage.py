@@ -175,6 +175,23 @@ class CLBManage(object):
             return False, res
         return True, res
 
+    def get_clb_rs_with_response(self) -> Tuple[bool, dict]:
+        """
+        获取 clb 后端的 RS 列表并返回原始响应；名字服务返回 data.ips 元素为 ip:port 字符串。
+        """
+        res = NameServiceApi.clb_get_target_private_ips(
+            {
+                "region": self.clb_region,
+                "loadbalancerid": self.clb_id,
+                "listenerid": self.listener_id,
+            },
+            raw=True,
+        )
+        if not isinstance(res, dict) or res.get("code") != 0:
+            logger.error(res)
+            return False, res
+        return True, res
+
     def deregiste_clb_with_response(self) -> Tuple[bool, dict]:
         """
         删除clb后端的rs记录，并删除clb；

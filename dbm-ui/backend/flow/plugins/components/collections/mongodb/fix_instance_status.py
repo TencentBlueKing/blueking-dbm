@@ -9,8 +9,9 @@ an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o
 specific language governing permissions and limitations under the License.
 """
 import logging
+import time
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional, Tuple
 
 from pipeline.component_framework.component import Component
 from pipeline.core.flow.activity import Service
@@ -176,7 +177,7 @@ def fix_instance_cluster_entry(ip: str, port: int, bk_cloud_id: int, role_type: 
 
                 case ClusterEntryType.CLB.value:
                     code, msg = fix_instance_clb_entry(
-                        clb_ip=row.entry, bk_cloud_id=bk_cloud_id, rs_instance_list=["{}#{}".format(ip, port)]
+                        clb_ip=row.entry, bk_cloud_id=bk_cloud_id, rs_instance_list=["{}:{}".format(ip, port)]
                     )
                     fix_entry_list.append(
                         FixEntryInfo(
@@ -258,26 +259,98 @@ def fix_instance_dns_entry(ip: str, port: int, bk_cloud_id: int, bk_biz_id: int,
     return 1, code_dict[1]
 
 
-def fix_instance_clb_entry(clb_ip: str, bk_cloud_id: int, rs_instance_list: list) -> int:
+CLB_API_MAX_RETRIES = 3
+CLB_API_RETRY_INTERVAL = 2
+
+
+def _fetch_clb_rs_set(clb_manage) -> Tuple[Optional[set], str]:
+    try:
+        ok, res = clb_manage.get_clb_rs_with_response()
+    except Exception as e:
+        return None, "error:{}".format(e)
+    if not ok:
+        return None, "response:{}".format(res)
+    data = res.get("data") if isinstance(res, dict) else None
+    if not isinstance(data, dict):
+        return None, "invalid response:{}".format(res)
+    ips = data.get("ips")
+    if ips is None:
+        return set(), ""
+    if not isinstance(ips, list):
+        return None, "invalid response:{}".format(res)
+    return {str(rs) for rs in ips if rs}, ""
+
+
+def _fetch_clb_rs_set_with_retry(clb_manage) -> Tuple[Optional[set], str]:
+    last_err = ""
+    for attempt in range(1, CLB_API_MAX_RETRIES + 1):
+        clb_rs_set, err_msg = _fetch_clb_rs_set(clb_manage)
+        if clb_rs_set is not None:
+            return clb_rs_set, ""
+        last_err = err_msg
+        if attempt < CLB_API_MAX_RETRIES:
+            time.sleep(CLB_API_RETRY_INTERVAL)
+    return None, last_err
+
+
+def fix_instance_clb_entry(clb_ip: str, bk_cloud_id: int, rs_instance_list: list) -> Tuple[int, str]:
     # fix_instance_clb_entry 修复实例的clb entry
     # return:
     # 1. 成功: 1
     # 2. 失败: 0
     # 3. 已存在: 2
     # 4. 其他: -1
-    code_dict = {1: "success", 0: "failed", 2: "domain already exists", -1: "invalid parameters"}
+    code_dict = {1: "success", 0: "failed", 2: "clb rs already exists", -1: "invalid parameters"}
     if not clb_ip or not rs_instance_list or bk_cloud_id is None:
         return -1, code_dict[-1]
 
     clb_manage = get_clb_by_ip(clb_ip=clb_ip)
     if not clb_manage:
         return 0, "clb_obj not found for clb_ip:{} bk_cloud_id:{}".format(clb_ip, bk_cloud_id)
-    clb_rs_list = clb_manage.get_clb_rs()
-    if rs_instance_list in clb_rs_list:
+
+    clb_rs_set, err_msg = _fetch_clb_rs_set_with_retry(clb_manage)
+    if clb_rs_set is None:
+        return 0, "get clb rs failed, {}".format(err_msg)
+
+    missing_rs_list = [rs for rs in rs_instance_list if rs not in clb_rs_set]
+    if not missing_rs_list:
         return 2, code_dict[2]
 
-    try:
-        clb_manage.add_clb_rs(instance_list=rs_instance_list)
-    except Exception as e:
-        return 0, "add clb rs failed, error:{}".format(e)
-    return 1, code_dict[1]
+    add_err = ""
+    add_ok = False
+    for attempt in range(1, CLB_API_MAX_RETRIES + 1):
+        try:
+            ok, res = clb_manage.add_clb_rs_with_response(instance_list=missing_rs_list)
+        except Exception as e:
+            add_err = "error:{}".format(e)
+        else:
+            if ok:
+                add_ok = True
+                break
+            add_err = "response:{}".format(res)
+
+        if attempt < CLB_API_MAX_RETRIES:
+            time.sleep(CLB_API_RETRY_INTERVAL)
+            # 重试前查一次 CLB，避免上一次请求实际已生效但响应超时导致重复添加失败
+            retry_rs_set, _err = _fetch_clb_rs_set(clb_manage)
+            if retry_rs_set is not None:
+                missing_rs_list = [rs for rs in missing_rs_list if rs not in retry_rs_set]
+                if not missing_rs_list:
+                    return 1, code_dict[1]
+
+    if not add_ok:
+        return 0, "add clb rs failed, {}".format(add_err)
+
+    verify_err = ""
+    for _attempt in range(1, CLB_API_MAX_RETRIES + 1):
+        time.sleep(CLB_API_RETRY_INTERVAL)
+        after_clb_rs_set, err_msg = _fetch_clb_rs_set(clb_manage)
+        if after_clb_rs_set is None:
+            verify_err = "verify clb rs failed, {}".format(err_msg)
+            continue
+        still_missing = [rs for rs in missing_rs_list if rs not in after_clb_rs_set]
+        if not still_missing:
+            return 1, code_dict[1]
+        verify_err = "clb rs not found after add, missing:{}".format(still_missing)
+
+    return 0, verify_err
