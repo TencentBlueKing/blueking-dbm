@@ -181,7 +181,7 @@ class MysqlSingleApplyFlowParamBuilder(builders.FlowParamBuilder):
         clusters = self.format_cluster_domains()
         for cluster, domain in zip(clusters, self.ticket_data["domains"]):
             if "tags" in domain:
-                cluster["tags"] = domain["tags"]
+                cluster["tags"] = domain.pop("tags")
         inst_num = self.ticket.details["inst_num"]
         cluster_count = len(clusters)
         # 按需求的实例数量自动给集群分组

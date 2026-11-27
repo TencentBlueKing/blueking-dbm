@@ -49,7 +49,7 @@ from backend.flow.utils.mysql.dts.sync_scope_overlap import landing_object_set, 
 from backend.flow.utils.mysql.dts.task_name import patch_migrate_task_names_into_details
 from backend.iam_app.dataclass.actions import ActionEnum
 from backend.ticket import builders
-from backend.ticket.builders.common.base import DeployClusterTagsField, ParamValidateSerializerMixin
+from backend.ticket.builders.common.base import ParamValidateSerializerMixin
 from backend.ticket.builders.mysql.base import BaseMySQLTicketFlowBuilder, DBTableField
 from backend.ticket.constants import FlowType, TicketType
 from backend.ticket.exceptions import TicketResourceApplyException
@@ -983,7 +983,6 @@ class MysqlRenameMigrateDetailSerializer(MysqlMigrateBaseDetailSerializer):
 
 
 class MysqlDtsClusterApplyDetailSerializer(DtsPathFieldsMixin, serializers.Serializer):
-    tags = DeployClusterTagsField()
     cluster_name = serializers.CharField(help_text=_("DTS集群名称"))
     bk_cloud_id = serializers.IntegerField(help_text=_("云区域ID"))
     master_hosts = serializers.ListSerializer(child=DtsHostSpecSerializer())
