@@ -12,7 +12,7 @@ import logging.config
 from django.utils.translation import gettext_lazy as _
 from rest_framework.response import Response
 
-from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_default, auth_parse_bizs, auth_parse_clusters
+from backend.dbm_aiagent.mcp_tools.common.auth_parser.base import auth_parse_bizs, auth_parse_clusters
 from backend.dbm_aiagent.mcp_tools.constants import DBMMCPTags, DBMMcpTools
 from backend.dbm_aiagent.mcp_tools.decorators import mcp_tools_api_decorator
 from backend.dbm_aiagent.mcp_tools.redis.impl.redis_alarms import (
@@ -30,7 +30,11 @@ from backend.dbm_aiagent.mcp_tools.redis.serializers.redis_alarms import (
 )
 from backend.dbm_aiagent.mcp_tools.views import McpToolsViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission
-from backend.iam_app.handlers.drf_perm.mcp import McpClusterDetailPermission, McpDBManagePermission, McpSkipPermission
+from backend.iam_app.handlers.drf_perm.mcp import (
+    McpBizManageOrDbaPermission,
+    McpClusterDetailPermission,
+    McpDBManagePermission,
+)
 
 logger = logging.getLogger("flow")
 
@@ -85,21 +89,24 @@ class RedisQueryALARMMcpToolsViewSet(McpToolsViewSet):
         ),
         request_slz=RedisAlertNameAlarmInputSerializer,
         response_slz=RedisAlertNameAlarmOutputSerializer,
-        permission_classes=[McpSkipPermission],
-        mcp_auth_parser=auth_default,
+        permission_classes=[McpBizManageOrDbaPermission],
+        mcp_auth_parser=auth_parse_bizs,
         tags=[DBMMCPTags.READ],
         mcp=[DBMMcpTools.REDIS_QUERY_ALARM],
         name_prefix="redis_query_alarm",
     )
     def fetch_alarms_by_alert_name(self, request, *args, **kwargs):
-        """根据告警名称获取所有业务在指定时间范围内的告警详细"""
+        """根据告警名称获取告警详细。传 bk_biz_id 时仅返回该业务告警，不传则要求DBA权限"""
         start_time = self.get_param("start_time")
         end_time = self.get_param("end_time")
         alert_name = self.get_param("alert_name")
+        bk_biz_id = self.get_param("bk_biz_id")
         fuzzy = self.get_param("fuzzy")
         if fuzzy is None:
             fuzzy = True
 
         return Response(
-            get_alarms_by_alert_name(alert_name=alert_name, start_time=start_time, end_time=end_time, fuzzy=fuzzy)
+            get_alarms_by_alert_name(
+                alert_name=alert_name, start_time=start_time, end_time=end_time, fuzzy=fuzzy, bk_biz_id=bk_biz_id
+            )
         )

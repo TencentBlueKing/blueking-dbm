@@ -166,6 +166,7 @@ def get_alarms_by_alert_name(
     end_time: Optional[Union[int, str, datetime]] = None,
     n_minute: Optional[int] = None,
     fuzzy: bool = True,
+    bk_biz_id: Optional[Union[int, str]] = None,
     limit: int = 5000,
 ) -> Dict:
     """
@@ -225,6 +226,8 @@ def get_alarms_by_alert_name(
     # - fuzzy / wildcard 模式下由于 ES query_string 对中文/含特殊字符的 wildcard 支持不稳定
     #   （分词器差异、性能限制等），改为只按 DBM_REDIS 拉全量数据后在客户端做过滤
     query_conditions = ['labels: "DBM_REDIS"']
+    if bk_biz_id:
+        query_conditions.append(f'tags.appid : "{bk_biz_id}"')
     if match_mode == "exact":
         # 双引号内的双引号和反斜杠需要转义
         safe = alert_name.replace("\\", "\\\\").replace('"', '\\"')
