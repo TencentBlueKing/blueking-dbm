@@ -37,6 +37,7 @@ import (
 	"dbm-services/common/dbha-v2/internal/analysis/apm"
 	"dbm-services/common/dbha-v2/internal/analysis/config"
 	"dbm-services/common/dbha-v2/internal/analysis/dbm"
+	"dbm-services/common/dbha-v2/internal/analysis/detection"
 	"dbm-services/common/dbha-v2/internal/analysis/storage"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher/snapshotlogger"
@@ -277,6 +278,87 @@ func (w *Workflow) Close() {
 	w.quit = nil
 }
 
+// newScanSupportedDbTypes converts registered DbTypes into a lookup set.
+func newScanSupportedDbTypes(types []haprobe.DbType) map[haprobe.DbType]struct{} {
+	out := make(map[haprobe.DbType]struct{}, len(types))
+	for _, dt := range types {
+		if dt == haprobe.DbTypeNone || dt == haprobe.DbTypeUnknown {
+			continue
+		}
+		out[dt] = struct{}{}
+	}
+	return out
+}
+
+// formatDbTypeSet returns a stable, comma-separated DbType list for logging.
+func formatDbTypeSet(types map[haprobe.DbType]struct{}) string {
+	parts := make([]string, 0, len(types))
+	for dt := range types {
+		parts = append(parts, dt.Normalize().String())
+	}
+	sort.Strings(parts)
+	return strings.Join(parts, ",")
+}
+
+// filterBySupportedDbTypesForScan removes instances whose DbType is not
+// registered in the detection registry. It rebuilds MetaInsts and Conds
+// together so the subsequent status query never touches unregistered types.
+// An empty set is a wiring error: keep the metadata, warn, and rely on the
+// startup self-check to fail fast.
+func filterBySupportedDbTypesForScan(
+	bizID int,
+	bizMeta *BusinessMetadata,
+	supported map[haprobe.DbType]struct{},
+) {
+	if len(supported) == 0 {
+		logger.Warn("scan supported db types is empty, skip db type filtering, bizId: %d", bizID)
+		return
+	}
+
+	keptMeta := make(map[string]*hamodel.DbmMetadata, len(bizMeta.MetaInsts))
+	keptConds := make([]*storage.DbInstance, 0, len(bizMeta.Conds))
+	skippedCount := 0
+	skippedTypes := make(map[haprobe.DbType]struct{})
+	skippedClusters := make(map[string]struct{})
+
+	for key, meta := range bizMeta.MetaInsts {
+		dt := meta.GetDbType()
+		if _, ok := supported[dt]; !ok {
+			skippedCount++
+			skippedTypes[dt] = struct{}{}
+			clusterKey := fmt.Sprintf("clusterName:%s,clusterType:%s,dbType:%s",
+				meta.Cluster, meta.ClusterType.String(), dt.Normalize().String())
+			skippedClusters[clusterKey] = struct{}{}
+			continue
+		}
+
+		keptMeta[key] = meta
+		keptConds = append(keptConds, &storage.DbInstance{
+			BkCloudID: meta.BkCloudID,
+			IP:        meta.IP,
+			Port:      meta.Port,
+		})
+	}
+
+	if skippedCount > 0 {
+		clusterNames := make([]string, 0, len(skippedClusters))
+		for name := range skippedClusters {
+			clusterNames = append(clusterNames, name)
+		}
+		logger.Info(
+			"filtered unsupported db types for scan, bizId: %d, total: %d, kept: %d, "+
+				"skipped: %d, supportedDbTypes: [%s], skippedDbTypes: [%s], skippedClusters: [%s]",
+			bizID, len(bizMeta.MetaInsts), len(keptMeta), skippedCount,
+			formatDbTypeSet(supported), formatDbTypeSet(skippedTypes), strings.Join(clusterNames, ", "),
+		)
+	}
+
+	*bizMeta = BusinessMetadata{
+		MetaInsts: keptMeta,
+		Conds:     keptConds,
+	}
+}
+
 // CheckBusinessWithBizID checks a business by its ID.
 // It acquires scan lock, reads metadata and status, and runs checks via BusinessChecker.
 func (w *Workflow) CheckBusinessWithBizID(ctx context.Context, bizId int) error {
@@ -292,6 +374,10 @@ func (w *Workflow) CheckBusinessWithBizID(ctx context.Context, bizId int) error 
 	if err != nil {
 		return err
 	}
+
+	// Only DbTypes registered in the detection registry may enter the scan.
+	supported := newScanSupportedDbTypes(detection.RegisteredDbTypes())
+	filterBySupportedDbTypesForScan(bizId, bizMeta, supported)
 
 	// Optional whitelist filter for scan (enableWhiteListForScan). Independent of
 	// the later t_skip_dbinstance-based skip filtering in RunBusinessChecks.

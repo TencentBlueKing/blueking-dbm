@@ -28,6 +28,7 @@ import (
 	"testing"
 
 	"dbm-services/common/dbha-v2/internal/analysis/apm"
+	"dbm-services/common/dbha-v2/internal/analysis/detection"
 	"dbm-services/common/dbha-v2/internal/analysis/failure"
 	"dbm-services/common/dbha-v2/internal/analysis/parser"
 	"dbm-services/common/dbha-v2/internal/analysis/switcher"
@@ -120,6 +121,25 @@ func TestAnalysisProvidersRegisterDbMetrics(t *testing.T) {
 		name := getter.ToMetric().Name
 		if _, collides := fw[name]; collides {
 			t.Errorf("provider metric %q collides with framework metric", name)
+		}
+	}
+}
+
+func TestAnalysisProvidersDetectionRegisteredDbTypes(t *testing.T) {
+	registered := detection.RegisteredDbTypes()
+	set := make(map[haprobe.DbType]struct{}, len(registered))
+	for _, dt := range registered {
+		set[dt] = struct{}{}
+	}
+
+	for _, dt := range []haprobe.DbType{haprobe.DbTypeMySql, haprobe.DbTypeRedis} {
+		if _, ok := set[dt]; !ok {
+			t.Errorf("expected %s registered for detection", dt)
+		}
+	}
+	for _, dt := range []haprobe.DbType{haprobe.DbTypeEs, haprobe.DbTypeKafka} {
+		if _, ok := set[dt]; ok {
+			t.Errorf("placeholder db type %s must not be registered for detection", dt)
 		}
 	}
 }
