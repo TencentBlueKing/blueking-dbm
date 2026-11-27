@@ -19,7 +19,7 @@ import { useGlobalBizs } from '@stores';
 
 import BizPermission from '@views/BizPermission.vue';
 
-import { checkDbConsole, resetChangeConfirm, routeLeaveConfirm, siteBasePath } from '@utils';
+import { checkCommunityController, checkDbConsole, resetChangeConfirm, routeLeaveConfirm, siteBasePath } from '@utils';
 
 // 各模块的路由由自身 routes.ts 默认导出的函数调用 registerModule / registerBusinessModule 注册
 // deployment-plan、尚未接入路由，排除
@@ -130,6 +130,11 @@ export default () => {
    * 只改 query / hash 的同页跳转（Tab 切换、?open= 直达链接）页面不卸载，不拦截
    */
   appRouter.beforeEach((to, from) => {
+    // 再次提单的直达参数也受功能开关限制，不影响历史单据查看。
+    const ticketTypes = [to.query.ticketType].flat();
+    if (ticketTypes.some((type) => typeof type === 'string' && !checkCommunityController(type))) {
+      return { path: '/404' };
+    }
     if (to.path === from.path) {
       return true;
     }

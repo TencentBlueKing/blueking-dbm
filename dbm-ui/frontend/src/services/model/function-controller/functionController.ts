@@ -75,6 +75,7 @@ export default class FunctionController {
   'common.hcmRecycle': ControllerItem<string>;
   'common.polaris': ControllerItem<string>;
   'common.specCostEstimate': ControllerItem<string>;
+  community: ControllerItem<string>;
   dashboard: ControllerItem<DashboardFunctions>;
   databaseManage: ControllerItem<string>;
   'databaseManage.missionManage': ControllerItem<string>;
@@ -120,6 +121,7 @@ export default class FunctionController {
   'mongodb.sharedClusterList.clusterTopo': ControllerItem<string>;
   monitor: ControllerItem<MonitorFunctions>;
   mysql: ControllerItem<MySQLFunctions>;
+  'mysql.clb': ControllerItem<string>;
   'mysql.dataSubscription': ControllerItem<string>;
   'mysql.haClusterList.basicInfo': ControllerItem<string>;
   'mysql.haClusterList.changeLog': ControllerItem<string>;
@@ -137,6 +139,7 @@ export default class FunctionController {
   'mysql.toolbox.dbInstancePermissionClone': ControllerItem<string>;
   'mysql.toolbox.dbRename': ControllerItem<string>;
   'mysql.toolbox.dbTableBackup': ControllerItem<string>;
+  'mysql.toolbox.dtsDataMigrate': ControllerItem<string>;
   'mysql.toolbox.flashback': ControllerItem<string>;
   'mysql.toolbox.masterFailover': ControllerItem<string>;
   'mysql.toolbox.masterSlaveClone': ControllerItem<string>;
@@ -166,6 +169,7 @@ export default class FunctionController {
   'pulsar.clusterManage.clusterTopo': ControllerItem<string>;
   'pulsar.clusterManage.nodeList': ControllerItem<string>;
   redis: ControllerItem<RedisFunctions>;
+  'redis.clb': ControllerItem<string>;
   'redis.clusterManage.baseInfo': ControllerItem<string>;
   'redis.clusterManage.changeLog': ControllerItem<string>;
   'redis.clusterManage.clusterTopo': ControllerItem<string>;
@@ -190,6 +194,8 @@ export default class FunctionController {
   'redis.toolbox.dbReplace': ControllerItem<string>;
   'redis.toolbox.installModule': ControllerItem<string>;
   'redis.toolbox.masterSlaveSwap': ControllerItem<string>;
+  'redis.toolbox.memoryAnalysis': ControllerItem<string>;
+  'redis.toolbox.memoryAnalysisList': ControllerItem<string>;
   'redis.toolbox.proxyScaleDown': ControllerItem<string>;
   'redis.toolbox.proxyScaleUp': ControllerItem<string>;
   'redis.toolbox.recoverFromInstance': ControllerItem<string>;

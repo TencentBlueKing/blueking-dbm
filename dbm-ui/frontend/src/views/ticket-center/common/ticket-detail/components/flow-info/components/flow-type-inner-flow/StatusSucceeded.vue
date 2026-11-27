@@ -47,7 +47,10 @@
         </a>
       </template>
       <template
-        v-if="[TicketTypes.REDIS_HOT_KEY_ANALYSIS, TicketTypes.REDIS_KEYSTAT].includes(ticketDetail.ticket_type)">
+        v-if="
+          checkCommunityController(ticketDetail.ticket_type) &&
+          [TicketTypes.REDIS_HOT_KEY_ANALYSIS, TicketTypes.REDIS_KEYSTAT].includes(ticketDetail.ticket_type)
+        ">
         <span> ，</span>
         <RedisAnalysisToList
           :biz-id="ticketDetail.bk_biz_id"
@@ -68,7 +71,7 @@
 
   import CostTimer from '@components/cost-timer/CostTimer.vue';
 
-  import { utcTimeToSeconds } from '@utils';
+  import { checkCommunityController, utcTimeToSeconds } from '@utils';
 
   import StatusSucceeded from '../flow-type-common/StatusSucceeded.vue';
 

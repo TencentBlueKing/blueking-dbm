@@ -20,7 +20,7 @@ import FunctionControllModel, {
 
 import { AccountTypes, DBTypes, TicketTypes } from '@common/const';
 
-import { checkDbConsole, createToolboxRoute } from '@utils';
+import { checkCommunityController, checkDbConsole, createToolboxRoute } from '@utils';
 
 import { t } from '@locales/index';
 
@@ -322,7 +322,10 @@ export default function getRoutes(funControllerData: FunctionControllModel) {
   if (mysqlController.toolbox) {
     const toolboxRoutes = mysqlToolboxRouter.children.filter((item) => {
       const dbConsole = item.meta.dbConsole as ExtractedControllerDataKeys;
-      return !funControllerData[dbConsole] || (funControllerData[dbConsole] as { is_enabled: boolean }).is_enabled;
+      return (
+        checkCommunityController(dbConsole) &&
+        (!funControllerData[dbConsole] || (funControllerData[dbConsole] as { is_enabled: boolean }).is_enabled)
+      );
     });
 
     if (toolboxRoutes.length > 0) {

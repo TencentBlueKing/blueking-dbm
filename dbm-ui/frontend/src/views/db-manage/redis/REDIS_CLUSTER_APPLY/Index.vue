@@ -326,7 +326,7 @@
                     :required="false">
                     <BkCheckbox
                       v-model="formData.details.apply_clb"
-                      v-db-console="'common.clb'"
+                      v-db-console="'redis.clb'"
                       :disabled="modifyState.isAdjustApply">
                       CLB
                     </BkCheckbox>
@@ -453,7 +453,7 @@
   import { QueryKeyMap } from '@views/db-manage/redis/common/const';
   import { serviceApplyKey } from '@views/service-apply/const.ts';
 
-  import { checkDbConsole, generateId } from '@utils';
+  import { checkCommunityController, checkDbConsole, generateId } from '@utils';
 
   import { specClusterMachineMap } from '../common/const';
 
@@ -477,7 +477,7 @@
   const route = useRoute();
   const router = useRouter();
 
-  const isLoadBalanceShow = checkDbConsole('common.clb') || checkDbConsole('common.polaris');
+  const isLoadBalanceShow = checkDbConsole('redis.clb') || checkDbConsole('common.polaris');
 
   const clusterTicketDetail = useTicketDetail<Redis.ClusterApply>(TicketTypes.REDIS_CLUSTER_APPLY, {
     onSuccess(ticketDetail) {
@@ -496,7 +496,7 @@
         remark: ticketDetail.remark,
       });
       Object.assign(formData.details, {
-        apply_clb: details.apply_clb,
+        apply_clb: checkCommunityController('redis.clb') && details.apply_clb,
         apply_polaris: details.apply_polaris,
         bk_cloud_id: details.bk_cloud_id,
         city_code: details.city_code,
@@ -977,6 +977,7 @@
    */
   const getDetails = () => {
     const details: Record<string, any> = _.cloneDeep(formData.details);
+    details.apply_clb = checkCommunityController('redis.clb') && details.apply_clb;
     const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
 
     if (formData.details.ip_source === 'resource_pool') {

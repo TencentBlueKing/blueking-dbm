@@ -29,7 +29,7 @@ export const useSystemEnviron = defineStore('SystemEnviron', {
      * 查询环境变量信息
      */
     fetchSystemEnviron() {
-      getSystemEnviron().then((res) => {
+      return getSystemEnviron().then((res) => {
         this.urls = res;
       });
     },

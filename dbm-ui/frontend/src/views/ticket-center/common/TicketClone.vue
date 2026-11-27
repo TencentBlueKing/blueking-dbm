@@ -36,7 +36,7 @@
 
   import { TicketTypes } from '@common/const';
 
-  import { getBusinessHref } from '@utils';
+  import { checkCommunityController, getBusinessHref } from '@utils';
 
   interface Props {
     data: TicketModel<unknown>;
@@ -101,9 +101,14 @@
     [TicketTypes.TENDBCLUSTER_CLB_UNBIND_DOMAIN]: 'tendbClusterList', // tendbcluster 解绑主域名指向clb
   };
 
-  const isSupported = computed(() => !!ticketTypeRouteNameMap[props.data.ticket_type]);
+  const isSupported = computed(
+    () => checkCommunityController(props.data.ticket_type) && !!ticketTypeRouteNameMap[props.data.ticket_type],
+  );
 
   const handleResubmitTicket = async () => {
+    if (!isSupported.value) {
+      return;
+    }
     // let name = '';
     // if (
     //   [

@@ -19,7 +19,7 @@ import FunctionControllModel, {
 
 import { DBTypes, TicketTypes } from '@common/const';
 
-import { checkDbConsole, createToolboxRoute } from '@utils';
+import { checkCommunityController, checkDbConsole, createToolboxRoute } from '@utils';
 
 import { t } from '@locales/index';
 
@@ -306,7 +306,11 @@ export default function getRoutes(funControllerData: FunctionControllModel) {
 
     Object.entries(toolboxDbConsoleRouteMap).forEach(([key, routeItem]) => {
       const dbConsoleValue = key as ExtractedControllerDataKeys;
-      if (!funControllerData[dbConsoleValue] || funControllerData[dbConsoleValue].is_enabled) {
+      const controllerItem = funControllerData[dbConsoleValue];
+      if (
+        checkCommunityController(dbConsoleValue) &&
+        (!controllerItem || (typeof controllerItem !== 'function' && controllerItem.is_enabled))
+      ) {
         toolboxChildren.push(routeItem);
       }
     });
@@ -318,7 +322,9 @@ export default function getRoutes(funControllerData: FunctionControllModel) {
       },
       children: toolboxChildren,
     });
-    routes[0].children?.push(redisDataCopyCheckRepairRoute);
+    if (checkCommunityController(TicketTypes.REDIS_DATACOPY_CHECK_REPAIR)) {
+      routes[0].children?.push(redisDataCopyCheckRepairRoute);
+    }
   }
 
   return routes;

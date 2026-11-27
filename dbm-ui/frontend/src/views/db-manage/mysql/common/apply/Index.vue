@@ -265,7 +265,7 @@
                       :required="false">
                       <BkCheckbox
                         v-model="formData.details.apply_clb"
-                        v-db-console="'common.clb'"
+                        v-db-console="'mysql.clb'"
                         :disabled="modifyState.isAdjustApply">
                         CLB
                       </BkCheckbox>
@@ -413,7 +413,7 @@
   import { getDomainStrategy } from '@views/db-manage/utils/getDomainPreview.ts';
   import { serviceApplyKey } from '@views/service-apply/const.ts';
 
-  import { checkDbConsole } from '@utils';
+  import { checkCommunityController, checkDbConsole } from '@utils';
 
   import DomainTable from './components/MySQLDomainTable.vue';
   import PreviewTable from './components/PreviewTable.vue';
@@ -574,7 +574,7 @@
       remark: ticketDetail.remark,
     });
     Object.assign(formData.details, {
-      apply_clb: details.apply_clb,
+      apply_clb: checkCommunityController('mysql.clb') && details.apply_clb,
       bk_cloud_id: details.bk_cloud_id,
       city_code: details.city_code,
       cluster_count: details.domains.length,
@@ -635,7 +635,7 @@
 
   const serviceApply = inject(serviceApplyKey);
 
-  const isClbShow = checkDbConsole('common.clb');
+  const isClbShow = checkDbConsole('mysql.clb');
 
   const regionRequirementsRef = useTemplateRef('regionRequirements');
   const notifyRelatedPersonsRef = useTemplateRef('notifyRelatedPersonsRef');
@@ -961,6 +961,7 @@
    */
   const getDetails = () => {
     const details: Record<string, any> = _.cloneDeep(formData.details);
+    details.apply_clb = checkCommunityController('mysql.clb') && details.apply_clb;
     // 模块名只用于变更对比展示，后端按 db_module_id 重新取，提交时忽略该字段
     details.db_module_name = moduleAliasName.value;
     const regionAndDisasterParams = regionRequirementsRef.value!.getValue();
