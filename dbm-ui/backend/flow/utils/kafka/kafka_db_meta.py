@@ -201,6 +201,7 @@ class KafkaMeta(object):
             "bk_cloud_id": bk_cloud_id,
             "region": self.ticket_data["city_code"],
             "disaster_tolerance_level": self.ticket_data["disaster_tolerance_level"],
+            "tags": self.ticket_data.get("tags", []),
         }
 
         with atomic():
