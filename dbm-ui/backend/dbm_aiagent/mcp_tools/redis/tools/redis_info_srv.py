@@ -14,8 +14,9 @@ from typing import Dict, List, Union
 from django.utils.translation import gettext_lazy as _
 
 from backend.components import DRSApi
+from backend.constants import IP_PORT_DIVIDER
 from backend.db_meta.enums import AccessLayer, ClusterType
-from backend.db_meta.models import Cluster, Machine
+from backend.db_meta.models import Cluster, ProxyInstance, StorageInstance
 from backend.flow.consts import DEFAULT_REDIS_DBNUM
 from backend.flow.utils.base.payload_handler import PayloadHandler
 
@@ -30,13 +31,42 @@ class RedisInfoService:
         初始化Redis连接
 
         Args:
-            addr: Redis主机地址
+            addr: Redis实例地址(ip:port)
             immute_domain: 集群域名
         """
-        self.addr = addr
         self.cluster_obj = Cluster.objects.get(immute_domain=immute_domain)
         self.bk_cloud_id = self.cluster_obj.bk_cloud_id
-        self.machine_obj = Machine.objects.get(bk_cloud_id=self.bk_cloud_id, ip=addr.split(":")[0])
+
+        # 安全校验：addr 必须精确命中该集群的存储或代理实例（machine.ip + port），
+        # 防止借助本集群密码经 DRS 探测/访问集群外的实例地址
+        if IP_PORT_DIVIDER not in addr:
+            raise ValueError(_("实例地址{}格式错误，必须为 ip:port".format(addr)))
+        addr_ip, addr_port = str(addr).split(IP_PORT_DIVIDER, 1)
+        try:
+            addr_port = int(addr_port)
+        except ValueError:
+            raise ValueError(_("实例地址{}格式错误，端口必须为数字".format(addr)))
+
+        instance = StorageInstance.objects.filter(
+            cluster=self.cluster_obj,
+            machine__bk_cloud_id=self.bk_cloud_id,
+            machine__ip=addr_ip,
+            port=addr_port,
+        ).first()
+        if instance is None:
+            instance = ProxyInstance.objects.filter(
+                cluster=self.cluster_obj,
+                machine__bk_cloud_id=self.bk_cloud_id,
+                machine__ip=addr_ip,
+                port=addr_port,
+            ).first()
+        if instance is None:
+            raise ValueError(_("实例{}不属于集群{}，拒绝访问".format(addr, immute_domain)))
+
+        # 访问地址以元数据中命中的实例为准，不使用用户输入
+        self.machine_obj = instance.machine
+        self.addr = "{}{}{}".format(self.machine_obj.ip, IP_PORT_DIVIDER, instance.port)
+
         passwd_ret = PayloadHandler.redis_get_password_by_cluster_id(self.cluster_obj.id)
 
         if self.machine_obj.access_layer == AccessLayer.PROXY.value:

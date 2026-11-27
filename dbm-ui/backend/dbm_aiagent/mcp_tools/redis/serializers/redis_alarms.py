@@ -78,6 +78,11 @@ class RedisAlertNameAlarmInputSerializer(serializers.Serializer):
 
     start_time = serializers.DateTimeField(help_text=_("开始时间"))
     end_time = serializers.DateTimeField(help_text=_("结束时间"))
+    bk_biz_id = serializers.IntegerField(
+        help_text=_("业务ID，传入后仅返回该业务的告警（需具备该业务管理权限）；不传则要求DBA权限，允许跨业务查询"),
+        required=False,
+        allow_null=True,
+    )
     alert_name = serializers.CharField(
         help_text=_(
             "告警名称。支持三种匹配方式："
