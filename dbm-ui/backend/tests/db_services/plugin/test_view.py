@@ -14,8 +14,13 @@ import pytest
 from rest_framework.permissions import BasePermission
 
 from backend.bk_web import viewsets
+from backend.db_services.plugin.bf.views import BFPluginViewSet
+from backend.db_services.plugin.monitor.views import MonitorPluginViewSet
+from backend.db_services.plugin.mysql.apply.views import ApplyPluginViewSet
+from backend.db_services.plugin.mysql.authorize.views import AuthorizePluginViewSet
 from backend.db_services.plugin.view import BaseOpenAPIViewSet
 from backend.iam_app.handlers.drf_perm.base import DBManagePermission, RejectPermission
+from backend.iam_app.handlers.drf_perm.cluster import ClusterDashboardPermission
 
 pytestmark = pytest.mark.django_db
 
@@ -157,6 +162,47 @@ class TestBaseOpenAPIViewSetPermissions:
         perm_types = [type(p) for p in perms]
         assert perm_types[0] is RejectPermission, "未通过 JWT 认证时 RejectPermission 应排在第一位"
         assert DBManagePermission in perm_types, "create_module 应包含 DBManagePermission"
+
+
+PLUGIN_ACTION_PERMISSIONS = [
+    (BFPluginViewSet, "has_host_bf_access", []),
+    (BFPluginViewSet, "list_bf_biz_whitelist", []),
+    (MonitorPluginViewSet, "start_render_image_task", [ClusterDashboardPermission]),
+    (MonitorPluginViewSet, "get_render_image_result", []),
+    (ApplyPluginViewSet, "mysql_ha_apply_quick_minor_pass", [DBManagePermission]),
+    (AuthorizePluginViewSet, "authorize_apply", []),
+    (AuthorizePluginViewSet, "query_authorize_apply_result", []),
+]
+
+
+class TestPluginViewSetsRequireJWT:
+    """网关插件接口只允许网关验签通过的请求访问"""
+
+    @staticmethod
+    def _get_permission_types(viewset_cls, action, is_jwt):
+        viewset = viewset_cls()
+        viewset.request = MagicMock()
+        viewset.request.is_bk_jwt.return_value = is_jwt
+        viewset.action = action
+        return [type(p) for p in viewset.get_permissions()]
+
+    @pytest.mark.parametrize("viewset_cls,action,expected", PLUGIN_ACTION_PERMISSIONS)
+    def test_with_jwt(self, viewset_cls, action, expected):
+        perm_types = self._get_permission_types(viewset_cls, action, is_jwt=True)
+        assert RejectPermission not in perm_types
+        assert set(expected) <= set(perm_types)
+
+    @pytest.mark.parametrize("viewset_cls,action,expected", PLUGIN_ACTION_PERMISSIONS)
+    def test_without_jwt(self, viewset_cls, action, expected):
+        perm_types = self._get_permission_types(viewset_cls, action, is_jwt=False)
+        assert perm_types[0] is RejectPermission
+        assert set(expected) <= set(perm_types)
+
+    @pytest.mark.parametrize("action", ["authorize_apply", "query_authorize_apply_result"])
+    def test_authorize_without_db_manage(self, action):
+        """授权插件的用户和业务都由调用方指定，业务级鉴权不起作用，只依赖网关 JWT"""
+        perm_types = self._get_permission_types(AuthorizePluginViewSet, action, is_jwt=True)
+        assert DBManagePermission not in perm_types
 
 
 class TestTicketApiGwViewSetPermissions:

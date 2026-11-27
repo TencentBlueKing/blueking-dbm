@@ -113,6 +113,10 @@ class DBMLoginRequiredMiddleware(LoginRequiredMiddleware):
                 request.user = User(username=username) if username else AnonymousUser()
             setattr(request, "_dont_enforce_csrf_checks", True)
 
+        # blueapps 的 is_bk_jwt 只判断请求头存在；网关中间件找不到公钥时不会拒绝请求，
+        # 只有验签通过才会设置 request.jwt，因此必须以 request.jwt 为准
+        request.is_bk_jwt = lambda: getattr(request, "jwt", None) is not None
+
         bk_app_code = request.COOKIES.get("bk_app_code")
         bk_app_secret = request.COOKIES.get("bk_app_secret")
 
