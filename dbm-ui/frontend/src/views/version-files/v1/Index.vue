@@ -319,6 +319,10 @@
           label: t('工具集'),
           name: 'mongo-toolkit',
         },
+        {
+          label: 'mongo-dts',
+          name: 'mongo-dts',
+        },
       ],
       controller: {
         moduleId: 'mongodb',
