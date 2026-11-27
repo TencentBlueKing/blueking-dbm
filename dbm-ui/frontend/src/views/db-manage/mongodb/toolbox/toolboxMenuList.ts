@@ -169,11 +169,30 @@ export const toolboxMenuList = [
         name: t('数据导出'),
         parentId: 'mongo_data',
       },
+      {
+        dbConsoleValue: 'mongodb.toolbox.dataMigrate',
+        id: TicketTypes.MONGODB_DATA_MIGRATE,
+        name: t('数据迁移'),
+        parentId: 'mongo_data',
+      },
+      {
+        dbConsoleValue: 'mongodb.toolbox.dts',
+        id: TicketTypes.MONGODB_DTS,
+        name: t('DTS 同步'),
+        parentId: 'mongo_data',
+      },
+      {
+        dbConsoleValue: 'mongodb.toolbox.dtsCleanup',
+        id: TicketTypes.MONGODB_DTS_CLEANUP,
+        name: t('DTS 清理'),
+        parentId: 'mongo_data',
+      },
     ],
     icon: 'db-icon-data',
     id: 'mongo_data',
     name: t('数据处理'),
   },
+
   {
     children: [
       {
