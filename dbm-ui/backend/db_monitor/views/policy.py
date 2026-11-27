@@ -40,12 +40,8 @@ from backend.db_monitor.views.callbacks import redis  # noqa: F401 - 注册 Redi
 from backend.db_monitor.views.callbacks.base import AlarmCallback
 from backend.iam_app.dataclass import ResourceEnum
 from backend.iam_app.dataclass.actions import ActionEnum
-from backend.iam_app.handlers.drf_perm.base import (
-    BizDBTypeResourceActionPermission,
-    DBManagePermission,
-    get_request_key_id,
-)
-from backend.iam_app.handlers.drf_perm.monitor import GlobalMonitorPolicyPermission
+from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from backend.iam_app.handlers.drf_perm.monitor import MONITOR_POLICY_PERMISSIONS
 from backend.iam_app.handlers.permission import Permission
 from backend.ticket.models import Ticket
 from backend.utils.trace import detached_root_span
@@ -152,40 +148,16 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
     filter_class = MonitorPolicyListFilter
     ordering_fields = ("-create_at",)
 
-    @staticmethod
-    def instance_getter(key):
-        return lambda request, view: [get_request_key_id(request, key)]
-
     def _get_custom_permissions(self):
-        if self.action == "list":
-            if not int(self.request.query_params["bk_biz_id"]):
-                return []
-            else:
-                return [DBManagePermission()]
-        elif self.action == "clone_strategy":
-            policy = MonitorPolicy.objects.get(id=self.request.data["parent_id"])
-            permission = BizDBTypeResourceActionPermission(
-                [ActionEnum.MONITOR_POLICY_MANAGE],
-                instance_biz_getter=self.instance_getter("bk_biz_id"),
-                instance_dbtype_getter=lambda request, view: [policy.db_type],
-            )
-            return [permission]
-        elif self.action in ["update_strategy", "destroy", "disable", "enable"]:
-            policy_id = self.kwargs.get("pk")
-            policy = MonitorPolicy.objects.get(id=policy_id)
-            bk_biz_id = str(policy.bk_biz_id)
-            # 全局策略的编辑和启停
-            if not int(bk_biz_id):
-                return [GlobalMonitorPolicyPermission(actions=[ActionEnum.GLOBAL_ALARM_POLICY_MANAGE])]
-            else:
-                permission = BizDBTypeResourceActionPermission(
-                    [ActionEnum.MONITOR_POLICY_MANAGE],
-                    instance_biz_getter=lambda request, view: [policy.bk_biz_id],
-                    instance_dbtype_getter=lambda request, view: [policy.db_type],
-                )
-                return [permission]
-        elif self.action in ["callback"]:
+        permission_class = MONITOR_POLICY_PERMISSIONS.get(self.action)
+        if permission_class:
+            return [permission_class()]
+
+        # 告警回调由监控平台调用，通过 Bearer Token 校验
+        if self.action == "callback":
             return []
+
+        # 其余接口（集群/实例/模块列表、阈值查询等）均以 bk_biz_id 为必填参数，按业务管理权限校验
         return [DBManagePermission()]
 
     @classmethod
@@ -196,6 +168,8 @@ class MonitorPolicyViewSet(AuditedModelViewSet):
     def get_serializer_class(self):
         if self.action == "list":
             return serializers.MonitorPolicyListSerializer
+        if self.action == "create":
+            return serializers.MonitorPolicyCreateSerializer
         return serializers.MonitorPolicySerializer
 
     def get_serializer_context(self):
