@@ -13,7 +13,6 @@ from django.utils.translation import gettext as _
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from backend.bk_web import viewsets
 from backend.bk_web.swagger import common_swagger_auto_schema
 from backend.db_services.mysql.permission.authorize.handlers import MySQLAuthorizeHandler
 from backend.db_services.plugin.constants import SWAGGER_TAG
@@ -21,11 +20,11 @@ from backend.db_services.plugin.mysql.authorize.serializers import (
     AuthorizeApplySerializer,
     QueryAuthorizeApplySerializer,
 )
-from backend.iam_app.handlers.drf_perm.base import DBManagePermission
+from backend.db_services.plugin.view import BaseOpenAPIViewSet
 
 
-class AuthorizePluginViewSet(viewsets.SystemViewSet):
-    default_permission_class = [DBManagePermission()]
+class AuthorizePluginViewSet(BaseOpenAPIViewSet):
+    default_permission_class = []
 
     @common_swagger_auto_schema(
         operation_summary=_("第三方权限申请(兼容GCS)"),
