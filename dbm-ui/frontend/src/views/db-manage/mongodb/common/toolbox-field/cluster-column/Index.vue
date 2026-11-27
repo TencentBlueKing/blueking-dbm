@@ -6,7 +6,7 @@
     fixed="left"
     :label="label || t('目标集群')"
     :loading="isLoading"
-    :min-width="350"
+    :min-width="minWidth"
     required>
     <template #headAppend>
       <span
@@ -46,6 +46,7 @@
     clusterTypes?: ClusterTypes[];
     field?: string;
     label?: string;
+    minWidth?: number;
     selected: {
       cluster_type: string;
       id: number;
@@ -62,6 +63,7 @@
     clusterTypes: () => [ClusterTypes.MONGO_REPLICA_SET, ClusterTypes.MONGO_SHARED_CLUSTER],
     field: 'cluster.master_domain',
     label: '',
+    minWidth: 350,
     tabListConfig: undefined,
   });
   const emits = defineEmits<Emits>();

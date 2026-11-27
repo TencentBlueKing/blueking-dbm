@@ -78,3 +78,17 @@ export function queryRestoreRecord(params: {
 export function queryClustersBackupLog(params: { cluster_ids: number[]; cluster_type: ClusterTypes }) {
   return http.post<Record<number, ClusterBackupLog[]>>(`${getRootPath()}/query_clusters_backup_log/`, params);
 }
+
+export interface TicketBackupLog {
+  backup_logs: ClusterBackupLog[];
+  create_at: string;
+  ticket_id: number;
+  ticket_type: string;
+}
+
+/**
+ * 获取集群单据备份记录
+ */
+export function queryTicketBackupLog(params: { cluster_ids: number[]; cluster_type: ClusterTypes }) {
+  return http.post<TicketBackupLog[]>(`${getRootPath()}/query_ticket_backup_log/`, params);
+}
