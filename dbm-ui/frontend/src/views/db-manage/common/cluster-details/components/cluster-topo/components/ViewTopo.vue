@@ -75,9 +75,9 @@
               <span class="node-details-label">{{ item.label }}：</span>
               <span class="node-details-value">
                 <Component
-                  :is="item.render(instDetails[item.key])"
+                  :is="item.render(getDetailValue(item.key))"
                   v-if="item.render" />
-                <template v-else>{{ instDetails[item.key] || '--' }}</template>
+                <template v-else>{{ getDetailValue(item.key) || '--' }}</template>
               </span>
             </div>
             <a
@@ -170,6 +170,8 @@
   }
 </script>
 <script setup lang="tsx">
+  import ClusterK8sInstanceStatus from '@components/cluster-k8s-instance-status/Index.vue';
+
   export interface Props {
     clusterData: {
       cluster_name: string;
@@ -179,7 +181,9 @@
       namespace?: string;
     };
     clusterType: keyof typeof apiMap | keyof typeof k8sApiMap;
+    // eslint-disable-next-line vue/no-unused-properties
     dbType: string;
+    // eslint-disable-next-line vue/no-unused-properties
     nodeConfig?: NodeConfig;
   }
 
@@ -213,7 +217,71 @@
   // 禁用态集群不渲染拓扑（renderDraph 对所有禁用集群都跳过），统一展示空态
   const showEmpty = computed(() => props.clusterData.isOffline);
 
-  const detailColumns: DetailColumn[] = [
+  const isK8sCluster = computed(() => props.clusterType in k8sApiMap);
+
+  // 支持按路径取嵌套字段，如 resourceUsage.cpuPercent
+  const getDetailValue = (key: string) => {
+    const detail = instDetails.value;
+    if (!detail) {
+      return undefined;
+    }
+    return key.split('.').reduce<unknown>((value, part) => {
+      if (value === null || typeof value !== 'object') {
+        return undefined;
+      }
+      return (value as Record<string, unknown>)[part];
+    }, detail);
+  };
+
+  const renderPercent = (value: unknown) => {
+    const number = Number(value);
+    return <span>{Number.isFinite(number) ? `${number}%` : '--'}</span>;
+  };
+
+  const k8sDetailColumns: DetailColumn[] = [
+    {
+      key: 'componentName',
+      label: t('组件'),
+    },
+    {
+      key: 'podName',
+      label: t('实例'),
+    },
+    {
+      key: 'status',
+      label: t('状态'),
+      render: (status) => (status ? <ClusterK8sInstanceStatus data={String(status)} /> : <span>--</span>),
+    },
+    {
+      key: 'node',
+      label: t('所在节点'),
+    },
+    {
+      key: 'resourceQuotaDisplay',
+      label: t('资源配置'),
+    },
+    {
+      key: 'resourceUsage.cpuPercent',
+      label: 'CPU',
+      render: renderPercent,
+    },
+    {
+      key: 'resourceUsage.memoryPercent',
+      label: t('内存'),
+      render: renderPercent,
+    },
+    {
+      key: 'resourceUsage.storagePercent',
+      label: t('硬盘'),
+      render: renderPercent,
+    },
+    {
+      key: 'createdTimeDisplay',
+      label: t('部署时间'),
+    },
+  ];
+
+  const commonDetailColumns: DetailColumn[] = [
     {
       key: 'role',
       label: t('部署角色'),
@@ -273,6 +341,8 @@
       render: (value) => <span>{Number.isFinite(value) ? `${value}GB` : '--'}</span>,
     },
   ];
+
+  const detailColumns = computed(() => (isK8sCluster.value ? k8sDetailColumns : commonDetailColumns));
 
   let fetchTimer: ReturnType<typeof setTimeout> | undefined;
 

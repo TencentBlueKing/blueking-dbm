@@ -130,12 +130,6 @@
           :is-filter="isSearching"
           :selected-list="selectedList" />
       </template>
-      <template #storageEntry>
-        <StorageEntryColumn
-          :get-table-instance="getTableInstance"
-          :is-filter="isSearching"
-          :selected-list="selectedList" />
-      </template>
     </ClusterTable>
     <TableDetailDialog
       v-model="isShowDetail"
@@ -162,7 +156,6 @@
     MasterDomainColumn,
     OperationColumn,
     QueryDomainColumn,
-    StorageEntryColumn,
   } from '@views/db-manage/common/cluster-table/Index.vue';
   import DropdownExportExcel from '@views/db-manage/common/dropdown-export-excel/index.vue';
   import { useK8sClusterRestart, useOperateClusterBasic } from '@views/db-manage/common/hooks';
@@ -201,7 +194,7 @@
 
   const getTableInstance = () => tableRef.value;
 
-  // 设置用户个人表头信息（存储入口列默认隐藏，列设置中打开后显示）
+  // 设置用户个人表头信息
   const { settings, updateTableSettings } = useTableSettings(UserPersonalSettings.VM_CLUSTER_TABLE_SETTINGS, {
     disabled: ['domain'],
     hidden: ['storage_entry_display'],

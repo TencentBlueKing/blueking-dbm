@@ -174,7 +174,7 @@
     clusterId,
     goClusterDetail: handleToDetails,
     showDetail: isShowDetail,
-  } = useGoClusterDetail('VictoriametricsselectDetail');
+  } = useGoClusterDetail('VictoriametricsSelectDetail');
 
   const { handleSelection, isSelected, selectedIdList, selectedList } =
     useClusterTableSelect<VictoriametricsselectModel>();

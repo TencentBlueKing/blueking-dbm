@@ -61,8 +61,15 @@ export function getVictoriametricsClusterDetail(params: { id: number }) {
  */
 export const getVictoriametricsClusterInstanceList = function (params: {
   cluster_name: string;
+  /** 后端 list_instances 约定，保持 snake_case */
+  component_name?: string;
   k8s_cluster_name: string;
+  limit?: number;
   namespace: string;
+  node?: string;
+  offset?: number;
+  pod_name?: string;
+  status?: string;
 }) {
   return http
     .get<ListBase<VictoriametricsClusterInstanceModel[]>>(`${getRootPath()}/list_instances/`, params)

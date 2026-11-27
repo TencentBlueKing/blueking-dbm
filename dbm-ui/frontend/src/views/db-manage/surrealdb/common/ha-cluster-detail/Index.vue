@@ -83,8 +83,7 @@
             :cluster-data="data"
             :cluster-type="ClusterTypes.K8S_SURREALDB_HA"
             :role="role"
-            @refresh="handleRefresh"
-            @request-success="handleRequestSuccess">
+            @refresh="handleRefresh">
             <template #role>
               <BkRadioGroup
                 v-model="role"
@@ -109,8 +108,9 @@
   import { useRequest } from 'vue-request';
 
   import SurrealdbHaDetailModel from '@services/model/surrealdb/surrealdb-ha-detail';
-  import SurrealdbHaInstanceModel from '@services/model/surrealdb/surrealdb-ha-instance';
   import { getSurrealdbHaDetail } from '@services/source/surrealdbHa';
+
+  import { useUrlSearch } from '@hooks';
 
   import { ClusterTypes } from '@common/const';
 
@@ -126,8 +126,6 @@
   import { useK8sClusterRestart, useOperateClusterBasic } from '@views/db-manage/common/hooks';
   import OperationBtnStatusTips from '@views/db-manage/common/OperationBtnStatusTips.vue';
 
-  import useRoleList from './useRoleList';
-
   interface Props {
     clusterId: number;
   }
@@ -140,11 +138,18 @@
   // const { ClbInfo } = BaseInfoField;
 
   const { t } = useI18n();
+  const { getSearchParams } = useUrlSearch();
 
   const data = ref<SurrealdbHaDetailModel>();
   const isLoading = ref(false);
 
-  const { changeCountData, defaultRole: role, list: roleList } = useRoleList();
+  const roleList = [
+    { id: 'surreal', name: 'Surreal' },
+    { id: 'tikv', name: 'TiKV' },
+    { id: 'pd', name: 'Pd' },
+  ];
+  const urlRole = getSearchParams().component_name;
+  const role = ref(roleList.some((item) => item.id === urlRole) ? urlRole : 'surreal');
   const { run: fetchClusterDetail } = useRequest(getSurrealdbHaDetail, {
     manual: true,
     onAfter() {
@@ -188,20 +193,6 @@
       immediate: true,
     },
   );
-
-  const handleRequestSuccess = (list: SurrealdbHaInstanceModel[]) => {
-    const currantCountData = list.reduce(
-      (acc, cur) => {
-        return Object.assign(acc, { [cur.componentName]: (acc[cur.componentName as keyof typeof acc] || 0) + 1 });
-      },
-      {
-        pd: 0,
-        surreal: 0,
-        tikv: 0,
-      } as Parameters<typeof changeCountData>[0],
-    );
-    changeCountData(currantCountData);
-  };
 
   const handleRefresh = () => {
     fetchDetailData();
