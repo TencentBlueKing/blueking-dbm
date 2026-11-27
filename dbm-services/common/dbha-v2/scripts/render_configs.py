@@ -156,6 +156,27 @@ def apply_detector_check_probe_process_cmd_default(values: Dict[str, str]) -> No
         )
 
 
+def warn_scan_whitelist_without_api(values: Dict[str, str]) -> bool:
+    """Warn when the scan whitelist is on but the DBHA v1 whitelist API is empty.
+
+    An empty switch renders as YAML null, which keeps the analysis default (true).
+    Rendering continues; analysis refuses to start with this combination.
+    Returns True when the warning was written.
+    """
+    switch = values.get("ANALYSIS_WORKFLOW_ENABLE_WHITE_LIST_FOR_SCAN", "").strip().lower()
+    if switch not in ("", "true"):
+        return False
+    if values.get("COMMON_DBHAV1_API_BLACK_WHITELIST_GET_API", "").strip():
+        return False
+
+    sys.stderr.write(
+        "warning: COMMON_DBHAV1_API_BLACK_WHITELIST_GET_API is empty while "
+        "ANALYSIS_WORKFLOW_ENABLE_WHITE_LIST_FOR_SCAN is true, analysis will refuse to start; "
+        "set the api or set the scan switch to false\n"
+    )
+    return True
+
+
 def apply_probe_reporter_local_socket_port_default(values: Dict[str, str]) -> None:
     """Inject a default of "0" for PROBE_REPORTER_LOCAL_SOCKET_PORT when the rc omits it.
 
@@ -489,6 +510,7 @@ def main() -> None:
         apply_receiver_apm_listen_address_default(values, ip_detect_host)
         apply_analysis_apm_listen_address_default(values, ip_detect_host)
         apply_detector_check_probe_process_cmd_default(values)
+        warn_scan_whitelist_without_api(values)
         apply_receiver_source_probe_endpoint_default(values, ip_detect_host)
         apply_admin_grpc_listen_address_default(values, ip_detect_host)
         apply_admin_web_listen_address_default(values, ip_detect_host)

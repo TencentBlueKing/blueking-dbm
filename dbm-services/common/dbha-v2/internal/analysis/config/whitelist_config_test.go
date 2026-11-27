@@ -53,6 +53,22 @@ func writeTempAnalysisConfigWithWorkflowExtra(t *testing.T, workflowExtra string
 	return path
 }
 
+func writeTempAnalysisConfigWithoutWhiteListAPI(t *testing.T, workflowExtra string) string {
+	t.Helper()
+
+	path := writeTempAnalysisConfigWithWorkflowExtra(t, workflowExtra)
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read temp analysis.yaml failed, errmsg: %s", err)
+	}
+
+	stripped := strings.Replace(string(content), minimalWhiteListAPIYAML, "", 1)
+	if err := os.WriteFile(path, []byte(stripped), 0o600); err != nil {
+		t.Fatalf("write temp analysis.yaml failed, errmsg: %s", err)
+	}
+	return path
+}
+
 func resetCfgForLoadTest(t *testing.T) {
 	t.Helper()
 	saved := Cfg
@@ -63,6 +79,7 @@ func resetCfgForLoadTest(t *testing.T) {
 	Cfg = Configuration{
 		Workflow: WorkflowConfig{
 			EnableWhiteListForSwitch: true,
+			EnableWhiteListForScan:   true,
 		},
 	}
 }
@@ -78,8 +95,49 @@ func TestLoad_WhiteListDefaultsWhenUnset(t *testing.T) {
 	if !Cfg.Workflow.EnableWhiteListForSwitch {
 		t.Fatal("expected EnableWhiteListForSwitch default true when unset")
 	}
+	if !Cfg.Workflow.EnableWhiteListForScan {
+		t.Fatal("expected EnableWhiteListForScan default true when unset")
+	}
+}
+
+func TestLoad_WhiteListForScanExplicitFalse(t *testing.T) {
+	resetCfgForLoadTest(t)
+
+	path := writeTempAnalysisConfigWithWorkflowExtra(t, "  enableWhiteListForScan: false\n")
+	if err := Load(path); err != nil {
+		t.Fatalf("Load failed, errmsg: %s", err)
+	}
+
 	if Cfg.Workflow.EnableWhiteListForScan {
-		t.Fatal("expected EnableWhiteListForScan default false when unset")
+		t.Fatal("expected EnableWhiteListForScan=false when explicitly set")
+	}
+}
+
+func TestLoad_WhiteListForScanDefaultRequiresAPI(t *testing.T) {
+	resetCfgForLoadTest(t)
+
+	path := writeTempAnalysisConfigWithoutWhiteListAPI(t, "")
+	if err := Load(path); err == nil {
+		t.Fatal("expected Load to fail when scan whitelist is on by default and api is empty")
+	}
+}
+
+func TestLoad_WhiteListForScanBlankAPIRejected(t *testing.T) {
+	resetCfgForLoadTest(t)
+
+	path := writeTempAnalysisConfigWithoutWhiteListAPI(t,
+		"  enableWhiteListForScan: true\n  dbhav1ApiBlackWhitelistGet:\n    api: \"  \"\n")
+	if err := Load(path); err == nil {
+		t.Fatal("expected Load to fail when scan whitelist is on and api is blank")
+	}
+}
+
+func TestLoad_WhiteListForScanDisabledAllowsEmptyAPI(t *testing.T) {
+	resetCfgForLoadTest(t)
+
+	path := writeTempAnalysisConfigWithoutWhiteListAPI(t, "  enableWhiteListForScan: false\n")
+	if err := Load(path); err != nil {
+		t.Fatalf("expected Load to pass when scan whitelist is off, errmsg: %s", err)
 	}
 }
 

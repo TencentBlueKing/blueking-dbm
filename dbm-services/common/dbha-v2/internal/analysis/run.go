@@ -44,7 +44,6 @@ import (
 	"dbm-services/common/dbha-v2/pkg/storage/haprobe"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 func setupGracefulShutdown(svr *Service) {
@@ -74,19 +73,7 @@ func setupGracefulShutdown(svr *Service) {
 
 // Run run analysis service
 func Run(cmd *cobra.Command, args []string) error {
-	viper.SetConfigName("analysis")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./etc")
-
-	if ConfigFilePath != "" {
-		viper.SetConfigFile(ConfigFilePath)
-	}
-
-	if err := viper.ReadInConfig(); err != nil {
-		return err
-	}
-
-	if err := viper.Unmarshal(&config.Cfg); err != nil {
+	if err := config.Load(ConfigFilePath); err != nil {
 		return err
 	}
 
@@ -122,7 +109,6 @@ func Run(cmd *cobra.Command, args []string) error {
 	snapshotLogger := logger.NewZapLogger(snapshotLogCfg)
 
 	logger.Debug("analysis startup config, log_path: %s, log_level: %s", config.Cfg.Log.Path, config.Cfg.Log.Level)
-
 	if err := logAnalysisProviderSelfCheck(); err != nil {
 		return err
 	}

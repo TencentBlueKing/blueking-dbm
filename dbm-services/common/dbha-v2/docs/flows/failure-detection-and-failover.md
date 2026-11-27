@@ -82,7 +82,7 @@ Pop 成熟故障组后进入策略匹配与切换边界（对齐 [`SwitchExecuto
 3. 按序逐条策略对「尚未绑定的实例 + 事件」贪心匹配：special 策略用注册的 `SpecialMatchFunc`（按角色组合，不校验 EventName），普通策略用 `FilterInstancesByEventAndCount`（EventName 相等且 Count ≥ `TriggerCount`，`TriggerCount≤0` 视为 1）。每条命中的策略生成一个组，已绑定的实例事件不再参与后续策略。
 4. 所有策略都未绑定的实例归入 `Strategy=nil` 的组，按 notify 处理（`TriggerWorkflowAlarm` 告警 + notify 快照）。
 5. `buildGroupTasks`：非 switch 组转为 notify 任务；switch 组按主机（`bkCloudID:ip`）去重，已被前序 switch 组占用的主机跳过。各任务并发执行。
-6. switch 任务（`handleStrategySwitch`）内才做 Pop 阶段白名单过滤（`filterByWhitelistForSwitch`，`EnableWhiteListForSwitch=false` 或 `EnableSwitching=false` 时跳过）。过滤后只有白名单集群的实例继续切换，其余实例只告警并写 notify 快照；白名单查询失败则告警并放弃本组切换。Scan 阶段另有 `filterByWhitelistForScan`（受 `EnableWhiteListForScan` 控制，默认关闭）。总开关 `EnableSwitching=false` 或 DbType 未注册 switcher 时，`TriggerSwitching` 仅记 warn 日志返回。
+6. switch 任务（`handleStrategySwitch`）内才做 Pop 阶段白名单过滤（`filterByWhitelistForSwitch`，`EnableWhiteListForSwitch=false` 或 `EnableSwitching=false` 时跳过）。过滤后只有白名单集群的实例继续切换，其余实例只告警并写 notify 快照；白名单查询失败则告警并放弃本组切换。Scan 阶段另有 `filterByWhitelistForScan`（受 `EnableWhiteListForScan` 控制，默认开启；开启时 `dbhav1ApiBlackWhitelistGet.api` 为空，analysis 启动即失败，避免带空接口运行导致所有业务被跳过扫描）。总开关 `EnableSwitching=false` 或 DbType 未注册 switcher 时，`TriggerSwitching` 仅记 warn 日志返回。
 
 配置要点：
 

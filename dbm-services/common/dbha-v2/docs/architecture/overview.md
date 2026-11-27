@@ -81,7 +81,7 @@ DBHA v2 负责数据库实例的**持续探测**、**故障判定**与**自动�
 
 - **DBHA → DBM**：analysis 主动调用 DBM HTTP API——周期性同步元数据到 `t_dbm_metadata`；切换时执行换角、更新实例状态，并按集群类型触发域名 / CLB / Polaris / Dumper 等副作用。admin 在 `GetProbeConfig` 本地无元数据时也会回退访问 DBM。CLB、Polaris 等不单独成系统，统一经 DBM API 完成。
 - **DBHA → BKMonitor**：analysis 通过本机/配置的 `bkmonitorbeat` 将事件投递到 BKMonitor（`PostBKMonitor`），用于故障与切换相关告警；不是业务探测数据主通道。
-- **DBHA → DBHA v1**：analysis 查询 v1 黑白名单 API。`enableWhiteListForScan`（默认关闭）控制 Scan 阶段是否先按白名单过滤待探测实例；`enableWhiteListForSwitch`（默认开启）控制 Pop 阶段策略为 `action=switch` 时是否按白名单过滤待切换实例，未在白名单的只告警。旧配置键 `enableWhiteList` 不再解析。
+- **DBHA → DBHA v1**：analysis 查询 v1 黑白名单 API。`enableWhiteListForScan`（默认开启）控制 Scan 阶段是否先按白名单过滤待探测实例，开启时必须配置 `dbhav1ApiBlackWhitelistGet.api`，否则 analysis 启动失败；`enableWhiteListForSwitch`（默认开启）控制 Pop 阶段策略为 `action=switch` 时是否按白名单过滤待切换实例，未在白名单的只告警。旧配置键 `enableWhiteList` 不再解析。
 - **Probe → GSE →（可选 Kafka）→ Receiver**：边缘上报的旁路；直连路径为 Probe gRPC → Receiver。
 - **服务端 → Prometheus / BKMonitor 抓取**：各服务 haapm 暴露 `/metrics`，由外部抓取做容量与延迟观测，与 BKMonitor 事件上报互补。
 - **Analysis → Probe（SSH + `dbha-probe health -j`）**：二次探测主路径为 SSH 远端执行 `dbha-probe health -j`。五类结果确认故障并入滑动窗口：SSH dial/session 失败（`DoubleCheckSshFailureV1`）、SSH 鉴权失败（`SshAuthFailure`）、SSH 连接/执行超时（`SshTimeout`）、health 磁盘写校验失败（`DiskWriteFailure`）、uptime 采集失败或 uptime 低于 `maxUptime`（`UptimeFailure`）。入窗前剔除 provider 注册为不可切换的实例（当前为 Redis 集群协议类型中非 predixy 的实例），这些实例只告警。其余二次探测结果（含 probe 进程不可用、存活但无指标等）只告警不入窗。入窗细则见 [MySQL 探测设计 §5](../detection/mysql-detection-design.md)，Scan/Pop/窗口/锁/白名单运行时见 [故障判定与切换](../flows/failure-detection-and-failover.md)。keepalive HTTP 是运维可选的探活手段，analysis **不调用**它，它**不参与入窗**，也不是二次探测的组成部分。
@@ -123,7 +123,7 @@ DBHA v2 负责数据库实例的**持续探测**、**故障判定**与**自动�
 | `t_skip_dbinstance`           | 跳过实例                               |
 
 
-运行时 Scan/Switch 白名单来自 **DBHA v1 API**（`enableWhiteListForScan` 默认关闭、`enableWhiteListForSwitch` 默认开启，见 [dbhav1_whitelist.go](../../internal/analysis/workflow/dbhav1_whitelist.go)），**不是** analysis 直读 `t_db_black_white_list`。admin `migrate` 的受管表清单**不含**该表；本地表模型见 [hamodel](../../pkg/storage/hamodel)，运维工具见 `dbha-bwmgr`。
+运行时 Scan/Switch 白名单来自 **DBHA v1 API**（`enableWhiteListForScan`、`enableWhiteListForSwitch` 均默认开启；Scan 白名单开启而接口为空时 analysis 拒绝启动，见 [dbhav1_whitelist.go](../../internal/analysis/workflow/dbhav1_whitelist.go)），**不是** analysis 直读 `t_db_black_white_list`。admin `migrate` 的受管表清单**不含**该表；本地表模型见 [hamodel](../../pkg/storage/hamodel)，运维工具见 `dbha-bwmgr`。
 
 探测载荷类型见 [pkg/storage/haprobe](../../pkg/storage/haprobe)（如 `HarvestData`、各 DB 状态结构、事件名常量）。  
 表结构迁移由 admin：`dbha-admin migrate`（[internal/admin/migrator](../../internal/admin/migrator)）。常规 `--type schema` 和 `--type all` 会按模型收敛主键和列定义，可能锁住受管表，执行窗口需要先停止这些表的写入。维护规则见 [migrator 设计](migrator-design.md)。
