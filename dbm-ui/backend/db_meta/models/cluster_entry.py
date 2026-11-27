@@ -51,6 +51,10 @@ class ClusterEntry(AuditedModel):
 
     class Meta:
         unique_together = ("cluster_entry_type", "entry")
+        indexes = [
+            # DB 中实际为 entry(191) 的前缀索引, Django 无法表达前缀长度, 这里按全字段声明
+            models.Index(fields=["entry", "cluster_id"], name="idx_entry_cluster"),
+        ]
         verbose_name = verbose_name_plural = _("集群访问入口(ClusterEntry)")
 
     @classmethod

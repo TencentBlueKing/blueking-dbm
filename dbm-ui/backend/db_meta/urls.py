@@ -27,6 +27,7 @@ if env.SERVICE_ONLY:
         path("dbha/tendis_cluster_swap", views.dbha.tendis_cluster_swap, name="dbha-tendis_cluster_swap"),
         path("dbha/entry_detail", views.dbha.entry_detail, name="dbha-entry_detail"),
         path("dbha/sqlserver_cluster_swap", views.dbha.sqlserver_cluster_swap, name="dbha-sqlserver_cluster_swap"),
+        path("dbha/set_machines_unavailable", views.dbha.set_machines_unavailable, name="set-machines-unavailable"),
         path(
             "meta/tendis_cluster_detail/<int:cluster_id>",
             views.meta.tendis_cluster_detail,

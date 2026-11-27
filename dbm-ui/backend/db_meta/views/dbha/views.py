@@ -24,7 +24,6 @@ logger = logging.getLogger("root")
 
 @swagger_auto_schema(methods=["get"])
 @api_view(["GET"])
-# @permission_classes([AllowAny])
 @csrf_exempt
 def cities(request: Request):
     try:
@@ -61,7 +60,6 @@ def cities(request: Request):
     ],
 )
 @api_view(["GET"])
-# @permission_classes([AllowAny])
 @csrf_exempt
 def instances(request: Request):
     try:
@@ -86,7 +84,6 @@ def instances(request: Request):
     ),
 )
 @api_view(["PATCH"])
-# @permission_classes([AllowAny])
 @csrf_exempt
 def update_status(request: Request):
     try:
@@ -123,7 +120,6 @@ def update_status(request: Request):
     ),
 )
 @api_view(["POST"])
-# @permission_classes([AllowAny])
 @csrf_exempt
 def swap_role(request: Request):
     try:
@@ -134,7 +130,6 @@ def swap_role(request: Request):
 
 
 @api_view(["POST"])
-# @permission_classes([AllowAny])
 @csrf_exempt
 def entry_detail(request: Request):
     try:
@@ -145,7 +140,6 @@ def entry_detail(request: Request):
 
 
 @api_view(["POST"])
-# @permission_classes([AllowAny])
 @csrf_exempt
 def tendis_cluster_swap(request: Request):
     try:
@@ -182,7 +176,6 @@ def tendis_cluster_swap(request: Request):
     ),
 )
 @api_view(["POST"])
-# @permission_classes([AllowAny])
 @csrf_exempt
 def swap_ctl_role(request: Request):
     try:
@@ -193,11 +186,20 @@ def swap_ctl_role(request: Request):
 
 
 @api_view(["POST"])
-# @permission_classes([AllowAny])
 @csrf_exempt
 def sqlserver_cluster_swap(request: Request):
     try:
         api.dbha.sqlserver_cluster_swap(request.data)
+        return JsonResponse({"code": 0, "data": "", "msg": ""})
+    except Exception as e:
+        return JsonResponse({"code": 1, "data": "", "msg": "{}".format(e)})
+
+
+@api_view(["POST"])
+@csrf_exempt
+def set_machines_unavailable(request: Request):
+    try:
+        api.dbha.set_machines_unavailable(request.data)
         return JsonResponse({"code": 0, "data": "", "msg": ""})
     except Exception as e:
         return JsonResponse({"code": 1, "data": "", "msg": "{}".format(e)})
