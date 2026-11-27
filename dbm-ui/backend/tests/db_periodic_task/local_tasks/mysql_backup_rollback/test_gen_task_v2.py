@@ -881,3 +881,181 @@ class TestNonDirectCloudCosIgnorePolicy(TestCase):
         # 唯一的 TenDBCluster 因无 COS 被排除后，软配额不应给 TenDBCluster 分配名额
         self.assertEqual(type_targets[ClusterType.TenDBCluster.value], 0)
         self.assertEqual(type_targets[ClusterType.TenDBHA.value], 2)
+
+
+class TestExerciseHostSpecSnapshot(TestCase):
+    def test_build_host_spec_snapshot_parses_dict_and_json_str(self):
+        raw = {
+            "ip": "127.0.0.10",
+            "bk_host_id": 1001,
+            "bk_cloud_id": 0,
+            "device_class": "S5.4XLARGE32",
+            "svr_type_name": "CVM",
+            "cpu_num": 16,
+            "dram_cap": 32768,
+            "total_storage_cap": 1200,
+            "total_data_storage_cap": 1000,
+            "storage_device": '{"/data": {"size": 1000, "disk_type": "CLOUD_SSD"}}',
+            "os_type": "Linux",
+            "os_name": "tlinux-2.6",
+            "city": "sz",
+            "sub_zone": "gm",
+            "idc_name": "idc-1",
+            "rack_id": "rack-1",
+            "status": "Used",
+            "operator": "system",
+        }
+        snap = MySQLBackupRecoverTask.build_host_spec_snapshot(raw)
+        self.assertEqual(snap["ip"], "127.0.0.10")
+        self.assertEqual(snap["device_class"], "S5.4XLARGE32")
+        self.assertEqual(snap["cpu_num"], 16)
+        self.assertEqual(snap["dram_cap"], 32768)
+        self.assertEqual(snap["storage_device"], {"/data": {"size": 1000, "disk_type": "CLOUD_SSD"}})
+        self.assertNotIn("status", snap)
+        self.assertNotIn("operator", snap)
+
+        self.assertEqual(MySQLBackupRecoverTask.build_host_spec_snapshot(None), {})
+        self.assertEqual(
+            MySQLBackupRecoverTask.build_host_spec_snapshot({"ip": "127.0.0.11", "cpu_num": None}),
+            {"ip": "127.0.0.11"},
+        )
+
+    def test_submit_exercise_task_persists_exercise_host_spec(self):
+        v2 = _v2()
+        cluster = Cluster.objects.create(
+            bk_biz_id=9201,
+            bk_cloud_id=0,
+            cluster_type=ClusterType.TenDBHA.value,
+            immute_domain="spec.test.db",
+            name="spectest",
+            phase=ClusterPhase.ONLINE.value,
+            status=ClusterStatus.NORMAL.value,
+        )
+        host = v2.FreeHost(
+            bk_host_id=921,
+            ip="127.0.0.95",
+            bk_cloud_id=0,
+            bk_biz_id=2005000002,
+            os_type="Linux",
+            os_name="tlinux-2.6",
+            mount_sizes={"/data": 500},
+            labels=["1"],
+        )
+        cand = v2.ExerciseCandidate(
+            cluster=cluster,
+            tier=1,
+            recover_success_cnt=0,
+            backup_record={
+                "bk_biz_id": cluster.bk_biz_id,
+                "cluster_address": cluster.immute_domain,
+                "backup_id": "bk-spec-1",
+                "backup_begin_time": timezone.now() - timedelta(hours=2),
+                "backup_end_time": timezone.now() - timedelta(hours=1),
+                "backup_host": "127.0.0.1",
+                "mysql_role": "slave",
+                "backup_type": "physical",
+                "binlog_info": "{}",
+                "file_list": "[]",
+                "extra_fields": "{}",
+            },
+            parsed_extra_fields={
+                "backup_charset": "utf8mb4",
+                "sql_mode": "",
+                "backup_tool": "xtrabackup",
+                "time_zone": "+08:00",
+            },
+            backup_id="bk-spec-1",
+            backup_file_size_gb=50.0,
+            mysql_version="MySQL-5.7",
+            need_mysql8=False,
+            storage_spec=[],
+            required_disk_gb=150,
+        )
+        apply_resp = {
+            "code": 0,
+            "request_id": "req-spec-1",
+            "data": [
+                {
+                    "data": [
+                        {
+                            "ip": host.ip,
+                            "bk_host_id": host.bk_host_id,
+                            "bk_cloud_id": host.bk_cloud_id,
+                            "bk_biz_id": host.bk_biz_id,
+                            "labels": host.labels,
+                            "device_class": "IT5.4XLARGE32",
+                            "cpu_num": 16,
+                            "dram_cap": 32768,
+                            "total_data_storage_cap": 500,
+                            "storage_device": {"/data": {"size": 500, "disk_type": "NVME_SSD"}},
+                            "os_name": "tlinux-2.6",
+                        }
+                    ]
+                }
+            ],
+        }
+        with patch.object(v2.DBResourceApi, "resource_apply", return_value=apply_resp), patch.object(
+            v2, "backup_info_format", return_value={}
+        ), patch.object(v2, "MySQLRollbackExerciseFlow") as flow_cls:
+            ok = v2._submit_exercise_task(cand, host, [])
+
+        self.assertTrue(ok)
+        flow_cls.return_value.run.assert_called_once()
+        task_row = MySQLBackupRecoverTask.objects.get(cluster_id=cluster.id)
+        self.assertEqual(task_row.exercise_host_ip, "127.0.0.95")
+        self.assertEqual(task_row.exercise_host_spec["device_class"], "IT5.4XLARGE32")
+        self.assertEqual(task_row.exercise_host_spec["cpu_num"], 16)
+        self.assertEqual(task_row.exercise_host_spec["dram_cap"], 32768)
+        self.assertEqual(
+            task_row.exercise_host_spec["storage_device"], {"/data": {"size": 500, "disk_type": "NVME_SSD"}}
+        )
+
+    def test_controller_resolve_exercise_host_spec_fallback(self):
+        from backend.flow.engine.controller import mysql_backup_data_recovery_exercise as ctrl
+
+        # 1) 入参已包含硬件字段时直接抽取，不查资源池
+        with patch.object(ctrl.DBResourceApi, "resource_list") as mock_list:
+            snap = ctrl._resolve_exercise_host_spec(
+                {
+                    "ip": "127.0.0.21",
+                    "bk_cloud_id": 0,
+                    "device_class": "S5.2XLARGE16",
+                    "cpu_num": 8,
+                }
+            )
+        mock_list.assert_not_called()
+        self.assertEqual(snap["device_class"], "S5.2XLARGE16")
+
+        # 2) 入参缺少硬件字段时按 (bk_cloud_id, ip) 查资源池补齐
+        mock_resp = {
+            "code": 0,
+            "data": {
+                "details": [
+                    {
+                        "ip": "127.0.0.22",
+                        "bk_cloud_id": 1,
+                        "device_class": "WRONG_CLOUD",
+                    },
+                    {
+                        "ip": "127.0.0.22",
+                        "bk_cloud_id": 0,
+                        "device_class": "S5.4XLARGE32",
+                        "cpu_num": 16,
+                        "storage_device": {"/data": {"size": 800, "disk_type": "CLOUD_SSD"}},
+                    },
+                ]
+            },
+        }
+        with patch.object(ctrl.DBResourceApi, "resource_list", return_value=mock_resp) as mock_list:
+            snap = ctrl._resolve_exercise_host_spec({"ip": "127.0.0.22", "bk_host_id": 22, "bk_cloud_id": 0})
+        mock_list.assert_called_once_with(
+            params={"hosts": ["127.0.0.22"], "bk_cloud_id": 0, "limit": -1, "offset": 0}, raw=True
+        )
+        self.assertEqual(snap["device_class"], "S5.4XLARGE32")
+        self.assertEqual(snap["cpu_num"], 16)
+        self.assertEqual(snap["storage_device"]["/data"]["disk_type"], "CLOUD_SSD")
+
+        # 3) 资源池异常时降级返回基础字段，不抛异常
+        with patch.object(ctrl.DBResourceApi, "resource_list", side_effect=RuntimeError("timeout")):
+            snap = ctrl._resolve_exercise_host_spec({"ip": "127.0.0.23", "bk_host_id": 23, "bk_cloud_id": 0})
+        self.assertEqual(snap, {"ip": "127.0.0.23", "bk_host_id": 23, "bk_cloud_id": 0})

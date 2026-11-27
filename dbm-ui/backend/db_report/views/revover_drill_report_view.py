@@ -30,14 +30,28 @@ class BackupRecoverTaskSerializer(serializers.ModelSerializer, ReportCommonField
     """回档演练任务序列化器"""
 
     recover_duration = serializers.SerializerMethodField(help_text=_("恢复花费时间(小时)"))
+    backup_download_duration = serializers.SerializerMethodField(help_text=_("下载全备耗时(小时)"))
     task_id = serializers.SerializerMethodField(help_text=_("任务ID链接"))
 
     def get_recover_duration(self, obj):
-        """计算恢复花费时间"""
-        if obj.recover_start_time and obj.recover_end_time:
+        """
+        计算恢复花费时间。纯恢复秒数优先。
+        新流程(记录了计时步骤)只认纯恢复秒数，未完成或失败时留空；旧记录才按起止时间计算。
+        """
+        if obj.recover_duration is not None:
+            return round(obj.recover_duration / 3600, 2)
+        if obj.exercise_timing_nodes:
+            return None
+        if obj.recover_start_time and obj.recover_end_time and obj.recover_end_time > obj.recover_start_time:
             duration = obj.recover_end_time - obj.recover_start_time
-            return round(duration.total_seconds() / 3600, 2)  # 转换为小时，保留两位小数
+            return round(duration.total_seconds() / 3600, 2)
         return None
+
+    def get_backup_download_duration(self, obj):
+        """下载全备耗时(小时)，未记录时留空"""
+        if obj.backup_download_duration is None:
+            return None
+        return round(obj.backup_download_duration / 3600, 2)
 
     def get_task_id(self, obj):
         """生成任务ID的超链接"""
@@ -54,6 +68,7 @@ class BackupRecoverTaskSerializer(serializers.ModelSerializer, ReportCommonField
             "cluster_domain",
             "backup_begin_time",
             "backup_total_size",
+            "backup_download_duration",
             "recover_duration",
             "status",
             "state",
@@ -140,6 +155,11 @@ class RecoverDrillTaskViewSet(BaseDrillReportViewSet):
             "display_name": _("备份开始时间"),
             "format": ReportFieldFormat.TIME.value,
             "ordering": True,
+        },
+        {
+            "name": "backup_download_duration",
+            "display_name": _("下载全备耗时(小时)"),
+            "format": ReportFieldFormat.TEXT.value,
         },
         {
             "name": "recover_duration",

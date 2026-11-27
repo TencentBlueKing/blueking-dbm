@@ -1392,6 +1392,7 @@ def _submit_exercise_task(
             "rollback_type": RollbackType.REMOTE_AND_BACKUPID,
         }
         task.exercise_host_ip = mch_info["ip"]
+        task.exercise_host_spec = MySQLBackupRecoverTask.build_host_spec_snapshot(mch_info)
         task.task_status = TaskStatus.COMMIT_SUCCESS
         task.save()
         flow = MySQLRollbackExerciseFlow(root_id=root_id, data=flow_context)
