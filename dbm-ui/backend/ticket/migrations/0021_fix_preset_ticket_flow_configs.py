@@ -33,7 +33,6 @@ FIXED_SWITCH_CORRECTIONS = {
         for ticket_type in (
             "MYSQL_AUTHORIZE_RULES",
             "MYSQL_EXCEL_AUTHORIZE_RULES",
-            "MYSQL_DTS_PRECHECK",
             "FAKE_TICKET",
             "TENDBCLUSTER_AUTHORIZE_RULES",
             "TENDBCLUSTER_EXCEL_AUTHORIZE_RULES",
