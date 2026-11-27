@@ -624,7 +624,7 @@ func DoResetSlaveWithBinlogPos(
 	slavePort int,
 	reportLogf switchlogger.SwitchLogFunc,
 ) (string, uint64, error) {
-	slaveDB, err := hamysql.NewGormDB(
+	slaveDB, err := hamysql.NewGormDBWithTimeout(
 		hamysql.OptionProto(DefaultMySQLProtocol),
 		hamysql.OptionIP(slaveIp),
 		hamysql.OptionPort(slavePort),
@@ -704,7 +704,7 @@ func DoChangeMasterSteps(
 	src hamysql.ReplSource,
 	reportLogf switchlogger.SwitchLogFunc,
 ) error {
-	slaveDB, err := hamysql.NewGormDB(
+	slaveDB, err := hamysql.NewGormDBWithTimeout(
 		hamysql.OptionProto(DefaultMySQLProtocol),
 		hamysql.OptionIP(slaveIp),
 		hamysql.OptionPort(slavePort),

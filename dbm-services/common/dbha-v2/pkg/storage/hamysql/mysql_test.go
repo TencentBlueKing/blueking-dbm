@@ -230,3 +230,218 @@ func TestSqlxDBTimeout(t *testing.T) {
 		elapsed,
 	)
 }
+
+// switchConnectTimeout matches switchcore.DbConnectTimeout when the config value is unset.
+const switchConnectTimeout = 10 * time.Second
+
+type endpointTestConfig struct {
+	host     string
+	port     int
+	user     string
+	password string
+	sql1     string
+	sql2     string
+}
+
+func getEndpointTestConfig(t *testing.T, prefix string) endpointTestConfig {
+	t.Helper()
+
+	host := os.Getenv(prefix + "_HOST")
+	portStr := os.Getenv(prefix + "_PORT")
+	user := os.Getenv(prefix + "_USER")
+	password := os.Getenv(prefix + "_PASSWORD")
+	port, err := strconv.Atoi(portStr)
+	if err != nil {
+		t.Fatalf("invalid %s port(%s), errmsg(%s)", prefix, portStr, err)
+	}
+
+	return endpointTestConfig{
+		host:     host,
+		port:     port,
+		user:     user,
+		password: password,
+		sql1:     os.Getenv(prefix + "_SQL1"),
+		sql2:     os.Getenv(prefix + "_SQL2"),
+	}
+}
+
+// TestSwitchConnectTdbctl opens a tdbctl connection with the same options as
+// TdbctlOperator.ConnectTdbctlNode, then runs TDBCTL_SQL1 and TDBCTL_SQL2.
+// An empty SQL is skipped.
+func TestSwitchConnectTdbctl(t *testing.T) {
+	cfg := getEndpointTestConfig(t, "TDBCTL")
+
+	log.Println("host:", cfg.host)
+	log.Println("port:", cfg.port)
+	log.Println("user:", cfg.user)
+	log.Println("password:", cfg.password)
+	log.Println("sql1:", cfg.sql1)
+	log.Println("sql2:", cfg.sql2)
+	log.Println("connect timeout:", switchConnectTimeout)
+
+	start := time.Now()
+	db, err := hamysql.NewGormDB(
+		hamysql.OptionProto("tcp"),
+		hamysql.OptionIP(cfg.host),
+		hamysql.OptionPort(cfg.port),
+		hamysql.OptionUser(cfg.user),
+		hamysql.OptionPassword(cfg.password),
+		hamysql.OptionTimeout(switchConnectTimeout),
+		hamysql.OptionSkipInitializeWithVersion(false),
+		hamysql.OptionDisableDatetimePrecision(true),
+		hamysql.OptionCharset(""),
+	)
+	elapsed := time.Since(start)
+	if err != nil {
+		t.Fatalf("connect tdbctl(%s:%d) failed, elapsed=%s, errmsg: %s",
+			cfg.host, cfg.port, elapsed, err.Error())
+	}
+	defer db.Close()
+
+	log.Printf("connect tdbctl(%s:%d) success, elapsed=%s", cfg.host, cfg.port, elapsed)
+
+	if cfg.sql1 != "" {
+		ctx, cancel := context.WithTimeout(context.Background(), switchConnectTimeout)
+		err = db.DBWithContext(ctx).Exec(cfg.sql1).Error
+		cancel()
+		if err != nil {
+			t.Fatalf("exec tdbctl sql1 failed, sql=%s, errmsg: %s", cfg.sql1, err.Error())
+		}
+		log.Printf("exec tdbctl sql1 success, sql=%s", cfg.sql1)
+	}
+	if cfg.sql2 != "" {
+		ctx, cancel := context.WithTimeout(context.Background(), switchConnectTimeout)
+		err = db.DBWithContext(ctx).Exec(cfg.sql2).Error
+		cancel()
+		if err != nil {
+			t.Fatalf("exec tdbctl sql2 failed, sql=%s, errmsg: %s", cfg.sql2, err.Error())
+		}
+		log.Printf("exec tdbctl sql2 success, sql=%s", cfg.sql2)
+	}
+}
+
+// TestSwitchConnectProxy opens a mysql-proxy admin connection with the same
+// options as ProxyRefreshBackends, then runs PROXY_SQL1 and PROXY_SQL2.
+// An empty SQL is skipped. NewSqlxDB itself runs "select version()".
+func TestSwitchConnectProxy(t *testing.T) {
+	cfg := getEndpointTestConfig(t, "PROXY")
+
+	log.Println("host:", cfg.host)
+	log.Println("port:", cfg.port)
+	log.Println("user:", cfg.user)
+	log.Println("password:", cfg.password)
+	log.Println("sql1:", cfg.sql1)
+	log.Println("sql2:", cfg.sql2)
+	log.Println("connect timeout:", switchConnectTimeout)
+
+	start := time.Now()
+	db, err := hamysql.NewSqlxDB(
+		hamysql.OptionIP(cfg.host),
+		hamysql.OptionPort(cfg.port),
+		hamysql.OptionUser(cfg.user),
+		hamysql.OptionPassword(cfg.password),
+		hamysql.OptionCharset(""),
+		hamysql.OptionTimeout(switchConnectTimeout),
+	)
+	elapsed := time.Since(start)
+	if err != nil {
+		t.Fatalf("connect proxy(%s:%d) failed, elapsed=%s, errmsg: %s",
+			cfg.host, cfg.port, elapsed, err.Error())
+	}
+	defer db.Close()
+
+	log.Printf("connect proxy(%s:%d) success, elapsed=%s", cfg.host, cfg.port, elapsed)
+
+	if cfg.sql1 != "" {
+		ctx, cancel := context.WithTimeout(context.Background(), switchConnectTimeout)
+		_, err = db.DB().ExecContext(ctx, cfg.sql1)
+		cancel()
+		if err != nil {
+			t.Fatalf("exec proxy sql1 failed, sql=%s, errmsg: %s", cfg.sql1, err.Error())
+		}
+		log.Printf("exec proxy sql1 success, sql=%s", cfg.sql1)
+	}
+	if cfg.sql2 != "" {
+		ctx, cancel := context.WithTimeout(context.Background(), switchConnectTimeout)
+		_, err = db.DB().ExecContext(ctx, cfg.sql2)
+		cancel()
+		if err != nil {
+			t.Fatalf("exec proxy sql2 failed, sql=%s, errmsg: %s", cfg.sql2, err.Error())
+		}
+		log.Printf("exec proxy sql2 success, sql=%s", cfg.sql2)
+	}
+}
+
+func TestNewGormDBWithTimeoutRejectsConflictingOptions(t *testing.T) {
+	_, err := hamysql.NewGormDBWithTimeout(hamysql.OptionSkipInitializeWithVersion(false))
+	if err == nil {
+		t.Fatal("expected error when SkipInitializeWithVersion is false")
+	}
+	log.Printf("SkipInitializeWithVersion(false) rejected, errmsg: %s", err)
+
+	_, err = hamysql.NewGormDBWithTimeout(hamysql.OptionAutoSelectVersion(false))
+	if err == nil {
+		t.Fatal("expected error when AutoSelectVersion is false")
+	}
+	log.Printf("AutoSelectVersion(false) rejected, errmsg: %s", err)
+}
+
+func TestNewGormDBWithTimeoutTdbctlOptions(t *testing.T) {
+	// Same options as ConnectTdbctlNode, except SkipInitializeWithVersion stays true
+	// so OptionTimeout covers the connect. Charset is empty, so there is no SET NAMES.
+	cfg := getEndpointTestConfig(t, "TDBCTL")
+
+	db, err := hamysql.NewGormDBWithTimeout(
+		hamysql.OptionProto("tcp"),
+		hamysql.OptionIP(cfg.host),
+		hamysql.OptionPort(cfg.port),
+		hamysql.OptionUser(cfg.user),
+		hamysql.OptionPassword(cfg.password),
+		hamysql.OptionTimeout(switchConnectTimeout),
+		hamysql.OptionDisableDatetimePrecision(true),
+		hamysql.OptionCharset(""),
+	)
+	if err != nil {
+		t.Fatalf("connect tdbctl(%s:%d) failed, errmsg: %s", cfg.host, cfg.port, err)
+	}
+	defer db.Close()
+
+	version, err := db.Version(context.Background())
+	if err != nil {
+		t.Fatalf("version: %s", err)
+	}
+	log.Printf("connect tdbctl(%s:%d) with timeout wrapper, version=%s", cfg.host, cfg.port, version)
+}
+
+func TestNewGormDBWithTimeoutBusyConnect(t *testing.T) {
+	// Charset causes SET NAMES. AutoMaxAllowedPacket causes SELECT @@max_allowed_packet.
+	// AutoSelectVersion is forced, so SELECT VERSION() runs after connect.
+	cfg := getEndpointTestConfig(t, "TDBCTL")
+
+	db, err := hamysql.NewGormDBWithTimeout(
+		hamysql.OptionProto("tcp"),
+		hamysql.OptionIP(cfg.host),
+		hamysql.OptionPort(cfg.port),
+		hamysql.OptionUser(cfg.user),
+		hamysql.OptionPassword(cfg.password),
+		hamysql.OptionTimeout(switchConnectTimeout),
+		hamysql.OptionCharset("utf8mb4"),
+		hamysql.OptionAutoMaxAllowedPacket(true),
+		hamysql.OptionParseTime(true),
+		hamysql.OptionLoc("Local"),
+		hamysql.OptionReadTimeout(switchConnectTimeout),
+		hamysql.OptionWriteTimeout(switchConnectTimeout),
+		hamysql.OptionInterpolateParams(true),
+		hamysql.OptionDisableDatetimePrecision(true),
+	)
+	if err != nil {
+		t.Fatalf("connect tdbctl(%s:%d) failed, errmsg: %s", cfg.host, cfg.port, err)
+	}
+	defer db.Close()
+
+	version, err := db.Version(context.Background())
+	if err != nil {
+		t.Fatalf("version: %s", err)
+	}
+	log.Printf("busy connect tdbctl(%s:%d), version=%s", cfg.host, cfg.port, version)
+}

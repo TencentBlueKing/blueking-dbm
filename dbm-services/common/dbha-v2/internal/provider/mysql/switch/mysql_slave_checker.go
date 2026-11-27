@@ -168,7 +168,7 @@ func (checker *MySQLSlaveChecker) Check() error {
 	ip := checker.SlaveIp
 	port := checker.SlavePort
 
-	slaveDB, err := hamysql.NewGormDB(
+	slaveDB, err := hamysql.NewGormDBWithTimeout(
 		hamysql.OptionProto(DefaultMySQLProtocol),
 		hamysql.OptionIP(ip),
 		hamysql.OptionPort(port),
